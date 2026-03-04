@@ -7,6 +7,7 @@ export default function APIKeys() {
   const [newLabel, setNewLabel] = useState('');
   const [showSecret, setShowSecret] = useState({});
   const [copied, setCopied] = useState(null);
+  const [tunnelStatus, setTunnelStatus] = useState({ connected: false, url: null });
 
   const loadKeys = useCallback(async () => {
     if (!bridge) return;
@@ -15,6 +16,16 @@ export default function APIKeys() {
   }, [bridge]);
 
   useEffect(() => { loadKeys(); }, [loadKeys]);
+
+  // Fetch tunnel status
+  useEffect(() => {
+    if (!bridge) return;
+    bridge.tunnel.getStatus().then(setTunnelStatus);
+    const unsub = bridge.tunnel.onStatusChange((data) => {
+      setTunnelStatus(data);
+    });
+    return unsub;
+  }, [bridge]);
 
   async function createKey() {
     if (!bridge) return;
@@ -38,14 +49,34 @@ export default function APIKeys() {
   }
 
   const port = gatewayStatus?.port || 4000;
+  const localUrl = `http://localhost:${port}/v1`;
+  const publicUrl = tunnelStatus?.connected && tunnelStatus?.url ? `${tunnelStatus.url}/v1` : null;
 
   return (
     <div className="page">
       <div className="page-title">🔑 API Keys</div>
       <div className="page-sub">
-        Generate keys for your apps. Your AI runs at <code className="font-mono" style={{ fontSize: 13 }}>
-          http://localhost:{port}/v1
-        </code>
+        Generate keys for your apps.
+      </div>
+
+      {/* URL display */}
+      <div style={{ marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 13, color: 'var(--text-light)', minWidth: 100 }}>🏠 Same machine:</span>
+          <code className="font-mono" style={{ fontSize: 13 }}>{localUrl}</code>
+        </div>
+        {publicUrl ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 13, color: 'var(--text-light)', minWidth: 100 }}>🌍 From anywhere:</span>
+            <code className="font-mono" style={{ fontSize: 13 }}>{publicUrl}</code>
+            <span style={{ fontSize: 11, color: 'var(--honey)', fontWeight: 600 }}>✓ Connected</span>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 13, color: 'var(--text-light)', minWidth: 100 }}>🌍 From anywhere:</span>
+            <span style={{ fontSize: 13, color: 'var(--text-light)' }}>Connecting...</span>
+          </div>
+        )}
       </div>
 
       {/* Key explanation */}
