@@ -2,7 +2,7 @@
 
 **Run the best open source AI locally. No API keys. No subscriptions. No terminal.**
 
-LLM Bear is a desktop app for Mac and Windows that gives anyone one-click access to the world's best open source language models. Modeled after [TunnelBear](https://tunnelbear.com) — same playful energy, same "anyone can use this" ethos. Except instead of tunneling to countries, the bear tunnels to AI models.
+LLM Bear is a desktop app for Mac and Windows that gives anyone one-click access to the world's best open source language models. Friendly coding bear mascot, warm playful aesthetic, zero-jargon approach.
 
 ## Quick Start
 
@@ -81,7 +81,7 @@ OpenLLM/
 │       ├── index.html            # HTML entry
 │       ├── main.jsx              # React root
 │       ├── App.jsx               # Router, state management, layout
-│       ├── styles.css             # TunnelBear-inspired global theme
+│       ├── styles.css             # LLM Bear global theme — warm, playful, rounded
 │       ├── components/
 │       │   └── Sidebar.jsx       # Navigation sidebar
 │       └── pages/
@@ -94,17 +94,17 @@ OpenLLM/
 ├── site/
 │   └── index.html                # Landing page (llmbear.com)
 ├── PLAN.md                       # Full project plan
-├── DESIGN.md                     # TunnelBear-inspired design spec
+├── DESIGN.md                     # LLM Bear design spec
 └── .github/workflows/
     └── build.yml                 # CI/CD for Mac .dmg + Windows .exe
 ```
 
 ## Design
 
-Modeled after TunnelBear's design language. See [DESIGN.md](DESIGN.md) for the full spec.
+See [DESIGN.md](DESIGN.md) for the full spec.
 
 - 🐻 Friendly bear mascot guiding every interaction
-- 🟡 Yellow pipe/tunnel visual metaphor
+- 🟡 Coding bear with glasses — warm accent colors
 - 🗺️ Landscape-based main view
 - 💬 Zero jargon ("Get this model" not "Pull the 7B GGUF")
 - 🎨 Baloo 2 + Nunito fonts, sky blue / pipe yellow / grass green palette

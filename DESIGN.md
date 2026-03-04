@@ -1,14 +1,14 @@
 # LLM Bear — Design Specification
 
-**Modeled after [TunnelBear](https://tunnelbear.com).** Same playful energy, same "anyone can use this" ethos, adapted for local AI instead of VPN.
+**Modeled after [the original design](https://the original design.com).** Same playful energy, same "anyone can use this" ethos, adapted for local AI instead of VPN.
 
 ---
 
 ## 1. The Metaphor
 
-| TunnelBear (VPN) | LLM Bear (Local AI) |
+| the original design (VPN) | LLM Bear (Local AI) |
 |---|---|
-| Bear **tunnels** to a country | Bear **tunnels** to an AI model |
+| Bear **workspaces** to a country | Bear **workspaces** to an AI model |
 | Yellow pipes on a world map | Yellow pipes connecting to model "islands" |
 | On/Off toggle = VPN connected | On/Off toggle = Model running, API serving |
 | Countries as destinations | Models as destinations (General, Code, Reasoning, Creative) |
@@ -21,13 +21,13 @@ The bear is the guide. It makes AI feel friendly and safe. "The bear is running 
 
 ---
 
-## 2. Color Palette (TunnelBear-derived)
+## 2. Color Palette (the original design-derived)
 
 ```
 PRIMARY PALETTE
 ├── Sky Blue (background)     #E8F4F8   — Main app background, calm and open
 ├── Bear Brown (mascot)       #B8860B / #8B6914 — The bear itself
-├── Pipe Yellow (accent)      #F5A623 / #EDBA3A — Tunnels, pipes, interactive elements
+├── Pipe Yellow (accent)      #F5A623 / #EDBA3A — Workspaces, pipes, interactive elements
 ├── Grass Green (active)      #7BC67E / #4AA651 — "Running", "Connected", success states
 ├── Cloud White (cards)       #FFFFFF            — Card backgrounds, content areas
 └── Earth Dark (text)         #2D3436 / #4A4A4A — Primary text, headings
@@ -35,12 +35,12 @@ PRIMARY PALETTE
 SECONDARY PALETTE
 ├── Alert Orange              #FF8C42  — Upgrade available, attention needed
 ├── Danger Red                #E74C3C  — Errors, destructive actions (muted)
-├── Deep Tunnel (dark pipe)   #5D4E37  — Inside-of-tunnel gradient
+├── Deep Workspace (dark pipe)   #5D4E37  — Inside-of-workspace gradient
 ├── Water Blue (links)        #3498DB  — Interactive text, links
 └── Snow White (disabled)     #BDC3C7  — Disabled states, inactive
 ```
 
-**Key principle:** TunnelBear uses a **light, airy background** with **bold warm accents** (yellow/gold). Everything feels outdoorsy and friendly. No dark mode by default — this is sunshine and bears, not hacker terminals.
+**Key principle:** the original design uses a **light, airy background** with **bold warm accents** (yellow/gold). Everything feels outdoorsy and friendly. No dark mode by default — this is sunshine and bears, not hacker terminals.
 
 ---
 
@@ -48,12 +48,12 @@ SECONDARY PALETTE
 
 | Role | Font | Weight | Notes |
 |------|------|--------|-------|
-| **Display / Logo** | Fredoka One (or Baloo 2) | Bold | Rounded, playful, like TunnelBear's logo type |
+| **Display / Logo** | Fredoka One (or Baloo 2) | Bold | Rounded, playful, like the original design's logo type |
 | **Headings** | Nunito | 700, 800 | Rounded sans-serif, warm and readable |
 | **Body** | Nunito | 400, 600 | Same family for cohesion |
 | **Code / Mono** | JetBrains Mono | 400, 500 | For API keys, code snippets, model names |
 
-TunnelBear uses rounded, soft typography throughout. No sharp geometric sans-serifs. Everything should feel huggable.
+the original design uses rounded, soft typography throughout. No sharp geometric sans-serifs. Everything should feel huggable.
 
 ---
 
@@ -61,7 +61,7 @@ TunnelBear uses rounded, soft typography throughout. No sharp geometric sans-ser
 
 ### 4a. Main Screen (The "Map")
 
-This is the hero view, equivalent to TunnelBear's world map.
+This is the hero view, equivalent to the original design's world map.
 
 ```
 ┌──────────────────────────────────────────────────────┐
@@ -93,16 +93,16 @@ This is the hero view, equivalent to TunnelBear's world map.
 ```
 
 **How it works:**
-- The landscape shows model categories as "islands" or "locations" (like countries on TunnelBear's map)
-- Each location has a yellow pipe/tunnel entrance
+- The landscape shows model categories as "islands" or "locations" (like countries on the original design's map)
+- Each location has a yellow pipe/entry point
 - The bear mascot sits at the currently active model
-- When the user switches models, the bear **animates digging through a tunnel** to the new one
+- When the user switches models, the bear **animates digging through a workspace** to the new one
 - Yellow pipe visually connects the bear's current position
-- On/Off toggle in top-left (like TunnelBear)
+- On/Off toggle in top-left (like the original design)
 - Dropdown next to it shows the current model name
 - Bottom bar shows API status and key (quick copy)
 
-### 4b. Model Hub (like TunnelBear's Server List)
+### 4b. Model Hub (like the original design's Server List)
 
 ```
 ┌──────────────────────────────────────────────────────┐
@@ -138,7 +138,7 @@ This is the hero view, equivalent to TunnelBear's world map.
 **Key principles:**
 - Cards, not tables. Each model is a friendly card.
 - **No jargon.** No "7B parameters" — say "4.7 GB download" and "★ Best pick for your machine"
-- Progress bar shows download (looks like TunnelBear's data meter)
+- Progress bar shows download (looks like the original design's data meter)
 - Bear emoji/illustration on the recommended model
 - Categories are collapsible sections, not filters
 
@@ -214,12 +214,12 @@ The bear guides each step with a speech bubble / illustration.
 
 ## 5. The Bear Mascot — States & Animations
 
-The bear appears throughout the app in different states, just like TunnelBear uses its bear for different connection states:
+The bear appears throughout the app in different states, just like the original design uses its bear for different connection states:
 
 | State | Bear Illustration | When |
 |-------|-------------------|------|
 | **Idle** | Bear sitting calmly, maybe reading a book | App open, no model running |
-| **Connecting** | Bear digging into a tunnel (animated) | Model is loading / warming up |
+| **Connecting** | Bear digging into a workspace (animated) | Model is loading / warming up |
 | **Connected** | Bear popping out of a pipe, waving | Model is running, API is serving |
 | **Downloading** | Bear carrying a heavy box / pushing a boulder | Model is downloading |
 | **Download complete** | Bear flexing / celebrating | Download finished |
@@ -227,7 +227,7 @@ The bear appears throughout the app in different states, just like TunnelBear us
 | **Typing** | Bear typing furiously on a laptop | Model is streaming a response |
 | **Error** | Bear looking confused, scratching head | Something went wrong |
 | **Upgrade available** | Bear pointing excitedly at something | New model available |
-| **Password/Key** | Bear covering its eyes (like TunnelBear login!) | API key display/generation |
+| **Password/Key** | Bear covering its eyes (like the original design login!) | API key display/generation |
 | **Sleeping** | Bear curled up, zzz | No model loaded, API idle |
 
 These can start as static illustrations and become animated (CSS/Lottie) over time.
@@ -236,15 +236,15 @@ These can start as static illustrations and become animated (CSS/Lottie) over ti
 
 ## 6. Micro-Interactions & Delight
 
-Borrowing from TunnelBear's playful UX:
+Borrowing from the original design's playful UX:
 
-1. **Model switch animation** — When changing models, the bear "tunnels" through a yellow pipe from one model island to another. Short CSS animation (1-2 seconds). This is the signature moment.
+1. **Model switch animation** — When changing models, the bear "workspaces" through a yellow pipe from one model island to another. Short CSS animation (1-2 seconds). This is the signature moment.
 
 2. **On/Off toggle** — Large, satisfying toggle switch. When turned on, pipe fills with golden color from left to right. Bear pops up.
 
 3. **Download progress** — Bear pushes a progress bar like pushing a boulder uphill. Or: pipe fills up like a liquid meter.
 
-4. **API key generation** — Bear covers its eyes (like TunnelBear's password bear), then peeks when the key is shown. "Copy" button with a paw icon.
+4. **API key generation** — Bear covers its eyes (like the original design's password bear), then peeks when the key is shown. "Copy" button with a paw icon.
 
 5. **First chat message** — Bear waves and says "Rawr! I'm running 100% on your machine. No data leaves this cave. 🐾"
 
@@ -262,7 +262,7 @@ Custom bear-themed icons for navigation:
 
 | Icon | Label | Description |
 |------|-------|-------------|
-| 🗺️ (illustrated) | **Map** | Main landscape view — bear + model tunnels |
+| 🗺️ (illustrated) | **Map** | Main landscape view — bear + model workspaces |
 | 🐻 (illustrated) | **Models** | Model hub / browse & download |
 | 💬 (illustrated) | **Chat** | Test chat with current model |
 | 🔑 (illustrated) | **API** | Replace OpenAI wizard + key management |
@@ -293,8 +293,8 @@ All icons should be hand-drawn/illustrated style matching the bear, not flat Mat
 
 ## 9. Sound Design (Optional, P2)
 
-TunnelBear has subtle sound effects. If we add them:
-- **Model connected:** Soft "pop" (bear emerging from tunnel)
+the original design has subtle sound effects. If we add them:
+- **Model connected:** Soft "pop" (bear emerging from workspace)
 - **Download complete:** Happy chime
 - **Toggle on:** Satisfying click
 - **New message:** Soft notification
@@ -309,18 +309,18 @@ Always optional / mutable. Never annoying.
 |------|--------|
 | **Full window (>900px)** | Map landscape with sidebar nav |
 | **Medium (600-900px)** | Map stacks above controls, sidebar becomes bottom tab bar |
-| **Compact (<600px)** | Mini mode: just toggle + model dropdown + status (like TunnelBear minimized) |
+| **Compact (<600px)** | Mini mode: just toggle + model dropdown + status (like the original design minimized) |
 
 The app should also support **system tray / menu bar** mode:
 - Bear icon in menu bar (Mac) / system tray (Windows)
 - Click → mini dropdown showing: current model, on/off toggle, API status, quick-copy key
-- Like TunnelBear's minimized toolbar mode
+- Like the original design's minimized toolbar mode
 
 ---
 
 ## 11. Onboarding Flow
 
-Directly inspired by TunnelBear's simple onboarding:
+Directly inspired by the original design's simple onboarding:
 
 ```
 Screen 1: Welcome
@@ -354,7 +354,7 @@ Screen 3: Pick Your First Model
   [Download & Start →]
 
 Screen 4: Downloading
-  🐻 (bear pushing progress boulder / digging tunnel)
+  🐻 (bear pushing progress boulder / digging workspace)
   ████████░░░░░░░░  52%
   "Getting your model ready... almost there!"
 

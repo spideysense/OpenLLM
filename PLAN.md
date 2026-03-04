@@ -4,7 +4,7 @@
 
 **Audience:** Regular people and citizen developers who are tired of paying for AI. Non-technical. They don't know what a "parameter" is and they shouldn't need to.
 
-**Design:** Modeled after [TunnelBear](https://tunnelbear.com). Playful bear mascot, yellow pipe/tunnel visual metaphor, warm approachable aesthetic. See [DESIGN.md](DESIGN.md) for full design spec.
+**Design:** Playful coding bear mascot with glasses, warm approachable aesthetic. See [DESIGN.md](DESIGN.md) for full design spec.
 
 ---
 
@@ -17,7 +17,7 @@ A desktop app (Mac + Windows) that:
 4. Auto-detects when a better model is available and prompts them to upgrade
 5. Exposes a local API so citizen devs can build apps on top
 
-The user experience should feel like TunnelBear — install, toggle on, you're done. Playful bear mascot, yellow tunnel pipes, warm colors. Not a hacker tool. See [DESIGN.md](DESIGN.md).
+The user experience is install, open, done. Friendly coding bear mascot, warm colors. Not a hacker tool. See [DESIGN.md](DESIGN.md).
 
 ---
 
@@ -60,7 +60,7 @@ The user experience should feel like TunnelBear — install, toggle on, you're d
 
 ## 3. User Journey (First Run)
 
-Inspired by TunnelBear's "install → toggle on → done" simplicity:
+Inspired by "install → open → done" simplicity:
 
 ```
 Download .dmg / .exe  →  Install (one click)  →  App opens
@@ -81,7 +81,7 @@ Download .dmg / .exe  →  Install (one click)  →  App opens
   └─────────────────────────────────────────┘
        │
        ▼
-  Bear digs through a tunnel (animated progress bar)
+  Bear pushes progress bar (animated)
   "Getting your model ready... almost there!"
        │
        ▼
@@ -92,7 +92,7 @@ Download .dmg / .exe  →  Install (one click)  →  App opens
   User is chatting within minutes.
 ```
 
-**No decisions required on first run.** We pick the best model for them. Power users can browse the model hub later. Like TunnelBear — install, toggle on, you're protected. Except here: install, toggle on, you have AI.
+**No decisions required on first run.** We pick the best model for them. Power users can browse the model hub later. Install, open, you have AI.
 
 ---
 
@@ -436,7 +436,7 @@ Step 4: Try it — paste this into your code:
 
 1. **Bundle Ollama or require separate install?** Bundling makes UX simpler but increases app size (~100MB) and we need to handle updates. Separate install means one extra step but we always get the latest Ollama. **Recommendation: Auto-download Ollama on first run, don't bundle.**
 
-2. **App name: "LLM Bear" — modeled after TunnelBear.** The bear mascot is central to the UX. The name is friendly, memorable, and communicates the TunnelBear-inspired approach. See [DESIGN.md](DESIGN.md).
+2. **App name: "LLM Bear".** The coding bear mascot is central to the UX. The name is friendly, memorable. See [DESIGN.md](DESIGN.md).
 
 3. **How opinionated should the default be?** Very. The app should work with zero decisions on first run. Pick the best model for their hardware and go. Expert mode is there but hidden.
 
