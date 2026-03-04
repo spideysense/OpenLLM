@@ -302,45 +302,76 @@ describe('Model Registry', () => {
 });
 
 
-describe('Ollama: Bundled Binary', () => {
+describe('Ollama: Runtime Setup', () => {
   const ollamaSrc = fs.readFileSync(path.resolve('src/main/ollama.js'), 'utf8');
   const onboardingSrc = fs.readFileSync(path.resolve('src/renderer/pages/Onboarding.jsx'), 'utf8');
   const preloadSrc = fs.readFileSync(path.resolve('src/preload/index.js'), 'utf8');
   const pkgJson = JSON.parse(fs.readFileSync(path.resolve('package.json'), 'utf8'));
+  const workflowSrc = fs.readFileSync(path.resolve('.github/workflows/release.yml'), 'utf8');
 
-  it('should look for bundled binary in resources/vendor/ollama/', () => {
+  // ── Binary resolution chain ──
+
+  it('should check bundled binary first (resources/vendor/ollama)', () => {
     expect(ollamaSrc).toContain('getBundledPath');
     expect(ollamaSrc).toContain('process.resourcesPath');
-    expect(ollamaSrc).toContain('vendor');
   });
 
-  it('should fall back to system ollama if bundled not found', () => {
+  it('should check system binary second (/usr/local/bin etc)', () => {
     expect(ollamaSrc).toContain('getSystemPath');
     expect(ollamaSrc).toContain('/usr/local/bin/ollama');
   });
 
-  it('should use bundled binary first, system second', () => {
-    expect(ollamaSrc).toContain('getBundledPath() || getSystemPath()');
+  it('should check downloaded binary third (~/.llmbear/bin/)', () => {
+    expect(ollamaSrc).toContain('getDownloadedPath');
+    expect(ollamaSrc).toContain('.llmbear');
   });
 
-  it('should ensure binary is executable on Unix', () => {
+  it('should use priority: bundled → system → downloaded → null', () => {
+    expect(ollamaSrc).toContain('getBundledPath() || getSystemPath() || getDownloadedPath()');
+  });
+
+  // ── Runtime download ──
+
+  it('should auto-download Ollama if not found anywhere', () => {
+    expect(ollamaSrc).toContain('downloadOllama');
+    expect(ollamaSrc).toContain('ollama.com/download');
+  });
+
+  it('should download to ~/.llmbear/bin/', () => {
+    expect(ollamaSrc).toContain('.llmbear');
+    expect(ollamaSrc).toContain('bin');
+  });
+
+  it('should make binary executable on Unix', () => {
     expect(ollamaSrc).toContain('chmodSync');
     expect(ollamaSrc).toContain('0o755');
   });
 
+  it('should follow redirects when downloading', () => {
+    expect(ollamaSrc).toContain('downloadFile');
+    expect(ollamaSrc).toContain('redirects');
+  });
+
+  it('should fall back to install.sh on macOS if direct download fails', () => {
+    expect(ollamaSrc).toContain('install.sh');
+    expect(ollamaSrc).toContain('curl -fsSL');
+  });
+
+  it('should open ollama.com as last resort', () => {
+    expect(ollamaSrc).toContain('ollama.com');
+    expect(ollamaSrc).toContain('openExternal');
+  });
+
+  // ── Model storage ──
+
   it('should store models in ~/.llmbear/models/', () => {
     expect(ollamaSrc).toContain('OLLAMA_MODELS');
     expect(ollamaSrc).toContain('.llmbear');
-    expect(ollamaSrc).toContain('models');
   });
 
-  it('should report isInstalled as always true (bundled)', () => {
-    expect(ollamaSrc).toContain('Promise.resolve(true)');
-  });
+  // ── Onboarding ──
 
   it('should never show "Ollama" to the user in onboarding UI text', () => {
-    // User-visible strings (in JSX text/template literals) should say "AI engine", not "Ollama"
-    // bridge.ollama is an internal API name, that's fine
     expect(onboardingSrc).not.toContain("'Ollama");
     expect(onboardingSrc).not.toContain('"Ollama');
     expect(onboardingSrc).toContain('AI engine');
@@ -350,22 +381,55 @@ describe('Ollama: Bundled Binary', () => {
     expect(onboardingSrc).toContain('runResult.success');
   });
 
-  it('should include vendor/ in extraResources for electron-builder', () => {
-    const extra = pkgJson.build.extraResources;
-    expect(extra).toBeTruthy();
-    const ollamaResource = extra.find(r => r.from && r.from.includes('vendor/ollama'));
-    expect(ollamaResource).toBeTruthy();
-  });
-
-  it('should have bundle-ollama script', () => {
-    const bundleScript = fs.readFileSync(path.resolve('scripts/bundle-ollama.js'), 'utf8');
-    expect(bundleScript).toContain('ollama/ollama/releases');
-    expect(bundleScript).toContain('darwin');
-    expect(bundleScript).toContain('win32');
-    expect(bundleScript).toContain('linux');
-  });
-
   it('should expose ollama.onProgress in preload', () => {
     expect(preloadSrc).toContain("ipcRenderer.on('ollama:progress'");
+  });
+
+  // ── CI Build (critical: don't break the release pipeline!) ──
+
+  it('should NOT bundle Ollama in CI build (too large, crashes builds)', () => {
+    // The bundle-ollama step was causing v0.1.3-v0.1.5 to fail
+    expect(workflowSrc).not.toContain('bundle-ollama');
+    expect(workflowSrc).not.toContain('Bundle Ollama');
+  });
+
+  it('should have version-less artifact names in electron-builder', () => {
+    expect(pkgJson.build.mac.artifactName).toBe('LLMBear-mac.${ext}');
+    expect(pkgJson.build.win.artifactName).toBe('LLMBear-win.${ext}');
+  });
+
+  it('should use assets/ for buildResources (not build/ which is gitignored)', () => {
+    expect(pkgJson.build.directories.buildResources).toBe('assets');
+  });
+
+  it('should have icon.png in assets/ directory', () => {
+    expect(fs.existsSync(path.resolve('assets/icon.png'))).toBe(true);
+  });
+
+  it('should NOT have extraResources referencing non-existent directories', () => {
+    // THIS WAS THE BUG: extraResources pointed to vendor/ollama/ which
+    // doesn't exist in CI. electron-builder crashes, build fails, no release,
+    // "latest" stays on old version, download 404s.
+    const extra = pkgJson.build.extraResources;
+    if (extra) {
+      for (const entry of extra) {
+        const dir = typeof entry === 'string' ? entry : entry.from;
+        if (dir) {
+          // Either the directory exists, or it's optional
+          // For now, just ensure we don't reference vendor/ollama
+          expect(dir).not.toContain('vendor/ollama');
+        }
+      }
+    }
+  });
+
+  it('should have all build paths reference files that exist in git', () => {
+    // Ensures icon, entitlements, afterSign script all exist
+    const iconPath = pkgJson.build.mac.icon;
+    const entPath = pkgJson.build.mac.entitlements;
+    const signPath = pkgJson.build.afterSign;
+    expect(fs.existsSync(path.resolve(iconPath))).toBe(true);
+    expect(fs.existsSync(path.resolve(entPath))).toBe(true);
+    expect(fs.existsSync(path.resolve(signPath))).toBe(true);
   });
 });

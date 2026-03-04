@@ -1,7 +1,8 @@
 const { spawn } = require('child_process');
-const { app } = require('electron');
+const { app, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const https = require('https');
 const http = require('http');
 const os = require('os');
 
@@ -10,7 +11,7 @@ let chatController = null;
 let ollamaProcess = null;
 
 // ═══════════════════════════════════════════════════
-// Find Ollama Binary — bundled first, then system
+// Find Ollama Binary — bundled → system → downloaded
 // ═══════════════════════════════════════════════════
 
 function getBundledPath() {
@@ -31,7 +32,6 @@ function getBundledPath() {
 }
 
 function getSystemPath() {
-  // Check common locations
   const candidates = process.platform === 'darwin'
     ? ['/usr/local/bin/ollama', '/opt/homebrew/bin/ollama']
     : process.platform === 'win32'
@@ -44,8 +44,88 @@ function getSystemPath() {
   return null;
 }
 
+function getDownloadedPath() {
+  const ext = process.platform === 'win32' ? '.exe' : '';
+  const p = path.join(os.homedir(), '.llmbear', 'bin', `ollama${ext}`);
+  if (fs.existsSync(p)) return p;
+  return null;
+}
+
 function getOllamaPath() {
-  return getBundledPath() || getSystemPath() || 'ollama';
+  return getBundledPath() || getSystemPath() || getDownloadedPath() || null;
+}
+
+// ═══════════════════════════════════════════════════
+// Download Ollama at runtime if not found anywhere
+// ═══════════════════════════════════════════════════
+
+async function downloadOllama(notify) {
+  const ext = process.platform === 'win32' ? '.exe' : '';
+  const destDir = path.join(os.homedir(), '.llmbear', 'bin');
+  const destPath = path.join(destDir, `ollama${ext}`);
+
+  if (fs.existsSync(destPath)) {
+    const stats = fs.statSync(destPath);
+    if (stats.size > 1_000_000) return destPath; // Already downloaded
+  }
+
+  fs.mkdirSync(destDir, { recursive: true });
+  notify('Downloading AI engine (~100MB)...');
+
+  const urls = {
+    darwin: 'https://ollama.com/download/ollama-darwin',
+    win32: 'https://ollama.com/download/ollama-windows-amd64.exe',
+    linux: 'https://ollama.com/download/ollama-linux-amd64',
+  };
+
+  const url = urls[process.platform];
+  if (!url) throw new Error('Unsupported platform');
+
+  try {
+    await downloadFile(url, destPath);
+    if (process.platform !== 'win32') {
+      fs.chmodSync(destPath, 0o755);
+    }
+    return destPath;
+  } catch (err) {
+    console.error('[Ollama] Download failed:', err.message);
+    // Try the install.sh approach on macOS
+    if (process.platform === 'darwin') {
+      notify('Trying alternative install...');
+      return new Promise((resolve, reject) => {
+        const { exec } = require('child_process');
+        exec('curl -fsSL https://ollama.com/install.sh | sh', { timeout: 180000 }, (err) => {
+          if (err) {
+            shell.openExternal('https://ollama.com/download');
+            reject(new Error('Please install from ollama.com, then reopen LLM Bear'));
+          } else {
+            resolve(getSystemPath() || 'ollama');
+          }
+        });
+      });
+    }
+    throw err;
+  }
+}
+
+function downloadFile(url, dest) {
+  return new Promise((resolve, reject) => {
+    const follow = (url, redirects = 0) => {
+      if (redirects > 10) return reject(new Error('Too many redirects'));
+      const mod = url.startsWith('https') ? https : http;
+      mod.get(url, { headers: { 'User-Agent': 'LLMBear/1.0' } }, (res) => {
+        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+          return follow(res.headers.location, redirects + 1);
+        }
+        if (res.statusCode !== 200) return reject(new Error(`HTTP ${res.statusCode}`));
+        const file = fs.createWriteStream(dest);
+        res.pipe(file);
+        file.on('finish', () => file.close(resolve));
+        file.on('error', reject);
+      }).on('error', reject);
+    };
+    follow(url);
+  });
 }
 
 // ═══════════════════════════════════════════════════
@@ -65,15 +145,15 @@ async function getStatus() {
   const running = await isRunning();
   const ollamaPath = getOllamaPath();
   const bundled = getBundledPath() !== null;
-  return { installed: true, running, host: OLLAMA_HOST, bundled, ollamaPath };
+  return { installed: ollamaPath !== null, running, host: OLLAMA_HOST, bundled, ollamaPath };
 }
 
 function isInstalled() {
-  return Promise.resolve(true); // Always true — we bundle it
+  return Promise.resolve(getOllamaPath() !== null);
 }
 
 // ═══════════════════════════════════════════════════
-// Start Ollama — automatic, no user action needed
+// Start Ollama — automatic, downloads if needed
 // ═══════════════════════════════════════════════════
 
 async function ensureRunning(onProgress) {
@@ -83,11 +163,26 @@ async function ensureRunning(onProgress) {
     return { success: true, alreadyRunning: true };
   }
 
-  const ollamaPath = getOllamaPath();
+  let ollamaPath = getOllamaPath();
+
+  // Download if not found anywhere
+  if (!ollamaPath) {
+    notify('Setting up AI engine...');
+    try {
+      ollamaPath = await downloadOllama(notify);
+    } catch (err) {
+      return { success: false, error: 'download_failed', message: err.message || 'Could not download AI engine. Check your internet connection and try again.' };
+    }
+  }
+
+  if (!ollamaPath) {
+    return { success: false, error: 'not_found', message: 'Could not find or download AI engine. Please visit ollama.com to install manually.' };
+  }
+
   notify('Starting AI engine...');
 
-  // Make sure bundled binary is executable
-  if (getBundledPath() && process.platform !== 'win32') {
+  // Make sure binary is executable
+  if (process.platform !== 'win32') {
     try { fs.chmodSync(ollamaPath, 0o755); } catch {}
   }
 
@@ -99,7 +194,6 @@ async function ensureRunning(onProgress) {
         env: {
           ...process.env,
           OLLAMA_HOST: '127.0.0.1:11434',
-          // Store models in app-specific location
           OLLAMA_MODELS: path.join(os.homedir(), '.llmbear', 'models'),
         },
       });
@@ -130,7 +224,6 @@ async function ensureRunning(onProgress) {
   });
 }
 
-// No-op — Ollama is bundled, nothing to install
 async function install() {
   return { success: true };
 }
@@ -219,4 +312,5 @@ module.exports = {
   abortChat,
   getOllamaPath,
   getBundledPath,
+  getDownloadedPath,
 };

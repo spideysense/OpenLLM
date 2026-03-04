@@ -1,6 +1,6 @@
 {
   "name": "llm-bear",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Run the best open source AI locally. No API keys. No subscriptions. No terminal.",
   "main": "src/main/index.js",
   "scripts": {
@@ -26,15 +26,6 @@
       "src/preload/**/*",
       "build/**/*",
       "registry/**/*"
-    ],
-    "extraResources": [
-      {
-        "from": "vendor/ollama/",
-        "to": "vendor/ollama/",
-        "filter": [
-          "**/*"
-        ]
-      }
     ],
     "mac": {
       "category": "public.app-category.developer-tools",
