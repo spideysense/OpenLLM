@@ -229,6 +229,22 @@ describe('Content: Calls to action', () => {
     expect(html).toContain('releases/latest/download');
   });
 
+  it('should use version-less filenames so /latest/ always resolves', () => {
+    // BUG: If filename includes version (LLMBear-0.1.3-mac.dmg) but "latest"
+    // points to an older release, download 404s. Filenames must be stable.
+    expect(html).toContain('LLMBear-mac.dmg');
+    expect(html).toContain('LLMBear-win.exe');
+    // Must NOT have version in filename
+    expect(html).not.toMatch(/LLMBear-\d+\.\d+\.\d+-mac\.dmg/);
+    expect(html).not.toMatch(/LLMBear-\d+\.\d+\.\d+-win\.exe/);
+  });
+
+  it('should have matching artifact names in electron-builder config', () => {
+    const pkg = JSON.parse(fs.readFileSync(path.resolve('package.json'), 'utf8'));
+    expect(pkg.build.mac.artifactName).toBe('LLMBear-mac.${ext}');
+    expect(pkg.build.win.artifactName).toBe('LLMBear-win.${ext}');
+  });
+
   it('should detect user OS (mac/win/other)', () => {
     expect(html).toContain('getOS');
     expect(html).toContain("'mac'");

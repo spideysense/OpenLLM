@@ -1,6 +1,6 @@
 {
   "name": "llm-bear",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Run the best open source AI locally. No API keys. No subscriptions. No terminal.",
   "main": "src/main/index.js",
   "scripts": {
@@ -38,7 +38,7 @@
     ],
     "mac": {
       "category": "public.app-category.developer-tools",
-      "artifactName": "LLMBear-${version}-mac.${ext}",
+      "artifactName": "LLMBear-mac.${ext}",
       "icon": "assets/icon.png",
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
@@ -63,7 +63,7 @@
           ]
         }
       ],
-      "artifactName": "LLMBear-${version}-win.${ext}"
+      "artifactName": "LLMBear-win.${ext}"
     },
     "afterSign": "scripts/notarize.js"
   },
