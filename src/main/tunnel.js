@@ -21,13 +21,17 @@ const os = require('os');
 const store = require('./store');
 
 const LOCAL_API = process.env.LLMBEAR_LOCAL_API || 'http://localhost:4000';
+const REGISTRY_URL = process.env.LLMBEAR_REGISTRY || 'https://api.llmbear.com';
 const RECONNECT_DELAY = 5000;
 const MAX_RECONNECT_DELAY = 60000;
+const HEARTBEAT_INTERVAL = 60000; // Send heartbeat every 60s
 
 let proc = null;
-let publicUrl = null;
+let publicUrl = null;      // Stable URL (api.llmbear.com/t/abc123)
+let cloudflareUrl = null;  // Ephemeral URL (xxx.trycloudflare.com)
 let isShuttingDown = false;
 let reconnectDelay = RECONNECT_DELAY;
+let heartbeatTimer = null;
 let onStatusChange = null;
 
 // ═══════════════════════════════════════════════════
@@ -43,11 +47,13 @@ function start(statusCallback) {
 
 function stop() {
   isShuttingDown = true;
+  if (heartbeatTimer) clearInterval(heartbeatTimer);
   if (proc) {
     proc.kill();
     proc = null;
   }
   publicUrl = null;
+  cloudflareUrl = null;
   notifyStatus('disconnected');
 }
 
@@ -153,6 +159,87 @@ function downloadFile(url, dest) {
 }
 
 // ═══════════════════════════════════════════════════
+// Stable URL — register + heartbeat with cloud server
+// ═══════════════════════════════════════════════════
+
+async function ensureRegistered() {
+  let tunnelId = store.get('tunnelId');
+  let tunnelSecret = store.get('tunnelSecret');
+
+  if (tunnelId && tunnelSecret) return { tunnelId, tunnelSecret };
+
+  // First-time registration
+  console.log('[Tunnel] Registering for stable URL...');
+  try {
+    const data = await postJson(`${REGISTRY_URL}/tunnel/register`, {});
+    tunnelId = data.tunnelId;
+    tunnelSecret = data.tunnelSecret;
+    store.set('tunnelId', tunnelId);
+    store.set('tunnelSecret', tunnelSecret);
+    store.set('stableUrl', data.url);
+    console.log(`[Tunnel] Stable URL: ${data.url}`);
+    return { tunnelId, tunnelSecret };
+  } catch (err) {
+    console.error('[Tunnel] Registration failed:', err.message);
+    return null;
+  }
+}
+
+async function sendHeartbeat(cfUrl) {
+  const tunnelId = store.get('tunnelId');
+  const tunnelSecret = store.get('tunnelSecret');
+  if (!tunnelId || !tunnelSecret) return;
+
+  try {
+    const data = await postJson(`${REGISTRY_URL}/tunnel/heartbeat`, {
+      tunnelId, tunnelSecret, cloudflareUrl: cfUrl,
+    });
+    if (data.url) {
+      publicUrl = data.url;
+      store.set('stableUrl', data.url);
+    }
+  } catch (err) {
+    console.error('[Tunnel] Heartbeat failed:', err.message);
+    // Fall back to raw Cloudflare URL
+    publicUrl = cfUrl;
+  }
+}
+
+function startHeartbeatLoop(cfUrl) {
+  if (heartbeatTimer) clearInterval(heartbeatTimer);
+  heartbeatTimer = setInterval(() => {
+    if (cloudflareUrl) sendHeartbeat(cloudflareUrl);
+  }, HEARTBEAT_INTERVAL);
+}
+
+function postJson(url, body) {
+  return new Promise((resolve, reject) => {
+    const parsed = new URL(url);
+    const payload = JSON.stringify(body);
+    const mod = parsed.protocol === 'https:' ? https : require('http');
+    const req = mod.request({
+      hostname: parsed.hostname,
+      port: parsed.port,
+      path: parsed.pathname,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) },
+      timeout: 10000,
+    }, (res) => {
+      let data = '';
+      res.on('data', (c) => data += c);
+      res.on('end', () => {
+        try { resolve(JSON.parse(data)); }
+        catch (e) { reject(new Error('Invalid JSON response')); }
+      });
+    });
+    req.on('error', reject);
+    req.on('timeout', () => { req.destroy(); reject(new Error('Timeout')); });
+    req.write(payload);
+    req.end();
+  });
+}
+
+// ═══════════════════════════════════════════════════
 // Launch Cloudflare Tunnel
 // ═══════════════════════════════════════════════════
 
@@ -160,6 +247,9 @@ async function launch() {
   if (isShuttingDown) return;
 
   notifyStatus('connecting');
+
+  // Ensure we have a stable tunnel ID
+  await ensureRegistered();
 
   const binPath = await ensureBinary();
   if (!binPath) {
@@ -186,31 +276,28 @@ async function launch() {
   proc.stderr.on('data', (data) => {
     const text = data.toString();
     const match = text.match(/https:\/\/[a-zA-Z0-9-]+\.trycloudflare\.com/);
-    if (match && !publicUrl) {
-      publicUrl = match[0];
+    if (match && !cloudflareUrl) {
+      cloudflareUrl = match[0];
       reconnectDelay = RECONNECT_DELAY;
-      store.set('lastTunnelUrl', publicUrl);
-      console.log(`[Tunnel] Public URL: ${publicUrl}`);
-      notifyStatus('connected', { url: publicUrl });
+      onCloudflareUrlReady(cloudflareUrl);
     }
   });
 
   proc.stdout.on('data', (data) => {
     const text = data.toString();
     const match = text.match(/https:\/\/[a-zA-Z0-9-]+\.trycloudflare\.com/);
-    if (match && !publicUrl) {
-      publicUrl = match[0];
+    if (match && !cloudflareUrl) {
+      cloudflareUrl = match[0];
       reconnectDelay = RECONNECT_DELAY;
-      store.set('lastTunnelUrl', publicUrl);
-      console.log(`[Tunnel] Public URL: ${publicUrl}`);
-      notifyStatus('connected', { url: publicUrl });
+      onCloudflareUrlReady(cloudflareUrl);
     }
   });
 
   proc.on('close', (code) => {
     console.log(`[Tunnel] cloudflared exited with code ${code}`);
     proc = null;
-    publicUrl = null;
+    cloudflareUrl = null;
+    if (heartbeatTimer) clearInterval(heartbeatTimer);
     notifyStatus('disconnected');
     scheduleReconnect();
   });
@@ -218,10 +305,23 @@ async function launch() {
   proc.on('error', (err) => {
     console.error('[Tunnel] Process error:', err.message);
     proc = null;
-    publicUrl = null;
+    cloudflareUrl = null;
     notifyStatus('error', { message: err.message });
     scheduleReconnect();
   });
+}
+
+async function onCloudflareUrlReady(cfUrl) {
+  console.log(`[Tunnel] Cloudflare URL: ${cfUrl}`);
+
+  // Send heartbeat to get stable URL
+  await sendHeartbeat(cfUrl);
+  startHeartbeatLoop(cfUrl);
+
+  // publicUrl is now either the stable URL or falls back to cfUrl
+  const displayUrl = publicUrl || cfUrl;
+  console.log(`[Tunnel] Public URL: ${displayUrl}`);
+  notifyStatus('connected', { url: displayUrl });
 }
 
 function scheduleReconnect() {

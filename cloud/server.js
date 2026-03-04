@@ -104,6 +104,110 @@ app.get('/v1/usage', authRequired, (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════
+// Tunnel Proxy — stable URLs for local AI
+// ═══════════════════════════════════════════════════
+
+const tunnelRegistry = require('./tunnel-registry');
+const http = require('http');
+const https = require('https');
+
+tunnelRegistry.initSchema();
+
+app.post('/tunnel/register', (req, res) => {
+  try {
+    const { tunnelId, tunnelSecret } = tunnelRegistry.register();
+    const stableUrl = `${process.env.API_BASE_URL || 'https://api.llmbear.com'}/t/${tunnelId}`;
+    res.json({ tunnelId, tunnelSecret, url: stableUrl });
+  } catch (err) {
+    res.status(500).json({ error: 'Registration failed' });
+  }
+});
+
+app.post('/tunnel/heartbeat', (req, res) => {
+  const { tunnelId, tunnelSecret, cloudflareUrl } = req.body;
+  if (!tunnelId || !tunnelSecret || !cloudflareUrl) {
+    return res.status(400).json({ error: 'Missing tunnelId, tunnelSecret, or cloudflareUrl' });
+  }
+  const result = tunnelRegistry.heartbeat(tunnelId, tunnelSecret, cloudflareUrl);
+  if (result.error) {
+    const status = result.error === 'not_found' ? 404 : result.error === 'invalid_secret' ? 401 : 400;
+    return res.status(status).json({ error: result.error });
+  }
+  res.json(result);
+});
+
+app.options('/t/:tunnelId/*', (req, res) => {
+  res.set({
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Max-Age': '86400',
+  }).status(204).end();
+});
+
+app.all('/t/:tunnelId/*', (req, res) => {
+  const { tunnelId } = req.params;
+  const tunnel = tunnelRegistry.resolve(tunnelId);
+
+  if (!tunnel) {
+    return res.status(502).json({
+      error: { message: 'Tunnel not found or offline. Make sure LLM Bear is running.', type: 'tunnel_error' }
+    });
+  }
+
+  const lastBeat = new Date(tunnel.lastHeartbeat);
+  const staleMinutes = (Date.now() - lastBeat.getTime()) / 60000;
+  if (staleMinutes > 5) {
+    return res.status(502).json({
+      error: { message: 'LLM Bear appears offline (no heartbeat in ' + Math.round(staleMinutes) + ' min).', type: 'tunnel_offline' }
+    });
+  }
+
+  const targetPath = req.originalUrl.replace(`/t/${tunnelId}`, '') || '/';
+  const targetUrl = tunnel.cloudflareUrl + targetPath;
+  const proxyModule = targetUrl.startsWith('https') ? https : http;
+  const parsed = new URL(targetUrl);
+
+  const proxyHeaders = { ...req.headers };
+  proxyHeaders.host = parsed.host;
+  delete proxyHeaders['content-length'];
+
+  const proxyReq = proxyModule.request({
+    hostname: parsed.hostname,
+    port: parsed.port,
+    path: parsed.pathname + parsed.search,
+    method: req.method,
+    headers: proxyHeaders,
+    timeout: 120000,
+  }, (proxyRes) => {
+    const resHeaders = { ...proxyRes.headers };
+    resHeaders['access-control-allow-origin'] = '*';
+    resHeaders['x-powered-by'] = 'LLM Bear';
+    delete resHeaders['transfer-encoding'];
+    res.writeHead(proxyRes.statusCode, resHeaders);
+    proxyRes.pipe(res);
+  });
+
+  proxyReq.on('error', (err) => {
+    res.status(502).json({
+      error: { message: 'Could not reach local AI. Make sure LLM Bear is running.', type: 'proxy_error', detail: err.message }
+    });
+  });
+
+  proxyReq.on('timeout', () => {
+    proxyReq.destroy();
+    res.status(504).json({
+      error: { message: 'Request timed out.', type: 'timeout_error' }
+    });
+  });
+
+  if (req.body && typeof req.body === 'object') {
+    proxyReq.write(JSON.stringify(req.body));
+  }
+  proxyReq.end();
+});
+
+// ═══════════════════════════════════════════════════
 // 404 handler
 // ═══════════════════════════════════════════════════
 

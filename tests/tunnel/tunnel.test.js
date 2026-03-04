@@ -97,10 +97,6 @@ describe('Tunnel: Cloudflare process', () => {
     expect(clientSrc).toContain("proc.stdout.on('data'");
   });
 
-  it('should save last tunnel URL to store', () => {
-    expect(clientSrc).toContain("store.set('lastTunnelUrl'");
-  });
-
   it('should auto-reconnect with exponential backoff', () => {
     expect(clientSrc).toContain('scheduleReconnect');
     expect(clientSrc).toContain('RECONNECT_DELAY');
@@ -136,6 +132,117 @@ describe('Tunnel: Cloudflare process', () => {
     expect(clientSrc).toContain("'disconnected'");
     expect(clientSrc).toContain("'reconnecting'");
     expect(clientSrc).toContain("'error'");
+  });
+});
+
+// ═══════════════════════════════════════════════════
+// Stable URL — registry + heartbeat
+// ═══════════════════════════════════════════════════
+
+describe('Tunnel: Stable URL registry (cloud)', () => {
+  const registrySrc = fs.readFileSync(path.resolve('cloud/tunnel-registry.js'), 'utf8');
+  const serverSrc = fs.readFileSync(path.resolve('cloud/server.js'), 'utf8');
+
+  it('should create tunnels table in SQLite', () => {
+    expect(registrySrc).toContain('CREATE TABLE IF NOT EXISTS tunnels');
+    expect(registrySrc).toContain('tunnel_id');
+    expect(registrySrc).toContain('cloudflare_url');
+    expect(registrySrc).toContain('tunnel_secret_hash');
+  });
+
+  it('should generate short tunnel IDs (6 chars)', () => {
+    expect(registrySrc).toContain('generateTunnelId');
+    expect(registrySrc).toContain('6');
+  });
+
+  it('should hash tunnel secrets with SHA-256', () => {
+    expect(registrySrc).toContain('sha256');
+    expect(registrySrc).toContain('hashSecret');
+  });
+
+  it('should verify secrets on heartbeat', () => {
+    expect(registrySrc).toContain('verifySecret');
+    expect(registrySrc).toContain('invalid_secret');
+  });
+
+  it('should validate Cloudflare URL format', () => {
+    expect(registrySrc).toContain('https://');
+    expect(registrySrc).toContain('invalid_url');
+  });
+
+  it('should track last heartbeat timestamp', () => {
+    expect(registrySrc).toContain('last_heartbeat');
+    expect(registrySrc).toContain("datetime('now')");
+  });
+
+  it('should cleanup stale tunnels after 30 days', () => {
+    expect(registrySrc).toContain('cleanup');
+    expect(registrySrc).toContain('-30 days');
+  });
+
+  it('should have POST /tunnel/register route', () => {
+    expect(serverSrc).toContain("'/tunnel/register'");
+    expect(serverSrc).toContain('tunnelRegistry.register');
+  });
+
+  it('should have POST /tunnel/heartbeat route', () => {
+    expect(serverSrc).toContain("'/tunnel/heartbeat'");
+    expect(serverSrc).toContain('tunnelRegistry.heartbeat');
+  });
+
+  it('should have proxy route at /t/:tunnelId/*', () => {
+    expect(serverSrc).toContain("'/t/:tunnelId/*'");
+    expect(serverSrc).toContain('tunnelRegistry.resolve');
+  });
+
+  it('should detect stale tunnels (no heartbeat in 5 min)', () => {
+    expect(serverSrc).toContain('staleMinutes');
+    expect(serverSrc).toContain('tunnel_offline');
+  });
+
+  it('should proxy requests to current Cloudflare URL', () => {
+    expect(serverSrc).toContain('proxyModule.request');
+    expect(serverSrc).toContain('cloudflareUrl');
+  });
+
+  it('should handle CORS preflight for tunnel proxy', () => {
+    expect(serverSrc).toContain("app.options('/t/:tunnelId/*'");
+  });
+});
+
+describe('Tunnel: Client stable URL', () => {
+  it('should register with cloud server on first run', () => {
+    expect(clientSrc).toContain('ensureRegistered');
+    expect(clientSrc).toContain('/tunnel/register');
+    expect(clientSrc).toContain("store.set('tunnelId'");
+    expect(clientSrc).toContain("store.set('tunnelSecret'");
+  });
+
+  it('should send heartbeat with Cloudflare URL', () => {
+    expect(clientSrc).toContain('sendHeartbeat');
+    expect(clientSrc).toContain('/tunnel/heartbeat');
+    expect(clientSrc).toContain('tunnelId');
+    expect(clientSrc).toContain('tunnelSecret');
+    expect(clientSrc).toContain('cloudflareUrl');
+  });
+
+  it('should send heartbeat every 60 seconds', () => {
+    expect(clientSrc).toContain('HEARTBEAT_INTERVAL');
+    expect(clientSrc).toContain('60000');
+    expect(clientSrc).toContain('startHeartbeatLoop');
+  });
+
+  it('should save stable URL to store', () => {
+    expect(clientSrc).toContain("store.set('stableUrl'");
+  });
+
+  it('should fall back to Cloudflare URL if heartbeat fails', () => {
+    expect(clientSrc).toContain('publicUrl = cfUrl');
+  });
+
+  it('should configure registry URL via env var', () => {
+    expect(clientSrc).toContain('LLMBEAR_REGISTRY');
+    expect(clientSrc).toContain('api.llmbear.com');
   });
 });
 
@@ -220,8 +327,8 @@ describe('Tunnel: Preload bridge', () => {
 describe('Tunnel: Landing page', () => {
   const html = fs.readFileSync(path.resolve('site/index.html'), 'utf8');
 
-  it('should show public URL in code examples', () => {
-    expect(html).toContain('trycloudflare.com');
+  it('should show stable URL in code examples', () => {
+    expect(html).toContain('api.llmbear.com/t/');
   });
 
   it('should list public URL as a Cave Bear feature', () => {
@@ -234,8 +341,8 @@ describe('Tunnel: Landing page', () => {
     expect(caveBearSection).not.toContain('No public URL');
   });
 
-  it('should mention Cloudflare in privacy note', () => {
-    expect(html).toContain('Cloudflare');
+  it('should describe permanent URL in privacy note', () => {
+    expect(html).toContain('permanent URL');
   });
 
   it('should not mention Fly.io', () => {

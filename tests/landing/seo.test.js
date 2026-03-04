@@ -188,9 +188,9 @@ describe('Content: Pricing tiers', () => {
 // ═══════════════════════════════════════════════════
 
 describe('Content: API examples', () => {
-  it('should show the two-line change pattern with localhost and public URL', () => {
+  it('should show the two-line change pattern with localhost and stable URL', () => {
     expect(html).toContain('localhost:4000/v1');
-    expect(html).toContain('trycloudflare.com/v1');
+    expect(html).toContain('api.llmbear.com/t/abc123/v1');
     expect(html).toContain('sk-llmbear');
     expect(html).toContain('switchTab');
   });
