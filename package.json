@@ -19,8 +19,8 @@
     "productName": "LLM Bear",
     "directories": { "output": "dist", "buildResources": "assets" },
     "files": ["src/main/**/*", "src/preload/**/*", "build/**/*", "registry/**/*"],
-    "mac": { "category": "public.app-category.developer-tools", "target": [{ "target": "dmg", "arch": ["x64", "arm64"] }] },
-    "win": { "target": [{ "target": "nsis", "arch": ["x64"] }] }
+    "mac": { "category": "public.app-category.developer-tools", "artifactName": "LLMBear-${version}-mac.${ext}", "target": [{ "target": "dmg", "arch": ["universal"] }] },
+    "win": { "target": [{ "target": "nsis", "arch": ["x64"] }], "artifactName": "LLMBear-${version}-win.${ext}" }
   },
   "dependencies": {
     "electron-store": "^8.1.0"

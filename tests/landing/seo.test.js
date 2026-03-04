@@ -216,8 +216,21 @@ describe('Content: Calls to action', () => {
     expect(html).toContain('github.com/spideysense/OpenLLM');
   });
 
-  it('should have download CTA', () => {
+  it('should have download CTA with OS detection', () => {
+    expect(html).toContain('downloadApp');
     expect(html).toContain('Download Free');
+  });
+
+  it('should have direct download URLs for Mac and Windows', () => {
+    expect(html).toContain('.dmg');
+    expect(html).toContain('.exe');
+    expect(html).toContain('releases/latest/download');
+  });
+
+  it('should detect user OS (mac/win/other)', () => {
+    expect(html).toContain('getOS');
+    expect(html).toContain("'mac'");
+    expect(html).toContain("'win'");
   });
 
   it('should have GitHub Fork CTA', () => {
