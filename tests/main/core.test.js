@@ -300,3 +300,47 @@ describe('Model Registry', () => {
     }
   });
 });
+
+describe('Ollama Auto-Install', () => {
+  const ollamaSrc = fs.readFileSync(path.resolve('src/main/ollama.js'), 'utf8');
+  const onboardingSrc = fs.readFileSync(path.resolve('src/renderer/pages/Onboarding.jsx'), 'utf8');
+  const preloadSrc = fs.readFileSync(path.resolve('src/preload/index.js'), 'utf8');
+
+  it('should auto-install Ollama if not present', () => {
+    expect(ollamaSrc).toContain('install.sh');
+    expect(ollamaSrc).toContain('curl -fsSL');
+  });
+
+  it('should handle macOS and Windows installs', () => {
+    expect(ollamaSrc).toContain("platform === 'darwin'");
+    expect(ollamaSrc).toContain("platform === 'win32'");
+    expect(ollamaSrc).toContain('OllamaSetup.exe');
+  });
+
+  it('should fall back to download page if auto-install fails', () => {
+    expect(ollamaSrc).toContain('ollama.com/download/mac');
+    expect(ollamaSrc).toContain('ollama.com/download/windows');
+    expect(ollamaSrc).toContain('openExternal');
+  });
+
+  it('should auto-install in ensureRunning if not installed', () => {
+    expect(ollamaSrc).toContain('await install(notify)');
+  });
+
+  it('should report progress via callback', () => {
+    expect(ollamaSrc).toContain("notify('Installing Ollama...')");
+    expect(ollamaSrc).toContain("notify('Starting Ollama...')");
+  });
+
+  it('should check ensureRunning result before pulling model', () => {
+    expect(onboardingSrc).toContain('runResult.success');
+  });
+
+  it('should show install progress in onboarding UI', () => {
+    expect(onboardingSrc).toContain('ollama.onProgress');
+  });
+
+  it('should expose ollama.onProgress in preload', () => {
+    expect(preloadSrc).toContain("ipcRenderer.on('ollama:progress'");
+  });
+});

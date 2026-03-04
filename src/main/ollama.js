@@ -1,6 +1,8 @@
-const { exec, spawn } = require('child_process');
+const { exec, spawn, execSync } = require('child_process');
 const { app, shell } = require('electron');
 const path = require('path');
+const fs = require('fs');
+const https = require('https');
 const http = require('http');
 const os = require('os');
 
@@ -57,31 +59,99 @@ function getOllamaPath() {
 // Install Ollama
 // ═══════════════════════════════════════════════════
 
-async function install() {
-  // Open Ollama download page — simplest cross-platform approach
-  // In production, we'd download + run the installer silently
-  const url = process.platform === 'darwin'
-    ? 'https://ollama.com/download/mac'
-    : 'https://ollama.com/download/windows';
-  shell.openExternal(url);
-  return { success: true, message: 'Opened Ollama download page' };
+async function install(onProgress) {
+  const notify = onProgress || (() => {});
+
+  if (process.platform === 'darwin') {
+    // macOS: download Ollama CLI via install script
+    notify('Downloading Ollama...');
+    return new Promise((resolve) => {
+      const child = exec(
+        'curl -fsSL https://ollama.com/install.sh | sh',
+        { timeout: 120000 },
+        (err) => {
+          if (err) {
+            // Fallback: open download page
+            notify('Auto-install failed. Opening download page...');
+            shell.openExternal('https://ollama.com/download/mac');
+            resolve({ success: false, error: 'auto_install_failed', message: 'Please install Ollama from the download page, then click Try Again.' });
+          } else {
+            notify('Ollama installed!');
+            resolve({ success: true });
+          }
+        }
+      );
+    });
+  } else if (process.platform === 'win32') {
+    // Windows: download and run the installer
+    notify('Downloading Ollama installer...');
+    const installerPath = path.join(os.tmpdir(), 'OllamaSetup.exe');
+    try {
+      await downloadToFile('https://ollama.com/download/OllamaSetup.exe', installerPath);
+      notify('Running installer...');
+      exec(`"${installerPath}"`, (err) => {
+        if (err) {
+          shell.openExternal('https://ollama.com/download/windows');
+        }
+      });
+      return { success: true, message: 'Installer launched. Follow the prompts, then click Try Again.' };
+    } catch (e) {
+      shell.openExternal('https://ollama.com/download/windows');
+      return { success: false, error: 'download_failed' };
+    }
+  } else {
+    shell.openExternal('https://ollama.com/download');
+    return { success: false, error: 'unsupported_platform' };
+  }
+}
+
+function downloadToFile(url, dest) {
+  return new Promise((resolve, reject) => {
+    const follow = (url, redirects = 0) => {
+      if (redirects > 5) return reject(new Error('Too many redirects'));
+      https.get(url, (res) => {
+        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+          return follow(res.headers.location, redirects + 1);
+        }
+        if (res.statusCode !== 200) return reject(new Error(`HTTP ${res.statusCode}`));
+        const file = fs.createWriteStream(dest);
+        res.pipe(file);
+        file.on('finish', () => file.close(resolve));
+      }).on('error', reject);
+    };
+    follow(url);
+  });
 }
 
 // ═══════════════════════════════════════════════════
 // Start / Ensure Running
 // ═══════════════════════════════════════════════════
 
-async function ensureRunning() {
+async function ensureRunning(onProgress) {
+  const notify = onProgress || (() => {});
+
   if (await isRunning()) {
     return { success: true, alreadyRunning: true };
   }
 
-  const installed = await isInstalled();
+  let installed = await isInstalled();
+
+  // Auto-install if needed
   if (!installed) {
-    return { success: false, error: 'not_installed' };
+    notify('Installing Ollama...');
+    const installResult = await install(notify);
+    if (!installResult.success) {
+      return { success: false, error: 'install_failed', message: installResult.message || 'Could not install Ollama. Please install manually from ollama.com' };
+    }
+    // Re-check installation
+    installed = await isInstalled();
+    if (!installed) {
+      return { success: false, error: 'install_failed', message: 'Ollama installed but not found. Please restart LLM Bear.' };
+    }
   }
 
   // Try to start Ollama serve in background
+  notify('Starting Ollama...');
   return new Promise((resolve) => {
     const child = spawn('ollama', ['serve'], {
       detached: true,
@@ -99,7 +169,7 @@ async function ensureRunning() {
         resolve({ success: true, alreadyRunning: false });
       } else if (attempts > 30) {
         clearInterval(poll);
-        resolve({ success: false, error: 'timeout' });
+        resolve({ success: false, error: 'timeout', message: 'Ollama installed but failed to start. Try restarting LLM Bear.' });
       }
     }, 500);
   });

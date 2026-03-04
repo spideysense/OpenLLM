@@ -13,6 +13,11 @@ contextBridge.exposeInMainWorld('llmbear', {
     ensureRunning: () => ipcRenderer.invoke('ollama:ensureRunning'),
     isInstalled: () => ipcRenderer.invoke('ollama:isInstalled'),
     install: () => ipcRenderer.invoke('ollama:install'),
+    onProgress: (cb) => {
+      const handler = (event, data) => cb(data);
+      ipcRenderer.on('ollama:progress', handler);
+      return () => ipcRenderer.removeListener('ollama:progress', handler);
+    },
   },
 
   // ── Models ──

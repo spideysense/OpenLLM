@@ -127,8 +127,14 @@ ipcMain.handle('ollama:status', async () => {
   return ollama.getStatus();
 });
 
-ipcMain.handle('ollama:ensureRunning', async () => {
-  return ollama.ensureRunning();
+ipcMain.handle('ollama:ensureRunning', async (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  const notify = (msg) => {
+    if (win && !win.isDestroyed()) {
+      win.webContents.send('ollama:progress', msg);
+    }
+  };
+  return ollama.ensureRunning(notify);
 });
 
 ipcMain.handle('ollama:isInstalled', async () => {

@@ -32,24 +32,40 @@ export default function Onboarding() {
     return unsub;
   }, [bridge]);
 
+  // Listen to Ollama install/startup progress
+  useEffect(() => {
+    if (!bridge) return;
+    const unsub = bridge.ollama.onProgress((msg) => {
+      setDownloadStatus(msg);
+    });
+    return unsub;
+  }, [bridge]);
+
   async function handleDownload() {
     if (!recommendation || !bridge) return;
     setStep(3); // download step
     setError(null);
 
     try {
-      // Ensure Ollama is running
-      await bridge.ollama.ensureRunning();
+      // Ensure Ollama is installed and running
+      setDownloadStatus('Checking Ollama...');
+      const runResult = await bridge.ollama.ensureRunning();
+      if (!runResult.success) {
+        setError(runResult.message || 'Could not start Ollama. Please install it from ollama.com and click Try Again.');
+        return;
+      }
+
       // Pull the model
+      setDownloadStatus('Starting download...');
       const result = await bridge.models.pull(recommendation.model);
       if (result.success) {
         await selectModel(recommendation.model);
         setStep(4); // ready
       } else {
-        setError(result.error || 'Download failed');
+        setError(result.error || 'Download failed. Check your internet connection and try again.');
       }
     } catch (e) {
-      setError(e.message);
+      setError(e.message || 'Something went wrong. Make sure Ollama is installed and try again.');
     }
   }
 
