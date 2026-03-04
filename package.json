@@ -17,10 +17,39 @@
   "build": {
     "appId": "com.llmbear.app",
     "productName": "LLM Bear",
-    "directories": { "output": "dist", "buildResources": "assets" },
-    "files": ["src/main/**/*", "src/preload/**/*", "build/**/*", "registry/**/*"],
-    "mac": { "category": "public.app-category.developer-tools", "artifactName": "LLMBear-${version}-mac.${ext}", "target": [{ "target": "dmg", "arch": ["universal"] }] },
-    "win": { "target": [{ "target": "nsis", "arch": ["x64"] }], "artifactName": "LLMBear-${version}-win.${ext}" }
+    "directories": {
+      "output": "dist",
+      "buildResources": "assets"
+    },
+    "files": [
+      "src/main/**/*",
+      "src/preload/**/*",
+      "build/**/*",
+      "registry/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "artifactName": "LLMBear-${version}-mac.${ext}",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        }
+      ]
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "LLMBear-${version}-win.${ext}"
+    }
   },
   "dependencies": {
     "electron-store": "^8.1.0"
@@ -29,13 +58,16 @@
     "@testing-library/jest-dom": "^6.1.5",
     "@testing-library/react": "^14.1.2",
     "@vitejs/plugin-react": "^4.2.1",
+    "better-sqlite3": "^12.6.2",
     "concurrently": "^8.2.2",
     "electron": "^28.1.0",
     "electron-builder": "^24.9.1",
     "jsdom": "^23.2.0",
+    "jsonwebtoken": "^9.0.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-markdown": "^9.0.1",
+    "uuid": "^13.0.0",
     "vite": "^5.0.12",
     "vitest": "^1.2.0",
     "wait-on": "^7.2.0"

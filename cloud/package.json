@@ -1,0 +1,21 @@
+{
+  "name": "@llmbear/cloud",
+  "version": "0.1.0",
+  "description": "LLM Bear Cloud — multi-tenant AI gateway with Stripe billing",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "db:reset": "rm -f data/llmbear.db && node -e \"require('./db').init()\""
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.0.0",
+    "cors": "^2.8.5",
+    "crypto": "^1.0.1",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "stripe": "^14.0.0",
+    "uuid": "^9.0.0"
+  },
+  "license": "MIT"
+}

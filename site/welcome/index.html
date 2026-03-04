@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Welcome to LLM Bear Cloud 🐻</title>
+<meta name="robots" content="noindex">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--earth:#5D4E37;--accent:#F5A623;--grass-dark:#4AA651;--sky-top:#E8F4F8;--cloud:#fff;--text-dark:#2D3436;--text-light:#6B7B8D;--code-bg:#1E293B;--display:'Baloo 2',cursive;--body:'Nunito',sans-serif;--mono:'JetBrains Mono',monospace}
+*{margin:0;padding:0;box-sizing:border-box}body{font-family:var(--body);color:var(--text-dark);background:var(--sky-top);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.card{background:var(--cloud);border-radius:24px;padding:48px 40px;max-width:640px;width:100%;box-shadow:0 12px 48px rgba(0,0,0,.08);text-align:center}
+.bear{font-size:64px;margin-bottom:12px}
+h1{font-family:var(--display);font-size:32px;font-weight:800;color:var(--earth);margin-bottom:8px}
+.plan-badge{display:inline-block;background:rgba(245,166,35,.12);color:var(--earth);font-family:var(--display);font-size:14px;font-weight:700;padding:6px 18px;border-radius:50px;margin-bottom:24px}
+.sub{color:var(--text-light);font-size:16px;line-height:1.6;margin-bottom:32px}
+.key-box{background:var(--code-bg);border-radius:12px;padding:20px;text-align:left;margin-bottom:24px;position:relative}
+.key-label{font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.key-value{font-family:var(--mono);font-size:15px;color:var(--accent);word-break:break-all;line-height:1.6;user-select:all}
+.copy-btn{position:absolute;top:16px;right:16px;background:rgba(245,166,35,.2);border:none;color:var(--accent);font-family:var(--mono);font-size:12px;padding:6px 14px;border-radius:6px;cursor:pointer}
+.copy-btn:hover{background:rgba(245,166,35,.3)}
+.code-block{background:var(--code-bg);border-radius:12px;padding:20px;text-align:left;margin-bottom:24px;overflow-x:auto}
+.code-block pre{font-family:var(--mono);font-size:13px;line-height:1.7;color:#94A3B8}
+.code-block .hl{color:var(--accent);font-weight:500}
+.code-block .cmt{color:#475569}
+.code-block .str{color:#A8E6A3}
+.code-block .kw{color:#e6a07c}
+.info{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:28px;justify-content:center}
+.info-item{background:var(--sky-top);padding:12px 20px;border-radius:12px;font-size:13px;font-weight:600;color:var(--earth)}
+.info-item span{font-weight:400;color:var(--text-light)}
+.warn{background:rgba(74,166,81,.08);border:2px solid rgba(74,166,81,.2);border-radius:12px;padding:16px 20px;font-size:14px;color:var(--grass-dark);line-height:1.6;margin-bottom:24px;text-align:left}
+a.btn{display:inline-block;padding:14px 32px;border-radius:50px;font-family:var(--display);font-size:16px;font-weight:700;text-decoration:none;background:var(--accent);color:var(--earth);box-shadow:0 4px 16px rgba(245,166,35,.3);margin:8px}
+a.btn:hover{transform:translateY(-2px)}
+.loading{padding:48px;text-align:center;color:var(--text-light);font-size:16px}
+.error{color:#E74C3C;margin-top:16px;font-size:14px}
+</style>
+</head>
+<body>
+<div class="card" id="content">
+  <div class="loading" id="loading">
+    <div class="bear">🐻</div>
+    <p>Setting up your account...</p>
+  </div>
+</div>
+
+<script>
+const API=window.location.origin.replace('open-llm-ten.vercel.app','api.llmbear.com');
+const CLOUD_API=new URLSearchParams(window.location.search).get('api_url')||API;
+
+async function load(){
+  const params=new URLSearchParams(window.location.search);
+  const sessionId=params.get('session_id');
+
+  if(!sessionId){
+    document.getElementById('content').innerHTML=`
+      <div class="bear">🐻</div>
+      <h1>Oops!</h1>
+      <p class="sub">No checkout session found. <a href="/#pricing">Go back to pricing</a>.</p>
+    `;
+    return;
+  }
+
+  // Poll for account provisioning (webhook may take a few seconds)
+  let data=null;
+  for(let i=0;i<10;i++){
+    try{
+      const res=await fetch(CLOUD_API+'/account?session_id='+sessionId);
+      if(res.ok){data=await res.json();break;}
+    }catch{}
+    await new Promise(r=>setTimeout(r,2000));
+  }
+
+  if(!data){
+    document.getElementById('content').innerHTML=`
+      <div class="bear">🐻</div>
+      <h1>Almost there!</h1>
+      <p class="sub">Your account is being set up. Please refresh in a few seconds.</p>
+      <a class="btn" href="" onclick="location.reload();return false">Refresh</a>
+    `;
+    return;
+  }
+
+  const key=data.api_keys?.[0];
+  const baseUrl=data.api_base_url||'https://api.llmbear.com/v1';
+
+  document.getElementById('content').innerHTML=`
+    <div class="bear">🐻</div>
+    <h1>Welcome to LLM Bear!</h1>
+    <div class="plan-badge">${data.plan_name} — Active</div>
+    <p class="sub">You're all set. Here's your API key and everything you need to start using AI in the cloud.</p>
+
+    <div class="warn">🔒 <strong>Save your API key now</strong> — it will only be shown once. Store it somewhere safe.</div>
+
+    ${key?`
+    <div class="key-box">
+      <div class="key-label">Your API Key</div>
+      <div class="key-value" id="api-key">${key.secret_prefix||'sk-bear-...'}</div>
+      <button class="copy-btn" onclick="copyKey()">Copy</button>
+    </div>
+    `:`
+    <div class="key-box">
+      <div class="key-label">Your API Key</div>
+      <div class="key-value">Check your email for API key details</div>
+    </div>
+    `}
+
+    <div class="info">
+      <div class="info-item">📧 <span>${data.email}</span></div>
+      <div class="info-item">🚀 <span>${data.limits?.rpm} req/min</span></div>
+      <div class="info-item">📊 <span>${(data.limits?.daily_tokens||0).toLocaleString()} tokens/day</span></div>
+    </div>
+
+    <div class="code-block">
+      <pre><span class="kw">from</span> openai <span class="kw">import</span> OpenAI
+
+client = OpenAI(
+    <span class="hl">base_url="${baseUrl}"</span>,
+    <span class="hl">api_key="sk-bear-..."</span>
+)
+
+response = client.chat.completions.create(
+    model=<span class="str">"gpt-4"</span>,  <span class="cmt"># routes to our best model</span>
+    messages=[{<span class="str">"role"</span>: <span class="str">"user"</span>, <span class="str">"content"</span>: <span class="str">"Hello!"</span>}]
+)
+
+print(response.choices[0].message.content)</pre>
+    </div>
+
+    <a class="btn" href="/#api">API Docs</a>
+    <a class="btn" href="https://github.com/spideysense/OpenLLM" target="_blank" style="background:#5D4E37;color:#fff">GitHub</a>
+  `;
+}
+
+function copyKey(){
+  const el=document.getElementById('api-key');
+  if(el){navigator.clipboard.writeText(el.textContent);
+    const btn=document.querySelector('.copy-btn');btn.textContent='Copied!';setTimeout(()=>btn.textContent='Copy',2000);
+  }
+}
+
+load();
+</script>
+</body>
+</html>

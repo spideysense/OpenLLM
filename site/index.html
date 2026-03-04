@@ -332,13 +332,13 @@
       <span class="pricing-bear">☁️🐻</span><div class="pricing-name">Cloud Bear</div><div class="pricing-desc">We run it for you.<br>No hardware needed.</div>
       <div class="pricing-price"><div class="pricing-amount"><span class="currency">$</span>0.99</div><div class="pricing-period">/month</div></div>
       <ul class="pricing-features"><li><span class="check">✓</span> Everything in Cave Bear</li><li><span class="check">✓</span> Runs in our cloud — no downloads</li><li><span class="check">✓</span> Works on any device with a browser</li><li><span class="check">✓</span> Always the latest best model</li><li><span class="check">✓</span> API access from anywhere</li><li><span class="x-mark">—</span> No support (community only)</li></ul>
-      <a href="https://github.com/spideysense/OpenLLM/releases" target="_blank" class="btn btn-primary">Start for $0.99/mo</a>
+      <a href="#" class="btn btn-primary" onclick="startCheckout('cloud',event)">Start for $0.99/mo</a>
     </div>
     <div class="pricing-card reveal">
       <span class="pricing-bear">⭐🐻</span><div class="pricing-name">Grizzly Bear</div><div class="pricing-desc">Bigger cloud, faster models,<br>and a bear that emails back.</div>
       <div class="pricing-price"><div class="pricing-amount"><span class="currency">$</span>1.99</div><div class="pricing-period">/month</div></div>
       <ul class="pricing-features"><li><span class="check">✓</span> Everything in Cloud Bear</li><li><span class="check">✓</span> Priority cloud infrastructure</li><li><span class="check">✓</span> Faster models &amp; higher limits</li><li><span class="check">✓</span> Longer conversations</li><li><span class="check">✓</span> Email support from real humans</li><li><span class="check">✓</span> Priority access to new models</li></ul>
-      <a href="https://github.com/spideysense/OpenLLM/releases" target="_blank" class="btn btn-secondary">Start for $1.99/mo</a>
+      <a href="#" class="btn btn-secondary" onclick="startCheckout('grizzly',event)">Start for $1.99/mo</a>
     </div>
   </div>
 </section>
@@ -406,6 +406,7 @@ const REPO='https://github.com/spideysense/OpenLLM';
 const MAC_DMG=REPO+'/releases/latest/download/LLMBear-'+VER+'-mac.dmg';
 const WIN_EXE=REPO+'/releases/latest/download/LLMBear-'+VER+'-win.exe';
 const RELEASES=REPO+'/releases/latest';
+const CLOUD_API=window.LLMBEAR_CLOUD_API||'https://api.llmbear.com';
 
 function getOS(){
   const p=navigator.platform||'';const u=navigator.userAgent||'';
@@ -420,6 +421,27 @@ function downloadApp(e){
   if(os==='mac')window.location.href=MAC_DMG;
   else if(os==='win')window.location.href=WIN_EXE;
   else window.open(RELEASES,'_blank');
+}
+
+// ── Stripe Checkout for Cloud Plans ──
+async function startCheckout(plan,e){
+  e.preventDefault();
+  const btn=e.target;
+  const orig=btn.textContent;
+  btn.textContent='Loading...';btn.style.pointerEvents='none';
+  try{
+    const res=await fetch(CLOUD_API+'/checkout',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({plan})
+    });
+    const data=await res.json();
+    if(data.url){window.location.href=data.url;}
+    else{alert('Something went wrong. Please try again.');btn.textContent=orig;btn.style.pointerEvents='';}
+  }catch(err){
+    alert('Cannot reach the LLM Bear server. Please try again in a moment.');
+    btn.textContent=orig;btn.style.pointerEvents='';
+  }
 }
 
 // Update button labels based on detected OS
