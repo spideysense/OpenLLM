@@ -338,12 +338,12 @@ describe('Cloud: Landing page connection', () => {
     expect(landingHtml).toContain('startCheckout');
   });
 
-  it('should have tabbed Free/Paid code examples', () => {
+  it('should have tabbed Same Machine / From Anywhere code examples', () => {
     expect(landingHtml).toContain('switchTab');
     expect(landingHtml).toContain('code-local');
     expect(landingHtml).toContain('code-cloud-tab');
-    expect(landingHtml).toContain('Free (localhost)');
-    expect(landingHtml).toContain('Paid (public URL)');
+    expect(landingHtml).toContain('Same Machine');
+    expect(landingHtml).toContain('From Anywhere');
   });
 
   it('should wire Cloud Bear button to checkout', () => {

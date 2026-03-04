@@ -324,14 +324,14 @@
     <div class="pricing-card reveal">
       <span class="pricing-bear">🐻</span><div class="pricing-name">Cave Bear</div><div class="pricing-desc">Run it on your machine.<br>Your hardware, your rules.</div>
       <div class="pricing-price"><div class="pricing-amount">Free</div><div class="pricing-period">forever</div></div>
-      <ul class="pricing-features"><li><span class="check">✓</span> All open source models</li><li><span class="check">✓</span> 100% private — nothing leaves your machine</li><li><span class="check">✓</span> OpenAI-compatible API on localhost</li><li><span class="check">✓</span> API key generation</li><li><span class="check">✓</span> Model auto-upgrade alerts</li><li><span class="check">✓</span> "Replace OpenAI" wizard</li><li><span class="x-mark">—</span> No public URL (localhost only)</li><li><span class="x-mark">—</span> No support (community only)</li></ul>
+      <ul class="pricing-features"><li><span class="check">✓</span> All open source models</li><li><span class="check">✓</span> 100% private — nothing leaves your machine</li><li><span class="check">✓</span> OpenAI-compatible API</li><li><span class="check">✓</span> Public URL — use from any device</li><li><span class="check">✓</span> API key generation</li><li><span class="check">✓</span> Model auto-upgrade alerts</li><li><span class="check">✓</span> "Replace OpenAI" wizard</li><li><span class="x-mark">—</span> No support (community only)</li></ul>
       <a href="#" class="btn btn-secondary download-btn" onclick="downloadApp(event)">Download for Mac / Windows</a>
     </div>
     <div class="pricing-card featured reveal">
       <div class="pricing-popular">🐻 Most Popular</div>
       <span class="pricing-bear">☁️🐻</span><div class="pricing-name">Cloud Bear</div><div class="pricing-desc">We run it for you.<br>No hardware needed.</div>
       <div class="pricing-price"><div class="pricing-amount"><span class="currency">$</span>0.99</div><div class="pricing-period">/month</div></div>
-      <ul class="pricing-features"><li><span class="check">✓</span> Everything in Cave Bear</li><li><span class="check">✓</span> <strong>Public URL</strong> — access your AI from any device</li><li><span class="check">✓</span> Works with Zapier, Replit, Cursor, your phone</li><li><span class="check">✓</span> Cloud backup — runs models even when your Mac is off</li><li><span class="check">✓</span> Always the latest best model</li><li><span class="x-mark">—</span> No support (community only)</li></ul>
+      <ul class="pricing-features"><li><span class="check">✓</span> Everything in Cave Bear</li><li><span class="check">✓</span> Cloud backup — AI works even when your Mac is off</li><li><span class="check">✓</span> Always the latest best model</li><li><span class="check">✓</span> Higher rate limits</li><li><span class="check">✓</span> No hardware needed on the go</li><li><span class="x-mark">—</span> No support (community only)</li></ul>
       <a href="#" class="btn btn-primary" onclick="startCheckout('cloud',event)">Start for $0.99/mo</a>
     </div>
     <div class="pricing-card reveal">
@@ -349,8 +349,8 @@
   <p class="section-sub">LLM Bear is a drop-in OpenAI replacement. Your existing code works — swap the URL and key.</p>
   <div style="max-width:700px;margin:0 auto">
     <div style="display:flex;gap:0;justify-content:center">
-      <button id="tab-local" onclick="switchTab('local')" style="padding:10px 28px;font-family:var(--display);font-size:14px;font-weight:700;border:2px solid rgba(255,255,255,.15);border-bottom:none;border-radius:12px 12px 0 0;cursor:pointer;background:var(--code-bg);color:#F5A623">🐻 Free (localhost)</button>
-      <button id="tab-cloud" onclick="switchTab('cloud-tab')" style="padding:10px 28px;font-family:var(--display);font-size:14px;font-weight:700;border:2px solid rgba(255,255,255,.08);border-bottom:none;border-radius:12px 12px 0 0;cursor:pointer;background:rgba(30,41,59,.5);color:rgba(255,255,255,.4)">☁️ Paid (public URL)</button>
+      <button id="tab-local" onclick="switchTab('local')" style="padding:10px 28px;font-family:var(--display);font-size:14px;font-weight:700;border:2px solid rgba(255,255,255,.15);border-bottom:none;border-radius:12px 12px 0 0;cursor:pointer;background:var(--code-bg);color:#F5A623">🏠 Same Machine</button>
+      <button id="tab-cloud" onclick="switchTab('cloud-tab')" style="padding:10px 28px;font-family:var(--display);font-size:14px;font-weight:700;border:2px solid rgba(255,255,255,.08);border-bottom:none;border-radius:12px 12px 0 0;cursor:pointer;background:rgba(30,41,59,.5);color:rgba(255,255,255,.4)">🌍 From Anywhere</button>
     </div>
     <div class="code-demo" style="border-top-left-radius:0">
       <div class="code-demo-header"><div class="code-dot r"></div><div class="code-dot y"></div><div class="code-dot g"></div><span style="color:rgba(255,255,255,.3);font-size:12px;margin-left:12px;font-family:var(--mono)">your_app.py</span></div>
@@ -369,15 +369,15 @@ response = client.chat.completions.<span class="fn">create</span>(
 <span class="fn">print</span>(response.choices[0].message.content)</pre>
       <pre id="code-cloud-tab" style="display:none"><span class="kw">from</span> openai <span class="kw">import</span> OpenAI
 
-<span class="cmt"># Use your public URL — works from any device</span>
-<span class="cmt"># Or use api.llmbear.com for our hosted cloud models</span>
+<span class="cmt"># Use your public URL — works from any device, free</span>
+<span class="cmt"># The app shows your URL when it starts</span>
 client = OpenAI(
-    <span class="hl">base_url="https://abc123.api.llmbear.com/v1"</span>,  <span class="cmt"># ← works from anywhere</span>
-    <span class="hl">api_key="sk-bear-a8f2k..."</span>                     <span class="cmt"># ← your key</span>
+    <span class="hl">base_url="https://abc-xyz.trycloudflare.com/v1"</span>,  <span class="cmt"># ← your public URL</span>
+    <span class="hl">api_key="sk-llmbear-a8f2k..."</span>                     <span class="cmt"># ← from the app</span>
 )
 
 response = client.chat.completions.<span class="fn">create</span>(
-    model=<span class="str">"gpt-4"</span>,  <span class="cmt"># routes to your local model</span>
+    model=<span class="str">"gpt-4"</span>,  <span class="cmt"># runs on your machine, reachable from anywhere</span>
     messages=[{<span class="str">"role"</span>: <span class="str">"user"</span>, <span class="str">"content"</span>: <span class="str">"Hello!"</span>}]
 )
 
@@ -385,7 +385,7 @@ response = client.chat.completions.<span class="fn">create</span>(
     </div>
   </div>
   <p class="api-note">Works with <strong>LangChain</strong>, <strong>Cursor</strong>, <strong>Continue.dev</strong>, <strong>n8n</strong>, <strong>AutoGen</strong>, and anything OpenAI-compatible.</p>
-  <p id="api-privacy-note" style="color:rgba(255,255,255,.35);font-size:13px;margin-top:16px">🔒 Free tier is 100% local. API runs on localhost:4000 — no servers, no cost, no data leaves your machine. Upgrade for a public URL.</p>
+  <p id="api-privacy-note" style="color:rgba(255,255,255,.35);font-size:13px;margin-top:16px">🔒 All API traffic stays on your machine. No servers, no cost, no data leaves your computer.</p>
 </section>
 
 <section class="oss-section" id="oss">
@@ -454,8 +454,8 @@ function switchTab(tab){
   document.getElementById('tab-cloud').style.background=isCloud?'var(--code-bg)':'rgba(30,41,59,.5)';
   document.getElementById('tab-cloud').style.color=isCloud?'#F5A623':'rgba(255,255,255,.4)';
   document.getElementById('api-privacy-note').innerHTML=isCloud
-    ?'🔒 Paid plans give you a public URL (abc123.api.llmbear.com) — models still run on your machine, accessible from any device via encrypted connection.'
-    :'🔒 Free tier is 100% local. API runs on localhost:4000 — no servers, no cost, no data leaves your machine. Upgrade for a public URL.';
+    ?'🔒 Your public URL is powered by Cloudflare — free, encrypted, no account needed. Models run on your machine, accessible from any device.'
+    :'🔒 All API traffic stays on your machine. No servers, no cost, no data leaves your computer.';
 }
 
 // ── Stripe Checkout for Cloud Plans ──

@@ -1,107 +1,69 @@
 # LLM Bear Tunnel
 
-Gives every LLM Bear user a public URL for their local AI. Models run on the user's machine, but the URL works from anywhere — their phone, Zapier, Replit, another computer.
+Gives every user a free public URL for their local AI using Cloudflare Quick Tunnels.
+
+**Cost: $0. No relay server. No Cloudflare account. No infrastructure.**
 
 ## How It Works
 
 ```
-Internet request → https://abc123.api.llmbear.com/v1/chat/completions
-                       ↓
-              Tunnel Relay Server (Fly.io)
-              Extracts subdomain "abc123"
-              Looks up WebSocket for that subdomain
-                       ↓
-              WebSocket → User's LLM Bear App
-                       ↓
-              localhost:4000 → Ollama → Response
-                       ↓
-              WebSocket back to relay → HTTP response to caller
+Open LLM Bear
+    ↓
+App downloads `cloudflared` binary (one-time, ~30MB)
+    ↓
+Runs: cloudflared tunnel --url http://localhost:4000
+    ↓
+Cloudflare assigns: https://abc-xyz.trycloudflare.com
+    ↓
+That URL routes to your local AI from anywhere in the world
 ```
 
-**From the user's perspective:**
+From the user's perspective:
 1. Open LLM Bear
-2. See "Your API: `https://abc123.api.llmbear.com/v1`" in the app
-3. Paste that URL into Cursor, Zapier, Replit, or any OpenAI-compatible tool
-4. Everything runs on their hardware — the relay only routes traffic
+2. See "Your API: `https://abc-xyz.trycloudflare.com/v1`"
+3. Paste into Cursor, Zapier, Replit, phone — anything
+4. Models run on their hardware. Cloudflare just routes the traffic.
 
 ## Architecture
 
-### Relay Server (`tunnel/relay/`)
-
-Lightweight Node.js + ws server deployed on Fly.io. Handles:
-
-- **WebSocket connections** from desktop clients at `wss://api.llmbear.com/tunnel`
-- **HTTP proxy** — extracts subdomain from Host header, forwards request to the right WS client
-- **Subdomain assignment** — each client gets a random 8-char hex subdomain
-- **Reconnect stability** — tunnel keys let clients reclaim their subdomain after reconnect
-- **Registration** — pre-assign subdomain via POST /register
-- **Heartbeat** — ping/pong to keep WebSocket alive through proxies/firewalls
-- **CORS** — full preflight handling for browser-based API calls
-
 ### Tunnel Client (`src/main/tunnel.js`)
 
-Embedded in the Electron main process. On app start:
+Embedded in the Electron main process:
 
-1. Connects to `wss://api.llmbear.com/tunnel`
-2. Sends tunnel key (persisted in electron-store) for subdomain stability
-3. Receives `assigned` message with public URL
-4. Pushes status to renderer via IPC (`tunnel:status`)
-5. Receives HTTP requests from relay, forwards to `localhost:4000`
-6. Sends responses back through WebSocket
+- **Auto-downloads** `cloudflared` binary to `~/.llmbear/bin/` on first run
+- **Supports** macOS (universal), Windows (amd64), Linux (amd64/arm64)
+- **Spawns** `cloudflared tunnel --url http://localhost:4000 --no-autoupdate`
+- **Parses** the assigned URL from cloudflared's stderr output
+- **Auto-reconnects** with exponential backoff (5s → 60s max)
+- **Notifies** renderer via IPC so the UI shows the URL
+- **Persists** last known URL in electron-store
 
-Features:
-- Auto-reconnect with exponential backoff (3s → 30s max)
-- 25s heartbeat to keep connection alive
-- 2-minute timeout for LLM responses
-- Clean shutdown (no reconnect on quit)
-- Status callbacks: connecting → connected → disconnected → reconnecting
+### No Server Required
 
-## Deploy Relay
+Unlike ngrok or custom relay servers, Cloudflare Quick Tunnels are:
+- Completely free with no account
+- No usage limits for personal use
+- TLS encrypted automatically
+- Routed through Cloudflare's global network (fast everywhere)
 
-```bash
-cd tunnel/relay
-fly launch --name llmbear-tunnel
-fly deploy
-```
-
-### DNS Setup
-
-Point `*.api.llmbear.com` at the Fly.io app:
-
-```
-*.api.llmbear.com  CNAME  llmbear-tunnel.fly.dev
-```
-
-Fly.io handles wildcard TLS certificates automatically.
+The only downside: URL changes on each restart. For stable URLs, users
+can create a free Cloudflare account and use named tunnels, but the
+quick tunnel works great for most use cases.
 
 ## IPC Bridge
 
-The renderer can access tunnel state via:
-
 ```javascript
-// Get current status
-const { connected, url, subdomain } = await window.llmbear.tunnel.getStatus();
-
-// Copy URL to clipboard
-await window.llmbear.tunnel.copyUrl();
-
-// Listen for status changes
-const unsub = window.llmbear.tunnel.onStatus((status) => {
-  // status = { status: 'connected', url: 'https://abc123.api.llmbear.com', subdomain: 'abc123' }
-});
-
-// Restart tunnel
+const { connected, url } = await window.llmbear.tunnel.getStatus();
+await window.llmbear.tunnel.copyUrl();    // copies URL + /v1 to clipboard
 await window.llmbear.tunnel.restart();
+const unsub = window.llmbear.tunnel.onStatus((s) => { /* s.status, s.url */ });
 ```
 
-## Security
+## Status Flow
 
-- WebSocket connections use `wss://` (TLS encrypted)
-- Tunnel keys are cryptographically random and stored locally
-- Subdomain assignment is random (8 hex chars = 4 billion combinations)
-- The relay never stores request/response content — it's a pass-through
-- Forwarding headers (`x-forwarded-for`, `host`) are stripped before reaching local API
-- The relay adds `X-Powered-By: LLM Bear Tunnel` but no user-identifying info
+```
+downloading → connecting → connected → (disconnected → reconnecting → connected)
+```
 
 ## License
 

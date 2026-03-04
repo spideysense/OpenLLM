@@ -1,34 +1,33 @@
 /**
- * LLM Bear Tunnel Client
+ * LLM Bear Tunnel — Cloudflare Quick Tunnel
  *
- * Runs inside the Electron main process. On app start:
- * 1. Connects to the tunnel relay via WebSocket
- * 2. Gets assigned a public URL: https://abc123.api.llmbear.com
- * 3. Receives HTTP requests from the relay, forwards to localhost:4000
- * 4. Sends responses back through the WebSocket
+ * Gives every user a free public URL for their local AI.
+ * Uses Cloudflare's free quick tunnel (no account required).
  *
- * The result: user's local AI models are accessible from anywhere.
+ * On app start:
+ * 1. Downloads `cloudflared` binary if not present
+ * 2. Runs: cloudflared tunnel --url http://localhost:4000
+ * 3. Parses the assigned URL (e.g. https://abc-xyz.trycloudflare.com)
+ * 4. Notifies the renderer so user can see + copy their URL
+ *
+ * Cost: $0. No relay server. No Fly.io. No Cloudflare account.
  */
 
-const WebSocket = require('ws');
-const http = require('http');
+const { spawn } = require('child_process');
+const path = require('path');
+const fs = require('fs');
+const https = require('https');
+const os = require('os');
 const store = require('./store');
 
-const RELAY_URL = process.env.LLMBEAR_RELAY || 'wss://api.llmbear.com/tunnel';
-const LOCAL_API = process.env.LLMBEAR_LOCAL_API || 'http://127.0.0.1:4000';
-const RECONNECT_DELAY = 3000;
-const MAX_RECONNECT_DELAY = 30000;
-const HEARTBEAT_INTERVAL = 25000;
+const LOCAL_API = process.env.LLMBEAR_LOCAL_API || 'http://localhost:4000';
+const RECONNECT_DELAY = 5000;
+const MAX_RECONNECT_DELAY = 60000;
 
-let ws = null;
+let proc = null;
 let publicUrl = null;
-let subdomain = null;
-let tunnelKey = store.get('tunnelKey') || null;
-let reconnectDelay = RECONNECT_DELAY;
-let heartbeatTimer = null;
 let isShuttingDown = false;
-
-// Callbacks for UI updates
+let reconnectDelay = RECONNECT_DELAY;
 let onStatusChange = null;
 
 // ═══════════════════════════════════════════════════
@@ -38,18 +37,17 @@ let onStatusChange = null;
 function start(statusCallback) {
   onStatusChange = statusCallback || (() => {});
   isShuttingDown = false;
-  connect();
+  reconnectDelay = RECONNECT_DELAY;
+  launch();
 }
 
 function stop() {
   isShuttingDown = true;
-  if (heartbeatTimer) clearInterval(heartbeatTimer);
-  if (ws) {
-    ws.close();
-    ws = null;
+  if (proc) {
+    proc.kill();
+    proc = null;
   }
   publicUrl = null;
-  subdomain = null;
   notifyStatus('disconnected');
 }
 
@@ -57,193 +55,180 @@ function getPublicUrl() {
   return publicUrl;
 }
 
-function getSubdomain() {
-  return subdomain;
-}
-
 function isConnected() {
-  return ws && ws.readyState === WebSocket.OPEN;
+  return publicUrl !== null && proc !== null;
 }
 
 // ═══════════════════════════════════════════════════
-// Connection
+// Cloudflared Binary Management
 // ═══════════════════════════════════════════════════
 
-function connect() {
+function getBinaryDir() {
+  return path.join(os.homedir(), '.llmbear', 'bin');
+}
+
+function getBinaryPath() {
+  const dir = getBinaryDir();
+  const ext = process.platform === 'win32' ? '.exe' : '';
+  return path.join(dir, `cloudflared${ext}`);
+}
+
+function getDownloadUrl() {
+  const platform = process.platform;
+  const arch = process.arch;
+
+  if (platform === 'darwin') {
+    return 'https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-darwin-amd64.tgz';
+  } else if (platform === 'win32') {
+    return 'https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe';
+  } else if (platform === 'linux') {
+    const linuxArch = arch === 'arm64' ? 'arm64' : 'amd64';
+    return 'https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-' + linuxArch;
+  }
+  return null;
+}
+
+async function ensureBinary() {
+  const binPath = getBinaryPath();
+
+  if (fs.existsSync(binPath)) {
+    return binPath;
+  }
+
+  const url = getDownloadUrl();
+  if (!url) {
+    console.error('[Tunnel] Unsupported platform:', process.platform, process.arch);
+    return null;
+  }
+
+  console.log('[Tunnel] Downloading cloudflared...');
+  notifyStatus('downloading');
+
+  const dir = getBinaryDir();
+  fs.mkdirSync(dir, { recursive: true });
+
+  try {
+    if (url.endsWith('.tgz')) {
+      const tgzPath = path.join(dir, 'cloudflared.tgz');
+      await downloadFile(url, tgzPath);
+      const { execSync } = require('child_process');
+      execSync(`tar -xzf "${tgzPath}" -C "${dir}"`, { stdio: 'ignore' });
+      fs.unlinkSync(tgzPath);
+    } else {
+      await downloadFile(url, binPath);
+    }
+
+    if (process.platform !== 'win32') {
+      fs.chmodSync(binPath, 0o755);
+    }
+
+    console.log('[Tunnel] cloudflared installed at', binPath);
+    return binPath;
+  } catch (err) {
+    console.error('[Tunnel] Download failed:', err.message);
+    notifyStatus('error', { message: 'Failed to download cloudflared: ' + err.message });
+    return null;
+  }
+}
+
+function downloadFile(url, dest) {
+  return new Promise((resolve, reject) => {
+    const follow = (url, redirects = 0) => {
+      if (redirects > 5) return reject(new Error('Too many redirects'));
+      https.get(url, (res) => {
+        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+          return follow(res.headers.location, redirects + 1);
+        }
+        if (res.statusCode !== 200) {
+          return reject(new Error(`HTTP ${res.statusCode}`));
+        }
+        const file = fs.createWriteStream(dest);
+        res.pipe(file);
+        file.on('finish', () => file.close(resolve));
+        file.on('error', reject);
+      }).on('error', reject);
+    };
+    follow(url);
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// Launch Cloudflare Tunnel
+// ═══════════════════════════════════════════════════
+
+async function launch() {
   if (isShuttingDown) return;
-
-  const params = new URLSearchParams();
-  if (tunnelKey) params.set('key', tunnelKey);
-  if (subdomain) params.set('subdomain', subdomain);
-
-  const url = `${RELAY_URL}?${params}`;
 
   notifyStatus('connecting');
 
-  try {
-    ws = new WebSocket(url);
-  } catch (err) {
-    console.error('[Tunnel] Connection error:', err.message);
+  const binPath = await ensureBinary();
+  if (!binPath) {
+    notifyStatus('error', { message: 'Could not install cloudflared' });
     scheduleReconnect();
     return;
   }
 
-  ws.on('open', () => {
-    console.log('[Tunnel] Connected to relay');
-    reconnectDelay = RECONNECT_DELAY; // Reset backoff
-    startHeartbeat();
-  });
+  const args = ['tunnel', '--url', LOCAL_API, '--no-autoupdate'];
 
-  ws.on('message', (data) => {
-    try {
-      const msg = JSON.parse(data);
-      handleMessage(msg);
-    } catch (e) {
-      console.error('[Tunnel] Bad message:', e.message);
+  try {
+    proc = spawn(binPath, args, {
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: { ...process.env },
+    });
+  } catch (err) {
+    console.error('[Tunnel] Spawn error:', err.message);
+    notifyStatus('error', { message: err.message });
+    scheduleReconnect();
+    return;
+  }
+
+  // Parse URL from stderr (cloudflared logs there)
+  proc.stderr.on('data', (data) => {
+    const text = data.toString();
+    const match = text.match(/https:\/\/[a-zA-Z0-9-]+\.trycloudflare\.com/);
+    if (match && !publicUrl) {
+      publicUrl = match[0];
+      reconnectDelay = RECONNECT_DELAY;
+      store.set('lastTunnelUrl', publicUrl);
+      console.log(`[Tunnel] Public URL: ${publicUrl}`);
+      notifyStatus('connected', { url: publicUrl });
     }
   });
 
-  ws.on('close', () => {
-    console.log('[Tunnel] Disconnected');
-    stopHeartbeat();
+  proc.stdout.on('data', (data) => {
+    const text = data.toString();
+    const match = text.match(/https:\/\/[a-zA-Z0-9-]+\.trycloudflare\.com/);
+    if (match && !publicUrl) {
+      publicUrl = match[0];
+      reconnectDelay = RECONNECT_DELAY;
+      store.set('lastTunnelUrl', publicUrl);
+      console.log(`[Tunnel] Public URL: ${publicUrl}`);
+      notifyStatus('connected', { url: publicUrl });
+    }
+  });
+
+  proc.on('close', (code) => {
+    console.log(`[Tunnel] cloudflared exited with code ${code}`);
+    proc = null;
     publicUrl = null;
     notifyStatus('disconnected');
     scheduleReconnect();
   });
 
-  ws.on('error', (err) => {
-    console.error('[Tunnel] WebSocket error:', err.message);
+  proc.on('error', (err) => {
+    console.error('[Tunnel] Process error:', err.message);
+    proc = null;
+    publicUrl = null;
+    notifyStatus('error', { message: err.message });
+    scheduleReconnect();
   });
 }
 
 function scheduleReconnect() {
   if (isShuttingDown) return;
   notifyStatus('reconnecting');
-  setTimeout(() => connect(), reconnectDelay);
+  setTimeout(() => launch(), reconnectDelay);
   reconnectDelay = Math.min(reconnectDelay * 1.5, MAX_RECONNECT_DELAY);
-}
-
-// ═══════════════════════════════════════════════════
-// Message handling
-// ═══════════════════════════════════════════════════
-
-function handleMessage(msg) {
-  switch (msg.type) {
-    case 'assigned':
-      subdomain = msg.subdomain;
-      tunnelKey = msg.tunnelKey;
-      publicUrl = msg.url;
-      store.set('tunnelKey', tunnelKey);
-      store.set('tunnelSubdomain', subdomain);
-      console.log(`[Tunnel] Public URL: ${publicUrl}`);
-      notifyStatus('connected', { url: publicUrl, subdomain });
-      break;
-
-    case 'request':
-      handleProxyRequest(msg);
-      break;
-
-    case 'pong':
-      // Heartbeat response, all good
-      break;
-  }
-}
-
-// ═══════════════════════════════════════════════════
-// Proxy — forward relay request to local API
-// ═══════════════════════════════════════════════════
-
-function handleProxyRequest(msg) {
-  const { requestId, method, path, headers, body } = msg;
-
-  // Strip tunnel-specific headers, forward to local API
-  const localHeaders = { ...headers };
-  delete localHeaders.host;
-  delete localHeaders['x-forwarded-for'];
-  delete localHeaders['x-forwarded-proto'];
-  localHeaders.host = new URL(LOCAL_API).host;
-
-  const url = new URL(path, LOCAL_API);
-
-  const options = {
-    method,
-    hostname: url.hostname,
-    port: url.port,
-    path: url.pathname + url.search,
-    headers: localHeaders,
-    timeout: 120_000, // 2 min for LLM responses
-  };
-
-  const proxyReq = http.request(options, (proxyRes) => {
-    const chunks = [];
-    proxyRes.on('data', (c) => chunks.push(c));
-    proxyRes.on('end', () => {
-      const responseBody = Buffer.concat(chunks).toString();
-
-      // Clean up response headers
-      const resHeaders = { ...proxyRes.headers };
-      delete resHeaders['transfer-encoding']; // We're sending the full body
-
-      sendResponse(requestId, proxyRes.statusCode, resHeaders, responseBody);
-    });
-  });
-
-  proxyReq.on('error', (err) => {
-    console.error(`[Tunnel] Local API error: ${err.message}`);
-    sendResponse(requestId, 502, { 'Content-Type': 'application/json' },
-      JSON.stringify({
-        error: {
-          message: 'Local API not reachable. Make sure Ollama is running.',
-          type: 'local_error',
-          detail: err.message,
-        }
-      })
-    );
-  });
-
-  proxyReq.on('timeout', () => {
-    proxyReq.destroy();
-    sendResponse(requestId, 504, { 'Content-Type': 'application/json' },
-      JSON.stringify({
-        error: { message: 'Local model timed out.', type: 'timeout_error' }
-      })
-    );
-  });
-
-  if (body) proxyReq.write(body);
-  proxyReq.end();
-}
-
-function sendResponse(requestId, status, headers, body) {
-  if (!ws || ws.readyState !== WebSocket.OPEN) return;
-
-  ws.send(JSON.stringify({
-    type: 'response',
-    requestId,
-    status,
-    headers,
-    body,
-  }));
-}
-
-// ═══════════════════════════════════════════════════
-// Heartbeat
-// ═══════════════════════════════════════════════════
-
-function startHeartbeat() {
-  stopHeartbeat();
-  heartbeatTimer = setInterval(() => {
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'ping' }));
-    }
-  }, HEARTBEAT_INTERVAL);
-}
-
-function stopHeartbeat() {
-  if (heartbeatTimer) {
-    clearInterval(heartbeatTimer);
-    heartbeatTimer = null;
-  }
 }
 
 // ═══════════════════════════════════════════════════
@@ -260,6 +245,5 @@ module.exports = {
   start,
   stop,
   getPublicUrl,
-  getSubdomain,
   isConnected,
 };

@@ -188,11 +188,10 @@ describe('Content: Pricing tiers', () => {
 // ═══════════════════════════════════════════════════
 
 describe('Content: API examples', () => {
-  it('should show the two-line change pattern with free and paid options', () => {
+  it('should show the two-line change pattern with localhost and public URL', () => {
     expect(html).toContain('localhost:4000/v1');
-    expect(html).toContain('abc123.api.llmbear.com/v1');
+    expect(html).toContain('trycloudflare.com/v1');
     expect(html).toContain('sk-llmbear');
-    expect(html).toContain('sk-bear-');
     expect(html).toContain('switchTab');
   });
 

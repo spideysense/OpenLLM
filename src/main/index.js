@@ -83,16 +83,12 @@ app.whenReady().then(async () => {
   // Start API gateway
   gateway.start();
 
-  // Start tunnel — gives paid users a public URL for their local AI
-  // Free (Cave Bear) users use localhost:4000 only — zero infrastructure cost
-  const plan = store.get('plan') || 'free';
-  if (plan !== 'free') {
-    tunnel.start((status) => {
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('tunnel:status', status);
-      }
-    });
-  }
+  // Start tunnel — gives every user a free public URL via Cloudflare
+  tunnel.start((status) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('tunnel:status', status);
+    }
+  });
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -269,38 +265,19 @@ ipcMain.handle('app:getVersion', async () => {
 // ═══════════════════════════════════════════════════
 
 ipcMain.handle('tunnel:getStatus', async () => {
-  const plan = store.get('plan') || 'free';
-  if (plan === 'free') {
-    return {
-      connected: false,
-      url: null,
-      subdomain: null,
-      gated: true,
-      message: 'Public URL is available on Cloud Bear ($0.99/mo) and Grizzly Bear ($1.99/mo). Free users use localhost:4000.',
-    };
-  }
   return {
     connected: tunnel.isConnected(),
     url: tunnel.getPublicUrl(),
-    subdomain: tunnel.getSubdomain(),
-    gated: false,
   };
 });
 
 ipcMain.handle('tunnel:copyUrl', async () => {
-  const plan = store.get('plan') || 'free';
-  if (plan === 'free') {
-    clipboard.writeText('http://localhost:4000/v1');
-    return 'http://localhost:4000/v1';
-  }
   const url = tunnel.getPublicUrl();
   if (url) clipboard.writeText(url + '/v1');
   return url ? url + '/v1' : null;
 });
 
 ipcMain.handle('tunnel:restart', async () => {
-  const plan = store.get('plan') || 'free';
-  if (plan === 'free') return false;
   tunnel.stop();
   tunnel.start((status) => {
     if (mainWindow && !mainWindow.isDestroyed()) {
