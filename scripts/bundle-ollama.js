@@ -20,16 +20,19 @@ const VENDOR_DIR = path.join(__dirname, '..', 'vendor', 'ollama');
 
 const DOWNLOADS = {
   darwin: {
-    url: 'https://github.com/ollama/ollama/releases/latest/download/ollama-darwin',
+    url: 'https://github.com/ollama/ollama/releases/latest/download/ollama-darwin.tgz',
     filename: 'ollama',
+    extract: 'tgz',
   },
   win32: {
-    url: 'https://github.com/ollama/ollama/releases/latest/download/ollama-windows-amd64.exe',
+    url: 'https://github.com/ollama/ollama/releases/latest/download/ollama-windows-amd64.zip',
     filename: 'ollama.exe',
+    extract: 'zip',
   },
   linux: {
-    url: 'https://github.com/ollama/ollama/releases/latest/download/ollama-linux-amd64',
+    url: 'https://github.com/ollama/ollama/releases/latest/download/ollama-linux-amd64.tgz',
     filename: 'ollama',
+    extract: 'tgz',
   },
 };
 
@@ -57,17 +60,60 @@ async function main() {
 
   console.log(`Downloading Ollama for ${platform}...`);
   console.log(`  From: ${config.url}`);
-  console.log(`  To:   ${destPath}`);
 
-  await downloadFile(config.url, destPath);
+  if (config.extract === 'tgz') {
+    // Download archive and extract
+    const archivePath = path.join(VENDOR_DIR, 'ollama-download.tgz');
+    await downloadFile(config.url, archivePath);
+    console.log('Extracting tgz...');
+    execSync(`tar -xzf "${archivePath}" -C "${VENDOR_DIR}"`, { stdio: 'inherit' });
+    fs.unlinkSync(archivePath);
+
+    // The tgz may contain the binary as 'ollama' directly or in a subdirectory
+    // Try common locations
+    const candidates = [
+      path.join(VENDOR_DIR, 'ollama'),
+      path.join(VENDOR_DIR, 'bin', 'ollama'),
+    ];
+    let found = false;
+    for (const candidate of candidates) {
+      if (fs.existsSync(candidate) && candidate !== destPath) {
+        fs.renameSync(candidate, destPath);
+        found = true;
+        break;
+      } else if (fs.existsSync(candidate)) {
+        found = true;
+        break;
+      }
+    }
+    if (!found && !fs.existsSync(destPath)) {
+      // List what we got
+      console.log('Archive contents:', fs.readdirSync(VENDOR_DIR));
+      throw new Error('Could not find ollama binary in extracted archive');
+    }
+  } else if (config.extract === 'zip') {
+    const archivePath = path.join(VENDOR_DIR, 'ollama-download.zip');
+    await downloadFile(config.url, archivePath);
+    console.log('Extracting zip...');
+    // Use PowerShell on Windows, unzip elsewhere
+    if (process.platform === 'win32') {
+      execSync(`powershell -command "Expand-Archive -Path '${archivePath}' -DestinationPath '${VENDOR_DIR}' -Force"`, { stdio: 'inherit' });
+    } else {
+      execSync(`unzip -o "${archivePath}" -d "${VENDOR_DIR}"`, { stdio: 'inherit' });
+    }
+    fs.unlinkSync(archivePath);
+  } else {
+    // Direct binary download
+    await downloadFile(config.url, destPath);
+  }
 
   // Make executable on Unix
-  if (platform !== 'win32') {
+  if (platform !== 'win32' && fs.existsSync(destPath)) {
     fs.chmodSync(destPath, 0o755);
   }
 
   const size = fs.statSync(destPath).size;
-  console.log(`✓ Ollama downloaded (${(size / 1e6).toFixed(1)}MB)`);
+  console.log(`✓ Ollama downloaded to ${destPath} (${(size / 1e6).toFixed(1)}MB)`);
 }
 
 function downloadFile(url, dest) {
