@@ -129,9 +129,20 @@ describe('AEO: Structured data (JSON-LD)', () => {
     expect(html).toContain('github.com');
   });
 
-  it('should have FAQ covering at least 4 questions', () => {
+  it('should have FAQ covering at least 5 questions', () => {
     const questionCount = (html.match(/"@type":"Question"/g) || []).length;
-    expect(questionCount).toBeGreaterThanOrEqual(4);
+    expect(questionCount).toBeGreaterThanOrEqual(5);
+  });
+
+  it('should have HowTo schema with 3 steps', () => {
+    expect(html).toContain('"@type":"HowTo"');
+    expect(html).toContain('"@type":"HowToStep"');
+    const stepCount = (html.match(/"@type":"HowToStep"/g) || []).length;
+    expect(stepCount).toBe(3);
+  });
+
+  it('should have totalTime in HowTo schema', () => {
+    expect(html).toContain('"totalTime"');
   });
 });
 
@@ -304,4 +315,52 @@ describe('No-Regression: Project-wide brand check', () => {
       }
     });
   }
+});
+
+// ═══════════════════════════════════════════════════
+// SEO: Supporting files
+// ═══════════════════════════════════════════════════
+
+describe('SEO: Supporting files', () => {
+  it('should have a robots.txt', () => {
+    expect(fs.existsSync(path.resolve('site/robots.txt'))).toBe(true);
+    const robots = fs.readFileSync(path.resolve('site/robots.txt'), 'utf8');
+    expect(robots).toContain('User-agent');
+    expect(robots).toContain('Sitemap');
+  });
+
+  it('should have a sitemap.xml', () => {
+    expect(fs.existsSync(path.resolve('site/sitemap.xml'))).toBe(true);
+    const sitemap = fs.readFileSync(path.resolve('site/sitemap.xml'), 'utf8');
+    expect(sitemap).toContain('<urlset');
+    expect(sitemap).toContain('<loc>');
+  });
+});
+
+// ═══════════════════════════════════════════════════
+// ACCESSIBILITY: Helps AEO engines parse content
+// ═══════════════════════════════════════════════════
+
+describe('Accessibility: ARIA and semantic markup', () => {
+  it('should have aria-label on navigation', () => {
+    expect(html).toContain('aria-label');
+  });
+
+  it('should have role attributes on key sections', () => {
+    expect(html).toContain('role="banner"');
+    expect(html).toContain('role="contentinfo"');
+  });
+
+  it('should have theme-color meta tag', () => {
+    expect(html).toContain('theme-color');
+  });
+
+  it('should have robots meta tag allowing indexing', () => {
+    expect(html).toContain('meta name="robots"');
+    expect(html).toContain('index, follow');
+  });
+
+  it('should have sitemap link in head', () => {
+    expect(html).toContain('rel="sitemap"');
+  });
 });

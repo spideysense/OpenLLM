@@ -16,11 +16,18 @@
 <meta name="twitter:title" content="LLM Bear — Run AI Locally for Free">
 <meta name="twitter:description" content="Stop paying $20/month for AI. Free, private, open source.">
 <link rel="canonical" href="https://open-llm-ten.vercel.app">
+<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
+<meta name="author" content="LLM Bear">
+<meta name="theme-color" content="#E8F4F8">
+<link rel="sitemap" type="application/xml" href="/sitemap.xml">
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"SoftwareApplication","name":"LLM Bear","applicationCategory":"DeveloperApplication","operatingSystem":"macOS, Windows","offers":[{"@type":"Offer","price":"0","priceCurrency":"USD","name":"Cave Bear (Free)","description":"Run AI locally on your own machine. All models, API gateway, no support."},{"@type":"Offer","price":"0.99","priceCurrency":"USD","name":"Cloud Bear","description":"Run AI in the cloud. No downloads needed."},{"@type":"Offer","price":"1.99","priceCurrency":"USD","name":"Grizzly Bear","description":"Priority cloud with human email support."}],"description":"LLM Bear is a free, open source desktop app that runs the best AI models locally on your computer. Drop-in replacement for ChatGPT, Claude, and Gemini APIs.","url":"https://open-llm-ten.vercel.app","downloadUrl":"https://github.com/spideysense/OpenLLM","softwareVersion":"0.1.0","license":"https://opensource.org/licenses/MIT"}
 </script>
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What is LLM Bear?","acceptedAnswer":{"@type":"Answer","text":"LLM Bear is a free, open source desktop app that lets you run the best AI language models (like Llama, Qwen, DeepSeek) directly on your computer. No subscriptions, no API keys, no data sharing. It works as a drop-in replacement for ChatGPT, Claude, and Gemini."}},{"@type":"Question","name":"Is LLM Bear really free?","acceptedAnswer":{"@type":"Answer","text":"Yes. The Cave Bear plan is free forever. You download the app, it runs AI models on your own hardware. Optional paid plans ($0.99/mo and $1.99/mo) for cloud hosting."}},{"@type":"Question","name":"How does LLM Bear replace ChatGPT?","acceptedAnswer":{"@type":"Answer","text":"LLM Bear runs an OpenAI-compatible API on localhost:4000. Generate API keys, alias model names like gpt-4 to local models, and change just two lines of code."}},{"@type":"Question","name":"What models can LLM Bear run?","acceptedAnswer":{"@type":"Answer","text":"Llama 3.3 (Meta), Qwen 2.5 (Alibaba), DeepSeek R1, Gemma 2 (Google), and specialized coding models. The app automatically recommends the best model for your hardware."}},{"@type":"Question","name":"Is my data private with LLM Bear?","acceptedAnswer":{"@type":"Answer","text":"Yes, 100%. When using the free Cave Bear plan, everything runs on your local machine. No data is sent to any server."}}]}
+{"@context":"https://schema.org","@type":"HowTo","name":"How to run AI locally with LLM Bear","description":"Get your own private AI assistant running on your computer in under 2 minutes.","totalTime":"PT2M","step":[{"@type":"HowToStep","position":1,"name":"Download LLM Bear","text":"Download the free LLM Bear app for Mac or Windows. One file, one click install.","url":"https://open-llm-ten.vercel.app/#pricing"},{"@type":"HowToStep","position":2,"name":"Let the bear pick your model","text":"LLM Bear automatically scans your hardware and recommends the best AI model for your system. No research needed.","url":"https://open-llm-ten.vercel.app/#how"},{"@type":"HowToStep","position":3,"name":"Start chatting","text":"You are now chatting with AI running 100% on your machine. Your apps can also connect via the built-in OpenAI-compatible API at localhost:4000.","url":"https://open-llm-ten.vercel.app/#api"}]}
+</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What is LLM Bear?","acceptedAnswer":{"@type":"Answer","text":"LLM Bear is a free, open source desktop app that lets you run the best AI language models (like Llama, Qwen, DeepSeek) directly on your computer. No subscriptions, no API keys, no data sharing. It works as a drop-in replacement for ChatGPT, Claude, and Gemini."}},{"@type":"Question","name":"Is LLM Bear really free?","acceptedAnswer":{"@type":"Answer","text":"Yes. The Cave Bear plan is free forever. You download the app, it runs AI models on your own hardware. Optional paid plans ($0.99/mo and $1.99/mo) for cloud hosting."}},{"@type":"Question","name":"How does LLM Bear replace ChatGPT?","acceptedAnswer":{"@type":"Answer","text":"LLM Bear runs an OpenAI-compatible API on localhost:4000. Generate API keys, alias model names like gpt-4 to local models, and change just two lines of code."}},{"@type":"Question","name":"What models can LLM Bear run?","acceptedAnswer":{"@type":"Answer","text":"Llama 3.3 (Meta), Qwen 2.5 (Alibaba), DeepSeek R1, Gemma 2 (Google), and specialized coding models. The app automatically recommends the best model for your hardware."}},{"@type":"Question","name":"Is my data private with LLM Bear?","acceptedAnswer":{"@type":"Answer","text":"Yes, 100%. When using the free Cave Bear plan, everything runs on your local machine. No data is sent to any server."}},{"@type":"Question","name":"What hardware do I need to run LLM Bear?","acceptedAnswer":{"@type":"Answer","text":"Any Mac or Windows PC with at least 8GB of RAM can run smaller models. For best results, 16GB RAM or more is recommended. Apple Silicon Macs and PCs with NVIDIA GPUs get the best performance."}},{"@type":"Question","name":"How do I use LLM Bear as an API?","acceptedAnswer":{"@type":"Answer","text":"LLM Bear runs a local API server at localhost:4000 that is fully compatible with the OpenAI API format. Generate an API key in the app, then change your base_url and api_key in any existing OpenAI code. It works with LangChain, Cursor, Continue.dev, and any OpenAI-compatible tool."}}]}
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -164,7 +171,7 @@
 </head>
 <body>
 
-<nav class="navbar" id="navbar">
+<nav class="navbar" id="navbar" aria-label="Main navigation">
   <a href="#" class="nav-logo">
     <svg viewBox="0 0 40 40" fill="none"><rect rx="8" width="40" height="40" fill="#4A7DC9"/><circle cx="20" cy="18" r="12" fill="#B08040"/><circle cx="15" cy="16" r="3.5" fill="white"/><circle cx="25" cy="16" r="3.5" fill="white"/><circle cx="15" cy="16" r="2" fill="#2D3436"/><circle cx="25" cy="16" r="2" fill="#2D3436"/><circle cx="16" cy="15" r=".7" fill="white"/><circle cx="26" cy="15" r=".7" fill="white"/><rect x="10" y="14" width="20" height="4" rx="2" fill="none" stroke="#2D3436" stroke-width="1.5"/><ellipse cx="20" cy="23" rx="5" ry="4" fill="#8B6914"/><ellipse cx="20" cy="22" rx="2.5" ry="2" fill="#2D3436"/><circle cx="9" cy="10" r="5" fill="#B08040"/><circle cx="31" cy="10" r="5" fill="#B08040"/></svg>
     <span>LLM Bear</span>
@@ -178,7 +185,7 @@
   </ul>
 </nav>
 
-<section class="hero">
+<section class="hero" role="banner" aria-label="LLM Bear - Run AI locally for free">
   <div class="code-float cf-1">{/}</div>
   <div class="code-float cf-2">&lt;/&gt;</div>
   <div class="code-float cf-3">{ }</div>
@@ -374,7 +381,7 @@ response = client.chat.completions.<span class="fn">create</span>(
   </div>
 </section>
 
-<footer class="footer">
+<footer class="footer" role="contentinfo">
   <div class="footer-logo">🐻 LLM Bear</div>
   <p>AI that runs on your machine. No subscriptions. No data sharing. No nonsense.</p>
   <div class="footer-links"><a href="#pricing">Pricing</a><a href="#how">How It Works</a><a href="#api">API Docs</a><a href="https://github.com/spideysense/OpenLLM" target="_blank">GitHub</a><a href="https://github.com/spideysense/OpenLLM/fork" target="_blank">Fork It</a></div>
