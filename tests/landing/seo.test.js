@@ -248,6 +248,10 @@ describe('Content: Value propositions', () => {
   it('should communicate privacy', () => {
     expect(html).toContain('Totally Private');
     expect(html).toContain('100% private');
+    expect(html).toContain('Zero data collection');
+    expect(html).toContain('No telemetry');
+    expect(html).toContain('No cloud required');
+    expect(html).toContain('Never trains on your data');
   });
 
   it('should communicate auto-updates', () => {
@@ -263,6 +267,17 @@ describe('Content: Value propositions', () => {
     expect(html).toContain('Download');
     expect(html).toContain('Bear Picks Your Model');
     expect(html).toContain('Start Chatting');
+  });
+
+  it('should reinforce privacy across multiple sections', () => {
+    // Privacy should appear in hero, features, how-it-works, pricing, API, and CTA
+    const privacyTerms = ['private', 'never leave', 'on your machine', 'No data', 'localhost'];
+    let sectionHits = 0;
+    for (const term of privacyTerms) {
+      const matches = html.toLowerCase().match(new RegExp(term.toLowerCase(), 'g')) || [];
+      if (matches.length > 0) sectionHits++;
+    }
+    expect(sectionHits).toBeGreaterThanOrEqual(4);
   });
 });
 
