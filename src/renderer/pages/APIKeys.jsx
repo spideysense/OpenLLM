@@ -19,9 +19,9 @@ export default function APIKeys() {
 
   // Fetch tunnel status
   useEffect(() => {
-    if (!bridge) return;
-    bridge.tunnel.getStatus().then(setTunnelStatus);
-    const unsub = bridge.tunnel.onStatusChange((data) => {
+    if (!bridge?.tunnel) return;
+    bridge.tunnel.getStatus().then(setTunnelStatus).catch(() => {});
+    const unsub = bridge.tunnel.onStatus((data) => {
       setTunnelStatus(data);
     });
     return unsub;
