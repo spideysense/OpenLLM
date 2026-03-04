@@ -19,7 +19,7 @@
     "productName": "LLM Bear",
     "directories": {
       "output": "dist",
-      "buildResources": "build"
+      "buildResources": "assets"
     },
     "files": [
       "src/main/**/*",
@@ -27,14 +27,21 @@
       "build/**/*",
       "registry/**/*"
     ],
+    "extraResources": [
+      {
+        "from": "vendor/ollama/",
+        "to": "vendor/ollama/",
+        "filter": ["**/*"]
+      }
+    ],
     "mac": {
       "category": "public.app-category.developer-tools",
       "artifactName": "LLMBear-${version}-mac.${ext}",
-      "icon": "build/icon.png",
+      "icon": "assets/icon.png",
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
-      "entitlements": "build/entitlements.mac.plist",
-      "entitlementsInherit": "build/entitlements.mac.plist",
+      "entitlements": "assets/entitlements.mac.plist",
+      "entitlementsInherit": "assets/entitlements.mac.plist",
       "target": [
         {
           "target": "dmg",
@@ -45,7 +52,7 @@
       ]
     },
     "win": {
-      "icon": "build/icon.png",
+      "icon": "assets/icon.png",
       "target": [
         {
           "target": "nsis",

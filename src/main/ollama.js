@@ -1,13 +1,52 @@
-const { exec, spawn, execSync } = require('child_process');
-const { app, shell } = require('electron');
+const { spawn } = require('child_process');
+const { app } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const https = require('https');
 const http = require('http');
 const os = require('os');
 
 const OLLAMA_HOST = 'http://127.0.0.1:11434';
 let chatController = null;
+let ollamaProcess = null;
+
+// ═══════════════════════════════════════════════════
+// Find Ollama Binary — bundled first, then system
+// ═══════════════════════════════════════════════════
+
+function getBundledPath() {
+  const ext = process.platform === 'win32' ? '.exe' : '';
+  const name = `ollama${ext}`;
+
+  // In packaged app: resources/vendor/ollama/
+  if (app.isPackaged) {
+    const resourcePath = path.join(process.resourcesPath, 'vendor', 'ollama', name);
+    if (fs.existsSync(resourcePath)) return resourcePath;
+  }
+
+  // In dev: vendor/ollama/
+  const devPath = path.join(__dirname, '..', '..', 'vendor', 'ollama', name);
+  if (fs.existsSync(devPath)) return devPath;
+
+  return null;
+}
+
+function getSystemPath() {
+  // Check common locations
+  const candidates = process.platform === 'darwin'
+    ? ['/usr/local/bin/ollama', '/opt/homebrew/bin/ollama']
+    : process.platform === 'win32'
+      ? [path.join(process.env.LOCALAPPDATA || '', 'Programs', 'Ollama', 'ollama.exe')]
+      : ['/usr/local/bin/ollama', '/usr/bin/ollama'];
+
+  for (const p of candidates) {
+    if (fs.existsSync(p)) return p;
+  }
+  return null;
+}
+
+function getOllamaPath() {
+  return getBundledPath() || getSystemPath() || 'ollama';
+}
 
 // ═══════════════════════════════════════════════════
 // Health & Status
@@ -24,107 +63,17 @@ async function isRunning() {
 
 async function getStatus() {
   const running = await isRunning();
-  const installed = await isInstalled();
-  return { installed, running, host: OLLAMA_HOST };
+  const ollamaPath = getOllamaPath();
+  const bundled = getBundledPath() !== null;
+  return { installed: true, running, host: OLLAMA_HOST, bundled, ollamaPath };
 }
-
-// ═══════════════════════════════════════════════════
-// Installation Detection
-// ═══════════════════════════════════════════════════
 
 function isInstalled() {
-  return new Promise((resolve) => {
-    const cmd = process.platform === 'win32' ? 'where ollama' : 'which ollama';
-    exec(cmd, (err) => resolve(!err));
-  });
-}
-
-function getOllamaPath() {
-  if (process.platform === 'darwin') {
-    // macOS: Ollama installs to /usr/local/bin/ollama or the app bundle
-    const paths = [
-      '/usr/local/bin/ollama',
-      '/opt/homebrew/bin/ollama',
-      path.join(os.homedir(), '.ollama', 'ollama'),
-    ];
-    return paths[0]; // Default
-  }
-  if (process.platform === 'win32') {
-    return path.join(process.env.LOCALAPPDATA || '', 'Programs', 'Ollama', 'ollama.exe');
-  }
-  return 'ollama';
+  return Promise.resolve(true); // Always true — we bundle it
 }
 
 // ═══════════════════════════════════════════════════
-// Install Ollama
-// ═══════════════════════════════════════════════════
-
-async function install(onProgress) {
-  const notify = onProgress || (() => {});
-
-  if (process.platform === 'darwin') {
-    // macOS: download Ollama CLI via install script
-    notify('Downloading Ollama...');
-    return new Promise((resolve) => {
-      const child = exec(
-        'curl -fsSL https://ollama.com/install.sh | sh',
-        { timeout: 120000 },
-        (err) => {
-          if (err) {
-            // Fallback: open download page
-            notify('Auto-install failed. Opening download page...');
-            shell.openExternal('https://ollama.com/download/mac');
-            resolve({ success: false, error: 'auto_install_failed', message: 'Please install Ollama from the download page, then click Try Again.' });
-          } else {
-            notify('Ollama installed!');
-            resolve({ success: true });
-          }
-        }
-      );
-    });
-  } else if (process.platform === 'win32') {
-    // Windows: download and run the installer
-    notify('Downloading Ollama installer...');
-    const installerPath = path.join(os.tmpdir(), 'OllamaSetup.exe');
-    try {
-      await downloadToFile('https://ollama.com/download/OllamaSetup.exe', installerPath);
-      notify('Running installer...');
-      exec(`"${installerPath}"`, (err) => {
-        if (err) {
-          shell.openExternal('https://ollama.com/download/windows');
-        }
-      });
-      return { success: true, message: 'Installer launched. Follow the prompts, then click Try Again.' };
-    } catch (e) {
-      shell.openExternal('https://ollama.com/download/windows');
-      return { success: false, error: 'download_failed' };
-    }
-  } else {
-    shell.openExternal('https://ollama.com/download');
-    return { success: false, error: 'unsupported_platform' };
-  }
-}
-
-function downloadToFile(url, dest) {
-  return new Promise((resolve, reject) => {
-    const follow = (url, redirects = 0) => {
-      if (redirects > 5) return reject(new Error('Too many redirects'));
-      https.get(url, (res) => {
-        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-          return follow(res.headers.location, redirects + 1);
-        }
-        if (res.statusCode !== 200) return reject(new Error(`HTTP ${res.statusCode}`));
-        const file = fs.createWriteStream(dest);
-        res.pipe(file);
-        file.on('finish', () => file.close(resolve));
-      }).on('error', reject);
-    };
-    follow(url);
-  });
-}
-
-// ═══════════════════════════════════════════════════
-// Start / Ensure Running
+// Start Ollama — automatic, no user action needed
 // ═══════════════════════════════════════════════════
 
 async function ensureRunning(onProgress) {
@@ -134,45 +83,56 @@ async function ensureRunning(onProgress) {
     return { success: true, alreadyRunning: true };
   }
 
-  let installed = await isInstalled();
+  const ollamaPath = getOllamaPath();
+  notify('Starting AI engine...');
 
-  // Auto-install if needed
-  if (!installed) {
-    notify('Installing Ollama...');
-    const installResult = await install(notify);
-    if (!installResult.success) {
-      return { success: false, error: 'install_failed', message: installResult.message || 'Could not install Ollama. Please install manually from ollama.com' };
-    }
-    // Re-check installation
-    installed = await isInstalled();
-    if (!installed) {
-      return { success: false, error: 'install_failed', message: 'Ollama installed but not found. Please restart LLM Bear.' };
-    }
+  // Make sure bundled binary is executable
+  if (getBundledPath() && process.platform !== 'win32') {
+    try { fs.chmodSync(ollamaPath, 0o755); } catch {}
   }
 
-  // Try to start Ollama serve in background
-  notify('Starting Ollama...');
   return new Promise((resolve) => {
-    const child = spawn('ollama', ['serve'], {
-      detached: true,
-      stdio: 'ignore',
-      env: { ...process.env, OLLAMA_HOST: '127.0.0.1:11434' },
-    });
-    child.unref();
+    try {
+      ollamaProcess = spawn(ollamaPath, ['serve'], {
+        detached: true,
+        stdio: 'ignore',
+        env: {
+          ...process.env,
+          OLLAMA_HOST: '127.0.0.1:11434',
+          // Store models in app-specific location
+          OLLAMA_MODELS: path.join(os.homedir(), '.llmbear', 'models'),
+        },
+      });
+      ollamaProcess.unref();
 
-    // Poll until running (up to 15 seconds)
-    let attempts = 0;
-    const poll = setInterval(async () => {
-      attempts++;
-      if (await isRunning()) {
-        clearInterval(poll);
-        resolve({ success: true, alreadyRunning: false });
-      } else if (attempts > 30) {
-        clearInterval(poll);
-        resolve({ success: false, error: 'timeout', message: 'Ollama installed but failed to start. Try restarting LLM Bear.' });
-      }
-    }, 500);
+      ollamaProcess.on('error', (err) => {
+        console.error('[Ollama] Failed to start:', err.message);
+        resolve({ success: false, error: 'start_failed', message: 'Could not start AI engine. Please restart LLM Bear.' });
+      });
+
+      // Poll until running (up to 20 seconds)
+      let attempts = 0;
+      const poll = setInterval(async () => {
+        attempts++;
+        if (await isRunning()) {
+          clearInterval(poll);
+          notify('AI engine running!');
+          resolve({ success: true, alreadyRunning: false });
+        } else if (attempts > 40) {
+          clearInterval(poll);
+          resolve({ success: false, error: 'timeout', message: 'AI engine took too long to start. Please restart LLM Bear.' });
+        }
+      }, 500);
+    } catch (err) {
+      console.error('[Ollama] Spawn error:', err.message);
+      resolve({ success: false, error: 'spawn_failed', message: 'Could not start AI engine.' });
+    }
   });
+}
+
+// No-op — Ollama is bundled, nothing to install
+async function install() {
+  return { success: true };
 }
 
 // ═══════════════════════════════════════════════════
@@ -257,4 +217,6 @@ module.exports = {
   ensureRunning,
   chat,
   abortChat,
+  getOllamaPath,
+  getBundledPath,
 };

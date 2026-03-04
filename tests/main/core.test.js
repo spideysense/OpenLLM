@@ -301,43 +301,68 @@ describe('Model Registry', () => {
   });
 });
 
-describe('Ollama Auto-Install', () => {
+
+describe('Ollama: Bundled Binary', () => {
   const ollamaSrc = fs.readFileSync(path.resolve('src/main/ollama.js'), 'utf8');
   const onboardingSrc = fs.readFileSync(path.resolve('src/renderer/pages/Onboarding.jsx'), 'utf8');
   const preloadSrc = fs.readFileSync(path.resolve('src/preload/index.js'), 'utf8');
+  const pkgJson = JSON.parse(fs.readFileSync(path.resolve('package.json'), 'utf8'));
 
-  it('should auto-install Ollama if not present', () => {
-    expect(ollamaSrc).toContain('install.sh');
-    expect(ollamaSrc).toContain('curl -fsSL');
+  it('should look for bundled binary in resources/vendor/ollama/', () => {
+    expect(ollamaSrc).toContain('getBundledPath');
+    expect(ollamaSrc).toContain('process.resourcesPath');
+    expect(ollamaSrc).toContain('vendor');
   });
 
-  it('should handle macOS and Windows installs', () => {
-    expect(ollamaSrc).toContain("platform === 'darwin'");
-    expect(ollamaSrc).toContain("platform === 'win32'");
-    expect(ollamaSrc).toContain('OllamaSetup.exe');
+  it('should fall back to system ollama if bundled not found', () => {
+    expect(ollamaSrc).toContain('getSystemPath');
+    expect(ollamaSrc).toContain('/usr/local/bin/ollama');
   });
 
-  it('should fall back to download page if auto-install fails', () => {
-    expect(ollamaSrc).toContain('ollama.com/download/mac');
-    expect(ollamaSrc).toContain('ollama.com/download/windows');
-    expect(ollamaSrc).toContain('openExternal');
+  it('should use bundled binary first, system second', () => {
+    expect(ollamaSrc).toContain('getBundledPath() || getSystemPath()');
   });
 
-  it('should auto-install in ensureRunning if not installed', () => {
-    expect(ollamaSrc).toContain('await install(notify)');
+  it('should ensure binary is executable on Unix', () => {
+    expect(ollamaSrc).toContain('chmodSync');
+    expect(ollamaSrc).toContain('0o755');
   });
 
-  it('should report progress via callback', () => {
-    expect(ollamaSrc).toContain("notify('Installing Ollama...')");
-    expect(ollamaSrc).toContain("notify('Starting Ollama...')");
+  it('should store models in ~/.llmbear/models/', () => {
+    expect(ollamaSrc).toContain('OLLAMA_MODELS');
+    expect(ollamaSrc).toContain('.llmbear');
+    expect(ollamaSrc).toContain('models');
+  });
+
+  it('should report isInstalled as always true (bundled)', () => {
+    expect(ollamaSrc).toContain('Promise.resolve(true)');
+  });
+
+  it('should never show "Ollama" to the user in onboarding UI text', () => {
+    // User-visible strings (in JSX text/template literals) should say "AI engine", not "Ollama"
+    // bridge.ollama is an internal API name, that's fine
+    expect(onboardingSrc).not.toContain("'Ollama");
+    expect(onboardingSrc).not.toContain('"Ollama');
+    expect(onboardingSrc).toContain('AI engine');
   });
 
   it('should check ensureRunning result before pulling model', () => {
     expect(onboardingSrc).toContain('runResult.success');
   });
 
-  it('should show install progress in onboarding UI', () => {
-    expect(onboardingSrc).toContain('ollama.onProgress');
+  it('should include vendor/ in extraResources for electron-builder', () => {
+    const extra = pkgJson.build.extraResources;
+    expect(extra).toBeTruthy();
+    const ollamaResource = extra.find(r => r.from && r.from.includes('vendor/ollama'));
+    expect(ollamaResource).toBeTruthy();
+  });
+
+  it('should have bundle-ollama script', () => {
+    const bundleScript = fs.readFileSync(path.resolve('scripts/bundle-ollama.js'), 'utf8');
+    expect(bundleScript).toContain('ollama/ollama/releases');
+    expect(bundleScript).toContain('darwin');
+    expect(bundleScript).toContain('win32');
+    expect(bundleScript).toContain('linux');
   });
 
   it('should expose ollama.onProgress in preload', () => {

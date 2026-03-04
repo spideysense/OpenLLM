@@ -47,16 +47,16 @@ export default function Onboarding() {
     setError(null);
 
     try {
-      // Ensure Ollama is installed and running
-      setDownloadStatus('Checking Ollama...');
+      // Start the AI engine (bundled, automatic)
+      setDownloadStatus('Starting AI engine...');
       const runResult = await bridge.ollama.ensureRunning();
       if (!runResult.success) {
-        setError(runResult.message || 'Could not start Ollama. Please install it from ollama.com and click Try Again.');
+        setError(runResult.message || 'Could not start the AI engine. Please restart LLM Bear.');
         return;
       }
 
       // Pull the model
-      setDownloadStatus('Starting download...');
+      setDownloadStatus(`Downloading ${recommendation.name || recommendation.model}...`);
       const result = await bridge.models.pull(recommendation.model);
       if (result.success) {
         await selectModel(recommendation.model);
@@ -65,7 +65,7 @@ export default function Onboarding() {
         setError(result.error || 'Download failed. Check your internet connection and try again.');
       }
     } catch (e) {
-      setError(e.message || 'Something went wrong. Make sure Ollama is installed and try again.');
+      setError(e.message || 'Something went wrong. Please restart LLM Bear and try again.');
     }
   }
 

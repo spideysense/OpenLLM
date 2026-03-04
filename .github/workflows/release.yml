@@ -23,6 +23,9 @@ jobs:
       - name: Install dependencies
         run: npm install && npm install @electron/notarize
 
+      - name: Bundle Ollama binary
+        run: node scripts/bundle-ollama.js darwin
+
       - name: Build renderer
         run: npm run build:renderer
 
@@ -53,6 +56,9 @@ jobs:
 
       - name: Install dependencies
         run: npm install
+
+      - name: Bundle Ollama binary
+        run: node scripts/bundle-ollama.js win32
 
       - name: Build renderer
         run: npm run build:renderer
