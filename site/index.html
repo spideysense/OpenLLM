@@ -1,0 +1,1369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLM Bear — AI That Runs on Your Machine</title>
+<meta name="description" content="Stop paying $20/month for AI. LLM Bear gives you the best open source AI models, running 100% on your computer. Free forever.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --sky: #D6EEF5;
+    --sky-deep: #B8DDE8;
+    --sky-top: #E8F4F8;
+    --cloud: #FFFFFF;
+    --bear-brown: #B08040;
+    --bear-dark: #8B6914;
+    --bear-light: #D4A04A;
+    --pipe-yellow: #F5A623;
+    --pipe-gold: #EDBA3A;
+    --pipe-dark: #D4911E;
+    --grass: #7BC67E;
+    --grass-dark: #4AA651;
+    --grass-light: #A8E6A3;
+    --earth: #5D4E37;
+    --earth-light: #8B7355;
+    --text-dark: #2D3436;
+    --text-mid: #4A4A4A;
+    --text-light: #6B7B8D;
+    --water: #3498DB;
+    --danger: #E74C3C;
+    --alert: #FF8C42;
+    --display: 'Baloo 2', cursive;
+    --body: 'Nunito', sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--body);
+    color: var(--text-dark);
+    background: var(--sky-top);
+    overflow-x: hidden;
+  }
+
+  /* ════════════════════════════════════════════════
+     NAVBAR
+     ════════════════════════════════════════════════ */
+  .navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    padding: 16px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(232, 244, 248, 0.85);
+    backdrop-filter: blur(16px);
+    border-bottom: 2px solid rgba(93, 78, 55, 0.06);
+    transition: box-shadow 0.3s;
+  }
+
+  .navbar.scrolled { box-shadow: 0 4px 24px rgba(0,0,0,0.06); }
+
+  .nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+  }
+
+  .nav-logo svg { width: 36px; height: 36px; }
+
+  .nav-logo span {
+    font-family: var(--display);
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--earth);
+    letter-spacing: -0.5px;
+  }
+
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    list-style: none;
+  }
+
+  .nav-links a {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-mid);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .nav-links a:hover { color: var(--bear-dark); }
+
+  .nav-cta {
+    background: var(--pipe-yellow) !important;
+    color: var(--earth) !important;
+    padding: 10px 24px;
+    border-radius: 50px;
+    font-weight: 700 !important;
+    transition: all 0.2s !important;
+    box-shadow: 0 4px 12px rgba(245, 166, 35, 0.3);
+  }
+
+  .nav-cta:hover {
+    background: var(--pipe-gold) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(245, 166, 35, 0.4) !important;
+  }
+
+  /* ════════════════════════════════════════════════
+     HERO — TunnelBear-style illustrated landscape
+     ════════════════════════════════════════════════ */
+  .hero {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 120px 24px 80px;
+    overflow: hidden;
+  }
+
+  /* Sky gradient background */
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, #E8F4F8 0%, #D6EEF5 40%, #C0E0D0 70%, #A8E6A3 85%, #7BC67E 100%);
+    z-index: 0;
+  }
+
+  /* Subtle cloud layer */
+  .clouds {
+    position: absolute;
+    top: 60px;
+    left: 0;
+    right: 0;
+    height: 200px;
+    z-index: 1;
+    opacity: 0.5;
+  }
+
+  .cloud {
+    position: absolute;
+    background: white;
+    border-radius: 100px;
+    animation: float linear infinite;
+  }
+
+  .cloud::before, .cloud::after {
+    content: '';
+    position: absolute;
+    background: white;
+    border-radius: 50%;
+  }
+
+  .cloud-1 { width: 120px; height: 40px; top: 20px; left: -5%; animation-duration: 35s; }
+  .cloud-1::before { width: 50px; height: 50px; top: -25px; left: 20px; }
+  .cloud-1::after { width: 70px; height: 60px; top: -30px; left: 40px; }
+
+  .cloud-2 { width: 90px; height: 30px; top: 80px; left: -10%; animation-duration: 45s; animation-delay: -10s; }
+  .cloud-2::before { width: 40px; height: 40px; top: -20px; left: 15px; }
+  .cloud-2::after { width: 55px; height: 45px; top: -22px; left: 30px; }
+
+  .cloud-3 { width: 140px; height: 45px; top: 50px; left: -8%; animation-duration: 55s; animation-delay: -25s; }
+  .cloud-3::before { width: 60px; height: 55px; top: -28px; left: 25px; }
+  .cloud-3::after { width: 80px; height: 65px; top: -32px; left: 50px; }
+
+  @keyframes float {
+    from { transform: translateX(-200px); }
+    to { transform: translateX(calc(100vw + 200px)); }
+  }
+
+  /* Ground / grass hills */
+  .ground {
+    position: absolute;
+    bottom: 0;
+    left: -5%;
+    right: -5%;
+    height: 260px;
+    z-index: 2;
+  }
+
+  .hill {
+    position: absolute;
+    border-radius: 50%;
+    bottom: -50%;
+  }
+
+  .hill-1 { width: 600px; height: 350px; left: -5%; background: var(--grass); }
+  .hill-2 { width: 800px; height: 400px; left: 20%; background: var(--grass-light); }
+  .hill-3 { width: 700px; height: 320px; right: -5%; background: var(--grass); }
+
+  /* Hero content */
+  .hero-content {
+    position: relative;
+    z-index: 10;
+    max-width: 800px;
+  }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,0.8);
+    padding: 8px 20px;
+    border-radius: 50px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--grass-dark);
+    margin-bottom: 24px;
+    border: 2px solid rgba(123, 198, 126, 0.3);
+    animation: fadeDown 0.6s ease both;
+  }
+
+  .hero-badge .dot {
+    width: 8px; height: 8px;
+    background: var(--grass-dark);
+    border-radius: 50%;
+    animation: pulse-dot 2s infinite;
+  }
+
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.3); }
+  }
+
+  .hero h1 {
+    font-family: var(--display);
+    font-size: clamp(42px, 6vw, 72px);
+    font-weight: 800;
+    line-height: 1.1;
+    color: var(--earth);
+    margin-bottom: 20px;
+    letter-spacing: -1px;
+    animation: fadeDown 0.6s ease 0.1s both;
+  }
+
+  .hero h1 em {
+    font-style: normal;
+    color: var(--pipe-dark);
+    position: relative;
+  }
+
+  .hero h1 em::after {
+    content: '';
+    position: absolute;
+    bottom: 2px;
+    left: 0;
+    right: 0;
+    height: 8px;
+    background: var(--pipe-yellow);
+    opacity: 0.4;
+    border-radius: 4px;
+    z-index: -1;
+  }
+
+  .hero-sub {
+    font-size: clamp(17px, 2.2vw, 21px);
+    color: var(--text-mid);
+    line-height: 1.6;
+    max-width: 600px;
+    margin: 0 auto 36px;
+    font-weight: 500;
+    animation: fadeDown 0.6s ease 0.2s both;
+  }
+
+  .hero-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    animation: fadeDown 0.6s ease 0.3s both;
+  }
+
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 36px;
+    border-radius: 50px;
+    font-family: var(--display);
+    font-size: 18px;
+    font-weight: 700;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.25s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-primary {
+    background: var(--pipe-yellow);
+    color: var(--earth);
+    box-shadow: 0 6px 24px rgba(245, 166, 35, 0.35), 0 2px 4px rgba(0,0,0,0.08);
+  }
+
+  .btn-primary:hover {
+    background: var(--pipe-gold);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 36px rgba(245, 166, 35, 0.45), 0 4px 8px rgba(0,0,0,0.1);
+  }
+
+  .btn-secondary {
+    background: var(--cloud);
+    color: var(--text-dark);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.06), 0 2px 4px rgba(0,0,0,0.04);
+    border: 2px solid rgba(93, 78, 55, 0.1);
+  }
+
+  .btn-secondary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    border-color: rgba(93, 78, 55, 0.2);
+  }
+
+  .btn-github {
+    background: var(--earth);
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(93, 78, 55, 0.3);
+  }
+
+  .btn-github:hover {
+    background: #4A3D2C;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(93, 78, 55, 0.4);
+  }
+
+  .btn-sm {
+    padding: 12px 24px;
+    font-size: 15px;
+  }
+
+  /* Bear illustration in hero */
+  .hero-bear {
+    position: relative;
+    z-index: 10;
+    margin-top: -10px;
+    margin-bottom: -40px;
+    animation: bearBounce 3s ease-in-out infinite;
+  }
+
+  @keyframes bearBounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-12px); }
+  }
+
+  /* ════════════════════════════════════════════════
+     SOCIAL PROOF BAR
+     ════════════════════════════════════════════════ */
+  .proof-bar {
+    background: var(--cloud);
+    border-top: 2px solid rgba(93, 78, 55, 0.05);
+    border-bottom: 2px solid rgba(93, 78, 55, 0.05);
+    padding: 32px 24px;
+    text-align: center;
+  }
+
+  .proof-bar p {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-light);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .proof-logos {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 48px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+    opacity: 0.45;
+  }
+
+  .proof-logos span {
+    font-family: var(--display);
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-mid);
+  }
+
+  /* ════════════════════════════════════════════════
+     VALUE PROP — "Why pay $20/mo?"
+     ════════════════════════════════════════════════ */
+  .value-section {
+    padding: 100px 24px;
+    background: var(--cloud);
+    text-align: center;
+  }
+
+  .section-label {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--pipe-dark);
+    background: rgba(245, 166, 35, 0.12);
+    padding: 6px 16px;
+    border-radius: 50px;
+    margin-bottom: 16px;
+  }
+
+  .section-title {
+    font-family: var(--display);
+    font-size: clamp(30px, 4vw, 48px);
+    font-weight: 800;
+    color: var(--earth);
+    margin-bottom: 16px;
+    letter-spacing: -0.5px;
+  }
+
+  .section-sub {
+    font-size: 18px;
+    color: var(--text-light);
+    max-width: 600px;
+    margin: 0 auto 60px;
+    line-height: 1.6;
+  }
+
+  .value-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .value-card {
+    background: var(--sky-top);
+    border-radius: 20px;
+    padding: 36px 28px;
+    text-align: left;
+    border: 2px solid rgba(93, 78, 55, 0.06);
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .value-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.06);
+    border-color: rgba(245, 166, 35, 0.2);
+  }
+
+  .value-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    margin-bottom: 20px;
+  }
+
+  .vi-yellow { background: rgba(245, 166, 35, 0.15); }
+  .vi-green { background: rgba(123, 198, 126, 0.2); }
+  .vi-blue { background: rgba(52, 152, 219, 0.12); }
+  .vi-brown { background: rgba(176, 128, 64, 0.12); }
+
+  .value-card h3 {
+    font-family: var(--display);
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--earth);
+    margin-bottom: 10px;
+  }
+
+  .value-card p {
+    font-size: 15px;
+    color: var(--text-light);
+    line-height: 1.65;
+  }
+
+  /* ════════════════════════════════════════════════
+     HOW IT WORKS — The Tunnel
+     ════════════════════════════════════════════════ */
+  .how-section {
+    padding: 100px 24px;
+    background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky) 100%);
+    text-align: center;
+    position: relative;
+  }
+
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 32px;
+    max-width: 1000px;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  /* Yellow pipe connecting the steps */
+  .steps::before {
+    content: '';
+    position: absolute;
+    top: 70px;
+    left: 15%;
+    right: 15%;
+    height: 8px;
+    background: var(--pipe-yellow);
+    border-radius: 4px;
+    z-index: 0;
+    opacity: 0.5;
+  }
+
+  .step {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+  }
+
+  .step-number {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: var(--pipe-yellow);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    font-family: var(--display);
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--earth);
+    box-shadow: 0 6px 20px rgba(245, 166, 35, 0.3);
+    border: 4px solid var(--cloud);
+  }
+
+  .step h3 {
+    font-family: var(--display);
+    font-size: 19px;
+    font-weight: 700;
+    color: var(--earth);
+    margin-bottom: 8px;
+  }
+
+  .step p {
+    font-size: 14px;
+    color: var(--text-light);
+    line-height: 1.6;
+    max-width: 240px;
+    margin: 0 auto;
+  }
+
+  /* ════════════════════════════════════════════════
+     REPLACE SECTION — "Stop paying for..."
+     ════════════════════════════════════════════════ */
+  .replace-section {
+    padding: 80px 24px;
+    background: var(--cloud);
+    text-align: center;
+  }
+
+  .replace-grid {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    flex-wrap: wrap;
+    max-width: 900px;
+    margin: 0 auto 40px;
+  }
+
+  .replace-item {
+    background: var(--sky-top);
+    padding: 20px 28px;
+    border-radius: 16px;
+    border: 2px solid rgba(93, 78, 55, 0.06);
+    text-align: center;
+    position: relative;
+  }
+
+  .replace-item .old-price {
+    font-family: var(--display);
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--danger);
+    text-decoration: line-through;
+    text-decoration-thickness: 3px;
+  }
+
+  .replace-item .service {
+    font-size: 14px;
+    color: var(--text-light);
+    font-weight: 600;
+    margin-top: 4px;
+  }
+
+  .replace-arrow {
+    font-size: 36px;
+    color: var(--pipe-yellow);
+  }
+
+  .replace-result {
+    background: linear-gradient(135deg, rgba(123, 198, 126, 0.15), rgba(245, 166, 35, 0.1));
+    border: 2px solid var(--grass);
+    padding: 24px 36px;
+    border-radius: 16px;
+  }
+
+  .replace-result .new-price {
+    font-family: var(--display);
+    font-size: 36px;
+    font-weight: 800;
+    color: var(--grass-dark);
+  }
+
+  .replace-result .label {
+    font-size: 14px;
+    color: var(--grass-dark);
+    font-weight: 600;
+  }
+
+  /* ════════════════════════════════════════════════
+     PRICING — 3 Tiers
+     ════════════════════════════════════════════════ */
+  .pricing-section {
+    padding: 100px 24px;
+    background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky) 50%, #C0E0D0 100%);
+    text-align: center;
+    position: relative;
+  }
+
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+    max-width: 980px;
+    margin: 0 auto;
+    align-items: start;
+  }
+
+  .pricing-card {
+    background: var(--cloud);
+    border-radius: 24px;
+    padding: 40px 32px;
+    text-align: center;
+    border: 2px solid rgba(93, 78, 55, 0.08);
+    transition: all 0.3s;
+    position: relative;
+  }
+
+  .pricing-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.08);
+  }
+
+  .pricing-card.featured {
+    border-color: var(--pipe-yellow);
+    box-shadow: 0 12px 48px rgba(245, 166, 35, 0.2);
+    transform: scale(1.04);
+  }
+
+  .pricing-card.featured:hover {
+    transform: scale(1.04) translateY(-6px);
+  }
+
+  .pricing-popular {
+    position: absolute;
+    top: -14px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--pipe-yellow);
+    color: var(--earth);
+    font-family: var(--display);
+    font-size: 13px;
+    font-weight: 700;
+    padding: 6px 20px;
+    border-radius: 50px;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(245, 166, 35, 0.3);
+  }
+
+  .pricing-bear {
+    font-size: 48px;
+    margin-bottom: 12px;
+    display: block;
+  }
+
+  .pricing-name {
+    font-family: var(--display);
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--earth);
+    margin-bottom: 4px;
+  }
+
+  .pricing-desc {
+    font-size: 14px;
+    color: var(--text-light);
+    margin-bottom: 20px;
+    line-height: 1.5;
+  }
+
+  .pricing-price {
+    margin-bottom: 24px;
+  }
+
+  .pricing-amount {
+    font-family: var(--display);
+    font-size: 52px;
+    font-weight: 800;
+    color: var(--earth);
+    line-height: 1;
+  }
+
+  .pricing-amount .currency {
+    font-size: 24px;
+    vertical-align: top;
+    margin-right: 2px;
+  }
+
+  .pricing-period {
+    font-size: 14px;
+    color: var(--text-light);
+    font-weight: 500;
+  }
+
+  .pricing-features {
+    list-style: none;
+    text-align: left;
+    margin-bottom: 32px;
+  }
+
+  .pricing-features li {
+    padding: 10px 0;
+    font-size: 14px;
+    color: var(--text-mid);
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    border-bottom: 1px solid rgba(93, 78, 55, 0.06);
+    line-height: 1.5;
+  }
+
+  .pricing-features li:last-child { border-bottom: none; }
+
+  .pricing-features .check {
+    color: var(--grass-dark);
+    font-weight: 800;
+    font-size: 16px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .pricing-features .x-mark {
+    color: var(--text-light);
+    font-weight: 800;
+    font-size: 16px;
+    flex-shrink: 0;
+    opacity: 0.4;
+    margin-top: 1px;
+  }
+
+  .pricing-card .btn { width: 100%; justify-content: center; }
+
+  /* ════════════════════════════════════════════════
+     API SECTION — "Just change two lines"
+     ════════════════════════════════════════════════ */
+  .api-section {
+    padding: 100px 24px;
+    background: var(--earth);
+    color: white;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .api-section::before {
+    content: '';
+    position: absolute;
+    top: -80px;
+    left: -10%;
+    right: -10%;
+    height: 160px;
+    background: var(--earth);
+    border-radius: 50%;
+  }
+
+  .api-section .section-label {
+    background: rgba(245, 166, 35, 0.2);
+    color: var(--pipe-yellow);
+  }
+
+  .api-section .section-title { color: white; }
+  .api-section .section-sub { color: rgba(255,255,255,0.6); }
+
+  .code-demo {
+    max-width: 680px;
+    margin: 0 auto;
+    background: #1a1512;
+    border-radius: 16px;
+    overflow: hidden;
+    text-align: left;
+    border: 2px solid rgba(245, 166, 35, 0.2);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+
+  .code-demo-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 20px;
+    background: rgba(255,255,255,0.04);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .code-dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+  }
+
+  .code-dot.r { background: #ff5f57; }
+  .code-dot.y { background: #febc2e; }
+  .code-dot.g { background: #28c840; }
+
+  .code-demo pre {
+    padding: 24px;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.8;
+    color: #b8a99a;
+    overflow-x: auto;
+  }
+
+  .code-demo .kw { color: #e6a07c; }
+  .code-demo .str { color: var(--grass-light); }
+  .code-demo .cmt { color: #6b5d50; }
+  .code-demo .fn { color: var(--pipe-yellow); }
+  .code-demo .hl {
+    background: rgba(245, 166, 35, 0.12);
+    display: inline;
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: var(--pipe-yellow);
+    font-weight: 500;
+  }
+
+  .api-note {
+    margin-top: 32px;
+    font-size: 15px;
+    color: rgba(255,255,255,0.5);
+  }
+
+  .api-note strong { color: var(--pipe-yellow); }
+
+  /* ════════════════════════════════════════════════
+     OPEN SOURCE — Fork It
+     ════════════════════════════════════════════════ */
+  .oss-section {
+    padding: 80px 24px;
+    background: var(--cloud);
+    text-align: center;
+  }
+
+  .oss-card {
+    max-width: 700px;
+    margin: 0 auto;
+    background: var(--sky-top);
+    border-radius: 24px;
+    padding: 48px 40px;
+    border: 2px dashed rgba(93, 78, 55, 0.15);
+  }
+
+  .oss-card h2 {
+    font-family: var(--display);
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--earth);
+    margin-bottom: 12px;
+  }
+
+  .oss-card p {
+    font-size: 16px;
+    color: var(--text-light);
+    line-height: 1.7;
+    margin-bottom: 28px;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .oss-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .gh-icon {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+    vertical-align: middle;
+  }
+
+  /* ════════════════════════════════════════════════
+     FOOTER
+     ════════════════════════════════════════════════ */
+  .footer {
+    background: var(--earth);
+    color: rgba(255,255,255,0.5);
+    padding: 48px 24px 32px;
+    text-align: center;
+  }
+
+  .footer-logo {
+    font-family: var(--display);
+    font-size: 24px;
+    font-weight: 800;
+    color: rgba(255,255,255,0.8);
+    margin-bottom: 8px;
+  }
+
+  .footer p {
+    font-size: 14px;
+    line-height: 1.6;
+    max-width: 500px;
+    margin: 0 auto 20px;
+  }
+
+  .footer-links {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+  }
+
+  .footer-links a {
+    color: rgba(255,255,255,0.4);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    transition: color 0.2s;
+  }
+
+  .footer-links a:hover { color: var(--pipe-yellow); }
+
+  .footer-copy {
+    font-size: 12px;
+    opacity: 0.4;
+  }
+
+  /* ════════════════════════════════════════════════
+     RESPONSIVE
+     ════════════════════════════════════════════════ */
+  @media (max-width: 768px) {
+    .navbar { padding: 12px 20px; }
+    .nav-links { display: none; }
+    .hero { padding: 100px 20px 60px; min-height: auto; }
+    .hero h1 { font-size: 36px; }
+    .hero-sub { font-size: 16px; }
+    .btn { padding: 14px 28px; font-size: 16px; }
+    .pricing-card.featured { transform: none; }
+    .pricing-card.featured:hover { transform: translateY(-6px); }
+    .steps::before { display: none; }
+    .replace-grid { flex-direction: column; }
+    .replace-arrow { transform: rotate(90deg); }
+    .code-demo pre { font-size: 11px; }
+    .oss-card { padding: 32px 24px; }
+  }
+
+  /* ════════════════════════════════════════════════
+     SCROLL ANIMATIONS
+     ════════════════════════════════════════════════ */
+  .reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══ NAVBAR ═══ -->
+<nav class="navbar" id="navbar">
+  <a href="#" class="nav-logo">
+    <svg viewBox="0 0 40 40" fill="none">
+      <circle cx="20" cy="20" r="18" fill="#B08040"/>
+      <circle cx="13" cy="15" r="3" fill="#2D3436"/>
+      <circle cx="27" cy="15" r="3" fill="#2D3436"/>
+      <circle cx="14" cy="14" r="1" fill="white"/>
+      <circle cx="28" cy="14" r="1" fill="white"/>
+      <ellipse cx="20" cy="23" rx="5" ry="4" fill="#8B6914"/>
+      <ellipse cx="20" cy="22" rx="2.5" ry="2" fill="#2D3436"/>
+      <circle cx="9" cy="10" r="5" fill="#B08040"/>
+      <circle cx="31" cy="10" r="5" fill="#B08040"/>
+    </svg>
+    <span>LLM Bear</span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#how">How It Works</a></li>
+    <li><a href="#pricing">Pricing</a></li>
+    <li><a href="#api">API</a></li>
+    <li><a href="https://github.com/spideysense/OpenLLM" target="_blank">GitHub</a></li>
+    <li><a href="#pricing" class="nav-cta">Get LLM Bear</a></li>
+  </ul>
+</nav>
+
+<!-- ═══ HERO ═══ -->
+<section class="hero">
+  <div class="clouds">
+    <div class="cloud cloud-1"></div>
+    <div class="cloud cloud-2"></div>
+    <div class="cloud cloud-3"></div>
+  </div>
+  <div class="ground">
+    <div class="hill hill-1"></div>
+    <div class="hill hill-2"></div>
+    <div class="hill hill-3"></div>
+  </div>
+
+  <!-- Bear SVG -->
+  <div class="hero-bear">
+    <svg width="180" height="200" viewBox="0 0 180 200" fill="none">
+      <!-- Pipe -->
+      <rect x="50" y="130" width="80" height="70" rx="6" fill="#F5A623"/>
+      <rect x="44" y="126" width="92" height="12" rx="6" fill="#EDBA3A"/>
+      <ellipse cx="90" cy="135" rx="36" ry="8" fill="#D4911E"/>
+      <!-- Bear body -->
+      <ellipse cx="90" cy="105" rx="42" ry="45" fill="#B08040"/>
+      <!-- Bear belly -->
+      <ellipse cx="90" cy="115" rx="28" ry="28" fill="#D4A04A"/>
+      <!-- Bear head -->
+      <circle cx="90" cy="60" r="32" fill="#B08040"/>
+      <!-- Ears -->
+      <circle cx="62" cy="36" r="14" fill="#B08040"/>
+      <circle cx="118" cy="36" r="14" fill="#B08040"/>
+      <circle cx="62" cy="36" r="8" fill="#D4A04A"/>
+      <circle cx="118" cy="36" r="8" fill="#D4A04A"/>
+      <!-- Eyes -->
+      <circle cx="78" cy="55" r="6" fill="#2D3436"/>
+      <circle cx="102" cy="55" r="6" fill="#2D3436"/>
+      <circle cx="80" cy="53" r="2" fill="white"/>
+      <circle cx="104" cy="53" r="2" fill="white"/>
+      <!-- Snout -->
+      <ellipse cx="90" cy="68" rx="10" ry="8" fill="#D4A04A"/>
+      <ellipse cx="90" cy="65" rx="5" ry="3.5" fill="#2D3436"/>
+      <!-- Mouth -->
+      <path d="M85 72 Q90 78 95 72" stroke="#8B6914" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <!-- Arms raised! -->
+      <path d="M48 90 Q30 60 40 45" stroke="#B08040" stroke-width="18" stroke-linecap="round" fill="none"/>
+      <circle cx="38" cy="43" r="9" fill="#8B6914"/>
+      <path d="M132 90 Q150 60 140 45" stroke="#B08040" stroke-width="18" stroke-linecap="round" fill="none"/>
+      <circle cx="142" cy="43" r="9" fill="#8B6914"/>
+    </svg>
+  </div>
+
+  <div class="hero-content">
+    <div class="hero-badge"><span class="dot"></span> 100% local · 100% free · 100% private</div>
+    <h1>Stop paying for AI.<br>The bear's got you.</h1>
+    <p class="hero-sub">LLM Bear gives you the world's best open source AI models, running right on your computer. No subscriptions. No data sharing. Just download and go.</p>
+    <div class="hero-actions">
+      <a href="#pricing" class="btn btn-primary">Download Free 🐾</a>
+      <a href="#how" class="btn btn-secondary">See How It Works</a>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ SOCIAL PROOF ═══ -->
+<div class="proof-bar">
+  <p>Powered by the same models used at</p>
+  <div class="proof-logos">
+    <span>Meta AI</span>
+    <span>Alibaba</span>
+    <span>Google</span>
+    <span>Microsoft</span>
+    <span>DeepSeek</span>
+    <span>Mistral</span>
+  </div>
+</div>
+
+<!-- ═══ WHAT YOU GET ═══ -->
+<section class="value-section">
+  <span class="section-label">Why LLM Bear?</span>
+  <h2 class="section-title">Everything ChatGPT does.<br>Nothing leaves your machine.</h2>
+  <p class="section-sub">The best open source models now rival GPT-4 and Claude. You just couldn't use them without a terminal. Until now.</p>
+
+  <div class="value-grid">
+    <div class="value-card reveal">
+      <div class="value-icon vi-yellow">🐻</div>
+      <h3>Zero Setup</h3>
+      <p>Download, open, chat. The bear picks the best model for your hardware and handles everything under the hood. No terminal ever.</p>
+    </div>
+    <div class="value-card reveal">
+      <div class="value-icon vi-green">🔒</div>
+      <h3>Totally Private</h3>
+      <p>Your conversations never leave your machine. No cloud. No tracking. No training on your data. The bear keeps it in the cave.</p>
+    </div>
+    <div class="value-card reveal">
+      <div class="value-icon vi-blue">🔄</div>
+      <h3>Always Up To Date</h3>
+      <p>When a better model drops, LLM Bear tells you and offers a one-click switch. You always have the latest and greatest.</p>
+    </div>
+    <div class="value-card reveal">
+      <div class="value-icon vi-brown">🔌</div>
+      <h3>Drop-In Replacement</h3>
+      <p>Generate API keys, alias "gpt-4" to your local model, and swap into existing code by changing just two lines. Works with everything.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ HOW IT WORKS ═══ -->
+<section class="how-section" id="how">
+  <span class="section-label">Simple as 1-2-3</span>
+  <h2 class="section-title">How LLM Bear Works</h2>
+  <p class="section-sub">Like TunnelBear protects your internet, LLM Bear liberates your AI.</p>
+
+  <div class="steps">
+    <div class="step reveal">
+      <div class="step-number">1</div>
+      <h3>Download</h3>
+      <p>Grab the free app for Mac or Windows. One file, one click.</p>
+    </div>
+    <div class="step reveal">
+      <div class="step-number">2</div>
+      <h3>Bear Picks Your Model</h3>
+      <p>LLM Bear scans your hardware and recommends the best AI model. No research needed.</p>
+    </div>
+    <div class="step reveal">
+      <div class="step-number">3</div>
+      <h3>Toggle On</h3>
+      <p>Flip the switch. You're chatting with AI — running 100% on your machine. Your apps can connect too.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ STOP PAYING ═══ -->
+<section class="replace-section">
+  <span class="section-label">Do the math</span>
+  <h2 class="section-title">Stop Paying $20/month</h2>
+  <p class="section-sub">The same quality AI, for free or almost free.</p>
+
+  <div class="replace-grid">
+    <div class="replace-item">
+      <div class="old-price">$20/mo</div>
+      <div class="service">ChatGPT Plus</div>
+    </div>
+    <div class="replace-item">
+      <div class="old-price">$20/mo</div>
+      <div class="service">Claude Pro</div>
+    </div>
+    <div class="replace-item">
+      <div class="old-price">$20/mo</div>
+      <div class="service">Gemini Advanced</div>
+    </div>
+    <span class="replace-arrow">→</span>
+    <div class="replace-result">
+      <div class="new-price">$0</div>
+      <div class="label">LLM Bear (local)</div>
+    </div>
+  </div>
+
+  <p style="color: var(--text-light); font-size: 15px; max-width: 500px; margin: 0 auto;">That's <strong style="color: var(--grass-dark);">$240/year</strong> you keep in your pocket. Or use our cloud for less than a coffee per month.</p>
+</section>
+
+<!-- ═══ PRICING ═══ -->
+<section class="pricing-section" id="pricing">
+  <span class="section-label">Plans</span>
+  <h2 class="section-title">Pick Your Bear</h2>
+  <p class="section-sub">Free forever on your machine. Or let us handle the hardware.</p>
+
+  <div class="pricing-grid">
+    <!-- Free -->
+    <div class="pricing-card reveal">
+      <span class="pricing-bear">🐻</span>
+      <div class="pricing-name">Cave Bear</div>
+      <div class="pricing-desc">Run it on your machine.<br>Your hardware, your rules.</div>
+      <div class="pricing-price">
+        <div class="pricing-amount">Free</div>
+        <div class="pricing-period">forever</div>
+      </div>
+      <ul class="pricing-features">
+        <li><span class="check">✓</span> All open source models</li>
+        <li><span class="check">✓</span> 100% private — nothing leaves your machine</li>
+        <li><span class="check">✓</span> OpenAI-compatible API</li>
+        <li><span class="check">✓</span> API key generation</li>
+        <li><span class="check">✓</span> Model auto-upgrade alerts</li>
+        <li><span class="check">✓</span> "Replace OpenAI" wizard</li>
+        <li><span class="x-mark">—</span> No support (community only)</li>
+      </ul>
+      <a href="#" class="btn btn-secondary">Download for Mac / Windows</a>
+    </div>
+
+    <!-- $0.99 -->
+    <div class="pricing-card featured reveal">
+      <div class="pricing-popular">🐻 Most Popular</div>
+      <span class="pricing-bear">☁️🐻</span>
+      <div class="pricing-name">Cloud Bear</div>
+      <div class="pricing-desc">We run it for you.<br>No hardware needed.</div>
+      <div class="pricing-price">
+        <div class="pricing-amount"><span class="currency">$</span>0.99</div>
+        <div class="pricing-period">/month</div>
+      </div>
+      <ul class="pricing-features">
+        <li><span class="check">✓</span> Everything in Cave Bear</li>
+        <li><span class="check">✓</span> Runs in our cloud — no downloads</li>
+        <li><span class="check">✓</span> Works on any device with a browser</li>
+        <li><span class="check">✓</span> Always the latest best model</li>
+        <li><span class="check">✓</span> API access from anywhere</li>
+        <li><span class="x-mark">—</span> No support (community only)</li>
+      </ul>
+      <a href="#" class="btn btn-primary">Start for $0.99/mo</a>
+    </div>
+
+    <!-- $1.99 -->
+    <div class="pricing-card reveal">
+      <span class="pricing-bear">⭐🐻</span>
+      <div class="pricing-name">Grizzly Bear</div>
+      <div class="pricing-desc">Bigger cloud, faster models,<br>and a bear that emails back.</div>
+      <div class="pricing-price">
+        <div class="pricing-amount"><span class="currency">$</span>1.99</div>
+        <div class="pricing-period">/month</div>
+      </div>
+      <ul class="pricing-features">
+        <li><span class="check">✓</span> Everything in Cloud Bear</li>
+        <li><span class="check">✓</span> Priority cloud infrastructure</li>
+        <li><span class="check">✓</span> Faster models & higher limits</li>
+        <li><span class="check">✓</span> Longer conversations</li>
+        <li><span class="check">✓</span> Email support from real humans</li>
+        <li><span class="check">✓</span> Priority access to new models</li>
+      </ul>
+      <a href="#" class="btn btn-secondary">Start for $1.99/mo</a>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ API / REPLACE ═══ -->
+<section class="api-section" id="api">
+  <span class="section-label">For developers</span>
+  <h2 class="section-title">Just Change Two Lines</h2>
+  <p class="section-sub">LLM Bear is a drop-in OpenAI replacement. Your existing code works — swap the URL and key.</p>
+
+  <div class="code-demo">
+    <div class="code-demo-header">
+      <div class="code-dot r"></div>
+      <div class="code-dot y"></div>
+      <div class="code-dot g"></div>
+      <span style="color: rgba(255,255,255,0.3); font-size: 12px; margin-left: 12px; font-family: var(--mono);">your_app.py</span>
+    </div>
+    <pre><span class="kw">from</span> openai <span class="kw">import</span> OpenAI
+
+client = OpenAI(
+    <span class="hl">base_url="http://localhost:4000/v1"</span>,   <span class="cmt"># ← just this</span>
+    <span class="hl">api_key="sk-llmbear-a8f2k..."</span>          <span class="cmt"># ← and this</span>
+)
+
+response = client.chat.completions.<span class="fn">create</span>(
+    model=<span class="str">"gpt-4"</span>,  <span class="cmt"># the bear answers instead</span>
+    messages=[{<span class="str">"role"</span>: <span class="str">"user"</span>, <span class="str">"content"</span>: <span class="str">"Hello!"</span>}]
+)
+
+<span class="fn">print</span>(response.choices[0].message.content)</pre>
+  </div>
+
+  <p class="api-note">Works with <strong>LangChain</strong>, <strong>Cursor</strong>, <strong>Continue.dev</strong>, <strong>n8n</strong>, <strong>AutoGen</strong>, and anything OpenAI-compatible.</p>
+</section>
+
+<!-- ═══ OPEN SOURCE ═══ -->
+<section class="oss-section" id="oss">
+  <div class="oss-card reveal">
+    <h2>100% Open Source</h2>
+    <p>LLM Bear is MIT licensed. Fork it, modify it, self-host it, go wild. Power to the masses means the code is yours too.</p>
+    <div class="oss-actions">
+      <a href="https://github.com/spideysense/OpenLLM" target="_blank" class="btn btn-github btn-sm">
+        <svg class="gh-icon" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        View on GitHub
+      </a>
+      <a href="https://github.com/spideysense/OpenLLM/fork" target="_blank" class="btn btn-secondary btn-sm">
+        <svg class="gh-icon" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M5 3.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm0 2.122a2.25 2.25 0 10-1.5 0v.878A2.25 2.25 0 005.75 8.5h1.5v2.128a2.251 2.251 0 101.5 0V8.5h1.5a2.25 2.25 0 002.25-2.25v-.878a2.25 2.25 0 10-1.5 0v.878a.75.75 0 01-.75.75h-4.5A.75.75 0 015 6.25v-.878zm3.75 7.378a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm3-8.75a.75.75 0 100-1.5.75.75 0 000 1.5z"/></svg>
+        Fork It
+      </a>
+      <a href="https://github.com/spideysense/OpenLLM/stargazers" target="_blank" class="btn btn-secondary btn-sm">⭐ Star</a>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ FINAL CTA ═══ -->
+<section class="pricing-section" style="padding: 80px 24px; background: linear-gradient(180deg, var(--cloud) 0%, var(--sky) 100%);">
+  <h2 class="section-title">Ready to ditch the subscription?</h2>
+  <p class="section-sub">Join thousands of people running AI locally. The bear's waiting.</p>
+  <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
+    <a href="#pricing" class="btn btn-primary">Download Free 🐾</a>
+    <a href="https://github.com/spideysense/OpenLLM" target="_blank" class="btn btn-github">
+      <svg class="gh-icon" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" fill="currentColor"/></svg>
+      Fork on GitHub
+    </a>
+  </div>
+</section>
+
+<!-- ═══ FOOTER ═══ -->
+<footer class="footer">
+  <div class="footer-logo">🐻 LLM Bear</div>
+  <p>AI that runs on your machine. No subscriptions. No data sharing. No nonsense.</p>
+  <div class="footer-links">
+    <a href="#pricing">Pricing</a>
+    <a href="#how">How It Works</a>
+    <a href="#api">API Docs</a>
+    <a href="https://github.com/spideysense/OpenLLM" target="_blank">GitHub</a>
+    <a href="https://github.com/spideysense/OpenLLM/fork" target="_blank">Fork It</a>
+  </div>
+  <div class="footer-copy">
+    MIT License · Made with 🐾 · Not affiliated with TunnelBear (we just love their bear)
+  </div>
+</footer>
+
+<script>
+  // Navbar scroll effect
+  const navbar = document.getElementById('navbar');
+  window.addEventListener('scroll', () => {
+    navbar.classList.toggle('scrolled', window.scrollY > 20);
+  });
+
+  // Scroll reveal
+  const reveals = document.querySelectorAll('.reveal');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        setTimeout(() => entry.target.classList.add('visible'), i * 100);
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.15 });
+  reveals.forEach(el => observer.observe(el));
+
+  // Smooth scroll for anchor links
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      const target = document.querySelector(a.getAttribute('href'));
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+</script>
+
+</body>
+</html>
