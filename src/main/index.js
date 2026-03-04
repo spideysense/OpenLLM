@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell, Tray, Menu, nativeImage } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, Tray, Menu, nativeImage, clipboard } = require('electron');
 const path = require('path');
 const ollama = require('./ollama');
 const models = require('./models');
@@ -8,6 +8,7 @@ const apikeys = require('./apikeys');
 const aliases = require('./aliases');
 const registry = require('./registry');
 const store = require('./store');
+const tunnel = require('./tunnel');
 
 const isDev = !app.isPackaged;
 let mainWindow = null;
@@ -82,6 +83,13 @@ app.whenReady().then(async () => {
   // Start API gateway
   gateway.start();
 
+  // Start tunnel — gives user a public URL for their local AI
+  tunnel.start((status) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('tunnel:status', status);
+    }
+  });
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
@@ -95,6 +103,7 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', async () => {
+  tunnel.stop();
   gateway.stop();
 });
 
@@ -249,4 +258,32 @@ ipcMain.handle('app:openExternal', async (event, url) => {
 
 ipcMain.handle('app:getVersion', async () => {
   return app.getVersion();
+});
+
+// ═══════════════════════════════════════════════════
+// IPC Handlers — Tunnel
+// ═══════════════════════════════════════════════════
+
+ipcMain.handle('tunnel:getStatus', async () => {
+  return {
+    connected: tunnel.isConnected(),
+    url: tunnel.getPublicUrl(),
+    subdomain: tunnel.getSubdomain(),
+  };
+});
+
+ipcMain.handle('tunnel:copyUrl', async () => {
+  const url = tunnel.getPublicUrl();
+  if (url) clipboard.writeText(url + '/v1');
+  return url ? url + '/v1' : null;
+});
+
+ipcMain.handle('tunnel:restart', async () => {
+  tunnel.stop();
+  tunnel.start((status) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('tunnel:status', status);
+    }
+  });
+  return true;
 });

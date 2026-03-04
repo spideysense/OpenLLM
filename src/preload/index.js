@@ -77,4 +77,16 @@ contextBridge.exposeInMainWorld('llmbear', {
     openExternal: (url) => ipcRenderer.invoke('app:openExternal', url),
     getVersion: () => ipcRenderer.invoke('app:getVersion'),
   },
+
+  // ── Tunnel ──
+  tunnel: {
+    getStatus: () => ipcRenderer.invoke('tunnel:getStatus'),
+    copyUrl: () => ipcRenderer.invoke('tunnel:copyUrl'),
+    restart: () => ipcRenderer.invoke('tunnel:restart'),
+    onStatus: (cb) => {
+      const handler = (event, data) => cb(data);
+      ipcRenderer.on('tunnel:status', handler);
+      return () => ipcRenderer.removeListener('tunnel:status', handler);
+    },
+  },
 });

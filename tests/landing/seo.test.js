@@ -189,7 +189,7 @@ describe('Content: Pricing tiers', () => {
 
 describe('Content: API examples', () => {
   it('should show the two-line change pattern with local and cloud options', () => {
-    expect(html).toContain('localhost:4000/v1');
+    expect(html).toContain('abc123.api.llmbear.com/v1');
     expect(html).toContain('api.llmbear.com/v1');
     expect(html).toContain('sk-llmbear');
     expect(html).toContain('sk-bear-');
@@ -287,7 +287,7 @@ describe('Content: Value propositions', () => {
 
   it('should reinforce privacy across multiple sections', () => {
     // Privacy should appear in hero, features, how-it-works, pricing, API, and CTA
-    const privacyTerms = ['private', 'never leave', 'on your machine', 'No data', 'localhost'];
+    const privacyTerms = ['private', 'never leave', 'on your machine', 'No data', 'never touches'];
     let sectionHits = 0;
     for (const term of privacyTerms) {
       const matches = html.toLowerCase().match(new RegExp(term.toLowerCase(), 'g')) || [];

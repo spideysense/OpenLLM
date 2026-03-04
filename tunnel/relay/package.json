@@ -1,0 +1,14 @@
+{
+  "name": "@llmbear/tunnel-relay",
+  "version": "0.1.0",
+  "description": "LLM Bear Tunnel Relay — gives every user a public URL for their local AI",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "ws": "^8.16.0"
+  },
+  "license": "MIT"
+}
