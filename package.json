@@ -1,6 +1,6 @@
 {
   "name": "llm-bear",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "description": "Run the best open source AI locally. No API keys. No subscriptions. No terminal.",
   "main": "src/main/index.js",
   "scripts": {
@@ -43,6 +43,12 @@
           "arch": [
             "universal"
           ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "universal"
+          ]
         }
       ]
     },
@@ -58,10 +64,18 @@
       ],
       "artifactName": "LLMBear-win.${ext}"
     },
-    "afterSign": "scripts/notarize.js"
+    "afterSign": "scripts/notarize.js",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "spideysense",
+        "repo": "OpenLLM"
+      }
+    ]
   },
   "dependencies": {
     "electron-store": "^8.1.0",
+    "electron-updater": "^6.8.3",
     "sharp": "^0.34.5"
   },
   "devDependencies": {

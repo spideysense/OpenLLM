@@ -38,7 +38,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: mac-installer
-          path: dist/*.dmg
+          path: |
+            dist/*.dmg
+            dist/*.zip
+            dist/latest-mac.yml
 
   build-windows:
     name: Build Windows (EXE)
@@ -66,7 +69,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: win-installer
-          path: dist/*.exe
+          path: |
+            dist/*.exe
+            dist/latest.yml
 
   release:
     name: Create GitHub Release

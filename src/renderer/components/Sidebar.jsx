@@ -1,8 +1,17 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../App';
 
 export default function Sidebar() {
-  const { page, setPage, ollamaStatus, activeModel, gatewayStatus } = useApp();
+  const { page, setPage, ollamaStatus, activeModel, gatewayStatus, bridge } = useApp();
+  const [updateStatus, setUpdateStatus] = useState(null);
+
+  useEffect(() => {
+    if (!bridge?.updater) return;
+    const unsub = bridge.updater.onStatus((data) => {
+      setUpdateStatus(data);
+    });
+    return unsub;
+  }, [bridge]);
 
   const nav = [
     { id: 'chat', icon: '💬', label: 'Chat' },
@@ -11,6 +20,10 @@ export default function Sidebar() {
     { id: 'apikeys', icon: '🔑', label: 'API Keys' },
     { id: 'settings', icon: '⚙️', label: 'Settings' },
   ];
+
+  function handleInstallUpdate() {
+    if (bridge?.updater) bridge.updater.install();
+  }
 
   return (
     <aside className="sidebar">
@@ -41,6 +54,30 @@ export default function Sidebar() {
       ))}
 
       <div className="nav-spacer" />
+
+      {/* Update notification */}
+      {updateStatus?.status === 'ready' && (
+        <button
+          onClick={handleInstallUpdate}
+          className="update-banner"
+        >
+          <span>🎉</span>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 12 }}>Update ready</div>
+            <div style={{ fontSize: 11, opacity: 0.8 }}>v{updateStatus.version} — click to restart</div>
+          </div>
+        </button>
+      )}
+
+      {updateStatus?.status === 'downloading' && (
+        <div className="update-banner" style={{ cursor: 'default' }}>
+          <span>⬇️</span>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 12 }}>Updating...</div>
+            <div style={{ fontSize: 11, opacity: 0.8 }}>{updateStatus.percent || 0}% downloaded</div>
+          </div>
+        </div>
+      )}
 
       {activeModel && (
         <div style={{

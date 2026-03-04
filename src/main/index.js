@@ -9,6 +9,7 @@ const aliases = require('./aliases');
 const registry = require('./registry');
 const store = require('./store');
 const tunnel = require('./tunnel');
+const updater = require('./updater');
 
 const isDev = !app.isPackaged;
 let mainWindow = null;
@@ -89,6 +90,9 @@ app.whenReady().then(async () => {
       mainWindow.webContents.send('tunnel:status', status);
     }
   });
+
+  // Auto-updater — checks GitHub releases, downloads + installs silently
+  updater.init(mainWindow);
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -307,4 +311,22 @@ ipcMain.handle('tunnel:restart', async () => {
     }
   });
   return true;
+});
+
+// ═══════════════════════════════════════════════════
+// IPC Handlers — Auto-Updater
+// ═══════════════════════════════════════════════════
+
+ipcMain.handle('updater:check', async () => {
+  updater.checkForUpdates();
+  return true;
+});
+
+ipcMain.handle('updater:install', async () => {
+  updater.installUpdate();
+  return true;
+});
+
+ipcMain.handle('updater:status', async () => {
+  return updater.getStatus();
 });

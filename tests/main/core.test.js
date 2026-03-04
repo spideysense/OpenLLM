@@ -469,3 +469,84 @@ describe('User-facing branding: no "Ollama" visible anywhere', () => {
     expect(indexSrc).toContain("role === 'system'");
   });
 });
+
+describe('Auto-Updater: OTA updates', () => {
+  const updaterSrc = fs.readFileSync(path.resolve('src/main/updater.js'), 'utf8');
+  const mainSrc = fs.readFileSync(path.resolve('src/main/index.js'), 'utf8');
+  const preloadSrc = fs.readFileSync(path.resolve('src/preload/index.js'), 'utf8');
+  const sidebarSrc = fs.readFileSync(path.resolve('src/renderer/components/Sidebar.jsx'), 'utf8');
+  const pkgJson = JSON.parse(fs.readFileSync(path.resolve('package.json'), 'utf8'));
+  const workflowSrc = fs.readFileSync(path.resolve('.github/workflows/release.yml'), 'utf8');
+
+  it('should use electron-updater', () => {
+    expect(updaterSrc).toContain("require('electron-updater')");
+    expect(updaterSrc).toContain('autoUpdater');
+  });
+
+  it('should auto-download updates', () => {
+    expect(updaterSrc).toContain('autoDownload = true');
+  });
+
+  it('should install on quit', () => {
+    expect(updaterSrc).toContain('autoInstallOnAppQuit = true');
+  });
+
+  it('should check for updates periodically', () => {
+    expect(updaterSrc).toContain('setInterval');
+    expect(updaterSrc).toContain('checkForUpdates');
+  });
+
+  it('should skip updates in dev mode', () => {
+    expect(updaterSrc).toContain('app.isPackaged');
+  });
+
+  it('should send status events to renderer', () => {
+    expect(updaterSrc).toContain("'updater:status'");
+  });
+
+  it('should be initialized in main process', () => {
+    expect(mainSrc).toContain("require('./updater')");
+    expect(mainSrc).toContain('updater.init');
+  });
+
+  it('should have IPC handlers for check, install, status', () => {
+    expect(mainSrc).toContain("'updater:check'");
+    expect(mainSrc).toContain("'updater:install'");
+    expect(mainSrc).toContain("'updater:status'");
+  });
+
+  it('should expose updater in preload bridge', () => {
+    expect(preloadSrc).toContain("ipcRenderer.invoke('updater:check')");
+    expect(preloadSrc).toContain("ipcRenderer.invoke('updater:install')");
+    expect(preloadSrc).toContain("ipcRenderer.on('updater:status'");
+  });
+
+  it('should show update notification in sidebar', () => {
+    expect(sidebarSrc).toContain('updateStatus');
+    expect(sidebarSrc).toContain('Update ready');
+    expect(sidebarSrc).toContain('click to restart');
+  });
+
+  it('should show download progress in sidebar', () => {
+    expect(sidebarSrc).toContain('Updating...');
+    expect(sidebarSrc).toContain('downloaded');
+  });
+
+  it('should configure GitHub as publish provider', () => {
+    const publish = pkgJson.build.publish;
+    expect(publish).toBeDefined();
+    expect(publish[0].provider).toBe('github');
+    expect(publish[0].owner).toBe('spideysense');
+    expect(publish[0].repo).toBe('OpenLLM');
+  });
+
+  it('should build Mac zip for auto-update (not just DMG)', () => {
+    const targets = pkgJson.build.mac.target;
+    const hasZip = targets.some(t => (typeof t === 'object' ? t.target : t) === 'zip');
+    expect(hasZip).toBe(true);
+  });
+
+  it('should upload latest-mac.yml for auto-update metadata', () => {
+    expect(workflowSrc).toContain('latest-mac.yml');
+  });
+});

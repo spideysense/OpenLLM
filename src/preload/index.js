@@ -94,4 +94,16 @@ contextBridge.exposeInMainWorld('llmbear', {
       return () => ipcRenderer.removeListener('tunnel:status', handler);
     },
   },
+
+  // ── Auto-Updater ──
+  updater: {
+    check: () => ipcRenderer.invoke('updater:check'),
+    install: () => ipcRenderer.invoke('updater:install'),
+    getStatus: () => ipcRenderer.invoke('updater:status'),
+    onStatus: (cb) => {
+      const handler = (event, data) => cb(data);
+      ipcRenderer.on('updater:status', handler);
+      return () => ipcRenderer.removeListener('updater:status', handler);
+    },
+  },
 });
