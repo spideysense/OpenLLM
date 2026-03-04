@@ -10,8 +10,21 @@ const app = express();
 const PORT = process.env.PORT || 4001;
 
 // ── CORS ──
+const allowedOrigins = [
+  process.env.LANDING_URL || 'https://open-llm-ten.vercel.app',
+  'https://open-llm-ten.vercel.app',
+  'http://localhost:3000',
+  'http://localhost:5173',
+].filter(Boolean);
+
 app.use(cors({
-  origin: process.env.LANDING_URL || 'https://open-llm-ten.vercel.app',
+  origin: (origin, cb) => {
+    if (!origin || allowedOrigins.some(o => origin.startsWith(o)) || origin.includes('.vercel.app')) {
+      cb(null, true);
+    } else {
+      cb(null, false);
+    }
+  },
   methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
@@ -110,17 +123,20 @@ app.use((req, res) => {
 
 db.init();
 
-app.listen(PORT, () => {
-  console.log(`🐻 LLM Bear Cloud running on port ${PORT}`);
-  console.log(`   GPU backend: ${process.env.GPU_BACKEND_URL || 'http://127.0.0.1:11434/v1'}`);
-  console.log(`   Landing:     ${process.env.LANDING_URL || 'https://open-llm-ten.vercel.app'}`);
-  console.log(`\n   Endpoints:`);
-  console.log(`   POST /checkout              — Stripe checkout`);
-  console.log(`   POST /v1/chat/completions   — Chat (OpenAI-compatible)`);
-  console.log(`   GET  /v1/models             — List models`);
-  console.log(`   GET  /v1/keys               — List API keys`);
-  console.log(`   POST /v1/keys               — Create API key`);
-  console.log(`   GET  /v1/usage              — Usage summary`);
-});
+// Vercel: export the handler. Standalone: listen on PORT.
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`🐻 LLM Bear Cloud running on port ${PORT}`);
+    console.log(`   GPU backend: ${process.env.GPU_BACKEND_URL || 'http://127.0.0.1:11434/v1'}`);
+    console.log(`   Landing:     ${process.env.LANDING_URL || 'https://open-llm-ten.vercel.app'}`);
+    console.log(`\n   Endpoints:`);
+    console.log(`   POST /checkout              — Stripe checkout`);
+    console.log(`   POST /v1/chat/completions   — Chat (OpenAI-compatible)`);
+    console.log(`   GET  /v1/models             — List models`);
+    console.log(`   GET  /v1/keys               — List API keys`);
+    console.log(`   POST /v1/keys               — Create API key`);
+    console.log(`   GET  /v1/usage              — Usage summary`);
+  });
+}
 
 module.exports = app;

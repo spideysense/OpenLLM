@@ -347,13 +347,18 @@
   <span class="section-label">For developers</span>
   <h2 class="section-title">Just Change Two Lines</h2>
   <p class="section-sub">LLM Bear is a drop-in OpenAI replacement. Your existing code works — swap the URL and key.</p>
-  <div class="code-demo">
-    <div class="code-demo-header"><div class="code-dot r"></div><div class="code-dot y"></div><div class="code-dot g"></div><span style="color:rgba(255,255,255,.3);font-size:12px;margin-left:12px;font-family:var(--mono)">your_app.py</span></div>
-    <pre><span class="kw">from</span> openai <span class="kw">import</span> OpenAI
+  <div style="max-width:700px;margin:0 auto">
+    <div style="display:flex;gap:0;justify-content:center">
+      <button id="tab-local" onclick="switchTab('local')" style="padding:10px 28px;font-family:var(--display);font-size:14px;font-weight:700;border:2px solid rgba(255,255,255,.15);border-bottom:none;border-radius:12px 12px 0 0;cursor:pointer;background:var(--code-bg);color:#F5A623">🐻 Local (Free)</button>
+      <button id="tab-cloud" onclick="switchTab('cloud-tab')" style="padding:10px 28px;font-family:var(--display);font-size:14px;font-weight:700;border:2px solid rgba(255,255,255,.08);border-bottom:none;border-radius:12px 12px 0 0;cursor:pointer;background:rgba(30,41,59,.5);color:rgba(255,255,255,.4)">☁️ Cloud ($0.99/mo)</button>
+    </div>
+    <div class="code-demo" style="border-top-left-radius:0">
+      <div class="code-demo-header"><div class="code-dot r"></div><div class="code-dot y"></div><div class="code-dot g"></div><span style="color:rgba(255,255,255,.3);font-size:12px;margin-left:12px;font-family:var(--mono)">your_app.py</span></div>
+      <pre id="code-local"><span class="kw">from</span> openai <span class="kw">import</span> OpenAI
 
 client = OpenAI(
-    <span class="hl">base_url="http://localhost:4000/v1"</span>,   <span class="cmt"># ← just this</span>
-    <span class="hl">api_key="sk-llmbear-a8f2k..."</span>          <span class="cmt"># ← and this</span>
+    <span class="hl">base_url="http://localhost:4000/v1"</span>,   <span class="cmt"># ← local API</span>
+    <span class="hl">api_key="sk-llmbear-a8f2k..."</span>          <span class="cmt"># ← your local key</span>
 )
 
 response = client.chat.completions.<span class="fn">create</span>(
@@ -362,9 +367,23 @@ response = client.chat.completions.<span class="fn">create</span>(
 )
 
 <span class="fn">print</span>(response.choices[0].message.content)</pre>
+      <pre id="code-cloud-tab" style="display:none"><span class="kw">from</span> openai <span class="kw">import</span> OpenAI
+
+client = OpenAI(
+    <span class="hl">base_url="https://api.llmbear.com/v1"</span>,  <span class="cmt"># ← cloud endpoint</span>
+    <span class="hl">api_key="sk-bear-a8f2k..."</span>              <span class="cmt"># ← your cloud key</span>
+)
+
+response = client.chat.completions.<span class="fn">create</span>(
+    model=<span class="str">"gpt-4"</span>,  <span class="cmt"># routes to our best model</span>
+    messages=[{<span class="str">"role"</span>: <span class="str">"user"</span>, <span class="str">"content"</span>: <span class="str">"Hello!"</span>}]
+)
+
+<span class="fn">print</span>(response.choices[0].message.content)</pre>
+    </div>
   </div>
   <p class="api-note">Works with <strong>LangChain</strong>, <strong>Cursor</strong>, <strong>Continue.dev</strong>, <strong>n8n</strong>, <strong>AutoGen</strong>, and anything OpenAI-compatible.</p>
-  <p style="color:rgba(255,255,255,.35);font-size:13px;margin-top:16px">🔒 All API traffic stays on localhost. No data ever leaves your machine.</p>
+  <p id="api-privacy-note" style="color:rgba(255,255,255,.35);font-size:13px;margin-top:16px">🔒 All API traffic stays on localhost. No data ever leaves your machine.</p>
 </section>
 
 <section class="oss-section" id="oss">
@@ -421,6 +440,20 @@ function downloadApp(e){
   if(os==='mac')window.location.href=MAC_DMG;
   else if(os==='win')window.location.href=WIN_EXE;
   else window.open(RELEASES,'_blank');
+}
+
+// ── API Tab Switcher ──
+function switchTab(tab){
+  const isCloud=tab==='cloud-tab';
+  document.getElementById('code-local').style.display=isCloud?'none':'block';
+  document.getElementById('code-cloud-tab').style.display=isCloud?'block':'none';
+  document.getElementById('tab-local').style.background=isCloud?'rgba(30,41,59,.5)':'var(--code-bg)';
+  document.getElementById('tab-local').style.color=isCloud?'rgba(255,255,255,.4)':'#F5A623';
+  document.getElementById('tab-cloud').style.background=isCloud?'var(--code-bg)':'rgba(30,41,59,.5)';
+  document.getElementById('tab-cloud').style.color=isCloud?'#F5A623':'rgba(255,255,255,.4)';
+  document.getElementById('api-privacy-note').innerHTML=isCloud
+    ?'🔒 Your API key authenticates you. Requests encrypted via HTTPS.'
+    :'🔒 All API traffic stays on localhost. No data ever leaves your machine.';
 }
 
 // ── Stripe Checkout for Cloud Plans ──

@@ -4,7 +4,9 @@ const fs = require('fs');
 const crypto = require('crypto');
 const { v4: uuid } = require('uuid');
 
-const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'data', 'llmbear.db');
+const DB_PATH = process.env.DB_PATH || (
+  process.env.VERCEL ? '/tmp/llmbear.db' : path.join(__dirname, 'data', 'llmbear.db')
+);
 
 let db;
 

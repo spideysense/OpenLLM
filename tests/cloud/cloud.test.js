@@ -304,14 +304,20 @@ describe('Cloud: Server routes', () => {
     expect(serverSrc).toContain('express.raw');
   });
 
-  it('should enable CORS for landing page', () => {
+  it('should enable CORS for landing page and Vercel previews', () => {
     expect(serverSrc).toContain('cors');
     expect(serverSrc).toContain('LANDING_URL');
+    expect(serverSrc).toContain('vercel.app');
   });
 
   it('should have health check', () => {
     expect(serverSrc).toContain("'/health'");
     expect(serverSrc).toContain('llmbear-cloud');
+  });
+
+  it('should export app for Vercel serverless', () => {
+    expect(serverSrc).toContain('module.exports = app');
+    expect(serverSrc).toContain('VERCEL');
   });
 
   it('should have 404 handler', () => {
@@ -332,9 +338,10 @@ describe('Cloud: Landing page connection', () => {
     expect(landingHtml).toContain('startCheckout');
   });
 
-  it('should call /checkout endpoint with plan', () => {
-    expect(landingHtml).toContain("'/checkout'");
-    expect(landingHtml).toContain('plan');
+  it('should have tabbed Local/Cloud code examples', () => {
+    expect(landingHtml).toContain('switchTab');
+    expect(landingHtml).toContain('code-local');
+    expect(landingHtml).toContain('code-cloud-tab');
   });
 
   it('should wire Cloud Bear button to checkout', () => {
@@ -385,5 +392,16 @@ describe('Cloud: Configuration', () => {
 
   it('should document cloud model configuration', () => {
     expect(envExample).toContain('CLOUD_MODELS');
+  });
+
+  it('should have vercel.json for deployment', () => {
+    const vercelJson = JSON.parse(fs.readFileSync(path.resolve('cloud/vercel.json'), 'utf8'));
+    expect(vercelJson.builds).toBeTruthy();
+    expect(vercelJson.routes).toBeTruthy();
+  });
+
+  it('should use /tmp for DB on Vercel', () => {
+    expect(dbSrc).toContain('VERCEL');
+    expect(dbSrc).toContain('/tmp/');
   });
 });

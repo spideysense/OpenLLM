@@ -28,14 +28,30 @@ User's code → cloud/server.js (auth + rate limit) → GPU Backend (Ollama/vLLM
 | Cloud Bear | $0.99/mo | 30 | 500K | Yes |
 | Grizzly Bear | $1.99/mo | 60 | 2M | Yes |
 
-## Setup
+## Deploy on Vercel
+
+The cloud backend deploys as Vercel Serverless Functions. No `.env` files — set environment variables in the Vercel dashboard.
 
 ```bash
 cd cloud
-cp .env.example .env    # edit with your Stripe keys
-npm install
-npm start               # runs on port 4001
+vercel deploy --prod
 ```
+
+Then in **Vercel Dashboard → Settings → Environment Variables**, add:
+
+| Variable | Value |
+|----------|-------|
+| `STRIPE_SECRET_KEY` | `sk_live_xxx` (from Stripe Dashboard) |
+| `STRIPE_WEBHOOK_SECRET` | `whsec_xxx` (from Stripe Webhooks) |
+| `STRIPE_PRICE_CLOUD` | `price_xxx` (Cloud Bear $0.99/mo) |
+| `STRIPE_PRICE_GRIZZLY` | `price_xxx` (Grizzly Bear $1.99/mo) |
+| `GPU_BACKEND_URL` | Your GPU endpoint URL |
+| `GPU_BACKEND_KEY` | (optional) Auth key for GPU backend |
+| `LANDING_URL` | `https://open-llm-ten.vercel.app` |
+
+### Custom Domain
+
+Point `api.llmbear.com` at your Vercel deployment in **Settings → Domains**.
 
 ### Stripe Setup
 

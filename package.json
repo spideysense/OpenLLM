@@ -19,7 +19,7 @@
     "productName": "LLM Bear",
     "directories": {
       "output": "dist",
-      "buildResources": "assets"
+      "buildResources": "build"
     },
     "files": [
       "src/main/**/*",
@@ -30,6 +30,11 @@
     "mac": {
       "category": "public.app-category.developer-tools",
       "artifactName": "LLMBear-${version}-mac.${ext}",
+      "icon": "build/icon.png",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
       "target": [
         {
           "target": "dmg",
@@ -40,6 +45,7 @@
       ]
     },
     "win": {
+      "icon": "build/icon.png",
       "target": [
         {
           "target": "nsis",
@@ -49,10 +55,12 @@
         }
       ],
       "artifactName": "LLMBear-${version}-win.${ext}"
-    }
+    },
+    "afterSign": "scripts/notarize.js"
   },
   "dependencies": {
-    "electron-store": "^8.1.0"
+    "electron-store": "^8.1.0",
+    "sharp": "^0.34.5"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.1.5",

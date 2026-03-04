@@ -188,9 +188,12 @@ describe('Content: Pricing tiers', () => {
 // ═══════════════════════════════════════════════════
 
 describe('Content: API examples', () => {
-  it('should show the two-line change pattern', () => {
+  it('should show the two-line change pattern with local and cloud options', () => {
     expect(html).toContain('localhost:4000/v1');
+    expect(html).toContain('api.llmbear.com/v1');
     expect(html).toContain('sk-llmbear');
+    expect(html).toContain('sk-bear-');
+    expect(html).toContain('switchTab');
   });
 
   it('should use Python OpenAI SDK syntax', () => {
