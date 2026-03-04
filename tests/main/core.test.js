@@ -419,6 +419,18 @@ describe('Ollama: Silent Setup (NEVER opens browser)', () => {
     expect(fs.existsSync(path.resolve(pkgJson.build.mac.entitlements))).toBe(true);
     expect(fs.existsSync(path.resolve(pkgJson.build.afterSign))).toBe(true);
   });
+
+  it('should explicitly exclude vendor/ from electron-builder files', () => {
+    // vendor/ollama dylibs crash universal Mac builds (x64 + arm64 merge fails)
+    const files = pkgJson.build.files;
+    const hasExclude = files.some(f => f.includes('!vendor'));
+    expect(hasExclude).toBe(true);
+  });
+
+  it('should include build/**/* in files (Vite renderer output)', () => {
+    const files = pkgJson.build.files;
+    expect(files).toContain('build/**/*');
+  });
 });
 
 describe('User-facing branding: no "Ollama" visible anywhere', () => {

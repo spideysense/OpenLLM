@@ -1,6 +1,6 @@
 {
   "name": "llm-bear",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "description": "Run the best open source AI locally. No API keys. No subscriptions. No terminal.",
   "main": "src/main/index.js",
   "scripts": {
@@ -25,7 +25,9 @@
       "src/main/**/*",
       "src/preload/**/*",
       "build/**/*",
-      "registry/**/*"
+      "registry/**/*",
+      "!vendor/**/*",
+      "!vendor"
     ],
     "mac": {
       "category": "public.app-category.developer-tools",
@@ -79,5 +81,9 @@
     "vite": "^5.0.12",
     "vitest": "^1.2.0",
     "wait-on": "^7.2.0"
+  },
+  "author": {
+    "name": "LLM Bear",
+    "email": "hello@llmbear.com"
   }
 }
