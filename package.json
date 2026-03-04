@@ -1,6 +1,6 @@
 {
   "name": "llm-bear",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Run the best open source AI locally. No API keys. No subscriptions. No terminal.",
   "main": "src/main/index.js",
   "scripts": {

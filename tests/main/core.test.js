@@ -302,44 +302,75 @@ describe('Model Registry', () => {
 });
 
 
-describe('Ollama: Runtime Setup', () => {
+
+describe('Ollama: Silent Setup (NEVER opens browser)', () => {
   const ollamaSrc = fs.readFileSync(path.resolve('src/main/ollama.js'), 'utf8');
   const onboardingSrc = fs.readFileSync(path.resolve('src/renderer/pages/Onboarding.jsx'), 'utf8');
   const preloadSrc = fs.readFileSync(path.resolve('src/preload/index.js'), 'utf8');
   const pkgJson = JSON.parse(fs.readFileSync(path.resolve('package.json'), 'utf8'));
   const workflowSrc = fs.readFileSync(path.resolve('.github/workflows/release.yml'), 'utf8');
 
+  // ── CRITICAL: Never open a browser or show "Ollama" ──
+
+  it('should NEVER open a browser (no shell.openExternal)', () => {
+    expect(ollamaSrc).not.toContain('openExternal');
+    expect(ollamaSrc).not.toContain('shell.open');
+  });
+
+  it('should NOT import shell from electron (no browser opens ever)', () => {
+    expect(ollamaSrc).not.toContain('openExternal');
+    // The electron import must only have { app }, not { app, shell }
+    const electronImport = ollamaSrc.match(/require\('electron'\)/);
+    expect(electronImport).toBeTruthy();
+    const importLine = ollamaSrc.split('\n').find(l => l.includes("require('electron')"));
+    expect(importLine).not.toContain('shell');
+  });
+
+  it('should never show "Ollama" to user in onboarding', () => {
+    expect(onboardingSrc).not.toContain("'Ollama");
+    expect(onboardingSrc).not.toContain('"Ollama');
+    expect(onboardingSrc).toContain('AI engine');
+  });
+
   // ── Binary resolution chain ──
 
-  it('should check bundled binary first (resources/vendor/ollama)', () => {
-    expect(ollamaSrc).toContain('getBundledPath');
-    expect(ollamaSrc).toContain('process.resourcesPath');
-  });
-
-  it('should check system binary second (/usr/local/bin etc)', () => {
-    expect(ollamaSrc).toContain('getSystemPath');
-    expect(ollamaSrc).toContain('/usr/local/bin/ollama');
-  });
-
-  it('should check downloaded binary third (~/.llmbear/bin/)', () => {
-    expect(ollamaSrc).toContain('getDownloadedPath');
-    expect(ollamaSrc).toContain('.llmbear');
-  });
-
-  it('should use priority: bundled → system → downloaded → null', () => {
+  it('should check bundled → system → downloaded in order', () => {
     expect(ollamaSrc).toContain('getBundledPath() || getSystemPath() || getDownloadedPath()');
-  });
-
-  // ── Runtime download ──
-
-  it('should auto-download Ollama if not found anywhere', () => {
-    expect(ollamaSrc).toContain('downloadOllama');
-    expect(ollamaSrc).toContain('ollama.com/download');
   });
 
   it('should download to ~/.llmbear/bin/', () => {
     expect(ollamaSrc).toContain('.llmbear');
-    expect(ollamaSrc).toContain('bin');
+    expect(ollamaSrc).toContain('BIN_DIR');
+  });
+
+  // ── Silent download from GitHub releases ──
+
+  it('should download from GitHub releases (not ollama.com/download)', () => {
+    expect(ollamaSrc).toContain('github.com/ollama/ollama/releases');
+    // Must NOT use ollama.com/download which redirects to a webpage
+    expect(ollamaSrc).not.toContain("ollama.com/download/ollama-darwin'");
+    expect(ollamaSrc).not.toContain("ollama.com/download/ollama-windows");
+    expect(ollamaSrc).not.toContain("ollama.com/download/ollama-linux");
+  });
+
+  it('should handle tgz archives for macOS and Linux', () => {
+    expect(ollamaSrc).toContain('.tgz');
+    expect(ollamaSrc).toContain('tar -xzf');
+  });
+
+  it('should handle zip archives for Windows', () => {
+    expect(ollamaSrc).toContain('.zip');
+    expect(ollamaSrc).toContain('Expand-Archive');
+  });
+
+  it('should show download progress to user', () => {
+    expect(ollamaSrc).toContain('downloadFileWithProgress');
+    expect(ollamaSrc).toContain('Downloading AI engine');
+  });
+
+  it('should follow HTTP redirects when downloading', () => {
+    expect(ollamaSrc).toContain('redirects');
+    expect(ollamaSrc).toContain('headers.location');
   });
 
   it('should make binary executable on Unix', () => {
@@ -347,35 +378,14 @@ describe('Ollama: Runtime Setup', () => {
     expect(ollamaSrc).toContain('0o755');
   });
 
-  it('should follow redirects when downloading', () => {
-    expect(ollamaSrc).toContain('downloadFile');
-    expect(ollamaSrc).toContain('redirects');
-  });
-
-  it('should fall back to install.sh on macOS if direct download fails', () => {
-    expect(ollamaSrc).toContain('install.sh');
-    expect(ollamaSrc).toContain('curl -fsSL');
-  });
-
-  it('should open ollama.com as last resort', () => {
-    expect(ollamaSrc).toContain('ollama.com');
-    expect(ollamaSrc).toContain('openExternal');
-  });
-
   // ── Model storage ──
 
   it('should store models in ~/.llmbear/models/', () => {
     expect(ollamaSrc).toContain('OLLAMA_MODELS');
-    expect(ollamaSrc).toContain('.llmbear');
+    expect(ollamaSrc).toContain('models');
   });
 
   // ── Onboarding ──
-
-  it('should never show "Ollama" to the user in onboarding UI text', () => {
-    expect(onboardingSrc).not.toContain("'Ollama");
-    expect(onboardingSrc).not.toContain('"Ollama');
-    expect(onboardingSrc).toContain('AI engine');
-  });
 
   it('should check ensureRunning result before pulling model', () => {
     expect(onboardingSrc).toContain('runResult.success');
@@ -385,51 +395,28 @@ describe('Ollama: Runtime Setup', () => {
     expect(preloadSrc).toContain("ipcRenderer.on('ollama:progress'");
   });
 
-  // ── CI Build (critical: don't break the release pipeline!) ──
+  // ── CI Build guardrails ──
 
-  it('should NOT bundle Ollama in CI build (too large, crashes builds)', () => {
-    // The bundle-ollama step was causing v0.1.3-v0.1.5 to fail
+  it('should NOT bundle Ollama in CI (downloads at runtime instead)', () => {
     expect(workflowSrc).not.toContain('bundle-ollama');
-    expect(workflowSrc).not.toContain('Bundle Ollama');
   });
 
-  it('should have version-less artifact names in electron-builder', () => {
+  it('should NOT have extraResources referencing vendor/', () => {
+    expect(pkgJson.build.extraResources).toBeUndefined();
+  });
+
+  it('should use version-less artifact names', () => {
     expect(pkgJson.build.mac.artifactName).toBe('LLMBear-mac.${ext}');
     expect(pkgJson.build.win.artifactName).toBe('LLMBear-win.${ext}');
   });
 
-  it('should use assets/ for buildResources (not build/ which is gitignored)', () => {
+  it('should use assets/ for buildResources', () => {
     expect(pkgJson.build.directories.buildResources).toBe('assets');
   });
 
-  it('should have icon.png in assets/ directory', () => {
+  it('should have all build paths exist on disk', () => {
     expect(fs.existsSync(path.resolve('assets/icon.png'))).toBe(true);
-  });
-
-  it('should NOT have extraResources referencing non-existent directories', () => {
-    // THIS WAS THE BUG: extraResources pointed to vendor/ollama/ which
-    // doesn't exist in CI. electron-builder crashes, build fails, no release,
-    // "latest" stays on old version, download 404s.
-    const extra = pkgJson.build.extraResources;
-    if (extra) {
-      for (const entry of extra) {
-        const dir = typeof entry === 'string' ? entry : entry.from;
-        if (dir) {
-          // Either the directory exists, or it's optional
-          // For now, just ensure we don't reference vendor/ollama
-          expect(dir).not.toContain('vendor/ollama');
-        }
-      }
-    }
-  });
-
-  it('should have all build paths reference files that exist in git', () => {
-    // Ensures icon, entitlements, afterSign script all exist
-    const iconPath = pkgJson.build.mac.icon;
-    const entPath = pkgJson.build.mac.entitlements;
-    const signPath = pkgJson.build.afterSign;
-    expect(fs.existsSync(path.resolve(iconPath))).toBe(true);
-    expect(fs.existsSync(path.resolve(entPath))).toBe(true);
-    expect(fs.existsSync(path.resolve(signPath))).toBe(true);
+    expect(fs.existsSync(path.resolve(pkgJson.build.mac.entitlements))).toBe(true);
+    expect(fs.existsSync(path.resolve(pkgJson.build.afterSign))).toBe(true);
   });
 });
