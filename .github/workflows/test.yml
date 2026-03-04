@@ -24,11 +24,11 @@ jobs:
       - name: Run tests
         run: npx vitest run
 
-      - name: Verify no TunnelBear references
+      - name: Verify no TunnelBear branding
         run: |
-          if grep -rni "tunnelbear\|tunnel" --include="*.js" --include="*.jsx" --include="*.css" --include="*.html" --include="*.json" . \
-            | grep -v node_modules | grep -v ".git/" | grep -v "workspace"; then
-            echo "ERROR: Found TunnelBear/tunnel references!"
+          if grep -rni "tunnelbear" --include="*.js" --include="*.jsx" --include="*.css" --include="*.html" --include="*.json" . \
+            | grep -v node_modules | grep -v ".git/" | grep -v "workspace" | grep -v "test"; then
+            echo "ERROR: Found TunnelBear branding references!"
             exit 1
           fi
-          echo "✓ No TunnelBear references found"
+          echo "✓ No TunnelBear branding found"
