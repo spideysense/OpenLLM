@@ -1,0 +1,153 @@
+{
+  "schema_version": 1,
+  "updated": "2025-03-03",
+  "changelog": "Initial registry — curated best-in-class models as of March 2025.",
+  "hardware_tiers": {
+    "light":  { "label": "Light",    "description": "8 GB RAM, no dedicated GPU",   "max_model_gb": 5  },
+    "medium": { "label": "Standard", "description": "16 GB RAM, or Apple Silicon",  "max_model_gb": 12 },
+    "heavy":  { "label": "Power",    "description": "32+ GB RAM, dedicated GPU",    "max_model_gb": 25 },
+    "ultra":  { "label": "Beast",    "description": "64+ GB RAM, high-end GPU",     "max_model_gb": 50 }
+  },
+  "categories": {
+    "general": {
+      "label": "General Purpose",
+      "description": "Everyday AI — answer questions, write emails, brainstorm, summarize.",
+      "icon": "💬",
+      "recommendations": {
+        "light":  {
+          "model": "llama3.2:3b",
+          "name": "Llama 3.2 3B",
+          "provider": "Meta",
+          "download_gb": 2.0,
+          "why": "Surprisingly capable for its size. Runs fast on any machine.",
+          "replaces": null
+        },
+        "medium": {
+          "model": "qwen2.5:7b",
+          "name": "Qwen 2.5 7B",
+          "provider": "Alibaba",
+          "download_gb": 4.7,
+          "why": "Top-rated small model. Beats many models twice its size on benchmarks.",
+          "replaces": null
+        },
+        "heavy": {
+          "model": "qwen2.5:32b",
+          "name": "Qwen 2.5 32B",
+          "provider": "Alibaba",
+          "download_gb": 19.9,
+          "why": "Competes with GPT-4 class models. Excellent at complex tasks.",
+          "replaces": null
+        },
+        "ultra": {
+          "model": "llama3.3",
+          "name": "Llama 3.3 70B",
+          "provider": "Meta",
+          "download_gb": 42.0,
+          "why": "Meta's best open model. Rivals the top commercial models.",
+          "replaces": null
+        }
+      }
+    },
+    "coding": {
+      "label": "Coding Assistant",
+      "description": "Write, debug, and explain code across all programming languages.",
+      "icon": "👨‍💻",
+      "recommendations": {
+        "light": {
+          "model": "qwen2.5-coder:7b",
+          "name": "Qwen 2.5 Coder 7B",
+          "provider": "Alibaba",
+          "download_gb": 4.7,
+          "why": "State-of-the-art code generation for its size. Knows 80+ languages.",
+          "replaces": null
+        },
+        "medium": {
+          "model": "phi4",
+          "name": "Phi-4 14B",
+          "provider": "Microsoft",
+          "download_gb": 9.1,
+          "why": "Microsoft's reasoning-focused model. Punches way above its weight on code.",
+          "replaces": null
+        },
+        "heavy": {
+          "model": "qwen2.5-coder:32b",
+          "name": "Qwen 2.5 Coder 32B",
+          "provider": "Alibaba",
+          "download_gb": 19.9,
+          "why": "Best open coding model. Competitive with Copilot-level quality.",
+          "replaces": null
+        }
+      }
+    },
+    "reasoning": {
+      "label": "Deep Reasoning",
+      "description": "Complex analysis, math, logic puzzles, step-by-step problem solving.",
+      "icon": "🧠",
+      "recommendations": {
+        "light": {
+          "model": "deepseek-r1:8b",
+          "name": "DeepSeek R1 8B",
+          "provider": "DeepSeek",
+          "download_gb": 4.9,
+          "why": "Shows its thinking process. Surprisingly strong at math and logic.",
+          "replaces": null
+        },
+        "medium": {
+          "model": "deepseek-r1:14b",
+          "name": "DeepSeek R1 14B",
+          "provider": "DeepSeek",
+          "download_gb": 9.0,
+          "why": "Sweet spot for reasoning on consumer hardware.",
+          "replaces": null
+        },
+        "heavy": {
+          "model": "deepseek-r1:32b",
+          "name": "DeepSeek R1 32B",
+          "provider": "DeepSeek",
+          "download_gb": 19.9,
+          "why": "Approaches o1-level reasoning. Excels at multi-step problems.",
+          "replaces": null
+        },
+        "ultra": {
+          "model": "deepseek-r1:70b",
+          "name": "DeepSeek R1 70B",
+          "provider": "DeepSeek",
+          "download_gb": 42.0,
+          "why": "Full-power reasoning. Competitive with the best commercial models.",
+          "replaces": null
+        }
+      }
+    },
+    "creative": {
+      "label": "Creative Writing",
+      "description": "Stories, blog posts, marketing copy, brainstorming.",
+      "icon": "✍️",
+      "recommendations": {
+        "light": {
+          "model": "llama3.1:8b",
+          "name": "Llama 3.1 8B",
+          "provider": "Meta",
+          "download_gb": 4.7,
+          "why": "Great at natural-sounding prose and following creative instructions.",
+          "replaces": null
+        },
+        "medium": {
+          "model": "gemma2:9b",
+          "name": "Gemma 2 9B",
+          "provider": "Google",
+          "download_gb": 5.4,
+          "why": "Google's open model. Excellent at instruction following and creative writing.",
+          "replaces": null
+        },
+        "heavy": {
+          "model": "command-r",
+          "name": "Command R 35B",
+          "provider": "Cohere",
+          "download_gb": 20.0,
+          "why": "Designed for long-form content and grounded, factual writing.",
+          "replaces": null
+        }
+      }
+    }
+  }
+}
