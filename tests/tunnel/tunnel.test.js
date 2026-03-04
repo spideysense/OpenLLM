@@ -244,28 +244,30 @@ describe('Tunnel: Electron main process integration', () => {
     expect(mainSrc).toContain("require('./tunnel')");
   });
 
-  it('should start tunnel after gateway on app ready', () => {
+  it('should only start tunnel for paid plans', () => {
+    expect(mainSrc).toContain("store.get('plan')");
+    expect(mainSrc).toContain("plan !== 'free'");
     expect(mainSrc).toContain('tunnel.start');
-    expect(mainSrc).toContain("tunnel:status");
   });
 
   it('should stop tunnel on before-quit', () => {
     expect(mainSrc).toContain('tunnel.stop()');
   });
 
-  it('should expose tunnel:getStatus IPC handler', () => {
+  it('should gate tunnel:getStatus by plan', () => {
     expect(mainSrc).toContain("'tunnel:getStatus'");
-    expect(mainSrc).toContain('tunnel.isConnected()');
-    expect(mainSrc).toContain('tunnel.getPublicUrl()');
+    expect(mainSrc).toContain('gated: true');
+    expect(mainSrc).toContain('gated: false');
   });
 
-  it('should expose tunnel:copyUrl IPC handler', () => {
+  it('should copy localhost URL for free users', () => {
     expect(mainSrc).toContain("'tunnel:copyUrl'");
-    expect(mainSrc).toContain('clipboard.writeText');
+    expect(mainSrc).toContain('localhost:4000/v1');
   });
 
-  it('should expose tunnel:restart IPC handler', () => {
+  it('should gate tunnel:restart by plan', () => {
     expect(mainSrc).toContain("'tunnel:restart'");
+    expect(mainSrc).toContain("return false");
   });
 
   it('should push tunnel status updates to renderer', () => {
