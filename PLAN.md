@@ -99,7 +99,8 @@ Download .dmg / .exe  →  Install (one click)  →  App opens
 | **Model Hub** | Curated list of best-in-class models, organized by use case (not by parameter count). Categories: "General", "Coding", "Reasoning", "Creative Writing". Each card shows plain-English description, download size, and whether it'll run well on their machine. |
 | **One-Click Download** | Download models with a progress bar and estimated time. Handle resume on failure. |
 | **Upgrade Detector** | Background check (daily or on app open): compare installed model digests against Ollama registry. If a newer/better model is available in the same category, show a non-intrusive banner: "A faster model is available! Switch with one click." |
-| **Local API** | Ollama already serves OpenAI-compatible API. We just surface the endpoint clearly and show copy-paste examples. |
+| **Local API Gateway** | A thin proxy (runs in the Electron main process on port 4000) that sits in front of Ollama and adds: **(a)** API key generation/validation — user generates `sk-openllm-...` keys in the app, gateway checks them on every request, **(b)** Model aliasing — user can call `model: "gpt-4"` or `model: "claude-3"` and it routes to their local model, **(c)** Full OpenAI `/v1/chat/completions`, `/v1/models`, `/v1/embeddings` compatibility. This means existing code that uses `openai.ChatCompletion.create()` works by changing only `base_url` and `api_key`. |
+| **"Replace OpenAI" Wizard** | In-app page that walks users through: pick which service you're replacing (OpenAI / Anthropic / etc.) → select which local model maps to which role → generates API key → shows exact copy-paste code with their key and base URL pre-filled. Zero guesswork. |
 | **Cross-Platform Builds** | Mac (.dmg, universal binary for Intel + Apple Silicon) and Windows (.exe NSIS installer). GitHub Actions CI/CD. |
 
 ### P1 — Fast Follow
@@ -195,6 +196,9 @@ OpenLLM/
 │   │   ├── models.ts              # Model management (pull, delete, list, update check)
 │   │   ├── system.ts              # Hardware detection (GPU, RAM, platform)
 │   │   ├── registry.ts            # Fetch + compare curated model registry
+│   │   ├── gateway.ts             # API gateway server (port 4000) — auth, aliasing, proxy
+│   │   ├── apikeys.ts             # API key generation, validation, storage
+│   │   ├── aliases.ts             # Model alias resolution (gpt-4 → local model)
 │   │   └── store.ts               # Local settings (electron-store)
 │   ├── preload/
 │   │   └── index.ts               # IPC bridge
@@ -205,14 +209,18 @@ OpenLLM/
 │   │   │   ├── Onboarding.tsx     # First-run setup wizard
 │   │   │   ├── Chat.tsx           # Main chat interface
 │   │   │   ├── ModelHub.tsx       # Browse + download models
-│   │   │   └── Settings.tsx       # Preferences, API info, about
+│   │   │   ├── ReplaceWizard.tsx  # "Replace OpenAI" step-by-step wizard
+│   │   │   ├── APIKeys.tsx        # Generate, manage, revoke API keys
+│   │   │   └── Settings.tsx       # Preferences, model aliases, about
 │   │   ├── components/
 │   │   │   ├── Sidebar.tsx        # Nav + conversation list
 │   │   │   ├── ChatMessage.tsx    # Message bubble w/ markdown
 │   │   │   ├── ModelCard.tsx      # Model in the hub
 │   │   │   ├── ProgressBar.tsx    # Download progress
 │   │   │   ├── UpgradeBanner.tsx  # "New model available" prompt
-│   │   │   └── CodeBlock.tsx      # Syntax-highlighted code
+│   │   │   ├── CodeBlock.tsx      # Syntax-highlighted code
+│   │   │   ├── APIKeyCard.tsx     # Single API key display + actions
+│   │   │   └── AliasEditor.tsx    # "gpt-4 → [model dropdown]" row
 │   │   ├── hooks/
 │   │   │   ├── useOllama.ts       # React hook for Ollama state
 │   │   │   ├── useChat.ts         # Chat logic + streaming
@@ -256,7 +264,119 @@ This is the "always have the latest and greatest" feature. Two layers:
 
 ---
 
-## 9. Milestones
+## 9. API Gateway — "Just Change Two Lines"
+
+This is what makes OpenLLM a true replacement, not just a toy. The goal: any app, script, or tool that calls OpenAI or Anthropic should work by changing **only** the base URL and API key. Nothing else.
+
+### Architecture
+
+```
+Your App / Script / Tool
+    │
+    │  base_url = "http://localhost:4000/v1"
+    │  api_key  = "sk-openllm-abc123..."
+    │
+    ▼
+┌─────────────────────────────────────┐
+│     OpenLLM API Gateway (:4000)     │
+│                                     │
+│  1. Validate API key                │
+│  2. Resolve model alias             │
+│     "gpt-4" → "qwen2.5:32b"        │
+│     "claude-3" → "llama3.3"         │
+│  3. Proxy to Ollama                 │
+│                                     │
+└───────────────┬─────────────────────┘
+                │
+                ▼
+        Ollama (:11434)
+```
+
+The gateway runs as a lightweight HTTP server inside the Electron main process. No Docker, no extra installs. It starts automatically with the app.
+
+### API Key Management
+
+- User clicks "Generate API Key" in the app → gets `sk-openllm-xxxxxxxxxxxx`
+- Keys are stored locally (encrypted in electron-store)
+- User can create multiple keys (one per project/app), revoke them, see last-used timestamp
+- Gateway validates `Authorization: Bearer sk-openllm-...` on every request
+- If no keys are configured yet, gateway runs in "open mode" (accepts anything) for easy first-time setup
+- Keys are local-only. They never leave the machine. They exist so users have something to paste into the `api_key` field that their tools require.
+
+### Model Aliasing
+
+This is critical. Users shouldn't have to remember `qwen2.5:32b`. They should be able to use the names they already know.
+
+**Default alias map** (configurable in Settings):
+
+```json
+{
+  "gpt-4":           "→ best installed 'heavy' general model",
+  "gpt-4o":          "→ best installed 'medium' general model",
+  "gpt-3.5-turbo":   "→ best installed 'light' general model",
+  "claude-3-opus":    "→ best installed 'heavy' general model",
+  "claude-3-sonnet":  "→ best installed 'medium' general model",
+  "claude-3-haiku":   "→ best installed 'light' general model",
+  "o1":              "→ best installed reasoning model",
+  "codex":           "→ best installed coding model"
+}
+```
+
+How it works:
+1. User's code says `model: "gpt-4"`
+2. Gateway looks up alias → finds `qwen2.5:32b` (or whatever they have installed)
+3. Forwards to Ollama with the real model name
+4. Returns response in exact OpenAI format
+
+Users can also override aliases in Settings: "When something asks for `gpt-4`, use: [dropdown of installed models]"
+
+### Supported Endpoints
+
+| Endpoint | Status | Notes |
+|----------|--------|-------|
+| `POST /v1/chat/completions` | ✅ Full | Streaming + non-streaming. Tool/function calling. |
+| `GET /v1/models` | ✅ Full | Returns installed models + all active aliases |
+| `POST /v1/completions` | ✅ Full | Legacy completions API |
+| `POST /v1/embeddings` | ✅ Full | If an embedding model is installed |
+| `POST /v1/images/generations` | 🔜 P1 | When Ollama image gen matures |
+
+### The "Replace OpenAI" Wizard
+
+This is a guided in-app page that holds the user's hand:
+
+```
+Step 1: What are you replacing?
+  ○ OpenAI (ChatGPT / API)
+  ○ Anthropic (Claude)
+  ○ Google (Gemini)
+  ○ Other OpenAI-compatible service
+
+Step 2: Pick your local models
+  When apps ask for "gpt-4", use: [ Qwen 2.5 32B     ▾ ]
+  When apps ask for "gpt-3.5", use: [ Qwen 2.5 7B      ▾ ]
+  (pre-filled with smart defaults based on what's installed)
+
+Step 3: Your API credentials
+  ┌──────────────────────────────────────────────┐
+  │  Base URL:  http://localhost:4000/v1    [Copy]│
+  │  API Key:   sk-openllm-a8f2k...        [Copy]│
+  └──────────────────────────────────────────────┘
+
+Step 4: Try it — paste this into your code:
+
+  Python, JavaScript, cURL, and Cursor/Continue.dev snippets
+  — all pre-filled with the user's actual key and base URL.
+  Copy-paste and go.
+```
+
+### Why Port 4000 (Not 11434)
+
+- Port 11434 is Ollama's raw endpoint — no auth, Ollama model names only
+- Port 4000 is our gateway — auth, aliasing, OpenAI-format model names
+- We tell users about 4000. Power users who want raw Ollama can use 11434 directly.
+- If port 4000 is taken, app auto-selects next available and shows it in the UI.
+
+## 10. Milestones
 
 ### M1: Skeleton (Week 1)
 - [ ] Electron + Vite + React + Tailwind project scaffolded
@@ -271,25 +391,28 @@ This is the "always have the latest and greatest" feature. Two layers:
 - [ ] Conversation stored locally
 - [ ] Sidebar with conversation list
 
-### M3: Model Hub & Upgrades (Week 3)
+### M3: API Gateway & Model Hub (Week 3)
+- [ ] API gateway running on port 4000 with key validation
+- [ ] API key generation, storage, revocation UI
+- [ ] Model aliasing engine (gpt-4 → local model mapping)
+- [ ] "Replace OpenAI" wizard with pre-filled code snippets
 - [ ] Model hub page with curated cards
 - [ ] Category/use-case filtering (not jargon-heavy)
 - [ ] Download progress with resume support
-- [ ] Registry fetch + upgrade detection
-- [ ] Upgrade banner component
 
-### M4: Polish & Ship (Week 4)
+### M4: Upgrades, Polish & Ship (Week 4)
+- [ ] Registry fetch + upgrade detection (new best-in-class alerts)
+- [ ] Upgrade banner component
 - [ ] Electron-builder config for Mac .dmg + Windows .exe
 - [ ] GitHub Actions CI/CD pipeline
 - [ ] Auto-updater for the app itself
 - [ ] System tray / menu bar integration
-- [ ] API/Connect page with copy-paste examples
 - [ ] Landing page / README
 - [ ] First release: v0.1.0
 
 ---
 
-## 10. What We're NOT Building
+## 11. What We're NOT Building
 
 - **A new inference engine.** Ollama handles this. We're a UI + curation layer.
 - **A cloud service.** Everything runs locally. No accounts, no telemetry, no data collection.
@@ -299,7 +422,7 @@ This is the "always have the latest and greatest" feature. Two layers:
 
 ---
 
-## 11. Open Questions
+## 12. Open Questions
 
 1. **Bundle Ollama or require separate install?** Bundling makes UX simpler but increases app size (~100MB) and we need to handle updates. Separate install means one extra step but we always get the latest Ollama. **Recommendation: Auto-download Ollama on first run, don't bundle.**
 
@@ -311,17 +434,17 @@ This is the "always have the latest and greatest" feature. Two layers:
 
 ---
 
-## 12. Competitive Landscape
+## 13. Competitive Landscape
 
 | Tool | What It Does | Gap We Fill |
 |------|-------------|-------------|
-| **Ollama (CLI)** | Best runtime, but terminal-only | We add the GUI + curation + auto-upgrade |
-| **Open WebUI** | Web-based chat UI for Ollama | Requires running a separate server, Docker, config. Not for normies. |
-| **LM Studio** | GUI for local models | Closed source, own inference engine, doesn't auto-upgrade, cluttered UI |
-| **GPT4All** | Desktop app for local LLMs | Outdated model selection, no auto-upgrade, clunky |
-| **Jan** | Desktop app, open source | Still technical, doesn't curate or auto-recommend |
+| **Ollama (CLI)** | Best runtime, but terminal-only | We add the GUI + curation + auto-upgrade + API gateway with keys & aliasing |
+| **Open WebUI** | Web-based chat UI for Ollama | Requires running a separate server, Docker, config. No API key management. Not for normies. |
+| **LM Studio** | GUI for local models | Closed source, own inference engine, no auto-upgrade, no model aliasing, can't "replace OpenAI" |
+| **GPT4All** | Desktop app for local LLMs | Outdated model selection, no auto-upgrade, no API gateway, clunky |
+| **Jan** | Desktop app, open source | Still technical, doesn't curate, no alias mapping, no "replace OpenAI" wizard |
 
-**Our edge: Opinionated curation + auto-upgrade + dead-simple UX.** We're not trying to be the Swiss Army knife. We're the "it just works" option.
+**Our edge: The only app where you can generate an API key, alias `gpt-4` to a local model, and have existing code work by changing two lines.** Plus: opinionated curation, auto-upgrade, dead-simple UX.
 
 ---
 

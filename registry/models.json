@@ -1,12 +1,30 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "updated": "2025-03-03",
-  "changelog": "Initial registry — curated best-in-class models as of March 2025.",
+  "changelog": "Initial registry — curated best-in-class models as of March 2025. Added model aliasing defaults.",
   "hardware_tiers": {
     "light":  { "label": "Light",    "description": "8 GB RAM, no dedicated GPU",   "max_model_gb": 5  },
     "medium": { "label": "Standard", "description": "16 GB RAM, or Apple Silicon",  "max_model_gb": 12 },
     "heavy":  { "label": "Power",    "description": "32+ GB RAM, dedicated GPU",    "max_model_gb": 25 },
     "ultra":  { "label": "Beast",    "description": "64+ GB RAM, high-end GPU",     "max_model_gb": 50 }
+  },
+  "aliases": {
+    "_comment": "Maps familiar commercial model names to local models. Resolved dynamically based on what's installed and the user's hardware tier. 'tier' means: pick the best installed model at that tier or below. 'category' means: prefer models from that category.",
+    "defaults": {
+      "gpt-4":              { "tier": "heavy",  "category": "general",   "fallback_tier": "medium" },
+      "gpt-4o":             { "tier": "medium", "category": "general",   "fallback_tier": "light"  },
+      "gpt-4o-mini":        { "tier": "light",  "category": "general",   "fallback_tier": "light"  },
+      "gpt-3.5-turbo":      { "tier": "light",  "category": "general",   "fallback_tier": "light"  },
+      "claude-3-opus":      { "tier": "heavy",  "category": "general",   "fallback_tier": "medium" },
+      "claude-3.5-sonnet":  { "tier": "medium", "category": "general",   "fallback_tier": "light"  },
+      "claude-3-sonnet":    { "tier": "medium", "category": "general",   "fallback_tier": "light"  },
+      "claude-3-haiku":     { "tier": "light",  "category": "general",   "fallback_tier": "light"  },
+      "gemini-pro":         { "tier": "medium", "category": "general",   "fallback_tier": "light"  },
+      "gemini-1.5-pro":     { "tier": "heavy",  "category": "general",   "fallback_tier": "medium" },
+      "o1":                 { "tier": "heavy",  "category": "reasoning", "fallback_tier": "medium" },
+      "o1-mini":            { "tier": "medium", "category": "reasoning", "fallback_tier": "light"  },
+      "o3-mini":            { "tier": "medium", "category": "reasoning", "fallback_tier": "light"  }
+    }
   },
   "categories": {
     "general": {
