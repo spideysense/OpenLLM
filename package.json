@@ -1,0 +1,66 @@
+{
+  "name": "llm-bear",
+  "version": "0.1.0",
+  "description": "Run the best open source AI locally. No API keys. No subscriptions. No terminal.",
+  "main": "src/main/index.js",
+  "scripts": {
+    "dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
+    "build:renderer": "vite build",
+    "build:mac": "npm run build:renderer && electron-builder --mac",
+    "build:win": "npm run build:renderer && electron-builder --win",
+    "build:all": "npm run build:renderer && electron-builder --mac --win",
+    "start": "electron ."
+  },
+  "build": {
+    "appId": "com.llmbear.app",
+    "productName": "LLM Bear",
+    "directories": {
+      "output": "dist",
+      "buildResources": "assets"
+    },
+    "files": [
+      "src/main/**/*",
+      "src/preload/**/*",
+      "build/**/*",
+      "registry/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "target": [
+        { "target": "dmg", "arch": ["x64", "arm64"] }
+      ],
+      "darkModeSupport": false,
+      "icon": "assets/icon.icns"
+    },
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] }
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": true,
+      "createDesktopShortcut": true
+    },
+    "dmg": {
+      "contents": [
+        { "x": 130, "y": 220 },
+        { "x": 410, "y": 220, "type": "link", "path": "/Applications" }
+      ]
+    }
+  },
+  "dependencies": {
+    "electron-store": "^8.1.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.2.1",
+    "concurrently": "^8.2.2",
+    "electron": "^28.1.0",
+    "electron-builder": "^24.9.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-markdown": "^9.0.1",
+    "vite": "^5.0.12",
+    "wait-on": "^7.2.0"
+  }
+}

@@ -4,46 +4,119 @@
 
 LLM Bear is a desktop app for Mac and Windows that gives anyone one-click access to the world's best open source language models. Modeled after [TunnelBear](https://tunnelbear.com) — same playful energy, same "anyone can use this" ethos. Except instead of tunneling to countries, the bear tunnels to AI models.
 
-> **Status:** Planning phase. See [PLAN.md](PLAN.md) for the project plan and [DESIGN.md](DESIGN.md) for the TunnelBear-inspired design spec.
+## Quick Start
 
-## Why
+```bash
+# Clone the repo
+git clone https://github.com/spideysense/OpenLLM.git
+cd OpenLLM
 
-You shouldn't have to pay $20/month to talk to an AI. The best open source models now rival GPT-4 and Claude — and they run on your laptop.
+# Install dependencies
+npm install
 
-The problem is that setting them up requires a terminal, config files, and knowing which of the 100+ available models is actually good. LLM Bear fixes that.
+# Run in dev mode (Electron + Vite hot reload)
+npm run dev
+
+# Build for Mac
+npm run build:mac
+
+# Build for Windows
+npm run build:win
+```
+
+**Prerequisites:** Node.js 20+, [Ollama](https://ollama.com) installed on your machine.
 
 ## What It Does
 
-- **One-click install** — Download, open, start chatting. The bear handles everything.
-- **Smart model selection** — We detect your hardware and recommend the best model. No research needed.
+- **One-click install** — Download, open, chat. The bear handles everything.
+- **Smart model selection** — Detects your hardware and recommends the best model automatically.
 - **Auto-upgrade** — When a better model drops, the bear tells you and offers a one-click switch.
-- **Replace OpenAI / Claude** — Generate API keys (`sk-llmbear-...`), set up model aliases (`gpt-4` → your local model), and drop into existing code by changing two lines.
+- **Replace OpenAI / Claude** — Generate API keys (`sk-llmbear-...`), alias `gpt-4` to your local model, drop into existing code by changing two lines.
 - **OpenAI-compatible API** — Gateway on `localhost:4000` works with LangChain, Cursor, n8n, and anything OpenAI-compatible.
 - **100% local** — Your data never leaves your machine. The bear keeps it in the cave.
 
-## Design
+## Architecture
 
-Modeled after TunnelBear's design language:
-- 🐻 Friendly bear mascot that guides you through everything
-- 🟡 Yellow pipe/tunnel visual metaphor — bear "tunnels" between AI models
-- 🗺️ Map-based main view with model "islands" instead of countries
-- 🔘 Simple on/off toggle — model running or not
-- 🌿 Warm, light, outdoor-y palette — sky blue, grass green, pipe gold
-- 💬 Zero jargon — "Get this model" not "Pull the 7B quantized GGUF"
+```
+                Your App (any OpenAI SDK)
+                         │
+                    port 4000
+                         │
+              ┌──────────┴──────────┐
+              │   LLM Bear Gateway  │
+              │  Auth · Aliasing    │
+              │  gpt-4 → qwen2.5   │
+              └──────────┬──────────┘
+                         │
+                    port 11434
+                         │
+              ┌──────────┴──────────┐
+              │     Ollama          │
+              │  (managed silently) │
+              └─────────────────────┘
+```
 
 ## Project Structure
 
 ```
-LLMBear/
-├── PLAN.md                  # Full project plan and architecture
-├── DESIGN.md                # TunnelBear-inspired design specification
+OpenLLM/
+├── package.json                  # Electron + Vite + React
+├── vite.config.js                # Vite build config
 ├── registry/
-│   └── models.json          # Curated best-in-class model registry + alias map
-├── src/                     # App source (coming soon)
-├── assets/                  # Bear illustrations, icons, branding
-└── .github/workflows/       # CI/CD for building installers
+│   └── models.json               # Curated model registry + alias defaults
+├── src/
+│   ├── main/                     # Electron main process
+│   │   ├── index.js              # App entry, window management, IPC handlers
+│   │   ├── ollama.js             # Ollama lifecycle (install, start, stop, chat)
+│   │   ├── models.js             # Model management (list, pull, delete, recommend)
+│   │   ├── system.js             # Hardware detection (GPU, RAM, tier classification)
+│   │   ├── gateway.js            # API gateway (port 4000, auth, aliasing, proxy)
+│   │   ├── apikeys.js            # API key generation + validation
+│   │   ├── aliases.js            # Model alias resolution (gpt-4 → local)
+│   │   ├── registry.js           # Fetch + compare curated model registry
+│   │   └── store.js              # Persistent local JSON storage
+│   ├── preload/
+│   │   └── index.js              # IPC bridge (contextBridge)
+│   └── renderer/                 # React UI
+│       ├── index.html            # HTML entry
+│       ├── main.jsx              # React root
+│       ├── App.jsx               # Router, state management, layout
+│       ├── styles.css             # TunnelBear-inspired global theme
+│       ├── components/
+│       │   └── Sidebar.jsx       # Navigation sidebar
+│       └── pages/
+│           ├── Onboarding.jsx    # First-run wizard
+│           ├── Chat.jsx          # Chat interface with streaming
+│           ├── ModelHub.jsx      # Browse + download models
+│           ├── ReplaceWizard.jsx # "Replace OpenAI" step-by-step
+│           ├── APIKeys.jsx       # Generate + manage API keys
+│           └── Settings.jsx      # Aliases, system info, preferences
+├── site/
+│   └── index.html                # Landing page (llmbear.com)
+├── PLAN.md                       # Full project plan
+├── DESIGN.md                     # TunnelBear-inspired design spec
+└── .github/workflows/
+    └── build.yml                 # CI/CD for Mac .dmg + Windows .exe
 ```
+
+## Design
+
+Modeled after TunnelBear's design language. See [DESIGN.md](DESIGN.md) for the full spec.
+
+- 🐻 Friendly bear mascot guiding every interaction
+- 🟡 Yellow pipe/tunnel visual metaphor
+- 🗺️ Landscape-based main view
+- 💬 Zero jargon ("Get this model" not "Pull the 7B GGUF")
+- 🎨 Baloo 2 + Nunito fonts, sky blue / pipe yellow / grass green palette
+
+## Plans
+
+| Plan | Price | What |
+|------|-------|------|
+| **Cave Bear** | Free forever | Run locally on your machine, all features, no support |
+| **Cloud Bear** | $0.99/mo | We host it for you, no downloads needed |
+| **Grizzly Bear** | $1.99/mo | Priority cloud + human email support |
 
 ## License
 
-MIT
+MIT — Fork it, modify it, ship it. Go wild.
