@@ -6,6 +6,13 @@ export default function Settings() {
   const [aliases, setAliases] = useState({});
   const [editingAlias, setEditingAlias] = useState(null);
   const [saved, setSaved] = useState(false);
+  const [appVersion, setAppVersion] = useState('...');
+
+  useEffect(() => {
+    if (bridge?.app?.getVersion) {
+      bridge.app.getVersion().then(v => setAppVersion(v)).catch(() => {});
+    }
+  }, [bridge]);
 
   useEffect(() => {
     if (bridge) {
@@ -154,7 +161,7 @@ export default function Settings() {
           About LLM Bear
         </h3>
         <p style={{ fontSize: 13, color: 'var(--text-light)', lineHeight: 1.6 }}>
-          LLM Bear v0.1.0 · MIT License
+          LLM Bear v{appVersion} · MIT License
           <br />
           Run the best open source AI locally. No subscriptions. No data sharing.
           <br /><br />
