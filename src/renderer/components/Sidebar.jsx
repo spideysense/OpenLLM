@@ -60,9 +60,9 @@ export default function Sidebar() {
       <div className={`nav-status ${ollamaStatus.running ? '' : 'offline'}`}>
         <span className="dot" />
         {ollamaStatus.running ? (
-          <span>Ollama running · :{gatewayStatus.port}</span>
+          <span>Running locally · :{gatewayStatus.port}</span>
         ) : (
-          <span>Ollama offline</span>
+          <span>AI engine offline</span>
         )}
       </div>
     </aside>

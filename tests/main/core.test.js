@@ -420,3 +420,40 @@ describe('Ollama: Silent Setup (NEVER opens browser)', () => {
     expect(fs.existsSync(path.resolve(pkgJson.build.afterSign))).toBe(true);
   });
 });
+
+describe('User-facing branding: no "Ollama" visible anywhere', () => {
+  const sidebarSrc = fs.readFileSync(path.resolve('src/renderer/components/Sidebar.jsx'), 'utf8');
+  const settingsSrc = fs.readFileSync(path.resolve('src/renderer/pages/Settings.jsx'), 'utf8');
+  const onboardingSrc = fs.readFileSync(path.resolve('src/renderer/pages/Onboarding.jsx'), 'utf8');
+  const indexSrc = fs.readFileSync(path.resolve('src/main/index.js'), 'utf8');
+
+  it('should show "Running locally" not "Ollama running" in sidebar', () => {
+    expect(sidebarSrc).toContain('Running locally');
+    expect(sidebarSrc).not.toContain('Ollama running');
+    expect(sidebarSrc).not.toContain('Ollama offline');
+  });
+
+  it('should show "AI Engine" not "Ollama" in settings', () => {
+    expect(settingsSrc).toContain('AI Engine');
+    // No user-visible strings should say "Ollama"
+    expect(settingsSrc).not.toMatch(/>Ollama</);
+  });
+
+  it('should show "AI engine" not "Ollama" in onboarding', () => {
+    expect(onboardingSrc).not.toContain("'Ollama");
+    expect(onboardingSrc).not.toContain('"Ollama');
+  });
+
+  it('should inject system prompt telling model it runs locally', () => {
+    expect(indexSrc).toContain('SYSTEM_PROMPT');
+    expect(indexSrc).toContain('running locally');
+    expect(indexSrc).toContain('LLM Bear');
+    expect(indexSrc).toContain('NOT running');
+    expect(indexSrc).toContain('cloud');
+  });
+
+  it('should not override user-provided system prompts', () => {
+    expect(indexSrc).toContain('hasSystem');
+    expect(indexSrc).toContain("role === 'system'");
+  });
+});

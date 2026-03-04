@@ -122,7 +122,7 @@ export default function Settings() {
           📡 Service Status
         </h3>
         <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', gap: '8px 16px', fontSize: 14 }}>
-          <span style={{ color: 'var(--text-light)', fontWeight: 600 }}>Ollama</span>
+          <span style={{ color: 'var(--text-light)', fontWeight: 600 }}>AI Engine</span>
           <span>
             {ollamaStatus.running ? (
               <span className="badge badge-green">Running</span>
