@@ -1,0 +1,34 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies (skip Electron binary)
+        run: npm install --ignore-scripts
+
+      - name: Run tests
+        run: npx vitest run
+
+      - name: Verify no TunnelBear references
+        run: |
+          if grep -rni "tunnelbear\|tunnel" --include="*.js" --include="*.jsx" --include="*.css" --include="*.html" --include="*.json" . \
+            | grep -v node_modules | grep -v ".git/" | grep -v "workspace"; then
+            echo "ERROR: Found TunnelBear/tunnel references!"
+            exit 1
+          fi
+          echo "✓ No TunnelBear references found"
