@@ -1,0 +1,20 @@
+{
+  "name": "@llmbear/mcp-server",
+  "version": "0.1.0",
+  "description": "MCP server for LLM Bear — lets AI agents use your local models",
+  "main": "index.js",
+  "bin": {
+    "llmbear-mcp": "./index.js"
+  },
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": ["mcp", "llm", "local-ai", "ollama", "model-context-protocol"],
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
