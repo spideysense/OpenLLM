@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <clipPath id="circle-clip"><circle cx="100" cy="100" r="98"/></clipPath>
+    <filter id="soft"><feGaussianBlur stdDeviation=".9" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <filter id="beard-soft"><feGaussianBlur stdDeviation="1.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <radialGradient id="bg-wash" cx="45%" cy="40%" r="70%">
+      <stop offset="0%" stop-color="#FDF6EC"/>
+      <stop offset="100%" stop-color="#F0E8D8"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Background circle -->
+  <circle cx="100" cy="100" r="100" fill="url(#bg-wash)"/>
+
+  <!-- Impressionist color washes in background -->
+  <circle cx="72" cy="130" r="55" fill="#9B7EC8" opacity=".10" clip-path="url(#circle-clip)"/>
+  <circle cx="135" cy="75" r="45" fill="#3A72B8" opacity=".08" clip-path="url(#circle-clip)"/>
+  <circle cx="100" cy="180" r="40" fill="#5A8C6A" opacity=".07" clip-path="url(#circle-clip)"/>
+
+  <!-- Paint dab accents around edge -->
+  <circle cx="28" cy="65"  r="5" fill="#9B7EC8" opacity=".55"/>
+  <circle cx="23" cy="75"  r="3" fill="#C05888" opacity=".45"/>
+  <circle cx="172" cy="60" r="5" fill="#3A72B8" opacity=".55"/>
+  <circle cx="178" cy="72" r="3" fill="#5A8C6A" opacity=".45"/>
+  <circle cx="35"  cy="148" r="4" fill="#C8880A" opacity=".50"/>
+  <circle cx="165" cy="145" r="4" fill="#9B7EC8" opacity=".50"/>
+  <circle cx="100" cy="18"  r="4" fill="#C05888" opacity=".48"/>
+  <circle cx="92"  cy="12"  r="2.5" fill="#3A72B8" opacity=".40"/>
+
+  <g clip-path="url(#circle-clip)">
+    <!-- Beard (renders behind face) -->
+    <g filter="url(#beard-soft)">
+      <path d="M58 108 Q52 128 54 155 Q60 182 100 190 Q140 182 146 155 Q148 128 142 108 Q130 100 100 98 Q70 100 58 108 Z" fill="#EEE8DC" opacity=".97"/>
+      <!-- Beard texture -->
+      <path d="M68 112 Q65 133 67 158 Q74 180 100 188" stroke="#C8C0B0" stroke-width="1.5" fill="none" opacity=".35"/>
+      <path d="M100 100 Q100 140 100 188" stroke="#C8C0B0" stroke-width="1" fill="none" opacity=".28"/>
+      <path d="M132 112 Q135 133 133 158 Q126 180 100 188" stroke="#C8C0B0" stroke-width="1.5" fill="none" opacity=".35"/>
+    </g>
+
+    <!-- Neck -->
+    <rect x="86" y="118" width="28" height="32" rx="8" fill="#B88058" filter="url(#soft)"/>
+
+    <!-- Face / Head -->
+    <ellipse cx="100" cy="95" rx="44" ry="52" fill="#C8906A" filter="url(#soft)"/>
+    <!-- Forehead highlight -->
+    <ellipse cx="97" cy="74" rx="22" ry="14" fill="#D8A878" opacity=".50"/>
+    <!-- Cheek warmth -->
+    <ellipse cx="76"  cy="100" rx="13" ry="10" fill="#D89068" opacity=".30"/>
+    <ellipse cx="124" cy="100" rx="13" ry="10" fill="#D89068" opacity=".30"/>
+
+    <!-- Beret -->
+    <ellipse cx="100" cy="58"  rx="50" ry="16" fill="#28244A"/>
+    <path d="M55 55 Q63 24 100 18 Q137 24 145 55" fill="#28244A"/>
+    <ellipse cx="100" cy="18"  rx="7" ry="6" fill="#28244A"/>
+    <!-- Beret highlight -->
+    <path d="M66 38 Q78 28 100 25" stroke="#3D3870" stroke-width="2.5" fill="none" opacity=".45"/>
+
+    <!-- White hair at temples -->
+    <path d="M56 80 Q50 94 52 112" stroke="#E8E4DC" stroke-width="7" fill="none" stroke-linecap="round" opacity=".72"/>
+    <path d="M144 80 Q150 94 148 112" stroke="#E8E4DC" stroke-width="7" fill="none" stroke-linecap="round" opacity=".72"/>
+
+    <!-- Mustache -->
+    <path d="M74 103 Q88 108 100 106 Q112 108 126 103 Q118 116 100 113 Q82 116 74 103 Z" fill="#E8E2D4" opacity=".92"/>
+
+    <!-- Eyes -->
+    <ellipse cx="84"  cy="86" rx="5.5" ry="6.5" fill="#2A2018"/>
+    <ellipse cx="116" cy="86" rx="5.5" ry="6.5" fill="#2A2018"/>
+    <!-- Eye shine -->
+    <circle cx="86.5" cy="83.5" r="2.2" fill="white" opacity=".88"/>
+    <circle cx="118.5" cy="83.5" r="2.2" fill="white" opacity=".88"/>
+    <!-- Eyebrows -->
+    <path d="M73 74 Q84 69 95 71"  stroke="#5A4830" stroke-width="3.5" fill="none" stroke-linecap="round" opacity=".80"/>
+    <path d="M105 71 Q116 69 127 74" stroke="#5A4830" stroke-width="3.5" fill="none" stroke-linecap="round" opacity=".80"/>
+
+    <!-- Round wire glasses -->
+    <circle cx="84"  cy="86" r="13" fill="none" stroke="#8B7040" stroke-width="2" opacity=".62"/>
+    <circle cx="116" cy="86" r="13" fill="none" stroke="#8B7040" stroke-width="2" opacity=".62"/>
+    <line x1="97"  y1="86" x2="103" y2="86" stroke="#8B7040" stroke-width="2" opacity=".62"/>
+    <line x1="56"  y1="81" x2="71"  y2="84" stroke="#8B7040" stroke-width="2" opacity=".62"/>
+    <line x1="129" y1="84" x2="144" y2="81" stroke="#8B7040" stroke-width="2" opacity=".62"/>
+
+    <!-- Nose -->
+    <ellipse cx="100" cy="98" rx="6" ry="7.5" fill="#B87850" opacity=".52"/>
+    <path d="M93 104 Q100 108 107 104" stroke="#A06840" stroke-width="1.2" fill="none" opacity=".45"/>
+  </g>
+
+  <!-- Outer ring -->
+  <circle cx="100" cy="100" r="98" fill="none" stroke="#D8C8A8" stroke-width="2"/>
+</svg>

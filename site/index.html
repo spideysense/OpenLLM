@@ -493,6 +493,12 @@ html, body {
   .subtitle { min-height: 60px; margin-top: 0; }
 }
 </style>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Monet","applicationCategory":"DeveloperApplication","operatingSystem":"macOS, Windows","offers":[{"@type":"Offer","price":"0","priceCurrency":"USD","name":"Free","description":"Run AI locally forever free"}],"description":"Monet is a free AI that runs 100% on your computer. No subscription, no cloud, no data sharing. Works as a drop-in replacement for ChatGPT and Claude APIs.","url":"https://open-llm-ten.vercel.app","downloadUrl":"https://github.com/spideysense/OpenLLM/releases/latest","softwareVersion":"0.1.20","license":"https://opensource.org/licenses/MIT","featureList":["100% local AI","Free forever","No subscription","Private by design","Voice input","Image attachments","Public URL via Cloudflare","OpenAI-compatible API"]}
+</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What is Monet?","acceptedAnswer":{"@type":"Answer","text":"Monet is a free desktop app for Mac and Windows that runs AI models like Llama and Qwen 100% locally on your computer. No subscription, no cloud, no data sharing."}},{"@type":"Question","name":"Is Monet free?","acceptedAnswer":{"@type":"Answer","text":"Yes, completely free forever. No credit card, no trial, no subscription. You run AI on your own hardware at zero cost."}},{"@type":"Question","name":"Is my data private with Monet?","acceptedAnswer":{"@type":"Answer","text":"Yes, 100% private. Everything runs locally. Your conversations never leave your machine — no telemetry, no cloud logging, nothing sent to any server."}},{"@type":"Question","name":"Can I use Monet as a drop-in for ChatGPT?","acceptedAnswer":{"@type":"Answer","text":"Yes. Monet runs an OpenAI-compatible API. Change two lines of code — the base URL and API key — and your existing apps work instantly."}}]}
+</script>
 </head>
 <body>
 
@@ -516,16 +522,35 @@ html, body {
 
 <!-- Branding -->
 <div class="brand">
-  <svg class="brand-logo" viewBox="0 0 40 40">
-    <circle cx="20" cy="20" r="19" fill="#FDF6EC" stroke="#E8D9C0" stroke-width="1"/>
-    <rect x="5" y="9" width="5" height="18" rx="2" fill="#5B3A8E" opacity=".90"/>
-    <path d="M8 10 L17 20 L17 22 L5 12 Z" fill="#7B3FA0" opacity=".85"/>
-    <path d="M21 20 L30 10 L32 11 L22 22 Z" fill="#3A72B8" opacity=".85"/>
-    <rect x="30" y="9" width="5" height="18" rx="2" fill="#2A5EA0" opacity=".90"/>
-    <ellipse cx="19" cy="20" rx="3" ry="4" fill="#9B3A6A" opacity=".85"/>
-    <circle cx="7" cy="10" r="2" fill="#A070D0" opacity=".75"/>
-    <circle cx="33" cy="10" r="2" fill="#5090D0" opacity=".75"/>
-    <circle cx="20" cy="7" r="2" fill="#E060A0" opacity=".70"/>
+  <svg class="brand-logo" width="36" height="36" viewBox="0 0 200 200">
+    <defs><clipPath id="bfc"><circle cx="100" cy="100" r="98"/></clipPath>
+    <filter id="bfs"><feGaussianBlur stdDeviation=".9" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <filter id="bfb"><feGaussianBlur stdDeviation="1.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    </defs>
+    <circle cx="100" cy="100" r="100" fill="#FDF6EC"/>
+    <circle cx="72" cy="130" r="55" fill="#9B7EC8" opacity=".10" clip-path="url(#bfc)"/>
+    <g clip-path="url(#bfc)">
+      <g filter="url(#bfb)"><path d="M58 108 Q52 128 54 155 Q60 182 100 190 Q140 182 146 155 Q148 128 142 108 Q130 100 100 98 Q70 100 58 108 Z" fill="#EEE8DC" opacity=".97"/></g>
+      <rect x="86" y="118" width="28" height="32" rx="8" fill="#B88058" filter="url(#bfs)"/>
+      <ellipse cx="100" cy="95" rx="44" ry="52" fill="#C8906A" filter="url(#bfs)"/>
+      <ellipse cx="97" cy="74" rx="22" ry="14" fill="#D8A878" opacity=".50"/>
+      <ellipse cx="100" cy="58" rx="50" ry="16" fill="#28244A"/>
+      <path d="M55 55 Q63 24 100 18 Q137 24 145 55" fill="#28244A"/>
+      <ellipse cx="100" cy="18" rx="7" ry="6" fill="#28244A"/>
+      <path d="M56 80 Q50 94 52 112" stroke="#E8E4DC" stroke-width="7" fill="none" stroke-linecap="round" opacity=".72"/>
+      <path d="M144 80 Q150 94 148 112" stroke="#E8E4DC" stroke-width="7" fill="none" stroke-linecap="round" opacity=".72"/>
+      <path d="M74 103 Q88 108 100 106 Q112 108 126 103 Q118 116 100 113 Q82 116 74 103 Z" fill="#E8E2D4" opacity=".92"/>
+      <ellipse cx="84" cy="86" rx="5.5" ry="6.5" fill="#2A2018"/>
+      <ellipse cx="116" cy="86" rx="5.5" ry="6.5" fill="#2A2018"/>
+      <circle cx="86.5" cy="83.5" r="2.2" fill="white" opacity=".88"/>
+      <circle cx="118.5" cy="83.5" r="2.2" fill="white" opacity=".88"/>
+      <circle cx="84" cy="86" r="13" fill="none" stroke="#8B7040" stroke-width="2" opacity=".62"/>
+      <circle cx="116" cy="86" r="13" fill="none" stroke="#8B7040" stroke-width="2" opacity=".62"/>
+      <line x1="97" y1="86" x2="103" y2="86" stroke="#8B7040" stroke-width="2" opacity=".62"/>
+      <line x1="56" y1="81" x2="71" y2="84" stroke="#8B7040" stroke-width="2" opacity=".62"/>
+      <line x1="129" y1="84" x2="144" y2="81" stroke="#8B7040" stroke-width="2" opacity=".62"/>
+    </g>
+    <circle cx="100" cy="100" r="98" fill="none" stroke="#D8C8A8" stroke-width="2"/>
   </svg>
   <div>
     <span class="brand-name">Monet</span>
@@ -811,43 +836,87 @@ const armPalette = document.querySelector('.arm-palette');
 const armBrush = document.querySelector('.arm-brush');
 
 // ── Speech Synthesis ──
-function speak(text, onEnd) {
-  if (!voiceEnabled || !window.speechSynthesis) {
-    if (onEnd) onEnd();
-    return;
+// Priority order: ElevenLabs API (natural) → browser neural → browser default
+const VOICE_PRIORITY = [
+  'Google UK English Male','Google UK English Female','Google US English',
+  'Daniel','Arthur','Gordon','Karen','Moira','Rishi',
+  'Microsoft Guy Online (Natural) - English (United States)',
+  'Microsoft Jenny Online (Natural) - English (United States)',
+  'Microsoft Mark Online (Natural) - English (United States)',
+  'Alex','Tom','Fred',
+];
+
+let bestVoice = null;
+function pickBestVoice() {
+  if (bestVoice) return bestVoice;
+  const voices = window.speechSynthesis?.getVoices() || [];
+  for (const name of VOICE_PRIORITY) {
+    const v = voices.find(v => v.name.includes(name));
+    if (v) { bestVoice = v; return v; }
   }
+  // Last resort: first English voice
+  return voices.find(v => v.lang?.startsWith('en')) || voices[0] || null;
+}
+
+async function speak(text, onEnd) {
+  if (!voiceEnabled) { if (onEnd) onEnd(); return; }
+
+  setTalking(true);
+
+  // Try ElevenLabs via serverless first
+  try {
+    const res = await fetch('/api/tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+    if (res.ok) {
+      const ct = res.headers.get('content-type') || '';
+      if (ct.includes('audio')) {
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+        audio.playbackRate = 0.94; // slightly slower = warmer
+        audio.onended = () => {
+          URL.revokeObjectURL(url);
+          setTalking(false);
+          if (onEnd) onEnd();
+        };
+        audio.onerror = () => {
+          URL.revokeObjectURL(url);
+          setTalking(false);
+          browserSpeak(text, onEnd);
+        };
+        audio.play().catch(() => browserSpeak(text, onEnd));
+        return;
+      }
+      // { useBrowser: true } response — fall through
+    }
+  } catch {}
+
+  // Browser TTS fallback
+  browserSpeak(text, onEnd);
+}
+
+function browserSpeak(text, onEnd) {
+  if (!window.speechSynthesis) { setTalking(false); if (onEnd) onEnd(); return; }
   window.speechSynthesis.cancel();
+
   const utt = new SpeechSynthesisUtterance(text);
-  utt.rate = 0.88;
-  utt.pitch = 0.95;
-  utt.volume = 0.9;
+  utt.rate   = 0.84;  // slower = more natural
+  utt.pitch  = 0.92;  // slightly lower = warmer
+  utt.volume = 0.92;
 
-  // Try to find a warm, slightly accented voice
-  const voices = window.speechSynthesis.getVoices();
-  const preferred = voices.find(v =>
-    v.name.includes('Daniel') || v.name.includes('Karen') || v.name.includes('Moira') ||
-    v.name.includes('Thomas') || v.name.includes('French') || v.lang === 'en-GB'
-  ) || voices.find(v => v.lang.startsWith('en')) || voices[0];
-  if (preferred) utt.voice = preferred;
+  const voice = pickBestVoice();
+  if (voice) utt.voice = voice;
 
-  utt.onstart = () => { isSpeaking = true; setTalking(true); };
-  utt.onend = () => { isSpeaking = false; setTalking(false); if (onEnd) onEnd(); };
-  utt.onerror = () => { isSpeaking = false; setTalking(false); if (onEnd) onEnd(); };
-  currentUtterance = utt;
+  utt.onstart = () => setTalking(true);
+  utt.onend   = () => { setTalking(false); if (onEnd) onEnd(); };
+  utt.onerror = () => { setTalking(false); if (onEnd) onEnd(); };
   window.speechSynthesis.speak(utt);
 }
 
-function setTalking(talking) {
-  if (talking) {
-    figHead.classList.add('talking');
-    armPalette.classList.add('gesturing');
-    armBrush.classList.add('painting');
-  } else {
-    figHead.classList.remove('talking');
-    armPalette.classList.remove('gesturing');
-    armBrush.classList.remove('painting');
-  }
-}
+// ── Typewriter ──
 
 // ── Typewriter ──
 let typeTimer = null;
@@ -877,11 +946,11 @@ function showText(text, callback) {
 
 // ── Scripted responses ──
 const LINES = {
-  greeting: "Bonjour! I am Monet. Not the painter — well, a little the painter. I am an AI that runs entirely on your machine. Free. Private. Yours. May I show you how it works?",
-  how: "Like sunlight on water — everything happens on your computer. Download the app, choose a model, and you are talking to AI. No server, no subscription. Your words never leave your machine.",
-  private: "Magnifique question. Your data is like a private sketchbook — seen only by you. No telemetry. No cloud. Not even I know what you ask. Everything stays on your hardware, always.",
-  free: "Completely free. No credit card, no trial, no expiration. You run Llama, Qwen, DeepSeek — the finest open-source models — on your own hardware. Keep your twenty dollars a month, mon ami.",
-  chat: "Ah, you wish to converse! Ask me anything — about the app, how to set it up, how to use me in your code. Or simply say bonjour.",
+  greeting: "Bonjour. I am Monet. Not the painter... well, a little the painter. I run entirely on your machine. Free. Private. No subscription, no cloud, no middleman. Your words stay with you, always. Shall I show you around?",
+  how: "Simple as mixing paint. You download me. I scan your hardware and find the best AI model that fits. One click. And you are chatting with AI — running entirely on your own computer. No server. No cloud. Your words never leave. Just you, your machine, and the art of conversation.",
+  private: "A beautiful question. Your data is like a private sketchbook. Seen only by you. No telemetry. No cloud logging. Not even I know what you ask. Everything stays on your hardware. Always. You can inspect every line of my code on GitHub if you like.",
+  free: "Completely free. No credit card. No trial that expires. No subscription to cancel. You run the finest open-source models — Llama, Qwen, DeepSeek — on your own hardware. Keep your twenty dollars a month. Spend it on something beautiful.",
+  chat: "Ah — you wish to converse. Wonderful. Ask me anything. About how I work, how to set me up, how to use me in your code. Or simply say bonjour. I am here.",
 };
 
 // ── Greeting sequence ──
@@ -1026,9 +1095,19 @@ document.addEventListener('keydown', e => {
 });
 
 // ── Init ──
-window.speechSynthesis?.addEventListener('voiceschanged', () => {});
-// Delayed start so voices load
-setTimeout(startGreeting, 400);
+// Load voices eagerly so they are ready when greeting fires
+function initVoices() {
+  if (window.speechSynthesis) {
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length > 0) {
+      pickBestVoice();
+    } else {
+      window.speechSynthesis.addEventListener('voiceschanged', () => pickBestVoice(), { once: true });
+    }
+  }
+}
+initVoices();
+setTimeout(startGreeting, 500);
 </script>
 </body>
 </html>
