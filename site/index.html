@@ -7,6 +7,9 @@
 <meta name="description" content="Monet is a free AI that runs entirely on your computer. Your conversations never leave your machine. Download for Mac or Windows.">
 <meta property="og:title" content="Monet — The Free LLM">
 <meta property="og:description" content="Free AI. Runs locally. Your data stays yours.">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Lato:wght@300;400&display=swap" rel="stylesheet">
 <style>
@@ -918,129 +921,109 @@ const armPalette = document.querySelector('.arm-palette');
 const armBrush = document.querySelector('.arm-brush');
 
 // ── Speech Synthesis ──
-// Tier 1: Azure Neural (AZURE_SPEECH_KEY) or Google Cloud TTS (GOOGLE_TTS_KEY)
-// Tier 2: Browser built-in neural voices — Chrome ships Google Neural, macOS ships Enhanced voices
-//
-// Browser voice priority — these are the neural/enhanced voices that sound genuinely natural:
-// Chrome (any OS):   "Google UK English Male" (warm British male, neural quality)
-// macOS Safari:      "Daniel (Enhanced)" → "Daniel" → "Arthur" → "Ava (Enhanced)"
-// iOS Safari:        Same as macOS
-// Windows Edge:      "Microsoft DavisNeural" → "Microsoft GuyNeural" → "Microsoft BrianNeural"
-// Windows Chrome:    Google voices same as other Chrome
-
+// Browser priority list — these are neural/enhanced voices (not the robotic defaults)
 const BROWSER_VOICES = [
-  // Chrome neural voices (built-in, no download)
-  'Google UK English Male',
-  'Google UK English Female',
-  'Google US English',
-  // macOS enhanced / neural
-  'Daniel (Enhanced)',
-  'Daniel',
-  'Arthur (Enhanced)',
-  'Arthur',
-  'Ava (Enhanced)',
-  'Ava',
-  'Gordon (Enhanced)',
-  'Gordon',
-  'Karen (Enhanced)',
-  'Karen',
-  'Moira (Enhanced)',
-  // Windows Edge Neural voices
-  'Microsoft DavisNeural',
-  'Microsoft GuyNeural',
-  'Microsoft BrianNeural',
-  'Microsoft RyanNeural',
-  'Microsoft AnaNeural',
-  // Older fallbacks — still decent
-  'Alex',
-  'Tom',
-  'Samantha',
-  'Fred',
-  'Rishi',
+  'Google UK English Male', 'Google UK English Female', 'Google US English',
+  'Daniel (Enhanced)', 'Daniel',
+  'Arthur (Enhanced)', 'Arthur',
+  'Ava (Enhanced)', 'Ava',
+  'Karen (Enhanced)', 'Karen',
+  'Gordon (Enhanced)', 'Gordon',
+  'Moira (Enhanced)', 'Moira',
+  'Microsoft DavisNeural', 'Microsoft GuyNeural', 'Microsoft BrianNeural',
+  'Microsoft RyanNeural', 'Microsoft AnaNeural',
+  'Alex', 'Tom', 'Samantha', 'Rishi',
 ];
 
-// Voice selection — resolves async since voices load after page
-let _voiceReady = false;
-let _bestVoice  = null;
+let _bestVoice = null;
 
-function loadVoices() {
-  return new Promise((resolve) => {
-    const attempt = () => {
-      const voices = window.speechSynthesis.getVoices();
-      if (voices.length === 0) return false;
-      for (const name of BROWSER_VOICES) {
-        const v = voices.find(v => v.name === name || v.name.startsWith(name));
-        if (v) { _bestVoice = v; break; }
-      }
-      // Final fallback: any English voice
-      if (!_bestVoice) _bestVoice = voices.find(v => v.lang?.startsWith('en')) || voices[0] || null;
-      _voiceReady = true;
-      resolve(_bestVoice);
-      return true;
-    };
-    if (!attempt()) {
-      window.speechSynthesis.addEventListener('voiceschanged', () => attempt(), { once: true });
-      // Some browsers never fire voiceschanged — poll as backup
-      const t = setInterval(() => { if (attempt()) clearInterval(t); }, 100);
-      setTimeout(() => clearInterval(t), 3000); // give up after 3s
-    }
-  });
+// Call synchronously — no await, no Promise. Returns immediately with best available voice.
+function pickVoice() {
+  if (_bestVoice) return _bestVoice;
+  const voices = window.speechSynthesis?.getVoices() || [];
+  for (const name of BROWSER_VOICES) {
+    const v = voices.find(v => v.name === name || v.name.startsWith(name));
+    if (v) { _bestVoice = v; return v; }
+  }
+  const fallback = voices.find(v => v.lang?.startsWith('en')) || voices[0] || null;
+  _bestVoice = fallback;
+  return fallback;
 }
 
-// API speak — tries Azure/Google server first, then browser
-async function speak(text, onEnd) {
+// speak() is SYNCHRONOUS — critical for Chrome's user gesture policy.
+// Chrome blocks speechSynthesis.speak() if called after an await/async operation.
+// We never fetch the TTS API before speaking; browser speech fires immediately.
+// API TTS (Azure/Google) is checked in the background and used for future lines.
+let _apiChecked = false;
+let _apiWorks   = false;
+let _pendingApi = null; // { resolve, text } for async upgrade
+
+function speak(text, onEnd) {
   if (!voiceEnabled) { if (onEnd) onEnd(); return; }
+
+  const synth = window.speechSynthesis;
+  if (!synth) { if (onEnd) onEnd(); return; }
+
+  synth.cancel();
+
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.rate   = 0.85;
+  utt.pitch  = 0.90;
+  utt.volume = 0.95;
+
+  const voice = pickVoice();
+  if (voice) utt.voice = voice;
+
+  utt.onstart = () => setTalking(true);
+  utt.onend   = () => { setTalking(false); if (onEnd) onEnd(); };
+  utt.onerror = () => { setTalking(false); if (onEnd) onEnd(); };
+
+  synth.speak(utt);
   setTalking(true);
 
+  // Background: check once if TTS API is available for future lines
+  if (!_apiChecked) {
+    _apiChecked = true;
+    checkTTSApi();
+  }
+}
+
+async function checkTTSApi() {
   try {
-    const res = await fetch('/api/tts', {
+    const r = await fetch('/api/tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: 'test' }),
+    });
+    if (r.ok && r.headers.get('content-type')?.includes('audio')) {
+      _apiWorks = true;
+      console.log('[TTS] API available, future speech will use server TTS');
+    }
+  } catch {}
+}
+
+// For API TTS (Azure/Google): called for nav button responses after first check
+async function speakViaApi(text, onEnd) {
+  if (!_apiWorks) { speak(text, onEnd); return; }
+  try {
+    const r = await fetch('/api/tts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text }),
     });
-    if (res.ok) {
-      const ct = res.headers.get('content-type') || '';
-      if (ct.includes('audio')) {
-        const blob = await res.blob();
-        const url  = URL.createObjectURL(blob);
-        const audio = new Audio(url);
-        audio.playbackRate = 0.93;
-        audio.onended = () => { URL.revokeObjectURL(url); setTalking(false); if (onEnd) onEnd(); };
-        audio.onerror = () => { URL.revokeObjectURL(url); setTalking(false); browserSpeak(text, onEnd); };
-        audio.play().catch(() => { setTalking(false); browserSpeak(text, onEnd); });
-        return;
-      }
-      // Server returned { useBrowser: true } — fall through
+    if (r.ok && r.headers.get('content-type')?.includes('audio')) {
+      const blob = await r.blob();
+      const url  = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audio.playbackRate = 0.93;
+      setTalking(true);
+      audio.onended = () => { URL.revokeObjectURL(url); setTalking(false); if (onEnd) onEnd(); };
+      audio.onerror = () => { URL.revokeObjectURL(url); setTalking(false); speak(text, onEnd); };
+      audio.play().catch(() => { setTalking(false); speak(text, onEnd); });
+      return;
     }
   } catch {}
-
-  browserSpeak(text, onEnd);
-}
-
-// Browser TTS with the best available neural voice
-async function browserSpeak(text, onEnd) {
-  if (!window.speechSynthesis) { setTalking(false); if (onEnd) onEnd(); return; }
-  window.speechSynthesis.cancel();
-
-  // Wait for voices to be loaded (async on many browsers)
-  if (!_voiceReady) await loadVoices();
-
-  const utt = new SpeechSynthesisUtterance(text);
-  utt.rate   = 0.85;  // slower = warmer, more deliberate
-  utt.pitch  = 0.90;  // slightly lower = richer tone
-  utt.volume = 0.95;
-
-  if (_bestVoice) utt.voice = _bestVoice;
-
-  utt.onstart = () => setTalking(true);
-  utt.onend   = () => { setTalking(false); if (onEnd) onEnd(); };
-  utt.onerror = (e) => {
-    // Chrome has a known bug where onend fires as onerror for long utterances
-    // after the first one. Treat as success.
-    setTalking(false);
-    if (onEnd) onEnd();
-  };
-  window.speechSynthesis.speak(utt);
+  speak(text, onEnd);
 }
 
 // ── Typewriter ──
@@ -1074,11 +1057,15 @@ function once(fn) {
 
 function showText(text, callback) {
   const done = once(callback);
-  typeText(text, 24, done);     // typewriter fires done when text finishes
+  typeText(text, 24, done);
   if (voiceEnabled && hasGesture) {
-    speak(text, done);          // speech also fires done when audio ends
+    // Use API if available and verified, otherwise browser TTS (synchronous)
+    if (_apiWorks) {
+      speakViaApi(text, done);
+    } else {
+      speak(text, done);
+    }
   }
-  // If speech isn't playing, typewriter alone drives the callback
 }
 
 // ── Scripted responses ──
@@ -1126,6 +1113,8 @@ function enableVoiceAndSpeak(text) {
     prompt.style.pointerEvents = 'none';
     setTimeout(() => { if (prompt.parentNode) prompt.style.display = 'none'; }, 500);
   }
+  // MUST call speak() synchronously here — no await before this point
+  // Chrome requires speechSynthesis.speak() in the gesture callstack
   speak(text, null);
 }
 
@@ -1278,8 +1267,15 @@ document.addEventListener('keydown', e => {
 });
 
 // ── Init ──
-// Start voice loading in background; greeting waits until voices are ready
-if (window.speechSynthesis) loadVoices();
+// Trigger voice list loading by calling getVoices() — some browsers need this call
+// to start async loading before the user interacts.
+if (window.speechSynthesis) {
+  window.speechSynthesis.getVoices(); // kick off loading
+  window.speechSynthesis.addEventListener('voiceschanged', () => {
+    _bestVoice = null; // reset so pickVoice() re-selects with full list
+    pickVoice();
+  });
+}
 setTimeout(startGreeting, 600);
 </script>
 </body>
