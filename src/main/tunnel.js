@@ -1,37 +1,36 @@
 /**
  * LLM Bear Tunnel — Cloudflare Quick Tunnel
  *
- * Gives every user a free public URL for their local AI.
- * Uses Cloudflare's free quick tunnel (no account required).
+ * Gives every user a free public HTTPS URL for their local AI.
+ * Uses Cloudflare's free quick tunnel — no account, no backend needed.
  *
  * On app start:
- * 1. Downloads `cloudflared` binary if not present
+ * 1. Downloads `cloudflared` binary if not present (~30MB, one time)
  * 2. Runs: cloudflared tunnel --url http://localhost:4000
- * 3. Parses the assigned URL (e.g. https://abc-xyz.trycloudflare.com)
- * 4. Notifies the renderer so user can see + copy their URL
+ * 3. Parses the assigned URL from stderr (e.g. https://abc-xyz.trycloudflare.com)
+ * 4. Notifies the renderer — user sees + copies their public URL
  *
- * Cost: $0. No relay server. No Fly.io. No Cloudflare account.
+ * URL changes on each restart (Cloudflare quick tunnel limitation).
+ * Cost: $0. No relay server. No Cloudflare account.
  */
 
 const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const https = require('https');
+const http = require('http');
 const os = require('os');
-const store = require('./store');
 
 const LOCAL_API = process.env.LLMBEAR_LOCAL_API || 'http://localhost:4000';
-const REGISTRY_URL = process.env.LLMBEAR_REGISTRY || 'https://api.llmbear.com';
-const RECONNECT_DELAY = 5000;
-const MAX_RECONNECT_DELAY = 60000;
-const HEARTBEAT_INTERVAL = 60000; // Send heartbeat every 60s
+const BIN_DIR = path.join(os.homedir(), '.llmbear', 'bin');
+
+const RECONNECT_BASE = 5000;
+const MAX_RECONNECT = 60000;
 
 let proc = null;
-let publicUrl = null;      // Stable URL (api.llmbear.com/t/abc123)
-let cloudflareUrl = null;  // Ephemeral URL (xxx.trycloudflare.com)
+let publicUrl = null;
 let isShuttingDown = false;
-let reconnectDelay = RECONNECT_DELAY;
-let heartbeatTimer = null;
+let reconnectDelay = RECONNECT_BASE;
 let onStatusChange = null;
 
 // ═══════════════════════════════════════════════════
@@ -41,55 +40,44 @@ let onStatusChange = null;
 function start(statusCallback) {
   onStatusChange = statusCallback || (() => {});
   isShuttingDown = false;
-  reconnectDelay = RECONNECT_DELAY;
+  reconnectDelay = RECONNECT_BASE;
   launch();
 }
 
 function stop() {
   isShuttingDown = true;
-  if (heartbeatTimer) clearInterval(heartbeatTimer);
-  if (proc) {
-    proc.kill();
-    proc = null;
-  }
+  if (proc) { proc.kill(); proc = null; }
   publicUrl = null;
-  cloudflareUrl = null;
   notifyStatus('disconnected');
 }
 
-function getPublicUrl() {
-  return publicUrl;
-}
-
-function isConnected() {
-  return publicUrl !== null && proc !== null;
-}
+function getPublicUrl() { return publicUrl; }
+function isConnected() { return !!publicUrl && !!proc; }
 
 // ═══════════════════════════════════════════════════
-// Cloudflared Binary Management
+// Binary — correct URLs verified against GitHub releases API
+// cloudflared releases use raw binaries (no archives) on all platforms
 // ═══════════════════════════════════════════════════
-
-function getBinaryDir() {
-  return path.join(os.homedir(), '.llmbear', 'bin');
-}
 
 function getBinaryPath() {
-  const dir = getBinaryDir();
   const ext = process.platform === 'win32' ? '.exe' : '';
-  return path.join(dir, `cloudflared${ext}`);
+  return path.join(BIN_DIR, `cloudflared${ext}`);
 }
 
 function getDownloadUrl() {
-  const platform = process.platform;
-  const arch = process.arch;
-
-  if (platform === 'darwin') {
-    return 'https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-darwin-amd64.tgz';
-  } else if (platform === 'win32') {
+  const p = process.platform;
+  const a = process.arch;
+  if (p === 'darwin') {
+    // Universal binary works on both Intel and Apple Silicon
+    return 'https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-darwin-universal';
+  }
+  if (p === 'win32') {
     return 'https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe';
-  } else if (platform === 'linux') {
-    const linuxArch = arch === 'arm64' ? 'arm64' : 'amd64';
-    return 'https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-' + linuxArch;
+  }
+  if (p === 'linux') {
+    return a === 'arm64'
+      ? 'https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64'
+      : 'https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64';
   }
   return null;
 }
@@ -97,7 +85,8 @@ function getDownloadUrl() {
 async function ensureBinary() {
   const binPath = getBinaryPath();
 
-  if (fs.existsSync(binPath)) {
+  // Already downloaded — check it's a real binary (> 1MB)
+  if (fs.existsSync(binPath) && fs.statSync(binPath).size > 1_000_000) {
     return binPath;
   }
 
@@ -107,32 +96,30 @@ async function ensureBinary() {
     return null;
   }
 
-  console.log('[Tunnel] Downloading cloudflared...');
+  console.log('[Tunnel] Downloading cloudflared from', url);
   notifyStatus('downloading');
 
-  const dir = getBinaryDir();
-  fs.mkdirSync(dir, { recursive: true });
+  fs.mkdirSync(BIN_DIR, { recursive: true });
 
   try {
-    if (url.endsWith('.tgz')) {
-      const tgzPath = path.join(dir, 'cloudflared.tgz');
-      await downloadFile(url, tgzPath);
-      const { execSync } = require('child_process');
-      execSync(`tar -xzf "${tgzPath}" -C "${dir}"`, { stdio: 'ignore' });
-      fs.unlinkSync(tgzPath);
-    } else {
-      await downloadFile(url, binPath);
+    // All cloudflared releases are raw binaries — download directly, no extraction
+    await downloadFile(url, binPath);
+
+    if (fs.statSync(binPath).size < 1_000_000) {
+      fs.unlinkSync(binPath);
+      throw new Error('Downloaded file too small — likely a redirect error');
     }
 
     if (process.platform !== 'win32') {
       fs.chmodSync(binPath, 0o755);
     }
 
-    console.log('[Tunnel] cloudflared installed at', binPath);
+    const sizeMB = (fs.statSync(binPath).size / 1e6).toFixed(0);
+    console.log(`[Tunnel] cloudflared ready (${sizeMB}MB) at ${binPath}`);
     return binPath;
   } catch (err) {
     console.error('[Tunnel] Download failed:', err.message);
-    notifyStatus('error', { message: 'Failed to download cloudflared: ' + err.message });
+    notifyStatus('error', { message: 'Could not download cloudflared: ' + err.message });
     return null;
   }
 }
@@ -140,18 +127,19 @@ async function ensureBinary() {
 function downloadFile(url, dest) {
   return new Promise((resolve, reject) => {
     const follow = (url, redirects = 0) => {
-      if (redirects > 5) return reject(new Error('Too many redirects'));
-      https.get(url, (res) => {
+      if (redirects > 10) return reject(new Error('Too many redirects'));
+      const mod = url.startsWith('https') ? https : http;
+      mod.get(url, { headers: { 'User-Agent': 'LLMBear/1.0' } }, (res) => {
         if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
           return follow(res.headers.location, redirects + 1);
         }
         if (res.statusCode !== 200) {
-          return reject(new Error(`HTTP ${res.statusCode}`));
+          return reject(new Error(`HTTP ${res.statusCode} from ${url}`));
         }
         const file = fs.createWriteStream(dest);
         res.pipe(file);
         file.on('finish', () => file.close(resolve));
-        file.on('error', reject);
+        file.on('error', (err) => { fs.unlink(dest, () => {}); reject(err); });
       }).on('error', reject);
     };
     follow(url);
@@ -159,88 +147,7 @@ function downloadFile(url, dest) {
 }
 
 // ═══════════════════════════════════════════════════
-// Stable URL — register + heartbeat with cloud server
-// ═══════════════════════════════════════════════════
-
-async function ensureRegistered() {
-  let tunnelId = store.get('tunnelId');
-  let tunnelSecret = store.get('tunnelSecret');
-
-  if (tunnelId && tunnelSecret) return { tunnelId, tunnelSecret };
-
-  // First-time registration
-  console.log('[Tunnel] Registering for stable URL...');
-  try {
-    const data = await postJson(`${REGISTRY_URL}/tunnel/register`, {});
-    tunnelId = data.tunnelId;
-    tunnelSecret = data.tunnelSecret;
-    store.set('tunnelId', tunnelId);
-    store.set('tunnelSecret', tunnelSecret);
-    store.set('stableUrl', data.url);
-    console.log(`[Tunnel] Stable URL: ${data.url}`);
-    return { tunnelId, tunnelSecret };
-  } catch (err) {
-    console.error('[Tunnel] Registration failed:', err.message);
-    return null;
-  }
-}
-
-async function sendHeartbeat(cfUrl) {
-  const tunnelId = store.get('tunnelId');
-  const tunnelSecret = store.get('tunnelSecret');
-  if (!tunnelId || !tunnelSecret) return;
-
-  try {
-    const data = await postJson(`${REGISTRY_URL}/tunnel/heartbeat`, {
-      tunnelId, tunnelSecret, cloudflareUrl: cfUrl,
-    });
-    if (data.url) {
-      publicUrl = data.url;
-      store.set('stableUrl', data.url);
-    }
-  } catch (err) {
-    console.error('[Tunnel] Heartbeat failed:', err.message);
-    // Fall back to raw Cloudflare URL
-    publicUrl = cfUrl;
-  }
-}
-
-function startHeartbeatLoop(cfUrl) {
-  if (heartbeatTimer) clearInterval(heartbeatTimer);
-  heartbeatTimer = setInterval(() => {
-    if (cloudflareUrl) sendHeartbeat(cloudflareUrl);
-  }, HEARTBEAT_INTERVAL);
-}
-
-function postJson(url, body) {
-  return new Promise((resolve, reject) => {
-    const parsed = new URL(url);
-    const payload = JSON.stringify(body);
-    const mod = parsed.protocol === 'https:' ? https : require('http');
-    const req = mod.request({
-      hostname: parsed.hostname,
-      port: parsed.port,
-      path: parsed.pathname,
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) },
-      timeout: 10000,
-    }, (res) => {
-      let data = '';
-      res.on('data', (c) => data += c);
-      res.on('end', () => {
-        try { resolve(JSON.parse(data)); }
-        catch (e) { reject(new Error('Invalid JSON response')); }
-      });
-    });
-    req.on('error', reject);
-    req.on('timeout', () => { req.destroy(); reject(new Error('Timeout')); });
-    req.write(payload);
-    req.end();
-  });
-}
-
-// ═══════════════════════════════════════════════════
-// Launch Cloudflare Tunnel
+// Launch
 // ═══════════════════════════════════════════════════
 
 async function launch() {
@@ -248,12 +155,8 @@ async function launch() {
 
   notifyStatus('connecting');
 
-  // Ensure we have a stable tunnel ID
-  await ensureRegistered();
-
   const binPath = await ensureBinary();
   if (!binPath) {
-    notifyStatus('error', { message: 'Could not install cloudflared' });
     scheduleReconnect();
     return;
   }
@@ -272,78 +175,50 @@ async function launch() {
     return;
   }
 
-  // Parse URL from stderr (cloudflared logs there)
-  proc.stderr.on('data', (data) => {
+  // cloudflared logs the assigned URL to stderr
+  function parseUrl(data) {
+    if (publicUrl) return; // already found
     const text = data.toString();
     const match = text.match(/https:\/\/[a-zA-Z0-9-]+\.trycloudflare\.com/);
-    if (match && !cloudflareUrl) {
-      cloudflareUrl = match[0];
-      reconnectDelay = RECONNECT_DELAY;
-      onCloudflareUrlReady(cloudflareUrl);
+    if (match) {
+      publicUrl = match[0];
+      reconnectDelay = RECONNECT_BASE;
+      console.log('[Tunnel] Public URL:', publicUrl);
+      notifyStatus('connected', { url: publicUrl });
     }
-  });
+  }
 
-  proc.stdout.on('data', (data) => {
-    const text = data.toString();
-    const match = text.match(/https:\/\/[a-zA-Z0-9-]+\.trycloudflare\.com/);
-    if (match && !cloudflareUrl) {
-      cloudflareUrl = match[0];
-      reconnectDelay = RECONNECT_DELAY;
-      onCloudflareUrlReady(cloudflareUrl);
-    }
-  });
+  proc.stderr.on('data', parseUrl);
+  proc.stdout.on('data', parseUrl);
 
   proc.on('close', (code) => {
-    console.log(`[Tunnel] cloudflared exited with code ${code}`);
+    console.log(`[Tunnel] cloudflared exited (code ${code})`);
     proc = null;
-    cloudflareUrl = null;
-    if (heartbeatTimer) clearInterval(heartbeatTimer);
-    notifyStatus('disconnected');
-    scheduleReconnect();
+    publicUrl = null;
+    if (!isShuttingDown) {
+      notifyStatus('disconnected');
+      scheduleReconnect();
+    }
   });
 
   proc.on('error', (err) => {
     console.error('[Tunnel] Process error:', err.message);
     proc = null;
-    cloudflareUrl = null;
+    publicUrl = null;
     notifyStatus('error', { message: err.message });
     scheduleReconnect();
   });
-}
-
-async function onCloudflareUrlReady(cfUrl) {
-  console.log(`[Tunnel] Cloudflare URL: ${cfUrl}`);
-
-  // Send heartbeat to get stable URL
-  await sendHeartbeat(cfUrl);
-  startHeartbeatLoop(cfUrl);
-
-  // publicUrl is now either the stable URL or falls back to cfUrl
-  const displayUrl = publicUrl || cfUrl;
-  console.log(`[Tunnel] Public URL: ${displayUrl}`);
-  notifyStatus('connected', { url: displayUrl });
 }
 
 function scheduleReconnect() {
   if (isShuttingDown) return;
   notifyStatus('reconnecting');
   setTimeout(() => launch(), reconnectDelay);
-  reconnectDelay = Math.min(reconnectDelay * 1.5, MAX_RECONNECT_DELAY);
+  reconnectDelay = Math.min(reconnectDelay * 1.5, MAX_RECONNECT);
 }
-
-// ═══════════════════════════════════════════════════
-// Status notifications
-// ═══════════════════════════════════════════════════
 
 function notifyStatus(status, data = {}) {
-  if (onStatusChange) {
-    onStatusChange({ status, ...data });
-  }
+  if (onStatusChange) onStatusChange({ status, ...data });
 }
 
-module.exports = {
-  start,
-  stop,
-  getPublicUrl,
-  isConnected,
-};
+module.exports = { start, stop, getPublicUrl, isConnected };
