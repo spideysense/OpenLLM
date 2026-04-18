@@ -21,7 +21,11 @@ export default function APIKeys() {
   // Fetch tunnel status
   useEffect(() => {
     if (!bridge?.tunnel) return;
-    bridge.tunnel.getStatus().then(setTunnelStatus).catch(() => {});
+    bridge.tunnel.getStatus().then((s) => setTunnelStatus({
+      connected: s.connected,
+      url: s.url,
+      status: s.connected ? 'connected' : 'connecting',
+    })).catch(() => {});
     const unsub = bridge.tunnel.onStatus((data) => {
       setTunnelStatus(data);
     });
@@ -86,12 +90,17 @@ export default function APIKeys() {
             >
               {copied === 'publicUrl' ? '✓ Copied' : 'Copy'}
             </button>
-            <span style={{ fontSize: 11, color: 'var(--honey)', fontWeight: 600 }}>✓ Connected</span>
           </div>
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 13, color: 'var(--text-light)', minWidth: 110 }}>🌍 From anywhere:</span>
-            <span style={{ fontSize: 13, color: 'var(--text-light)' }}>Not connected (upgrade to Cloud Bear)</span>
+            <span style={{ fontSize: 13, color: 'var(--text-light)', fontStyle: 'italic' }}>
+              {tunnelStatus.status === 'downloading' && '⬇️ Downloading Cloudflare tunnel...'}
+              {tunnelStatus.status === 'connecting' && '🔌 Connecting...'}
+              {tunnelStatus.status === 'reconnecting' && '🔄 Reconnecting...'}
+              {tunnelStatus.status === 'error' && '⚠️ Tunnel error — will retry'}
+              {(!tunnelStatus.status || tunnelStatus.status === 'disconnected') && '🔌 Connecting...'}
+            </span>
           </div>
         )}
       </div>

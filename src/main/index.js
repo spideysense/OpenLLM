@@ -87,7 +87,11 @@ app.whenReady().then(async () => {
   // Start tunnel — gives every user a free public URL via Cloudflare
   tunnel.start((status) => {
     if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('tunnel:status', status);
+      mainWindow.webContents.send('tunnel:status', {
+        connected: status.status === 'connected',
+        url: status.url || null,
+        status: status.status,
+      });
     }
   });
 
@@ -307,7 +311,11 @@ ipcMain.handle('tunnel:restart', async () => {
   tunnel.stop();
   tunnel.start((status) => {
     if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('tunnel:status', status);
+      mainWindow.webContents.send('tunnel:status', {
+        connected: status.status === 'connected',
+        url: status.url || null,
+        status: status.status,
+      });
     }
   });
   return true;
