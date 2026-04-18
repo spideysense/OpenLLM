@@ -1,5 +1,5 @@
 /**
- * LLM Bear Tunnel — Cloudflare Quick Tunnel
+ * Monet Tunnel — Cloudflare Quick Tunnel
  *
  * Gives every user a free public HTTPS URL for their local AI.
  * Uses Cloudflare's free quick tunnel — no account, no backend needed.
@@ -22,7 +22,7 @@ const http = require('http');
 const os = require('os');
 
 const LOCAL_API = process.env.LLMBEAR_LOCAL_API || 'http://localhost:4000';
-const BIN_DIR = path.join(os.homedir(), '.llmbear', 'bin');
+const BIN_DIR = path.join(os.homedir(), '.monet', 'bin');
 
 const RECONNECT_BASE = 5000;
 const MAX_RECONNECT = 60000;

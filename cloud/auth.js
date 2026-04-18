@@ -10,7 +10,7 @@ function authRequired(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({
-      error: { message: 'Missing API key. Include Authorization: Bearer sk-bear-...',  type: 'auth_error' }
+      error: { message: 'Missing API key. Include Authorization: Bearer sk-monet-...',  type: 'auth_error' }
     });
   }
 

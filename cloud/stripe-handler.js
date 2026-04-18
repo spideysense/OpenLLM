@@ -199,7 +199,7 @@ async function getAccount(req, res) {
       plan_name: plan.name,
       limits: { rpm: plan.rpm, daily_tokens: plan.dailyTokens },
       api_keys: keys,
-      api_base_url: process.env.API_BASE_URL || 'https://api.llmbear.com/v1',
+      api_base_url: process.env.API_BASE_URL || 'https://api.monet.com/v1',
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

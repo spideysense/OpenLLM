@@ -66,16 +66,16 @@ function createTray() {
   // Placeholder — will use a proper bear icon in production
   tray = new Tray(nativeImage.createEmpty());
   const contextMenu = Menu.buildFromTemplate([
-    { label: '🐻 LLM Bear', enabled: false },
+    { label: '🐻 Monet', enabled: false },
     { type: 'separator' },
-    { label: 'Open LLM Bear', click: () => mainWindow?.show() || createWindow() },
+    { label: 'Open Monet', click: () => mainWindow?.show() || createWindow() },
     { type: 'separator' },
     { label: 'Model: Loading...', id: 'model-status', enabled: false },
     { label: 'API: Loading...', id: 'api-status', enabled: false },
     { type: 'separator' },
     { label: 'Quit', click: () => app.quit() },
   ]);
-  tray.setToolTip('LLM Bear');
+  tray.setToolTip('Monet');
   tray.setContextMenu(contextMenu);
 }
 
@@ -86,6 +86,15 @@ function createTray() {
 app.whenReady().then(async () => {
   createWindow();
   createTray();
+
+  // Ensure gateway always requires auth — auto-generate a key on first launch
+  // so the app is never in open mode when the Cloudflare tunnel is active.
+  const existingKeys = apikeys.listKeys();
+  if (existingKeys.length === 0) {
+    const defaultKey = apikeys.createKey('Default');
+    console.log('[Security] Auto-generated default API key:', defaultKey.secret.slice(0, 20) + '...');
+    store.set('defaultKeyGenerated', true);
+  }
 
   // Start Ollama — push status to renderer once ready, then poll every 5s
   ollama.ensureRunning((progress) => {
@@ -211,7 +220,7 @@ ipcMain.handle('chat:send', async (event, { model, messages }) => {
   const SYSTEM_PROMPT = {
     role: 'system',
     content:
-      'You are a helpful AI assistant running locally inside LLM Bear, ' +
+      'You are a helpful AI assistant running locally inside Monet, ' +
       'a desktop application on the user\'s own computer. You are NOT running ' +
       'in any cloud service. All processing happens 100% on this machine. ' +
       'The user\'s data never leaves their device. ' +
@@ -295,16 +304,35 @@ ipcMain.handle('registry:checkUpgrades', async () => {
 // IPC Handlers — Store / Settings
 // ═══════════════════════════════════════════════════
 
+// ── Store IPC ── allowlisted keys only (renderer must not touch security-sensitive state)
+const STORE_ALLOWLIST = new Set([
+  'onboarded', 'activeModel', 'totalExchanges', 'theme', 'windowBounds',
+]);
+
 ipcMain.handle('store:get', async (event, key) => {
   return store.get(key);
 });
 
 ipcMain.handle('store:set', async (event, key, value) => {
+  if (!STORE_ALLOWLIST.has(key)) {
+    console.warn('[Security] Blocked store:set for non-allowlisted key:', key);
+    return false;
+  }
   return store.set(key, value);
 });
 
 ipcMain.handle('app:openExternal', async (event, url) => {
-  shell.openExternal(url);
+  // Only allow http/https to prevent protocol handler abuse (file://, smb://, etc.)
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+      shell.openExternal(url);
+    } else {
+      console.warn('[Security] Blocked openExternal with disallowed protocol:', parsed.protocol);
+    }
+  } catch {
+    console.warn('[Security] Blocked openExternal with invalid URL');
+  }
 });
 
 ipcMain.handle('app:getVersion', async () => {

@@ -39,7 +39,7 @@ export default function Sidebar() {
           <circle cx="9" cy="10" r="5" fill="#B08040"/>
           <circle cx="31" cy="10" r="5" fill="#B08040"/>
         </svg>
-        <span>LLM Bear</span>
+        <span>Monet</span>
       </div>
 
       {nav.map((item) => (

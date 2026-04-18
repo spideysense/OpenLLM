@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const { v4: uuid } = require('uuid');
 
 const DB_PATH = process.env.DB_PATH || (
-  process.env.VERCEL ? '/tmp/llmbear.db' : path.join(__dirname, 'data', 'llmbear.db')
+  process.env.VERCEL ? '/tmp/monet.db' : path.join(__dirname, 'data', 'monet.db')
 );
 
 let db;
@@ -110,7 +110,7 @@ function updateStripeCustomer(userId, stripeCustomerId) {
 
 function createApiKey(userId, label = 'Default') {
   const id = uuid();
-  const raw = 'sk-bear-' + crypto.randomBytes(24).toString('base64url');
+  const raw = 'sk-monet-' + crypto.randomBytes(24).toString('base64url');
   const hash = crypto.createHash('sha256').update(raw).digest('hex');
   const prefix = raw.slice(0, 12) + '...';
 

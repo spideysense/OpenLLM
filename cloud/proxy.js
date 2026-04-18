@@ -89,7 +89,7 @@ function listModels(req, res) {
     id: m,
     object: 'model',
     created: Math.floor(Date.now() / 1000),
-    owned_by: 'llmbear-cloud',
+    owned_by: 'monet-cloud',
   }));
 
   // Also list aliases

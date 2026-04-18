@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+<!-- Monet logo — paintbrush M with impressionist paint dabs -->
+<!-- Outer circle -->
+<circle cx="256" cy="256" r="240" fill="#FDF6EC" stroke="#E8D9C0" stroke-width="2"/>
+<circle cx="256" cy="256" r="232" fill="none" stroke="#F0E0C8" stroke-width="1"/>
+
+<!-- Water lily pond texture -->
+<ellipse cx="155" cy="338" rx="34" ry="14" fill="#3B6FA0" opacity=".18" transform="rotate(-15 155 338)"/>
+<ellipse cx="200" cy="355" rx="26" ry="10" fill="#4A7FB5" opacity=".22" transform="rotate(8 200 355)"/>
+<ellipse cx="300" cy="345" rx="36" ry="13" fill="#2D5A8E" opacity=".16" transform="rotate(-8 300 345)"/>
+<ellipse cx="345" cy="328" rx="28" ry="12" fill="#3F6FA0" opacity=".20" transform="rotate(12 345 328)"/>
+<ellipse cx="235" cy="370" rx="24" ry="10" fill="#5080B0" opacity=".18"/>
+
+<!-- Lily pads -->
+<ellipse cx="170" cy="318" rx="24" ry="17" fill="#4A8C5C" opacity=".30" transform="rotate(-20 170 318)"/>
+<ellipse cx="314" cy="312" rx="22" ry="16" fill="#3D7A4E" opacity=".28" transform="rotate(15 314 312)"/>
+<ellipse cx="258" cy="332" rx="20" ry="13" fill="#5A9E6A" opacity=".22" transform="rotate(-10 258 332)"/>
+
+<!-- Lilies -->
+<ellipse cx="178" cy="305" rx="11" ry="11" fill="#F8E8D8" opacity=".70"/>
+<ellipse cx="178" cy="305" rx="6" ry="6" fill="#F5C4B0" opacity=".80"/>
+<ellipse cx="322" cy="300" rx="11" ry="11" fill="#F8E8D8" opacity=".70"/>
+<ellipse cx="322" cy="300" rx="6" ry="6" fill="#EDAAA0" opacity=".80"/>
+
+<!-- M letterform -->
+<!-- Left vertical -->
+<rect x="126" y="148" width="34" height="148" rx="10" fill="#5B3A8E" opacity=".88"/>
+<rect x="129" y="151" width="28" height="142" rx="8" fill="#7B52B0" opacity=".50"/>
+<!-- Left diagonal -->
+<path d="M145 156 L218 250 L218 272 L123 170 Z" fill="#7B3FA0" opacity=".82"/>
+<path d="M148 160 L217 252 L216 268 L127 173 Z" fill="#9B60C0" opacity=".40"/>
+<!-- Right diagonal -->
+<path d="M258 250 L330 158 L352 163 L272 272 Z" fill="#3A72B8" opacity=".82"/>
+<path d="M259 252 L330 162 L348 167 L270 268 Z" fill="#5A92D8" opacity=".40"/>
+<!-- Right vertical -->
+<rect x="318" y="148" width="34" height="148" rx="10" fill="#2A5EA0" opacity=".88"/>
+<rect x="321" y="151" width="28" height="142" rx="8" fill="#4A7EC0" opacity=".50"/>
+<!-- Center peak dab -->
+<ellipse cx="238" cy="260" rx="19" ry="26" fill="#9B3A6A" opacity=".82"/>
+<ellipse cx="238" cy="260" rx="14" ry="20" fill="#C05888" opacity=".50"/>
+
+<!-- Paint highlights on M -->
+<circle cx="136" cy="160" r="9" fill="#A070D0" opacity=".70"/>
+<circle cx="140" cy="165" r="5" fill="#C090F0" opacity=".50"/>
+<circle cx="336" cy="160" r="9" fill="#5090D0" opacity=".70"/>
+<circle cx="333" cy="165" r="5" fill="#70B0F0" opacity=".50"/>
+<circle cx="137" cy="292" r="8" fill="#8050B8" opacity=".65"/>
+<circle cx="335" cy="292" r="8" fill="#3068A8" opacity=".65"/>
+<circle cx="238" cy="228" r="10" fill="#E060A0" opacity=".72"/>
+<circle cx="238" cy="232" r="5" fill="#F088C0" opacity=".55"/>
+<circle cx="186" cy="202" r="7" fill="#9848B8" opacity=".68"/>
+<circle cx="290" cy="202" r="7" fill="#4878C0" opacity=".68"/>
+
+<!-- Paintbrush -->
+<g transform="rotate(-32 360 330)">
+  <rect x="344" y="290" width="10" height="88" rx="4" fill="#8B6030" opacity=".90"/>
+  <rect x="345" y="290" width="6" height="88" rx="3" fill="#B08048" opacity=".45"/>
+  <rect x="342" y="368" width="14" height="12" rx="2" fill="#9AA0A8" opacity=".85"/>
+  <rect x="342" y="370" width="14" height="3" fill="#C0C8D0" opacity=".55"/>
+  <path d="M342 380 Q348 413 346 422 Q348 426 349 422 Q354 413 356 380 Z" fill="#4A3520" opacity=".88"/>
+  <path d="M345 382 Q349 410 348 420" stroke="#705030" stroke-width="1" fill="none" opacity=".45"/>
+  <ellipse cx="349" cy="422" rx="6" ry="4" fill="#D04070" opacity=".85"/>
+  <ellipse cx="349" cy="422" rx="4" ry="2.5" fill="#F06090" opacity=".65"/>
+</g>
+
+<!-- Paint splatters -->
+<circle cx="106" cy="196" r="8" fill="#E05030" opacity=".75"/>
+<circle cx="100" cy="207" r="4" fill="#F07050" opacity=".60"/>
+<circle cx="114" cy="189" r="3" fill="#F09070" opacity=".55"/>
+<circle cx="396" cy="182" r="9" fill="#30A050" opacity=".72"/>
+<circle cx="406" cy="191" r="4" fill="#50C070" opacity=".58"/>
+<circle cx="390" cy="190" r="3" fill="#70D090" opacity=".50"/>
+<circle cx="114" cy="358" r="7" fill="#D080D0" opacity=".70"/>
+<circle cx="106" cy="368" r="3" fill="#F0A0F0" opacity=".55"/>
+<circle cx="400" cy="344" r="8" fill="#D0A020" opacity=".72"/>
+<circle cx="408" cy="336" r="4" fill="#F0C040" opacity=".58"/>
+<circle cx="158" cy="142" r="5" fill="#3070C0" opacity=".65"/>
+<circle cx="350" cy="136" r="5" fill="#8030A0" opacity=".65"/>
+<circle cx="256" cy="100" r="7" fill="#C04060" opacity=".68"/>
+<circle cx="252" cy="93" r="3" fill="#E06080" opacity=".55"/>
+<circle cx="198" cy="118" r="4" fill="#40A080" opacity=".60"/>
+<circle cx="312" cy="116" r="4" fill="#C06030" opacity=".60"/>
+</svg>

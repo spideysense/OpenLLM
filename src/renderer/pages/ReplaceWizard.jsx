@@ -42,14 +42,14 @@ export default function ReplaceWizard() {
 
   const port = gatewayStatus?.port || 4000;
   const baseUrl = `http://localhost:${port}/v1`;
-  const key = apiKey?.secret || 'sk-llmbear-xxxxx';
+  const key = apiKey?.secret || 'sk-monet-xxxxx';
   const service = SERVICES.find((s) => s.id === selectedService);
 
   return (
     <div className="page">
       <div className="page-title">🔌 Replace Your AI Service</div>
       <div className="page-sub">
-        Drop LLM Bear into your existing code. Change two lines and everything works.
+        Drop Monet into your existing code. Change two lines and everything works.
       </div>
 
       {/* ── Step 0: Pick service ── */}
@@ -205,7 +205,7 @@ export default function ReplaceWizard() {
             code={`from openai import OpenAI
 
 client = OpenAI(
-    base_url="${baseUrl}",  # ← LLM Bear
+    base_url="${baseUrl}",  # ← Monet
     api_key="${key}"        # ← Your key
 )
 
@@ -223,7 +223,7 @@ print(response.choices[0].message.content)`}
             code={`import OpenAI from 'openai';
 
 const client = new OpenAI({
-  baseURL: '${baseUrl}',  // ← LLM Bear
+  baseURL: '${baseUrl}',  // ← Monet
   apiKey: '${key}'        // ← Your key
 });
 

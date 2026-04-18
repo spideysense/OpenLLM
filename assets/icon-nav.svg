@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">
+<circle cx="20" cy="20" r="19" fill="#FDF6EC" stroke="#E8D9C0" stroke-width="1"/>
+<!-- M letterform compact -->
+<rect x="5" y="9" width="5" height="18" rx="2" fill="#5B3A8E" opacity=".90"/>
+<path d="M8 10 L17 20 L17 22 L5 12 Z" fill="#7B3FA0" opacity=".85"/>
+<path d="M21 20 L30 10 L32 11 L22 22 Z" fill="#3A72B8" opacity=".85"/>
+<rect x="30" y="9" width="5" height="18" rx="2" fill="#2A5EA0" opacity=".90"/>
+<ellipse cx="19" cy="20" rx="3" ry="4" fill="#9B3A6A" opacity=".85"/>
+<!-- Small paint dabs -->
+<circle cx="7" cy="10" r="2" fill="#A070D0" opacity=".75"/>
+<circle cx="33" cy="10" r="2" fill="#5090D0" opacity=".75"/>
+<circle cx="20" cy="7" r="2" fill="#E060A0" opacity=".70"/>
+<!-- Lily dots -->
+<circle cx="12" cy="31" r="2.5" fill="#F8E8D8" opacity=".80"/>
+<circle cx="12" cy="31" r="1.5" fill="#F5C4B0" opacity=".90"/>
+<circle cx="28" cy="30" r="2.5" fill="#F8E8D8" opacity=".80"/>
+<circle cx="28" cy="30" r="1.5" fill="#EDAAA0" opacity=".90"/>
+</svg>

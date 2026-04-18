@@ -37,7 +37,7 @@ app.use(express.json());
 
 // ── Health check ──
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', service: 'llmbear-cloud', version: '0.1.0' });
+  res.json({ status: 'ok', service: 'monet-cloud', version: '0.1.0' });
 });
 
 // ═══════════════════════════════════════════════════
@@ -116,7 +116,7 @@ tunnelRegistry.initSchema();
 app.post('/tunnel/register', (req, res) => {
   try {
     const { tunnelId, tunnelSecret } = tunnelRegistry.register();
-    const stableUrl = `${process.env.API_BASE_URL || 'https://api.llmbear.com'}/t/${tunnelId}`;
+    const stableUrl = `${process.env.API_BASE_URL || 'https://api.monet.com'}/t/${tunnelId}`;
     res.json({ tunnelId, tunnelSecret, url: stableUrl });
   } catch (err) {
     res.status(500).json({ error: 'Registration failed' });
@@ -151,7 +151,7 @@ app.all('/t/:tunnelId/*', (req, res) => {
 
   if (!tunnel) {
     return res.status(502).json({
-      error: { message: 'Tunnel not found or offline. Make sure LLM Bear is running.', type: 'tunnel_error' }
+      error: { message: 'Tunnel not found or offline. Make sure Monet is running.', type: 'tunnel_error' }
     });
   }
 
@@ -159,7 +159,7 @@ app.all('/t/:tunnelId/*', (req, res) => {
   const staleMinutes = (Date.now() - lastBeat.getTime()) / 60000;
   if (staleMinutes > 5) {
     return res.status(502).json({
-      error: { message: 'LLM Bear appears offline (no heartbeat in ' + Math.round(staleMinutes) + ' min).', type: 'tunnel_offline' }
+      error: { message: 'Monet appears offline (no heartbeat in ' + Math.round(staleMinutes) + ' min).', type: 'tunnel_offline' }
     });
   }
 
@@ -182,7 +182,7 @@ app.all('/t/:tunnelId/*', (req, res) => {
   }, (proxyRes) => {
     const resHeaders = { ...proxyRes.headers };
     resHeaders['access-control-allow-origin'] = '*';
-    resHeaders['x-powered-by'] = 'LLM Bear';
+    resHeaders['x-powered-by'] = 'Monet';
     delete resHeaders['transfer-encoding'];
     res.writeHead(proxyRes.statusCode, resHeaders);
     proxyRes.pipe(res);
@@ -190,7 +190,7 @@ app.all('/t/:tunnelId/*', (req, res) => {
 
   proxyReq.on('error', (err) => {
     res.status(502).json({
-      error: { message: 'Could not reach local AI. Make sure LLM Bear is running.', type: 'proxy_error', detail: err.message }
+      error: { message: 'Could not reach local AI. Make sure Monet is running.', type: 'proxy_error', detail: err.message }
     });
   });
 
@@ -230,7 +230,7 @@ db.init();
 // Vercel: export the handler. Standalone: listen on PORT.
 if (!process.env.VERCEL) {
   app.listen(PORT, () => {
-    console.log(`🐻 LLM Bear Cloud running on port ${PORT}`);
+    console.log(`🐻 Monet Cloud running on port ${PORT}`);
     console.log(`   GPU backend: ${process.env.GPU_BACKEND_URL || 'http://127.0.0.1:11434/v1'}`);
     console.log(`   Landing:     ${process.env.LANDING_URL || 'https://open-llm-ten.vercel.app'}`);
     console.log(`\n   Endpoints:`);

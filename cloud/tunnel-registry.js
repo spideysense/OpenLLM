@@ -2,7 +2,7 @@
  * Tunnel Registry
  *
  * Maps stable tunnel IDs to current Cloudflare Quick Tunnel URLs.
- * When a user's LLM Bear app starts, it heartbeats with its new URL.
+ * When a user's Monet app starts, it heartbeats with its new URL.
  * Requests to /t/:tunnelId/* get proxied to that URL.
  *
  * Storage: SQLite (same DB as cloud backend)
@@ -69,7 +69,7 @@ function heartbeat(tunnelId, tunnelSecret, cloudflareUrl) {
     UPDATE tunnels SET cloudflare_url = ?, last_heartbeat = datetime('now') WHERE tunnel_id = ?
   `).run(cloudflareUrl, tunnelId);
 
-  return { ok: true, url: `${process.env.API_BASE_URL || 'https://api.llmbear.com'}/t/${tunnelId}` };
+  return { ok: true, url: `${process.env.API_BASE_URL || 'https://api.monet.com'}/t/${tunnelId}` };
 }
 
 // ═══════════════════════════════════════════════════

@@ -1,5 +1,5 @@
 /**
- * FreeLLM Auto-Updater
+ * Monet Auto-Updater
  *
  * Downloads updates silently in the background.
  * When ready, shows a 30-second countdown banner then auto-restarts.

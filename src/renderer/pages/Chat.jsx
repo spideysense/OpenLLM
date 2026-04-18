@@ -240,9 +240,9 @@ export default function Chat() {
         {messages.length === 0 && !streamBuffer && (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', opacity: 0.6 }}>
             <div style={{ fontSize: 64, marginBottom: 12 }}>🐻</div>
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, color: 'var(--earth)', marginBottom: 6 }}>Ask me anything!</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, color: 'var(--earth)', marginBottom: 6 }}>Ask Monet anything!</div>
             <div style={{ fontSize: 14, color: 'var(--text-light)', maxWidth: 300, textAlign: 'center', lineHeight: 1.5 }}>
-              Everything stays on your machine. No data leaves ever. 🐾
+              Everything stays on your machine. Your data, always private. 🎨
             </div>
           </div>
         )}
@@ -362,7 +362,7 @@ export default function Chat() {
   );
 }
 
-// ─── Markdown rendering ───
+// ─── Safe Markdown rendering — no dangerouslySetInnerHTML ───
 function MessageContent({ content }) {
   if (!content) return null;
   const parts = content.split(/(```[\s\S]*?```)/g);
@@ -375,15 +375,23 @@ function MessageContent({ content }) {
           const code = lang ? lines.slice(1).join('\n') : lines.join('\n');
           return <pre key={i}><code>{code}</code></pre>;
         }
-        return (
-          <span key={i} dangerouslySetInnerHTML={{
-            __html: part
-              .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-              .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-              .replace(/`(.*?)`/g, '<code>$1</code>')
-              .replace(/\n/g, '<br/>')
-          }} />
-        );
+        // Parse inline formatting into React elements (no dangerouslySetInnerHTML)
+        return <InlineText key={i} text={part} />;
+      })}
+    </>
+  );
+}
+
+function InlineText({ text }) {
+  // Split on **bold** and `code` markers, render as React elements
+  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`|\n)/g);
+  return (
+    <>
+      {parts.map((p, i) => {
+        if (p.startsWith('**') && p.endsWith('**')) return <strong key={i}>{p.slice(2, -2)}</strong>;
+        if (p.startsWith('`') && p.endsWith('`')) return <code key={i}>{p.slice(1, -1)}</code>;
+        if (p === '\n') return <br key={i} />;
+        return p;
       })}
     </>
   );

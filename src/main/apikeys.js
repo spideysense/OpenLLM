@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 const store = require('./store');
 
-const KEY_PREFIX = 'sk-llmbear-';
+const KEY_PREFIX = 'sk-monet-';
 
 // ═══════════════════════════════════════════════════
 // Key Management

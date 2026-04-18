@@ -15,7 +15,7 @@ const AppContext = createContext(null);
 export const useApp = () => useContext(AppContext);
 
 // Safe bridge access (works in both Electron and browser)
-const bridge = typeof window !== 'undefined' && window.llmbear ? window.llmbear : null;
+const bridge = typeof window !== 'undefined' && window.monet ? window.monet : null;
 
 export default function App() {
   const [page, setPage] = useState('chat');

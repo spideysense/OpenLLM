@@ -7,7 +7,7 @@ const http = require('http');
 const os = require('os');
 
 const OLLAMA_HOST = 'http://127.0.0.1:11434';
-const LLMBEAR_DIR = path.join(os.homedir(), '.llmbear');
+const LLMBEAR_DIR = path.join(os.homedir(), '.monet');
 const BIN_DIR = path.join(LLMBEAR_DIR, 'bin');
 let chatController = null;
 let ollamaProcess = null;
@@ -106,7 +106,7 @@ async function downloadOllama(notify) {
     // Find the ollama binary in what we extracted
     // Could be at: bin/ollama, ollama, or nested
     const searchPaths = [
-      destPath, // ~/.llmbear/bin/ollama (ideal)
+      destPath, // ~/.monet/bin/ollama (ideal)
       path.join(BIN_DIR, 'bin', 'ollama'), // Some tgz nest in bin/
       path.join(BIN_DIR, `ollama-darwin`), // Raw name from archive
       path.join(BIN_DIR, `ollama-linux-amd64`),
@@ -234,7 +234,7 @@ async function ensureRunning(onProgress) {
       return {
         success: false,
         error: 'download_failed',
-        message: 'Could not download AI engine. Check your internet connection and restart LLM Bear.',
+        message: 'Could not download AI engine. Check your internet connection and restart Monet.',
       };
     }
   }
@@ -243,7 +243,7 @@ async function ensureRunning(onProgress) {
     return {
       success: false,
       error: 'not_found',
-      message: 'Could not set up AI engine. Please restart LLM Bear.',
+      message: 'Could not set up AI engine. Please restart Monet.',
     };
   }
 
@@ -272,7 +272,7 @@ async function ensureRunning(onProgress) {
         resolve({
           success: false,
           error: 'start_failed',
-          message: 'Could not start AI engine. Please restart LLM Bear.',
+          message: 'Could not start AI engine. Please restart Monet.',
         });
       });
 
@@ -289,7 +289,7 @@ async function ensureRunning(onProgress) {
           resolve({
             success: false,
             error: 'timeout',
-            message: 'AI engine took too long to start. Please restart LLM Bear.',
+            message: 'AI engine took too long to start. Please restart Monet.',
           });
         }
       }, 500);

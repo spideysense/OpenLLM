@@ -112,12 +112,12 @@ function start() {
 function tryListen(port) {
   server.listen(port, '127.0.0.1', () => {
     currentPort = port;
-    console.log(`[LLM Bear] API Gateway running on http://127.0.0.1:${port}`);
+    console.log(`[Monet] API Gateway running on http://127.0.0.1:${port}`);
   });
 
   server.on('error', (err) => {
     if (err.code === 'EADDRINUSE' && port < DEFAULT_PORT + 10) {
-      console.log(`[LLM Bear] Port ${port} busy, trying ${port + 1}`);
+      console.log(`[Monet] Port ${port} busy, trying ${port + 1}`);
       tryListen(port + 1);
     }
   });
@@ -158,7 +158,7 @@ async function handleListModels(res) {
           id: alias,
           object: 'model',
           created: Date.now() / 1000,
-          owned_by: 'llmbear-alias',
+          owned_by: 'monet-alias',
           _alias_target: target,
         });
       }

@@ -1,6 +1,6 @@
 {
   "name": "llm-bear",
-  "version": "0.1.18",
+  "version": "0.1.19",
   "description": "Run the best open source AI locally. No API keys. No subscriptions. No terminal.",
   "main": "src/main/index.js",
   "scripts": {
@@ -15,8 +15,8 @@
     "test:coverage": "vitest run --coverage"
   },
   "build": {
-    "appId": "com.llmbear.app",
-    "productName": "FreeLLM",
+    "appId": "com.monet.app",
+    "productName": "Monet",
     "directories": {
       "output": "dist",
       "buildResources": "assets"
@@ -31,7 +31,7 @@
     ],
     "mac": {
       "category": "public.app-category.developer-tools",
-      "artifactName": "FreeLLM-mac.${ext}",
+      "artifactName": "Monet-mac.${ext}",
       "icon": "assets/icon.png",
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
@@ -62,7 +62,7 @@
           ]
         }
       ],
-      "artifactName": "FreeLLM-win.${ext}"
+      "artifactName": "Monet-win.${ext}"
     },
     "afterSign": "scripts/notarize.js",
     "publish": [

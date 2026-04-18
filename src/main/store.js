@@ -4,7 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 
-const STORE_PATH = path.join(os.homedir(), '.llmbear', 'config.json');
+const STORE_PATH = path.join(os.homedir(), '.monet', 'config.json');
 
 let data = {};
 
@@ -23,7 +23,7 @@ function save() {
     fs.mkdirSync(path.dirname(STORE_PATH), { recursive: true });
     fs.writeFileSync(STORE_PATH, JSON.stringify(data, null, 2));
   } catch (e) {
-    console.error('[LLM Bear] Failed to save store:', e.message);
+    console.error('[Monet] Failed to save store:', e.message);
   }
 }
 
