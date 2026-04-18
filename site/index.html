@@ -3,607 +3,1032 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Monet — The Free LLM. Your AI, your data, your machine.</title>
-<meta name="description" content="Monet runs the world's best AI models 100% on your computer. Free forever. Your conversations never leave your machine. Drop-in replacement for ChatGPT, Claude, and Gemini.">
-<meta name="keywords" content="free AI, local AI, private AI, run AI locally, open source LLM, free ChatGPT alternative, offline AI, no subscription AI, private chatbot">
+<title>Monet — The Free LLM</title>
+<meta name="description" content="Monet is a free AI that runs entirely on your computer. Your conversations never leave your machine. Download for Mac or Windows.">
 <meta property="og:title" content="Monet — The Free LLM">
-<meta property="og:description" content="Your data stays on your machine. No subscriptions. No cloud. Just free, private AI.">
-<meta property="og:type" content="website">
-<meta property="og:url" content="https://open-llm-ten.vercel.app">
-<meta property="og:site_name" content="Monet">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Monet — The Free LLM">
-<meta name="twitter:description" content="Your data stays on your machine. No subscriptions. No cloud. Just free, private AI.">
-<link rel="canonical" href="https://open-llm-ten.vercel.app">
-<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
-<meta name="author" content="Monet">
-<meta name="theme-color" content="#E8F4F8">
-<script type="application/ld+json">
-{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Monet","applicationCategory":"DeveloperApplication","operatingSystem":"macOS, Windows","offers":[{"@type":"Offer","price":"0","priceCurrency":"USD","name":"Free","description":"Run AI locally on your own machine. All models, API gateway, forever free."},{"@type":"Offer","price":"0.99","priceCurrency":"USD","name":"Cloud","description":"Cloud-hosted AI, works when your computer is off."},{"@type":"Offer","price":"1.99","priceCurrency":"USD","name":"Pro","description":"Priority cloud, faster models, email support."}],"description":"Monet is a free, open source desktop app that runs the best AI models 100% locally on your computer. Your data never leaves your machine. Drop-in replacement for ChatGPT, Claude, and Gemini APIs. Works with Cursor, n8n, Zapier, LangChain.","url":"https://open-llm-ten.vercel.app","downloadUrl":"https://github.com/spideysense/OpenLLM/releases/latest","softwareVersion":"0.1.17","license":"https://opensource.org/licenses/MIT","screenshot":"https://open-llm-ten.vercel.app/og-image.png","featureList":["Run AI models locally","100% private — no data leaves your machine","Free forever","OpenAI-compatible API","Voice input","Image and file attachments","Public HTTPS URL via Cloudflare","Drop-in ChatGPT replacement","Works with Cursor, Zapier, n8n, LangChain"]}
-</script>
-<script type="application/ld+json">
-{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What is Monet?","acceptedAnswer":{"@type":"Answer","text":"Monet is a free, open source desktop app for Mac and Windows that runs the best AI language models — like Llama, Qwen, and DeepSeek — 100% locally on your computer. No subscriptions, no cloud, no data sharing. It works as a drop-in replacement for ChatGPT, Claude, and Gemini."}},{"@type":"Question","name":"Is Monet really free?","acceptedAnswer":{"@type":"Answer","text":"Yes. The local version is free forever. You download the app, it runs AI models on your own hardware at zero cost. No credit card required."}},{"@type":"Question","name":"Does my data stay private with Monet?","acceptedAnswer":{"@type":"Answer","text":"Yes, 100%. Everything runs on your local machine. Your conversations are never sent to any server — not to Monet, not to anyone. Zero telemetry, zero data collection."}},{"@type":"Question","name":"What AI models does Monet support?","acceptedAnswer":{"@type":"Answer","text":"Monet supports Llama 3.3 (Meta), Qwen 2.5 (Alibaba), DeepSeek R1, Gemma 2 (Google), Qwen Coder, and many more. The app automatically recommends the best model for your hardware."}},{"@type":"Question","name":"Can I use Monet as an API in my apps?","acceptedAnswer":{"@type":"Answer","text":"Yes. Monet runs an OpenAI-compatible API on localhost:4000 and gives you a public HTTPS URL via Cloudflare. Change two lines of code — the base URL and API key — and your existing OpenAI integrations work instantly. Compatible with LangChain, Cursor, Continue.dev, n8n, Zapier, and AutoGen."}},{"@type":"Question","name":"What hardware do I need to run Monet?","acceptedAnswer":{"@type":"Answer","text":"Any Mac or Windows PC with at least 8GB of RAM. 16GB or more is recommended. Apple Silicon Macs (M1/M2/M3/M4) and PCs with NVIDIA GPUs get the best performance."}},{"@type":"Question","name":"Does Monet work offline?","acceptedAnswer":{"@type":"Answer","text":"Yes. Once a model is downloaded, Monet works completely offline. No internet connection required for AI inference."}},{"@type":"Question","name":"How is Monet different from ChatGPT?","acceptedAnswer":{"@type":"Answer","text":"Monet runs entirely on your computer — your data never leaves your machine. ChatGPT sends all your conversations to OpenAI's servers. Monet is also free forever, while ChatGPT Plus costs $20/month. The AI quality is comparable for most tasks."}},{"@type":"Question","name":"Can Monet replace my ChatGPT or Claude subscription?","acceptedAnswer":{"@type":"Answer","text":"For most users, yes. Monet runs models like Qwen 2.5 and Llama 3.3 that rival GPT-4 and Claude for everyday tasks — for free. You keep the $20/month subscription cost in your pocket."}}]}
-</script>
-<script type="application/ld+json">
-{"@context":"https://schema.org","@type":"HowTo","name":"How to run free private AI locally with Monet","description":"Get your own private AI assistant running on your computer in under 2 minutes — for free.","totalTime":"PT2M","supply":[],"tool":[],"step":[{"@type":"HowToStep","position":1,"name":"Download Monet","text":"Download the free Monet app for Mac (.dmg) or Windows (.exe). One file, one click install.","url":"https://open-llm-ten.vercel.app/#pricing"},{"@type":"HowToStep","position":2,"name":"Open the app and install a model","text":"Monet automatically detects your hardware and recommends the best AI model. Click Get Model — it downloads in the background.","url":"https://open-llm-ten.vercel.app/#how"},{"@type":"HowToStep","position":3,"name":"Start chatting — from anywhere","text":"Your AI is running 100% on your machine. Chat in the app, or use the public HTTPS URL to access it from your phone, Cursor, Zapier, or any OpenAI-compatible tool.","url":"https://open-llm-ten.vercel.app/#api"}]}
-</script>
+<meta property="og:description" content="Free AI. Runs locally. Your data stays yours.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Lato:wght@300;400&display=swap" rel="stylesheet">
 <style>
-:root{--sky:#D6EEF5;--sky-top:#E8F4F8;--cloud:#FFF;--bear:#B08040;--bear-dark:#8B6914;--bear-light:#D4A04A;--accent:#F5A623;--accent-gold:#EDBA3A;--accent-dark:#D4911E;--grass:#7BC67E;--grass-dark:#4AA651;--grass-light:#A8E6A3;--earth:#5D4E37;--text-dark:#2D3436;--text-mid:#4A4A4A;--text-light:#6B7B8D;--water:#3498DB;--danger:#E74C3C;--code-bg:#1E293B;--display:'Baloo 2',cursive;--body:'Nunito',sans-serif;--mono:'JetBrains Mono',monospace}
-*{margin:0;padding:0;box-sizing:border-box}html{scroll-behavior:smooth}body{font-family:var(--body);color:var(--text-dark);background:var(--sky-top);overflow-x:hidden}
-::-webkit-scrollbar{width:6px}::-webkit-scrollbar-thumb{background:rgba(93,78,55,.15);border-radius:3px}
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
-.navbar{position:fixed;top:0;left:0;right:0;z-index:100;padding:16px 40px;display:flex;align-items:center;justify-content:space-between;background:rgba(232,244,248,.92);backdrop-filter:blur(16px);border-bottom:2px solid rgba(93,78,55,.06);transition:box-shadow .3s}
-.navbar.scrolled{box-shadow:0 4px 24px rgba(0,0,0,.06)}
-.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
-.nav-logo svg{width:36px;height:36px}
-.nav-logo span{font-family:var(--display);font-size:22px;font-weight:800;color:var(--earth)}
-.nav-links{display:flex;align-items:center;gap:32px;list-style:none}
-.nav-links a{font-size:15px;font-weight:600;color:var(--text-mid);text-decoration:none;transition:color .2s}
-.nav-links a:hover{color:var(--bear-dark)}
-.nav-cta{background:var(--accent)!important;color:var(--earth)!important;padding:10px 24px;border-radius:50px;font-weight:700!important;box-shadow:0 4px 12px rgba(245,166,35,.3)}
-.nav-cta:hover{background:var(--accent-gold)!important;transform:translateY(-1px)}
+:root {
+  --lavender: #9B7EC8;
+  --lavender-light: #C8B0E8;
+  --rose: #C05888;
+  --rose-light: #E090B8;
+  --cerulean: #3A72B8;
+  --cerulean-light: #7AAAD8;
+  --sage: #5A8C6A;
+  --sage-light: #90C8A0;
+  --gold: #C8880A;
+  --gold-light: #E8B840;
+  --earth: #3D2E20;
+  --earth-mid: #6B5040;
+  --earth-light: #9B7858;
+  --parchment: #FDF9F3;
+  --cream: #F8F2E8;
+  --mist: rgba(253,249,243,0.7);
+  --serif: 'Playfair Display', Georgia, serif;
+  --sans: 'Lato', system-ui, sans-serif;
+}
 
-.hero{position:relative;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:120px 24px 80px;overflow:hidden}
-.hero::before{content:'';position:absolute;inset:0;background:linear-gradient(160deg,#E8F4F8 0%,#D6EEF5 30%,#C5D8F0 60%,#B8CCE8 100%);z-index:0}
-.code-float{position:absolute;font-family:var(--mono);font-weight:700;opacity:.06;z-index:1;color:var(--earth)}
-.cf-1{top:15%;left:8%;font-size:64px;transform:rotate(-12deg);animation:floatSlow 20s ease-in-out infinite}
-.cf-2{top:25%;right:12%;font-size:48px;animation:floatSlow 25s ease-in-out infinite reverse}
-.cf-3{bottom:30%;left:5%;font-size:56px;animation:floatSlow 22s ease-in-out infinite 3s}
-.cf-4{bottom:20%;right:8%;font-size:72px;animation:floatSlow 18s ease-in-out infinite 1s}
-.cf-5{top:40%;left:15%;font-size:36px;animation:floatSlow 30s ease-in-out infinite 5s}
-@keyframes floatSlow{0%,100%{transform:translateY(0)}50%{transform:translateY(-20px)}}
-.hero-inner{position:relative;z-index:10;display:flex;align-items:center;gap:60px;max-width:1100px;width:100%}
-.hero-text{flex:1}.hero-visual{flex:0 0 380px;text-align:center}
-.hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.8);padding:8px 20px;border-radius:50px;font-size:14px;font-weight:600;color:var(--grass-dark);margin-bottom:24px;border:2px solid rgba(123,198,126,.3);animation:fadeUp .6s ease both}
-.hero-badge .dot{width:8px;height:8px;background:var(--grass-dark);border-radius:50%;animation:pulse-dot 2s infinite}
-@keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.3)}}
-.hero h1{font-family:var(--display);font-size:clamp(38px,5vw,64px);font-weight:800;line-height:1.1;color:var(--earth);margin-bottom:20px;letter-spacing:-1px;animation:fadeUp .6s ease .1s both}
-.hero h1 em{font-style:normal;color:var(--accent-dark);position:relative}
-.hero h1 em::after{content:'';position:absolute;bottom:2px;left:0;right:0;height:8px;background:var(--accent);opacity:.4;border-radius:4px;z-index:-1}
-.hero-sub{font-size:clamp(16px,2vw,20px);color:var(--text-mid);line-height:1.6;max-width:520px;margin-bottom:36px;font-weight:500;animation:fadeUp .6s ease .2s both}
-.hero-actions{display:flex;align-items:center;gap:16px;flex-wrap:wrap;animation:fadeUp .6s ease .3s both}
-@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-.hero-bear{width:340px;height:340px;border-radius:32px;background:linear-gradient(145deg,#4A7DC9 0%,#3568B2 50%,#2D5A9E 100%);display:flex;align-items:center;justify-content:center;box-shadow:0 24px 64px rgba(45,90,158,.25),0 8px 24px rgba(0,0,0,.1);animation:fadeUp .6s ease .2s both;position:relative;overflow:hidden}
-.hero-bear::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 30% 20%,rgba(255,255,255,.15) 0%,transparent 60%)}
-.bear-svg{position:relative;z-index:2}
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: var(--parchment);
+  font-family: var(--sans);
+  color: var(--earth);
+  user-select: none;
+}
 
-.btn{display:inline-flex;align-items:center;gap:8px;padding:16px 36px;border-radius:50px;font-family:var(--display);font-size:18px;font-weight:700;text-decoration:none;border:none;cursor:pointer;transition:all .25s}
-.btn-primary{background:var(--accent);color:var(--earth);box-shadow:0 6px 24px rgba(245,166,35,.35)}
-.btn-primary:hover{background:var(--accent-gold);transform:translateY(-2px);box-shadow:0 10px 36px rgba(245,166,35,.45)}
-.btn-secondary{background:var(--cloud);color:var(--text-dark);box-shadow:0 4px 16px rgba(0,0,0,.06);border:2px solid rgba(93,78,55,.1)}
-.btn-secondary:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.1)}
-.btn-github{background:var(--earth);color:#fff;box-shadow:0 4px 16px rgba(93,78,55,.3)}
-.btn-github:hover{background:#4A3D2C;transform:translateY(-2px)}
-.btn-sm{padding:12px 24px;font-size:15px}
-.gh-icon{width:20px;height:20px;fill:currentColor}
+/* ─── Impressionist background ─── */
+.scene {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 30% 40%, rgba(200,176,232,0.45) 0%, transparent 60%),
+              radial-gradient(ellipse at 70% 60%, rgba(144,200,160,0.35) 0%, transparent 55%),
+              radial-gradient(ellipse at 50% 20%, rgba(122,170,216,0.30) 0%, transparent 50%),
+              radial-gradient(ellipse at 20% 80%, rgba(232,184,64,0.20) 0%, transparent 45%),
+              radial-gradient(ellipse at 80% 20%, rgba(224,144,184,0.25) 0%, transparent 50%),
+              #F5EFE4;
+}
 
-.proof-bar{background:var(--cloud);border-top:2px solid rgba(93,78,55,.05);border-bottom:2px solid rgba(93,78,55,.05);padding:32px 24px;text-align:center}
-.proof-bar p{font-size:14px;font-weight:600;color:var(--text-light);letter-spacing:.5px;text-transform:uppercase}
-.proof-logos{display:flex;align-items:center;justify-content:center;gap:48px;margin-top:16px;flex-wrap:wrap;opacity:.45}
-.proof-logos span{font-family:var(--display);font-size:20px;font-weight:700;color:var(--text-mid)}
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0;
+  animation: blob-drift linear infinite;
+}
+.b1{width:500px;height:500px;background:rgba(155,126,200,0.3);left:-100px;top:-50px;animation-duration:55s;animation-delay:0s}
+.b2{width:400px;height:400px;background:rgba(90,140,106,0.25);right:-80px;top:100px;animation-duration:65s;animation-delay:-20s}
+.b3{width:350px;height:350px;background:rgba(58,114,184,0.2);left:30%;bottom:-80px;animation-duration:48s;animation-delay:-10s}
+.b4{width:300px;height:300px;background:rgba(192,88,136,0.2);right:10%;bottom:50px;animation-duration:72s;animation-delay:-35s}
+.b5{width:280px;height:280px;background:rgba(200,136,10,0.15);left:60%;top:10%;animation-duration:60s;animation-delay:-15s}
+.b6{width:450px;height:450px;background:rgba(155,126,200,0.15);right:20%;top:-100px;animation-duration:80s;animation-delay:-40s}
 
-.section-label{display:inline-block;font-family:var(--mono);font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:2px;color:var(--accent-dark);background:rgba(245,166,35,.12);padding:6px 16px;border-radius:50px;margin-bottom:16px}
-.section-title{font-family:var(--display);font-size:clamp(30px,4vw,48px);font-weight:800;color:var(--earth);margin-bottom:16px}
-.section-sub{font-size:18px;color:var(--text-light);max-width:600px;margin:0 auto 60px;line-height:1.6}
+@keyframes blob-drift {
+  0%   { opacity: 0.6; transform: translate(0,0) scale(1); }
+  25%  { opacity: 0.8; transform: translate(30px, 20px) scale(1.05); }
+  50%  { opacity: 0.6; transform: translate(20px, -15px) scale(0.95); }
+  75%  { opacity: 0.75; transform: translate(-15px, 25px) scale(1.03); }
+  100% { opacity: 0.6; transform: translate(0,0) scale(1); }
+}
 
-.value-section{padding:100px 24px;background:var(--cloud);text-align:center}
-.value-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px;max-width:1100px;margin:0 auto}
-.value-card{background:var(--sky-top);border-radius:20px;padding:36px 28px;text-align:left;border:2px solid rgba(93,78,55,.06);transition:all .3s}
-.value-card:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,0,0,.06);border-color:rgba(245,166,35,.2)}
-.value-icon{width:56px;height:56px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:20px}
-.vi-yellow{background:rgba(245,166,35,.15)}.vi-green{background:rgba(123,198,126,.2)}.vi-blue{background:rgba(52,152,219,.12)}.vi-brown{background:rgba(176,128,64,.12)}.vi-red{background:rgba(231,76,60,.1)}.vi-purple{background:rgba(142,68,173,.1)}
-.value-card h3{font-family:var(--display);font-size:20px;font-weight:700;color:var(--earth);margin-bottom:10px}
-.value-card p{font-size:15px;color:var(--text-light);line-height:1.65}
+/* Paint dabs floating in air */
+.dab {
+  position: absolute;
+  border-radius: 50%;
+  animation: dab-float ease-in-out infinite alternate;
+  pointer-events: none;
+}
+@keyframes dab-float {
+  from { transform: translateY(0) rotate(0deg); opacity: 0.6; }
+  to   { transform: translateY(-18px) rotate(8deg); opacity: 0.9; }
+}
 
-.how-section{padding:100px 24px;background:linear-gradient(180deg,var(--sky-top) 0%,var(--sky) 100%);text-align:center}
-.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:32px;max-width:1000px;margin:0 auto;position:relative}
-.steps::before{content:'';position:absolute;top:70px;left:15%;right:15%;height:8px;background:var(--accent);border-radius:4px;z-index:0;opacity:.3}
-.step{position:relative;z-index:1;text-align:center}
-.step-number{width:64px;height:64px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-family:var(--display);font-size:26px;font-weight:800;color:var(--earth);box-shadow:0 6px 20px rgba(245,166,35,.3);border:4px solid var(--cloud)}
-.step h3{font-family:var(--display);font-size:19px;font-weight:700;color:var(--earth);margin-bottom:8px}
-.step p{font-size:14px;color:var(--text-light);line-height:1.6;max-width:240px;margin:0 auto}
+/* ─── Stage / Center ─── */
+.stage {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+}
 
-.replace-section{padding:80px 24px;background:var(--cloud);text-align:center}
-.replace-grid{display:flex;align-items:center;justify-content:center;gap:24px;flex-wrap:wrap;max-width:900px;margin:0 auto 40px}
-.replace-item{background:var(--sky-top);padding:20px 28px;border-radius:16px;border:2px solid rgba(93,78,55,.06)}
-.replace-item .old-price{font-family:var(--display);font-size:28px;font-weight:700;color:var(--danger);text-decoration:line-through;text-decoration-thickness:3px}
-.replace-item .service{font-size:14px;color:var(--text-light);font-weight:600;margin-top:4px}
-.replace-arrow{font-size:36px;color:var(--accent)}
-.replace-result{background:linear-gradient(135deg,rgba(123,198,126,.15),rgba(245,166,35,.1));border:2px solid var(--grass);padding:24px 36px;border-radius:16px}
-.replace-result .new-price{font-family:var(--display);font-size:36px;font-weight:800;color:var(--grass-dark)}
-.replace-result .label{font-size:14px;color:var(--grass-dark);font-weight:600}
+/* ─── Monet Figure ─── */
+.figure-wrap {
+  position: relative;
+  width: 220px;
+  height: 380px;
+  flex-shrink: 0;
+  transform: translateY(20px);
+  opacity: 0;
+  animation: figure-enter 1.2s cubic-bezier(.22,1,.36,1) 0.3s forwards;
+}
 
-.testimonials-section{padding:100px 24px;background:linear-gradient(180deg,var(--sky) 0%,var(--sky-top) 100%);text-align:center}
-.testimonials-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px;max-width:1100px;margin:0 auto}
-.testimonial-card{background:var(--cloud);border-radius:20px;padding:32px 28px;text-align:left;border:2px solid rgba(93,78,55,.06);position:relative}
-.testimonial-card::before{content:'"';font-family:var(--display);font-size:80px;color:var(--accent);opacity:.15;position:absolute;top:8px;left:20px;line-height:1}
-.testimonial-text{font-size:16px;color:var(--text-mid);line-height:1.7;margin-bottom:20px;position:relative;z-index:1;padding-top:12px}
-.testimonial-author{display:flex;align-items:center;gap:12px}
-.testimonial-avatar{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--bear));display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
-.testimonial-name{font-family:var(--display);font-weight:700;color:var(--earth);font-size:15px}
-.testimonial-role{font-size:13px;color:var(--text-light)}
-.featured-quote{background:linear-gradient(135deg,rgba(245,166,35,.08),rgba(123,198,126,.08));border-color:rgba(245,166,35,.25)}
+@keyframes figure-enter {
+  from { opacity: 0; transform: translateY(40px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 
-.pricing-section{padding:100px 24px;background:linear-gradient(180deg,var(--sky-top) 0%,var(--sky) 50%,#C0E0D0 100%);text-align:center}
-.pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px;max-width:980px;margin:0 auto;align-items:start}
-.pricing-card{background:var(--cloud);border-radius:24px;padding:40px 32px;text-align:center;border:2px solid rgba(93,78,55,.08);transition:all .3s;position:relative}
-.pricing-card:hover{transform:translateY(-6px);box-shadow:0 20px 60px rgba(0,0,0,.08)}
-.pricing-card.featured{border-color:var(--accent);box-shadow:0 12px 48px rgba(245,166,35,.2);transform:scale(1.04)}
-.pricing-card.featured:hover{transform:scale(1.04) translateY(-6px)}
-.pricing-popular{position:absolute;top:-14px;left:50%;transform:translateX(-50%);background:var(--accent);color:var(--earth);font-family:var(--display);font-size:13px;font-weight:700;padding:6px 20px;border-radius:50px;white-space:nowrap;box-shadow:0 4px 12px rgba(245,166,35,.3)}
-.pricing-bear{font-size:48px;margin-bottom:12px;display:block}
-.pricing-name{font-family:var(--display);font-size:24px;font-weight:700;color:var(--earth);margin-bottom:4px}
-.pricing-desc{font-size:14px;color:var(--text-light);margin-bottom:20px;line-height:1.5}
-.pricing-price{margin-bottom:24px}
-.pricing-amount{font-family:var(--display);font-size:52px;font-weight:800;color:var(--earth);line-height:1}
-.pricing-amount .currency{font-size:24px;vertical-align:top;margin-right:2px}
-.pricing-period{font-size:14px;color:var(--text-light);font-weight:500}
-.pricing-features{list-style:none;text-align:left;margin-bottom:32px}
-.pricing-features li{padding:10px 0;font-size:14px;color:var(--text-mid);display:flex;align-items:flex-start;gap:10px;border-bottom:1px solid rgba(93,78,55,.06);line-height:1.5}
-.pricing-features li:last-child{border-bottom:none}
-.pricing-features .check{color:var(--grass-dark);font-weight:800;font-size:16px;flex-shrink:0}
-.pricing-features .x-mark{color:var(--text-light);font-weight:800;font-size:16px;flex-shrink:0;opacity:.4}
-.pricing-card .btn{width:100%;justify-content:center}
+.monet-figure {
+  width: 100%; height: 100%;
+  overflow: visible;
+}
 
-.api-section{padding:100px 24px;background:var(--code-bg);color:#fff;text-align:center;position:relative;overflow:hidden}
-.api-section::before{content:'';position:absolute;top:-80px;left:-10%;right:-10%;height:160px;background:var(--code-bg);border-radius:50%}
-.api-section .section-label{background:rgba(245,166,35,.2);color:var(--accent)}
-.api-section .section-title{color:#fff}
-.api-section .section-sub{color:rgba(255,255,255,.6)}
-.code-demo{max-width:680px;margin:0 auto;background:#0F172A;border-radius:16px;overflow:hidden;text-align:left;border:2px solid rgba(245,166,35,.15);box-shadow:0 20px 60px rgba(0,0,0,.4)}
-.code-demo-header{display:flex;align-items:center;gap:8px;padding:14px 20px;background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.06)}
-.code-dot{width:12px;height:12px;border-radius:50%}.code-dot.r{background:#ff5f57}.code-dot.y{background:#febc2e}.code-dot.g{background:#28c840}
-.code-demo pre{padding:24px;font-family:var(--mono);font-size:13px;line-height:1.8;color:#94A3B8;overflow-x:auto}
-.code-demo .kw{color:#e6a07c}.code-demo .str{color:var(--grass-light)}.code-demo .cmt{color:#475569}.code-demo .fn{color:var(--accent)}
-.code-demo .hl{background:rgba(245,166,35,.12);display:inline;padding:2px 6px;border-radius:4px;color:var(--accent);font-weight:500}
-.api-note{margin-top:32px;font-size:15px;color:rgba(255,255,255,.5)}.api-note strong{color:var(--accent)}
+/* Idle breathing */
+.figure-body {
+  transform-origin: 50% 90%;
+  animation: breathe 4s ease-in-out infinite;
+}
+@keyframes breathe {
+  0%,100% { transform: scaleY(1) translateY(0); }
+  50%     { transform: scaleY(1.012) translateY(-2px); }
+}
 
-.oss-section{padding:80px 24px;background:var(--cloud);text-align:center}
-.oss-card{max-width:700px;margin:0 auto;background:var(--sky-top);border-radius:24px;padding:48px 40px;border:2px dashed rgba(93,78,55,.15)}
-.oss-card h2{font-family:var(--display);font-size:32px;font-weight:800;color:var(--earth);margin-bottom:12px}
-.oss-card p{font-size:16px;color:var(--text-light);line-height:1.7;margin-bottom:28px;max-width:500px;margin-left:auto;margin-right:auto}
-.oss-actions{display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap}
+/* Head slight sway */
+.figure-head {
+  transform-origin: 50% 100%;
+  animation: head-sway 5s ease-in-out infinite;
+}
+@keyframes head-sway {
+  0%,100% { transform: rotate(0deg); }
+  30%     { transform: rotate(1.2deg); }
+  70%     { transform: rotate(-0.8deg); }
+}
 
-.footer{background:var(--code-bg);color:rgba(255,255,255,.5);padding:48px 24px 32px;text-align:center}
-.footer-logo{font-family:var(--display);font-size:24px;font-weight:800;color:rgba(255,255,255,.8);margin-bottom:8px}
-.footer p{font-size:14px;line-height:1.6;max-width:500px;margin:0 auto 20px}
-.footer-links{display:flex;justify-content:center;gap:24px;margin-bottom:32px;flex-wrap:wrap}
-.footer-links a{color:rgba(255,255,255,.4);text-decoration:none;font-size:13px;font-weight:600;transition:color .2s}
-.footer-links a:hover{color:var(--accent)}
-.footer-copy{font-size:12px;opacity:.4}
+/* Talking animation */
+.figure-head.talking {
+  animation: head-talk 0.35s ease-in-out infinite alternate;
+}
+@keyframes head-talk {
+  from { transform: rotate(-1deg) translateY(0); }
+  to   { transform: rotate(1deg) translateY(-1px); }
+}
 
-@media(max-width:768px){.navbar{padding:12px 20px}.nav-links{display:none}.hero{padding:100px 20px 60px;min-height:auto}.hero-inner{flex-direction:column-reverse;text-align:center;gap:32px}.hero-visual{flex:none}.hero-bear{width:260px;height:260px;margin:0 auto}.hero-sub{margin-left:auto;margin-right:auto}.hero-actions{justify-content:center}.btn{padding:14px 28px;font-size:16px}.pricing-card.featured{transform:none}.pricing-card.featured:hover{transform:translateY(-6px)}.steps::before{display:none}.replace-grid{flex-direction:column}.replace-arrow{transform:rotate(90deg)}.code-demo pre{font-size:11px}.oss-card{padding:32px 24px}}
-.reveal{opacity:0;transform:translateY(30px);transition:all .6s cubic-bezier(.22,1,.36,1)}.reveal.visible{opacity:1;transform:translateY(0)}
+/* Palette arm */
+.arm-palette {
+  transform-origin: 75px 140px;
+  animation: arm-idle 6s ease-in-out infinite;
+}
+@keyframes arm-idle {
+  0%,100% { transform: rotate(0deg); }
+  50%     { transform: rotate(2deg) translate(1px,-1px); }
+}
+.arm-palette.gesturing {
+  animation: arm-gesture 1.2s ease-in-out infinite alternate;
+}
+@keyframes arm-gesture {
+  from { transform: rotate(-5deg) translate(-3px, 0); }
+  to   { transform: rotate(5deg) translate(3px, -6px); }
+}
+
+/* Brush arm */
+.arm-brush {
+  transform-origin: 125px 140px;
+  animation: brush-idle 7s ease-in-out infinite;
+}
+@keyframes brush-idle {
+  0%,100%{ transform: rotate(0deg); }
+  40%    { transform: rotate(-2deg); }
+  80%    { transform: rotate(1.5deg); }
+}
+.arm-brush.painting {
+  animation: brush-paint 0.8s ease-in-out infinite alternate;
+}
+@keyframes brush-paint {
+  from { transform: rotate(-8deg) translate(-2px, 2px); }
+  to   { transform: rotate(8deg) translate(4px, -4px); }
+}
+
+/* Shadow under figure */
+.figure-shadow {
+  position: absolute;
+  bottom: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 100px; height: 16px;
+  background: radial-gradient(ellipse, rgba(61,46,32,0.2), transparent 70%);
+  border-radius: 50%;
+  animation: shadow-breathe 4s ease-in-out infinite;
+}
+@keyframes shadow-breathe {
+  0%,100% { transform: translateX(-50%) scaleX(1); opacity: 0.7; }
+  50%     { transform: translateX(-50%) scaleX(0.95); opacity: 0.5; }
+}
+
+/* ─── Subtitle strip ─── */
+.subtitle {
+  max-width: 560px;
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 28px;
+  margin-top: 4px;
+  opacity: 0;
+  transition: opacity 0.5s;
+}
+.subtitle.visible { opacity: 1; }
+.subtitle-inner {
+  font-family: var(--serif);
+  font-size: clamp(16px, 2.2vw, 20px);
+  font-style: italic;
+  color: var(--earth);
+  text-align: center;
+  line-height: 1.55;
+  background: var(--mist);
+  padding: 12px 24px;
+  border-radius: 12px;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(155,120,88,0.12);
+  box-shadow: 0 4px 24px rgba(61,46,32,0.07);
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+}
+.cursor {
+  display: inline-block;
+  width: 2px; height: 1.1em;
+  background: var(--lavender);
+  margin-left: 3px;
+  vertical-align: text-bottom;
+  animation: blink 1s step-end infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+/* ─── Nav buttons ─── */
+.nav-buttons {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 20px;
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 0.6s, transform 0.6s;
+  pointer-events: none;
+}
+.nav-buttons.visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: all;
+}
+.nav-btn {
+  font-family: var(--serif);
+  font-size: 14px;
+  color: var(--earth);
+  background: rgba(253,249,243,0.85);
+  border: 1.5px solid rgba(155,120,88,0.22);
+  border-radius: 50px;
+  padding: 10px 22px;
+  cursor: pointer;
+  transition: all 0.2s;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 12px rgba(61,46,32,0.07);
+  white-space: nowrap;
+}
+.nav-btn:hover {
+  background: rgba(155,126,200,0.15);
+  border-color: var(--lavender);
+  color: #5B3A8E;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(155,126,200,0.2);
+}
+.nav-btn.active {
+  background: rgba(155,126,200,0.2);
+  border-color: var(--lavender);
+  color: #5B3A8E;
+}
+.nav-btn.download-btn {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: white;
+  font-style: italic;
+}
+.nav-btn.download-btn:hover {
+  background: var(--gold-light);
+  border-color: var(--gold-light);
+  color: var(--earth);
+  transform: translateY(-2px);
+}
+
+/* ─── Chat panel ─── */
+.chat-panel {
+  margin-top: 16px;
+  width: clamp(280px, 50vw, 480px);
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.4s, transform 0.4s;
+  pointer-events: none;
+}
+.chat-panel.visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: all;
+}
+.chat-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  background: rgba(253,249,243,0.9);
+  border: 1.5px solid rgba(155,120,88,0.2);
+  border-radius: 50px;
+  padding: 8px 8px 8px 20px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 24px rgba(61,46,32,0.08);
+}
+.chat-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-family: var(--serif);
+  font-size: 15px;
+  font-style: italic;
+  color: var(--earth);
+  outline: none;
+}
+.chat-input::placeholder { color: var(--earth-light); }
+.chat-send {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: var(--lavender);
+  color: white;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.chat-send:hover { background: #7B5EA8; transform: scale(1.05); }
+.chat-send:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+.mic-btn {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(155,120,88,0.2);
+  background: transparent;
+  color: var(--earth-light);
+  cursor: pointer;
+  font-size: 15px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.mic-btn:hover { background: rgba(155,126,200,0.1); color: var(--lavender); }
+.mic-btn.listening {
+  background: rgba(192,88,136,0.15);
+  border-color: var(--rose);
+  color: var(--rose);
+  animation: pulse-mic 1s ease-in-out infinite;
+}
+@keyframes pulse-mic {
+  0%,100%{ box-shadow: 0 0 0 0 rgba(192,88,136,0.3); }
+  50%    { box-shadow: 0 0 0 8px rgba(192,88,136,0); }
+}
+
+/* ─── Branding corner ─── */
+.brand {
+  position: fixed;
+  top: 24px; left: 28px;
+  display: flex; align-items: center; gap: 10px;
+  opacity: 0;
+  animation: fade-in 1s ease 1.2s forwards;
+}
+@keyframes fade-in { to { opacity: 1; } }
+.brand-logo { width: 32px; height: 32px; }
+.brand-name {
+  font-family: var(--serif);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--earth);
+  letter-spacing: 0.02em;
+}
+.brand-tagline {
+  font-size: 11px;
+  font-family: var(--sans);
+  color: var(--earth-light);
+  font-weight: 300;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  display: block;
+  margin-top: -2px;
+}
+
+/* ─── Volume toggle ─── */
+.volume-btn {
+  position: fixed;
+  top: 24px; right: 24px;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(155,120,88,0.2);
+  background: rgba(253,249,243,0.8);
+  color: var(--earth-light);
+  cursor: pointer;
+  font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(8px);
+  transition: all 0.2s;
+  opacity: 0;
+  animation: fade-in 1s ease 1.5s forwards;
+}
+.volume-btn:hover { background: rgba(253,249,243,0.95); color: var(--earth); }
+
+/* ─── Download modal ─── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(61,46,32,0.3);
+  backdrop-filter: blur(12px);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.3s;
+  z-index: 100;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal {
+  background: var(--parchment);
+  border-radius: 24px;
+  padding: 48px 40px 40px;
+  max-width: 440px; width: 90%;
+  box-shadow: 0 32px 80px rgba(61,46,32,0.2);
+  border: 1px solid rgba(155,120,88,0.12);
+  transform: translateY(20px) scale(0.96);
+  transition: transform 0.3s;
+  text-align: center;
+}
+.modal-overlay.open .modal { transform: translateY(0) scale(1); }
+.modal-logo { font-size: 48px; margin-bottom: 8px; }
+.modal h2 {
+  font-family: var(--serif);
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--earth);
+  margin-bottom: 8px;
+}
+.modal p {
+  font-size: 15px;
+  color: var(--earth-light);
+  margin-bottom: 28px;
+  line-height: 1.6;
+  font-weight: 300;
+}
+.modal-btns { display: flex; gap: 12px; justify-content: center; }
+.dl-btn {
+  font-family: var(--serif);
+  font-size: 15px;
+  font-style: italic;
+  padding: 12px 28px;
+  border-radius: 50px;
+  border: 1.5px solid rgba(155,120,88,0.2);
+  background: var(--cream);
+  color: var(--earth);
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex; align-items: center; gap: 8px;
+  text-decoration: none;
+}
+.dl-btn:hover { background: rgba(155,126,200,0.12); border-color: var(--lavender); }
+.dl-btn.primary { background: var(--lavender); color: white; border-color: var(--lavender); }
+.dl-btn.primary:hover { background: #7B5EA8; }
+.modal-close {
+  position: absolute; top: 16px; right: 20px;
+  background: none; border: none; cursor: pointer;
+  font-size: 20px; color: var(--earth-light);
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 600px) {
+  .figure-wrap { width: 160px; height: 280px; }
+  .nav-buttons { gap: 8px; }
+  .nav-btn { padding: 8px 16px; font-size: 13px; }
+  .subtitle-inner { font-size: 15px; padding: 10px 18px; }
+}
+@media (max-height: 700px) {
+  .figure-wrap { height: 260px; }
+  .subtitle { min-height: 60px; margin-top: 0; }
+}
 </style>
 </head>
 <body>
 
-<nav class="navbar" id="navbar" aria-label="Main navigation">
-  <a href="#" class="nav-logo">
-    <svg viewBox="0 0 40 40" width="36" height="36"><circle cx="20" cy="20" r="19" fill="#FDF6EC" stroke="#E8D9C0" stroke-width="1"/><rect x="5" y="9" width="5" height="18" rx="2" fill="#5B3A8E" opacity=".90"/><path d="M8 10 L17 20 L17 22 L5 12 Z" fill="#7B3FA0" opacity=".85"/><path d="M21 20 L30 10 L32 11 L22 22 Z" fill="#3A72B8" opacity=".85"/><rect x="30" y="9" width="5" height="18" rx="2" fill="#2A5EA0" opacity=".90"/><ellipse cx="19" cy="20" rx="3" ry="4" fill="#9B3A6A" opacity=".85"/><circle cx="7" cy="10" r="2" fill="#A070D0" opacity=".75"/><circle cx="33" cy="10" r="2" fill="#5090D0" opacity=".75"/><circle cx="20" cy="7" r="2" fill="#E060A0" opacity=".70"/><circle cx="12" cy="31" r="2.5" fill="#F8E8D8" opacity=".80"/><circle cx="12" cy="31" r="1.5" fill="#F5C4B0" opacity=".90"/><circle cx="28" cy="30" r="2.5" fill="#F8E8D8" opacity=".80"/><circle cx="28" cy="30" r="1.5" fill="#EDAAA0" opacity=".90"/></svg>
-    <span>Monet</span>
-  </a>
-  <ul class="nav-links">
-    <li><a href="#why">Why Monet</a></li>
-    <li><a href="#how">How It Works</a></li>
-    <li><a href="#faq">FAQ</a></li>
-    <li><a href="#api">For Developers</a></li>
-    <li><a href="https://github.com/spideysense/OpenLLM" target="_blank">GitHub</a></li>
-    <li><a href="#" onclick="downloadApp(event)" class="nav-cta">Download Free</a></li>
-  </ul>
-</nav>
-
-<section class="hero" role="banner">
-  <div class="code-float cf-1">{/}</div>
-  <div class="code-float cf-2">&lt;/&gt;</div>
-  <div class="code-float cf-3">{ }</div>
-  <div class="code-float cf-4">&lt;/&gt;</div>
-  <div class="code-float cf-5">( )</div>
-
-  <div class="hero-inner">
-    <div class="hero-text">
-      <div class="hero-badge"><span class="dot"></span> The free LLM · Private · Runs on your machine</div>
-      <h1>Meet <em>Monet</em>.<br>Your AI, free.<br>Your data, private.</h1>
-      <p class="hero-sub">Monet runs the world's best AI models 100% on your computer. Free forever. Your conversations never leave your machine — not to us, not to anyone. Just leave it running and use it everywhere.</p>
-      <div class="hero-actions">
-        <a href="#" id="hero-download" class="btn btn-primary" onclick="downloadApp(event)">Download Free 🐾</a>
-        <a href="#why" class="btn btn-secondary">Why Monet?</a>
-      </div>
-    </div>
-    <div class="hero-visual">
-      <div class="hero-bear" style="background:linear-gradient(145deg,#FDF6EC 0%,#F5E8D0 60%,#EDD8B8 100%)">
-        <svg width="280" height="280" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="256" cy="256" r="240" fill="#FDF6EC" stroke="#E8D9C0" stroke-width="2"/>
-          <circle cx="256" cy="256" r="232" fill="none" stroke="#F0E0C8" stroke-width="1"/>
-          <ellipse cx="155" cy="338" rx="34" ry="14" fill="#3B6FA0" opacity=".18" transform="rotate(-15 155 338)"/>
-          <ellipse cx="200" cy="355" rx="26" ry="10" fill="#4A7FB5" opacity=".22" transform="rotate(8 200 355)"/>
-          <ellipse cx="300" cy="345" rx="36" ry="13" fill="#2D5A8E" opacity=".16" transform="rotate(-8 300 345)"/>
-          <ellipse cx="170" cy="318" rx="24" ry="17" fill="#4A8C5C" opacity=".30" transform="rotate(-20 170 318)"/>
-          <ellipse cx="314" cy="312" rx="22" ry="16" fill="#3D7A4E" opacity=".28" transform="rotate(15 314 312)"/>
-          <ellipse cx="178" cy="305" rx="11" ry="11" fill="#F8E8D8" opacity=".70"/>
-          <ellipse cx="178" cy="305" rx="6" ry="6" fill="#F5C4B0" opacity=".80"/>
-          <ellipse cx="322" cy="300" rx="11" ry="11" fill="#F8E8D8" opacity=".70"/>
-          <ellipse cx="322" cy="300" rx="6" ry="6" fill="#EDAAA0" opacity=".80"/>
-          <rect x="126" y="148" width="34" height="148" rx="10" fill="#5B3A8E" opacity=".88"/>
-          <rect x="129" y="151" width="28" height="142" rx="8" fill="#7B52B0" opacity=".50"/>
-          <path d="M145 156 L218 250 L218 272 L123 170 Z" fill="#7B3FA0" opacity=".82"/>
-          <path d="M258 250 L330 158 L352 163 L272 272 Z" fill="#3A72B8" opacity=".82"/>
-          <rect x="318" y="148" width="34" height="148" rx="10" fill="#2A5EA0" opacity=".88"/>
-          <rect x="321" y="151" width="28" height="142" rx="8" fill="#4A7EC0" opacity=".50"/>
-          <ellipse cx="238" cy="260" rx="19" ry="26" fill="#9B3A6A" opacity=".82"/>
-          <ellipse cx="238" cy="260" rx="14" ry="20" fill="#C05888" opacity=".50"/>
-          <circle cx="136" cy="160" r="9" fill="#A070D0" opacity=".70"/>
-          <circle cx="336" cy="160" r="9" fill="#5090D0" opacity=".70"/>
-          <circle cx="238" cy="228" r="10" fill="#E060A0" opacity=".72"/>
-          <g transform="rotate(-32 360 330)">
-            <rect x="344" y="290" width="10" height="88" rx="4" fill="#8B6030" opacity=".90"/>
-            <rect x="342" y="368" width="14" height="12" rx="2" fill="#9AA0A8" opacity=".85"/>
-            <path d="M342 380 Q348 413 346 422 Q348 426 349 422 Q354 413 356 380 Z" fill="#4A3520" opacity=".88"/>
-            <ellipse cx="349" cy="422" rx="6" ry="4" fill="#D04070" opacity=".85"/>
-          </g>
-          <circle cx="106" cy="196" r="8" fill="#E05030" opacity=".75"/>
-          <circle cx="396" cy="182" r="9" fill="#30A050" opacity=".72"/>
-          <circle cx="114" cy="358" r="7" fill="#D080D0" opacity=".70"/>
-          <circle cx="400" cy="344" r="8" fill="#D0A020" opacity=".72"/>
-          <circle cx="256" cy="100" r="7" fill="#C04060" opacity=".68"/>
-          <text x="256" y="460" text-anchor="middle" font-family="Georgia,serif" font-size="52" font-weight="700" fill="#5D4E37" letter-spacing="-1">Monet</text>
-          <text x="256" y="488" text-anchor="middle" font-family="Georgia,serif" font-size="18" fill="#8B7355" letter-spacing="2">THE FREE LLM</text>
-        </svg>
-      </div>
-    </div>
-  </div>
-</section>
-
-<div class="proof-bar">
-  <p>Powered by the same models used at</p>
-  <div class="proof-logos"><span>Meta AI</span><span>Alibaba</span><span>Google</span><span>Microsoft</span><span>DeepSeek</span><span>Mistral</span></div>
+<!-- Impressionist background -->
+<div class="scene">
+  <div class="blob b1"></div>
+  <div class="blob b2"></div>
+  <div class="blob b3"></div>
+  <div class="blob b4"></div>
+  <div class="blob b5"></div>
+  <div class="blob b6"></div>
+  <!-- Floating paint dabs -->
+  <div class="dab" style="width:12px;height:9px;background:#9B7EC8;opacity:.5;top:15%;left:12%;animation-duration:4.5s;animation-delay:0s"></div>
+  <div class="dab" style="width:8px;height:8px;background:#C05888;opacity:.45;top:22%;right:18%;animation-duration:5.5s;animation-delay:1s"></div>
+  <div class="dab" style="width:10px;height:7px;background:#3A72B8;opacity:.4;bottom:28%;left:22%;animation-duration:6s;animation-delay:2s"></div>
+  <div class="dab" style="width:7px;height:7px;background:#5A8C6A;opacity:.5;bottom:35%;right:15%;animation-duration:5s;animation-delay:0.5s"></div>
+  <div class="dab" style="width:14px;height:10px;background:#C8880A;opacity:.4;top:40%;left:8%;animation-duration:7s;animation-delay:1.5s"></div>
+  <div class="dab" style="width:9px;height:9px;background:#9B7EC8;opacity:.4;top:60%;right:10%;animation-duration:4s;animation-delay:3s"></div>
+  <div class="dab" style="width:11px;height:8px;background:#C05888;opacity:.35;top:8%;right:35%;animation-duration:6.5s;animation-delay:2.5s"></div>
 </div>
 
-<section class="value-section" id="why">
-  <span class="section-label">Why Monet?</span>
-  <h2 class="section-title">AI that's actually free.<br>And actually private.</h2>
-  <p class="section-sub">Every AI subscription reads your conversations and uses them to improve their model. With Monet, nothing ever leaves your computer.</p>
+<!-- Branding -->
+<div class="brand">
+  <svg class="brand-logo" viewBox="0 0 40 40">
+    <circle cx="20" cy="20" r="19" fill="#FDF6EC" stroke="#E8D9C0" stroke-width="1"/>
+    <rect x="5" y="9" width="5" height="18" rx="2" fill="#5B3A8E" opacity=".90"/>
+    <path d="M8 10 L17 20 L17 22 L5 12 Z" fill="#7B3FA0" opacity=".85"/>
+    <path d="M21 20 L30 10 L32 11 L22 22 Z" fill="#3A72B8" opacity=".85"/>
+    <rect x="30" y="9" width="5" height="18" rx="2" fill="#2A5EA0" opacity=".90"/>
+    <ellipse cx="19" cy="20" rx="3" ry="4" fill="#9B3A6A" opacity=".85"/>
+    <circle cx="7" cy="10" r="2" fill="#A070D0" opacity=".75"/>
+    <circle cx="33" cy="10" r="2" fill="#5090D0" opacity=".75"/>
+    <circle cx="20" cy="7" r="2" fill="#E060A0" opacity=".70"/>
+  </svg>
+  <div>
+    <span class="brand-name">Monet</span>
+    <span class="brand-tagline">The Free LLM</span>
+  </div>
+</div>
 
-  <div style="display:flex;align-items:center;justify-content:center;gap:32px;flex-wrap:wrap;margin-bottom:60px;padding:24px;background:rgba(123,198,126,.08);border:2px solid rgba(123,198,126,.2);border-radius:16px;max-width:860px;margin-left:auto;margin-right:auto">
-    <div style="display:flex;align-items:center;gap:8px"><span style="font-size:22px">🔒</span><span style="font-size:14px;font-weight:700;color:var(--grass-dark)">Zero data collection</span></div>
-    <div style="display:flex;align-items:center;gap:8px"><span style="font-size:22px">🚫</span><span style="font-size:14px;font-weight:700;color:var(--grass-dark)">No cloud. No telemetry.</span></div>
-    <div style="display:flex;align-items:center;gap:8px"><span style="font-size:22px">🧠</span><span style="font-size:14px;font-weight:700;color:var(--grass-dark)">Never trains on your data</span></div>
-    <div style="display:flex;align-items:center;gap:8px"><span style="font-size:22px">💸</span><span style="font-size:14px;font-weight:700;color:var(--grass-dark)">Free. Forever.</span></div>
+<!-- Volume toggle -->
+<button class="volume-btn" id="volume-btn" title="Toggle voice" onclick="toggleVoice()">🔊</button>
+
+<!-- Stage -->
+<div class="stage">
+  <!-- Character -->
+  <div class="figure-wrap">
+    <div class="figure-shadow"></div>
+    <svg class="monet-figure" viewBox="0 0 200 400" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <filter id="soft-skin" x="-10%" y="-10%" width="120%" height="120%">
+          <feGaussianBlur stdDeviation="0.8" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="soft-beard" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="1.2" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <radialGradient id="body-grad" cx="50%" cy="30%" r="60%">
+          <stop offset="0%" stop-color="#4A3828" stop-opacity="0.9"/>
+          <stop offset="100%" stop-color="#2A1E18" stop-opacity="1"/>
+        </radialGradient>
+        <radialGradient id="coat-grad" cx="40%" cy="20%" r="70%">
+          <stop offset="0%" stop-color="#3D2E24"/>
+          <stop offset="100%" stop-color="#1E1410"/>
+        </radialGradient>
+      </defs>
+
+      <!-- Body group — breathing animation -->
+      <g class="figure-body">
+
+        <!-- Feet -->
+        <ellipse cx="84" cy="388" rx="16" ry="7" fill="#1A1210"/>
+        <ellipse cx="116" cy="388" rx="14" ry="7" fill="#1A1210"/>
+        <!-- Trouser legs visible below coat -->
+        <rect x="74" y="295" width="22" height="98" rx="5" fill="#2A2238"/>
+        <rect x="104" y="295" width="22" height="98" rx="5" fill="#252035"/>
+
+        <!-- Long coat — lower flare -->
+        <path d="M48 195 Q45 295 50 390 L90 390 L100 270 L110 390 L152 390 Q156 295 152 195 Z" fill="url(#coat-grad)"/>
+        <!-- Coat hem highlight line -->
+        <path d="M50 390 Q100 396 150 390" stroke="#3D2E24" stroke-width="1.5" fill="none" opacity=".5"/>
+
+        <!-- Coat body -->
+        <path d="M44 118 Q48 210 52 285 L148 285 Q152 210 156 118 Q128 130 100 128 Q72 130 44 118 Z" fill="url(#coat-grad)"/>
+
+        <!-- Coat lapels -->
+        <path d="M88 118 L80 175 L100 190 L120 175 L112 118 Q100 128 88 118 Z" fill="#3D3028" opacity=".9"/>
+
+        <!-- Waistcoat vest -->
+        <path d="M84 122 L88 230 L100 235 L112 230 L116 122 Q100 134 84 122 Z" fill="#5A4030"/>
+
+        <!-- Shirt bib -->
+        <path d="M90 122 L93 175 L100 178 L107 175 L110 122 Q100 130 90 122 Z" fill="#F5F0E8"/>
+
+        <!-- Cravat/bow-tie area -->
+        <ellipse cx="100" cy="118" rx="8" ry="5" fill="#8B3030" opacity=".8"/>
+
+        <!-- Palette arm — LEFT (extended forward holding palette) -->
+        <g class="arm-palette">
+          <!-- Upper arm -->
+          <path d="M54 130 Q32 150 28 190 Q26 218 34 235" stroke="#2A1E18" stroke-width="22" fill="none" stroke-linecap="round"/>
+          <path d="M54 130 Q32 150 28 190 Q26 218 34 235" stroke="#3D2E24" stroke-width="18" fill="none" stroke-linecap="round"/>
+          <!-- Sleeve cuff -->
+          <ellipse cx="35" cy="237" rx="10" ry="6" fill="#C0B090" transform="rotate(-10 35 237)"/>
+          <!-- Hand -->
+          <ellipse cx="34" cy="248" rx="9" ry="7" fill="#C8986A" filter="url(#soft-skin)" transform="rotate(-15 34 248)"/>
+          <!-- Thumb -->
+          <ellipse cx="26" cy="250" rx="5" ry="3.5" fill="#C8986A" transform="rotate(-30 26 250)"/>
+          <!-- Palette -->
+          <g transform="translate(0, 255) rotate(-20)">
+            <path d="M10 0 Q15 -22 36 -18 Q55 -14 52 6 Q50 22 30 22 Q12 20 10 0 Z" fill="#B87830" opacity=".95"/>
+            <path d="M10 0 Q15 -22 36 -18 Q55 -14 52 6 Q50 22 30 22 Q12 20 10 0 Z" fill="none" stroke="#8B6020" stroke-width="1" opacity=".6"/>
+            <!-- Paint colors on palette -->
+            <circle cx="22" cy="12" r="5.5" fill="#9B5EC8" opacity=".9"/>
+            <circle cx="34" cy="16" r="4.5" fill="#3A72B8" opacity=".9"/>
+            <circle cx="44" cy="8" r="4.5" fill="#C04060" opacity=".9"/>
+            <circle cx="42" cy="-2" r="4" fill="#40A050" opacity=".9"/>
+            <circle cx="30" cy="-4" r="3.5" fill="#D0A020" opacity=".9"/>
+            <circle cx="20" cy="2" r="3" fill="#F0F0E8" opacity=".8"/>
+            <!-- Thumb hole -->
+            <circle cx="14" cy="6" r="5" fill="#9A6828"/>
+          </g>
+        </g>
+
+        <!-- Brush arm — RIGHT (slightly raised, painting gesture) -->
+        <g class="arm-brush">
+          <!-- Upper arm -->
+          <path d="M146 130 Q162 148 165 185 Q167 215 160 232" stroke="#2A1E18" stroke-width="22" fill="none" stroke-linecap="round"/>
+          <path d="M146 130 Q162 148 165 185 Q167 215 160 232" stroke="#3D2E24" stroke-width="18" fill="none" stroke-linecap="round"/>
+          <!-- Sleeve cuff -->
+          <ellipse cx="159" cy="234" rx="10" ry="6" fill="#C0B090" transform="rotate(10 159 234)"/>
+          <!-- Hand -->
+          <ellipse cx="160" cy="245" rx="9" ry="7" fill="#C8986A" filter="url(#soft-skin)" transform="rotate(15 160 245)"/>
+          <!-- Fingers suggestion -->
+          <ellipse cx="168" cy="247" rx="5" ry="3" fill="#C8986A" transform="rotate(20 168 247)"/>
+          <!-- Paintbrush -->
+          <g transform="translate(152, 255) rotate(20)">
+            <!-- Handle -->
+            <rect x="-3" y="-32" width="6" height="52" rx="3" fill="#8B6030"/>
+            <rect x="-2" y="-32" width="3" height="52" rx="2" fill="#A87840" opacity=".5"/>
+            <!-- Ferrule (metal band) -->
+            <rect x="-4" y="18" width="8" height="9" rx="1.5" fill="#B0B8C0"/>
+            <rect x="-4" y="20" width="8" height="2" fill="#D0D8E0" opacity=".7"/>
+            <!-- Bristles -->
+            <path d="M-4 27 Q0 48 -1 56 Q1 60 2 56 Q5 48 4 27 Z" fill="#3A2818"/>
+            <path d="M-2 29 Q1 46 0 54" stroke="#6A4828" stroke-width="0.8" fill="none" opacity=".5"/>
+            <path d="M1 29 Q2 46 2 54" stroke="#5A3818" stroke-width="0.8" fill="none" opacity=".4"/>
+            <!-- Fresh paint on brush tip -->
+            <ellipse cx="1" cy="56" rx="4" ry="2.5" fill="#9B5EC8" opacity=".9"/>
+            <ellipse cx="1" cy="56" rx="2" ry="1.5" fill="#C08AE8" opacity=".7"/>
+          </g>
+        </g>
+
+        <!-- Shoulders (coat shoulder seams) -->
+        <path d="M44 118 Q60 112 100 110 Q140 112 156 118" stroke="#4A3828" stroke-width="3" fill="none" opacity=".5"/>
+
+        <!-- Neck -->
+        <rect x="91" y="94" width="18" height="28" rx="6" fill="#B88058"/>
+
+        <!-- HEAD GROUP -->
+        <g class="figure-head">
+          <!-- Head -->
+          <ellipse cx="100" cy="70" rx="31" ry="37" fill="#C8906A" filter="url(#soft-skin)"/>
+          <!-- Slight forehead highlight -->
+          <ellipse cx="97" cy="54" rx="16" ry="10" fill="#D8A878" opacity=".6"/>
+          <!-- Cheek warmth -->
+          <ellipse cx="80" cy="74" rx="10" ry="8" fill="#D89068" opacity=".35"/>
+          <ellipse cx="120" cy="74" rx="10" ry="8" fill="#D89068" opacity=".35"/>
+
+          <!-- Beret -->
+          <ellipse cx="100" cy="45" rx="36" ry="13" fill="#28244A"/>
+          <path d="M68 42 Q75 18 100 14 Q125 18 132 42" fill="#28244A"/>
+          <ellipse cx="100" cy="14" rx="5" ry="4" fill="#28244A"/>
+          <!-- Beret highlight -->
+          <path d="M78 30 Q86 22 100 20" stroke="#3D3870" stroke-width="2" fill="none" opacity=".5"/>
+
+          <!-- White hair at temples -->
+          <path d="M70 55 Q64 65 66 82" stroke="#E8E4DC" stroke-width="5" fill="none" stroke-linecap="round" opacity=".75"/>
+          <path d="M130 55 Q136 65 134 82" stroke="#E8E4DC" stroke-width="5" fill="none" stroke-linecap="round" opacity=".75"/>
+
+          <!-- BEARD (Monet's iconic flowing white beard) -->
+          <g filter="url(#soft-beard)">
+            <!-- Main beard shape -->
+            <path d="M72 82 Q68 98 70 122 Q76 150 100 158 Q124 150 130 122 Q132 98 128 82 Q118 76 100 74 Q82 76 72 82 Z" fill="#EEE8DC" opacity=".95"/>
+            <!-- Beard shadow/depth -->
+            <path d="M72 82 Q70 100 72 122 Q78 148 100 156" stroke="#C8C0B0" stroke-width="2" fill="none" opacity=".4"/>
+            <path d="M100 76 Q100 112 100 156" stroke="#C8C0B0" stroke-width="1.5" fill="none" opacity=".3"/>
+            <path d="M128 82 Q130 100 128 122 Q122 148 100 156" stroke="#C8C0B0" stroke-width="2" fill="none" opacity=".4"/>
+            <!-- Beard edge softness -->
+            <path d="M73 84 Q68 100 70 124" stroke="#D8D0C0" stroke-width="3" fill="none" opacity=".3"/>
+            <path d="M127 84 Q132 100 130 124" stroke="#D8D0C0" stroke-width="3" fill="none" opacity=".3"/>
+          </g>
+
+          <!-- Mustache -->
+          <path d="M82 80 Q91 84 100 82 Q109 84 118 80 Q112 90 100 88 Q88 90 82 80 Z" fill="#E8E2D4" opacity=".9"/>
+
+          <!-- Eyes -->
+          <ellipse cx="87" cy="64" rx="4.5" ry="5.5" fill="#2A2018"/>
+          <ellipse cx="113" cy="64" rx="4.5" ry="5.5" fill="#2A2018"/>
+          <!-- Eye whites -->
+          <ellipse cx="87" cy="63" rx="3.5" ry="4.5" fill="#2A2018"/>
+          <!-- Eye shine -->
+          <circle cx="89" cy="62" r="1.8" fill="white" opacity=".85"/>
+          <circle cx="115" cy="62" r="1.8" fill="white" opacity=".85"/>
+          <!-- Eyebrows (bushy) -->
+          <path d="M78 56 Q87 52 97 54" stroke="#5A4830" stroke-width="3" fill="none" stroke-linecap="round" opacity=".8"/>
+          <path d="M103 54 Q113 52 122 56" stroke="#5A4830" stroke-width="3" fill="none" stroke-linecap="round" opacity=".8"/>
+
+          <!-- Round wire glasses -->
+          <circle cx="87" cy="64" r="10" fill="none" stroke="#8B7040" stroke-width="1.5" opacity=".65"/>
+          <circle cx="113" cy="64" r="10" fill="none" stroke="#8B7040" stroke-width="1.5" opacity=".65"/>
+          <line x1="97" y1="64" x2="103" y2="64" stroke="#8B7040" stroke-width="1.5" opacity=".65"/>
+          <line x1="65" y1="60" x2="77" y2="63" stroke="#8B7040" stroke-width="1.5" opacity=".65"/>
+          <line x1="123" y1="63" x2="135" y2="60" stroke="#8B7040" stroke-width="1.5" opacity=".65"/>
+
+          <!-- Nose -->
+          <ellipse cx="100" cy="75" rx="5" ry="6" fill="#B87850" opacity=".6"/>
+          <path d="M95 79 Q100 82 105 79" stroke="#A06840" stroke-width="1" fill="none" opacity=".5"/>
+
+          <!-- Lips (small, mostly hidden by mustache) -->
+          <path d="M95 88 Q100 91 105 88" stroke="#A06848" stroke-width="1.5" fill="none" opacity=".5"/>
+        </g>
+        <!-- End head group -->
+
+      </g>
+      <!-- End body group -->
+    </svg>
   </div>
 
-  <div class="value-grid">
-    <div class="value-card reveal">
-      <div class="value-icon vi-green">🔒</div>
-      <h3>Your Data Stays Yours</h3>
-      <p>Everything runs locally. Your questions, your conversations, your documents — none of it ever touches a server. Not ours. Not anyone's. The AI lives entirely on your machine.</p>
-    </div>
-    <div class="value-card reveal">
-      <div class="value-icon vi-yellow">💸</div>
-      <h3>Actually Free</h3>
-      <p>No subscription. No trial. No credit card. Just download, open, and use. The best open source models — Llama, Qwen, DeepSeek — are yours for $0/month, forever.</p>
-    </div>
-    <div class="value-card reveal">
-      <div class="value-icon vi-blue">🌍</div>
-      <h3>Use It Everywhere</h3>
-      <p>Monet gives your AI a public URL. Use it from your phone, plug it into Cursor, Zapier, n8n, or any app that supports the OpenAI format. Leave it running and it's always there.</p>
-    </div>
-    <div class="value-card reveal">
-      <div class="value-icon vi-brown">🔌</div>
-      <h3>Drop-In Replacement</h3>
-      <p>Already using ChatGPT or Claude in your code? Change two lines — the URL and the key. Everything else works exactly the same. Your tools, your workflows, zero migration pain.</p>
-    </div>
-    <div class="value-card reveal">
-      <div class="value-icon vi-yellow">⚡</div>
-      <h3>Blazing Fast Locally</h3>
-      <p>No network latency. No rate limits. No throttling at peak hours. When AI runs on your own hardware, it responds as fast as your machine can go — especially on Apple Silicon.</p>
-    </div>
-    <div class="value-card reveal">
-      <div class="value-icon vi-purple">🐻</div>
-      <h3>Zero Setup</h3>
-      <p>Download one file, open it, and you're chatting with AI in under 2 minutes. Monet auto-detects your hardware, picks the right model, and handles everything. No terminal. Ever.</p>
+  <!-- Subtitle -->
+  <div class="subtitle" id="subtitle">
+    <div class="subtitle-inner">
+      <span id="subtitle-text"></span>
+      <span class="cursor" id="cursor"></span>
     </div>
   </div>
-</section>
 
-<section class="how-section" id="how">
-  <span class="section-label">Simple as 1-2-3</span>
-  <h2 class="section-title">Up and running in 2 minutes</h2>
-  <p class="section-sub">Download. Open. Chat. That's it. The bear handles the rest.</p>
-  <div class="steps">
-    <div class="step reveal">
-      <div class="step-number">1</div>
-      <h3>Download</h3>
-      <p>One file for Mac or Windows. Open it like any other app. No terminal, no install scripts.</p>
-    </div>
-    <div class="step reveal">
-      <div class="step-number">2</div>
-      <h3>Pick Your Model</h3>
-      <p>Monet scans your hardware and recommends the best AI model that fits. One click to install.</p>
-    </div>
-    <div class="step reveal">
-      <div class="step-number">3</div>
-      <h3>Chat — From Anywhere</h3>
-      <p>Your AI is running. Chat locally or use the public URL to access it from any app or device.</p>
+  <!-- Navigation buttons -->
+  <div class="nav-buttons" id="nav-buttons">
+    <button class="nav-btn" onclick="respond('how')" id="btn-how">How does it work?</button>
+    <button class="nav-btn" onclick="respond('private')" id="btn-private">Is my data private?</button>
+    <button class="nav-btn" onclick="respond('free')" id="btn-free">Is it really free?</button>
+    <button class="nav-btn download-btn" onclick="openDownload()" id="btn-download">Download Monet ↓</button>
+    <button class="nav-btn" onclick="respond('chat')" id="btn-chat">Ask me anything</button>
+  </div>
+
+  <!-- Chat panel -->
+  <div class="chat-panel" id="chat-panel">
+    <div class="chat-input-row">
+      <input
+        class="chat-input"
+        id="chat-input"
+        type="text"
+        placeholder="Ask Monet anything..."
+        maxlength="300"
+        onkeydown="if(event.key==='Enter')sendChat()"
+        autocomplete="off"
+      >
+      <button class="mic-btn" id="mic-btn" onclick="toggleMic()" title="Voice input">🎙</button>
+      <button class="chat-send" id="chat-send" onclick="sendChat()">→</button>
     </div>
   </div>
-</section>
+</div>
 
-<section class="replace-section">
-  <span class="section-label">Do the math</span>
-  <h2 class="section-title">Stop the $240/year subscription</h2>
-  <p class="section-sub">Same quality. Same capability. Zero cost. Zero data sharing.</p>
-  <div class="replace-grid">
-    <div class="replace-item"><div class="old-price">$20/mo</div><div class="service">ChatGPT Plus</div></div>
-    <div class="replace-item"><div class="old-price">$20/mo</div><div class="service">Claude Pro</div></div>
-    <div class="replace-item"><div class="old-price">$20/mo</div><div class="service">Gemini Advanced</div></div>
-    <span class="replace-arrow">→</span>
-    <div class="replace-result"><div class="new-price">$0</div><div class="label">Monet · Always</div></div>
+<!-- Download modal -->
+<div class="modal-overlay" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal" style="position:relative">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-logo">🎨</div>
+    <h2>Download Monet</h2>
+    <p>Free, private AI — running entirely on your machine.<br>No subscriptions. No data sharing. Just art.</p>
+    <div class="modal-btns">
+      <a class="dl-btn primary" id="dl-mac" href="#" onclick="downloadMac(event)">
+        <span>⌘</span> Mac (.dmg)
+      </a>
+      <a class="dl-btn" id="dl-win" href="#" onclick="downloadWin(event)">
+        <span>⊞</span> Windows (.exe)
+      </a>
+    </div>
+    <p style="margin-top:20px;margin-bottom:0;font-size:13px;color:#B09878">
+      v0.1.20 · MIT License ·
+      <a href="https://github.com/spideysense/OpenLLM" target="_blank" style="color:var(--lavender);text-decoration:none">View source</a>
+    </p>
   </div>
-  <p style="color:var(--text-light);font-size:15px;max-width:500px;margin:0 auto">That's <strong style="color:var(--grass-dark)">$240/year</strong> back in your pocket — and your conversations stay on your machine, not on someone else's server.</p>
-</section>
-
-<section class="testimonials-section" id="testimonials">
-  <span class="section-label">People love it</span>
-  <h2 class="section-title">What users are saying</h2>
-  <p class="section-sub">Real people who switched from subscriptions to Monet.</p>
-  <div class="testimonials-grid">
-    <div class="testimonial-card featured reveal">
-      <p class="testimonial-text">I was paying $20/month for ChatGPT and $20/month for Claude. I cancelled both the same day I installed Monet. The speed on my M2 is actually faster than the web apps. And I know nothing I type is going anywhere.</p>
-      <div class="testimonial-author">
-        <div class="testimonial-avatar">👨‍💻</div>
-        <div>
-          <div class="testimonial-name">Software Engineer</div>
-          <div class="testimonial-role">San Francisco, CA</div>
-        </div>
-      </div>
-    </div>
-    <div class="testimonial-card reveal">
-      <p class="testimonial-text">The thing that got me was the data privacy. I work in healthcare and I can't be pasting patient notes into ChatGPT. Monet was the first AI I could actually use at work. Game changer.</p>
-      <div class="testimonial-author">
-        <div class="testimonial-avatar">👩‍⚕️</div>
-        <div>
-          <div class="testimonial-name">Healthcare Professional</div>
-          <div class="testimonial-role">Boston, MA</div>
-        </div>
-      </div>
-    </div>
-    <div class="testimonial-card reveal">
-      <p class="testimonial-text">I plugged the public URL into Cursor and now my local Llama model autocompletes my code. For free. I feel like I found a cheat code.</p>
-      <div class="testimonial-author">
-        <div class="testimonial-avatar">🧑‍💻</div>
-        <div>
-          <div class="testimonial-name">Indie Developer</div>
-          <div class="testimonial-role">Berlin, Germany</div>
-        </div>
-      </div>
-    </div>
-    <div class="testimonial-card reveal">
-      <p class="testimonial-text">My whole team uses it. We set up one machine running Monet, shared the URL and API key with the team, and now everyone has private AI without paying $20/person/month. The ROI is insane.</p>
-      <div class="testimonial-author">
-        <div class="testimonial-avatar">👩‍💼</div>
-        <div>
-          <div class="testimonial-name">Startup Founder</div>
-          <div class="testimonial-role">New York, NY</div>
-        </div>
-      </div>
-    </div>
-    <div class="testimonial-card reveal">
-      <p class="testimonial-text">I'm not a developer at all. The setup was literally: download, open, click "Get Model", done. I was chatting in under 3 minutes. I've recommended it to everyone I know.</p>
-      <div class="testimonial-author">
-        <div class="testimonial-avatar">✍️</div>
-        <div>
-          <div class="testimonial-name">Freelance Writer</div>
-          <div class="testimonial-role">Austin, TX</div>
-        </div>
-      </div>
-    </div>
-    <div class="testimonial-card reveal">
-      <p class="testimonial-text">It's free, I own my data, and it works. What else is there to say? I've been looking for something like this for two years. The AI on my MacBook is legitimately good.</p>
-      <div class="testimonial-author">
-        <div class="testimonial-avatar">🎨</div>
-        <div>
-          <div class="testimonial-name">Designer</div>
-          <div class="testimonial-role">London, UK</div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="api-section" id="api">
-  <span class="section-label">For developers</span>
-  <h2 class="section-title">Two Lines to Switch</h2>
-  <p class="section-sub">Monet is a drop-in OpenAI replacement. Your existing code works today — just change the URL and key.</p>
-  <div style="max-width:700px;margin:0 auto">
-    <div class="code-demo">
-      <div class="code-demo-header"><div class="code-dot r"></div><div class="code-dot y"></div><div class="code-dot g"></div><span style="color:rgba(255,255,255,.3);font-size:12px;margin-left:12px;font-family:var(--mono)">your_app.py</span></div>
-      <pre><span class="kw">from</span> openai <span class="kw">import</span> OpenAI
-
-client = OpenAI(
-    <span class="hl">base_url="https://your-id.trycloudflare.com/v1"</span>,  <span class="cmt"># ← your public URL</span>
-    <span class="hl">api_key="sk-monet-a8f2k..."</span>                     <span class="cmt"># ← from the app</span>
-)
-
-response = client.chat.completions.<span class="fn">create</span>(
-    model=<span class="str">"gpt-4"</span>,  <span class="cmt"># routes to your local model</span>
-    messages=[{<span class="str">"role"</span>: <span class="str">"user"</span>, <span class="str">"content"</span>: <span class="str">"Hello!"</span>}]
-)
-
-<span class="fn">print</span>(response.choices[0].message.content)</pre>
-    </div>
-  </div>
-  <p class="api-note" style="margin-top:32px">Works with <strong>LangChain</strong>, <strong>Cursor</strong>, <strong>Continue.dev</strong>, <strong>n8n</strong>, <strong>Zapier</strong>, <strong>AutoGen</strong>, and anything OpenAI-compatible.</p>
-  <p style="color:rgba(255,255,255,.35);font-size:13px;margin-top:16px">🔒 Your model runs on your machine. The public URL just routes traffic to you — end-to-end encrypted via Cloudflare.</p>
-</section>
-
-<section class="pricing-section" id="pricing">
-  <span class="section-label">Pricing</span>
-  <h2 class="section-title">Free to start. Free forever.</h2>
-  <p class="section-sub">Run it on your own machine at no cost. Or let us handle the hardware.</p>
-  <div class="pricing-grid">
-    <div class="pricing-card featured reveal">
-      <div class="pricing-popular">⭐ Most Popular</div>
-      <span class="pricing-bear">🐻</span>
-      <div class="pricing-name">Monet</div>
-      <div class="pricing-desc">Your machine, your data,<br>your rules. Always free.</div>
-      <div class="pricing-price"><div class="pricing-amount">Free</div><div class="pricing-period">forever</div></div>
-      <ul class="pricing-features">
-        <li><span class="check">✓</span> All open source models (Llama, Qwen, DeepSeek)</li>
-        <li><span class="check">✓</span> 100% private — nothing ever leaves your machine</li>
-        <li><span class="check">✓</span> Public URL — access from any device or app</li>
-        <li><span class="check">✓</span> OpenAI-compatible API + API keys</li>
-        <li><span class="check">✓</span> Drop-in replacement for ChatGPT / Claude</li>
-        <li><span class="check">✓</span> Works in Cursor, n8n, Zapier, LangChain</li>
-        <li><span class="check">✓</span> Auto-detects your hardware, picks best model</li>
-        <li><span class="x-mark">—</span> Community support only</li>
-      </ul>
-      <a href="#" class="btn btn-primary download-btn" onclick="downloadApp(event)">Download Free 🐾</a>
-    </div>
-    <div class="pricing-card reveal">
-      <span class="pricing-bear">☁️</span>
-      <div class="pricing-name">Cloud</div>
-      <div class="pricing-desc">We run it for you.<br>Works even when your Mac is off.</div>
-      <div class="pricing-price"><div class="pricing-amount"><span class="currency">$</span>0.99</div><div class="pricing-period">/month</div></div>
-      <ul class="pricing-features">
-        <li><span class="check">✓</span> Everything in Monet</li>
-        <li><span class="check">✓</span> Cloud-hosted — no hardware required</li>
-        <li><span class="check">✓</span> Always-on — AI works 24/7</li>
-        <li><span class="check">✓</span> Permanent URL that never changes</li>
-        <li><span class="check">✓</span> Latest models always available</li>
-        <li><span class="x-mark">—</span> Community support only</li>
-      </ul>
-      <a href="#" class="btn btn-secondary" onclick="startCheckout('cloud',event)">Start for $0.99/mo</a>
-    </div>
-    <div class="pricing-card reveal">
-      <span class="pricing-bear">⭐</span>
-      <div class="pricing-name">Pro</div>
-      <div class="pricing-desc">Priority cloud, faster models,<br>and humans who email back.</div>
-      <div class="pricing-price"><div class="pricing-amount"><span class="currency">$</span>1.99</div><div class="pricing-period">/month</div></div>
-      <ul class="pricing-features">
-        <li><span class="check">✓</span> Everything in Cloud</li>
-        <li><span class="check">✓</span> Priority cloud infrastructure</li>
-        <li><span class="check">✓</span> Faster models, higher limits</li>
-        <li><span class="check">✓</span> Longer conversations</li>
-        <li><span class="check">✓</span> Email support from real humans</li>
-        <li><span class="check">✓</span> Priority access to new models</li>
-      </ul>
-      <a href="#" class="btn btn-secondary" onclick="startCheckout('pro',event)">Start for $1.99/mo</a>
-    </div>
-  </div>
-</section>
-
-<section class="oss-section" id="oss">
-  <div class="oss-card reveal">
-    <h2>100% Open Source</h2>
-    <p>Monet is MIT licensed. Fork it, modify it, self-host it, go wild. The code is yours — inspect every line at any time.</p>
-    <div class="oss-actions">
-      <a href="https://github.com/spideysense/OpenLLM" target="_blank" class="btn btn-github btn-sm"><svg class="gh-icon" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg> View on GitHub</a>
-      <a href="https://github.com/spideysense/OpenLLM/fork" target="_blank" class="btn btn-secondary btn-sm">Fork It</a>
-      <a href="https://github.com/spideysense/OpenLLM/stargazers" target="_blank" class="btn btn-secondary btn-sm">⭐ Star</a>
-    </div>
-  </div>
-</section>
-
-<section style="padding:100px 24px;background:var(--cloud);text-align:left" id="faq">
-  <div style="max-width:800px;margin:0 auto">
-    <div style="text-align:center;margin-bottom:60px">
-      <span class="section-label">FAQ</span>
-      <h2 class="section-title">Common Questions</h2>
-      <p class="section-sub" style="margin-bottom:0">Everything you need to know about Monet.</p>
-    </div>
-    <div style="display:flex;flex-direction:column;gap:2px">
-      <details style="background:var(--sky-top);border-radius:12px;padding:20px 24px;border:2px solid rgba(93,78,55,.06);cursor:pointer">
-        <summary style="font-family:var(--display);font-size:17px;font-weight:700;color:var(--earth);list-style:none;display:flex;justify-content:space-between;align-items:center">
-          Is Monet really completely free? <span style="color:var(--accent);font-size:20px">+</span>
-        </summary>
-        <p style="margin-top:12px;font-size:15px;color:var(--text-light);line-height:1.7">Yes. The local version is free forever with no limits. You download the app, it runs AI models on your own hardware. No credit card, no trial, no hidden costs. Optional paid plans ($0.99–$1.99/mo) exist only if you want us to host it for you.</p>
-      </details>
-      <details style="background:var(--sky-top);border-radius:12px;padding:20px 24px;border:2px solid rgba(93,78,55,.06);cursor:pointer;margin-top:8px">
-        <summary style="font-family:var(--display);font-size:17px;font-weight:700;color:var(--earth);list-style:none;display:flex;justify-content:space-between;align-items:center">
-          Does my data actually stay private? <span style="color:var(--accent);font-size:20px">+</span>
-        </summary>
-        <p style="margin-top:12px;font-size:15px;color:var(--text-light);line-height:1.7">Yes, 100%. The AI model runs entirely on your CPU/GPU. Your conversations never leave your machine — not to us, not to Cloudflare, not to anyone. Zero telemetry. Zero data collection. You can inspect every line of code on GitHub to verify.</p>
-      </details>
-      <details style="background:var(--sky-top);border-radius:12px;padding:20px 24px;border:2px solid rgba(93,78,55,.06);cursor:pointer;margin-top:8px">
-        <summary style="font-family:var(--display);font-size:17px;font-weight:700;color:var(--earth);list-style:none;display:flex;justify-content:space-between;align-items:center">
-          Can I replace ChatGPT or Claude with Monet? <span style="color:var(--accent);font-size:20px">+</span>
-        </summary>
-        <p style="margin-top:12px;font-size:15px;color:var(--text-light);line-height:1.7">For most tasks, yes. Models like Qwen 2.5 7B and Llama 3.3 70B rival GPT-4 and Claude for writing, coding, analysis, and Q&A. Monet also gives you an OpenAI-compatible API — change two lines of code and your existing integrations work instantly.</p>
-      </details>
-      <details style="background:var(--sky-top);border-radius:12px;padding:20px 24px;border:2px solid rgba(93,78,55,.06);cursor:pointer;margin-top:8px">
-        <summary style="font-family:var(--display);font-size:17px;font-weight:700;color:var(--earth);list-style:none;display:flex;justify-content:space-between;align-items:center">
-          What hardware do I need? <span style="color:var(--accent);font-size:20px">+</span>
-        </summary>
-        <p style="margin-top:12px;font-size:15px;color:var(--text-light);line-height:1.7">Any Mac or Windows PC with 8GB+ RAM can run smaller models (3B–7B). For best results, 16GB RAM is recommended. Apple Silicon Macs (M1–M4) are exceptionally fast due to unified memory. NVIDIA GPU PCs also perform well. Monet automatically detects your hardware and recommends the right model.</p>
-      </details>
-      <details style="background:var(--sky-top);border-radius:12px;padding:20px 24px;border:2px solid rgba(93,78,55,.06);cursor:pointer;margin-top:8px">
-        <summary style="font-family:var(--display);font-size:17px;font-weight:700;color:var(--earth);list-style:none;display:flex;justify-content:space-between;align-items:center">
-          Does it work offline? <span style="color:var(--accent);font-size:20px">+</span>
-        </summary>
-        <p style="margin-top:12px;font-size:15px;color:var(--text-light);line-height:1.7">Yes. Once a model is downloaded, Monet works completely offline. No internet connection needed for AI inference. The only time you need internet is the initial model download and for the Cloudflare public URL feature.</p>
-      </details>
-      <details style="background:var(--sky-top);border-radius:12px;padding:20px 24px;border:2px solid rgba(93,78,55,.06);cursor:pointer;margin-top:8px">
-        <summary style="font-family:var(--display);font-size:17px;font-weight:700;color:var(--earth);list-style:none;display:flex;justify-content:space-between;align-items:center">
-          How do I use Monet in Cursor, Zapier, or my own code? <span style="color:var(--accent);font-size:20px">+</span>
-        </summary>
-        <p style="margin-top:12px;font-size:15px;color:var(--text-light);line-height:1.7">Monet runs an OpenAI-compatible API and gives you a public HTTPS URL. In any OpenAI SDK: set <code style="font-family:monospace;background:rgba(93,78,55,.08);padding:2px 6px;border-radius:4px">base_url</code> to your Monet URL and <code style="font-family:monospace;background:rgba(93,78,55,.08);padding:2px 6px;border-radius:4px">api_key</code> to the key from the app. Works with LangChain, Cursor, Continue.dev, n8n, Zapier, AutoGen, and anything OpenAI-compatible.</p>
-      </details>
-    </div>
-  </div>
-</section>
-
-<section style="padding:80px 24px;background:linear-gradient(180deg,var(--cloud) 0%,var(--sky) 100%);text-align:center">
-  <h2 class="section-title">Own your AI. Own your data.</h2>
-  <p class="section-sub">Free forever. Private by default. Running on your machine in 2 minutes.</p>
-  <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap">
-    <a href="#" class="btn btn-primary download-btn" onclick="downloadApp(event)">Download Monet Free 🐾</a>
-    <a href="https://github.com/spideysense/OpenLLM" target="_blank" class="btn btn-github"><svg class="gh-icon" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" fill="currentColor"/></svg> View Source</a>
-  </div>
-</section>
-
-<footer class="footer" role="contentinfo">
-  <div class="footer-logo">🎨 Monet</div>
-  <p>AI that runs on your machine. Zero data collection. Zero tracking. Your conversations are yours alone.</p>
-  <div class="footer-links">
-    <a href="#why">Why Monet</a>
-    <a href="#how">How It Works</a>
-    <a href="#faq">FAQ</a>
-    <a href="#api">API Docs</a>
-    <a href="#pricing">Pricing</a>
-    <a href="https://github.com/spideysense/OpenLLM" target="_blank">GitHub</a>
-    <a href="https://github.com/spideysense/OpenLLM/fork" target="_blank">Fork It</a>
-  </div>
-  <div class="footer-copy">MIT License · Made with 🎨</div>
-</footer>
+</div>
 
 <script>
-const navbar=document.getElementById('navbar');window.addEventListener('scroll',()=>{navbar.classList.toggle('scrolled',window.scrollY>20)});
-const reveals=document.querySelectorAll('.reveal');const observer=new IntersectionObserver(e=>{e.forEach((en,i)=>{if(en.isIntersecting){setTimeout(()=>en.target.classList.add('visible'),i*100);observer.unobserve(en.target)}})},{threshold:.15});reveals.forEach(el=>observer.observe(el));
-document.querySelectorAll('a[href^="#"]').forEach(a=>{if(a.getAttribute('onclick'))return;a.addEventListener('click',e=>{e.preventDefault();const t=document.querySelector(a.getAttribute('href'));if(t)t.scrollIntoView({behavior:'smooth',block:'start'})})});
+// ── Config ──
+const REPO = 'https://github.com/spideysense/OpenLLM';
+const MAC_URL = REPO + '/releases/latest/download/Monet-mac.dmg';
+const WIN_URL = REPO + '/releases/latest/download/Monet-win.exe';
 
-const REPO='https://github.com/spideysense/OpenLLM';
-const MAC_DMG=REPO+'/releases/latest/download/LLMBear-mac.dmg';
-const WIN_EXE=REPO+'/releases/latest/download/LLMBear-win.exe';
-const RELEASES=REPO+'/releases/latest';
-const CLOUD_API=window.MONET_CLOUD_API||'https://api.monet.app';
+// ── State ──
+let voiceEnabled = true;
+let isListening = false;
+let isSpeaking = false;
+let chatHistory = [];
+let recognition = null;
+let currentUtterance = null;
 
-function getOS(){const p=navigator.platform||'';const u=navigator.userAgent||'';if(p.startsWith('Mac')||u.includes('Macintosh'))return'mac';if(p.startsWith('Win')||u.includes('Windows'))return'win';return'other';}
-function downloadApp(e){e.preventDefault();const os=getOS();if(os==='mac')window.location.href=MAC_DMG;else if(os==='win')window.location.href=WIN_EXE;else window.open(RELEASES,'_blank');}
+// ── Elements ──
+const subtitle = document.getElementById('subtitle');
+const subtitleText = document.getElementById('subtitle-text');
+const cursor = document.getElementById('cursor');
+const navButtons = document.getElementById('nav-buttons');
+const chatPanel = document.getElementById('chat-panel');
+const chatInput = document.getElementById('chat-input');
+const chatSend = document.getElementById('chat-send');
+const micBtn = document.getElementById('mic-btn');
+const volumeBtn = document.getElementById('volume-btn');
 
-async function startCheckout(plan,e){
-  e.preventDefault();const btn=e.target;const orig=btn.textContent;btn.textContent='Loading...';btn.style.pointerEvents='none';
-  try{const res=await fetch(CLOUD_API+'/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({plan})});const data=await res.json();if(data.url){window.location.href=data.url;}else{alert('Something went wrong. Please try again.');btn.textContent=orig;btn.style.pointerEvents='';}}
-  catch(err){alert('Cloud plans coming soon! The free local version is available now.');btn.textContent=orig;btn.style.pointerEvents='';}
+// Figure elements for animation
+const figHead = document.querySelector('.figure-head');
+const armPalette = document.querySelector('.arm-palette');
+const armBrush = document.querySelector('.arm-brush');
+
+// ── Speech Synthesis ──
+function speak(text, onEnd) {
+  if (!voiceEnabled || !window.speechSynthesis) {
+    if (onEnd) onEnd();
+    return;
+  }
+  window.speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.rate = 0.88;
+  utt.pitch = 0.95;
+  utt.volume = 0.9;
+
+  // Try to find a warm, slightly accented voice
+  const voices = window.speechSynthesis.getVoices();
+  const preferred = voices.find(v =>
+    v.name.includes('Daniel') || v.name.includes('Karen') || v.name.includes('Moira') ||
+    v.name.includes('Thomas') || v.name.includes('French') || v.lang === 'en-GB'
+  ) || voices.find(v => v.lang.startsWith('en')) || voices[0];
+  if (preferred) utt.voice = preferred;
+
+  utt.onstart = () => { isSpeaking = true; setTalking(true); };
+  utt.onend = () => { isSpeaking = false; setTalking(false); if (onEnd) onEnd(); };
+  utt.onerror = () => { isSpeaking = false; setTalking(false); if (onEnd) onEnd(); };
+  currentUtterance = utt;
+  window.speechSynthesis.speak(utt);
 }
 
-(function(){
-  const os=getOS();
-  const heroBtn=document.getElementById('hero-download');
-  if(heroBtn){heroBtn.textContent=os==='mac'?'Download for Mac (.dmg) 🐾':os==='win'?'Download for Windows (.exe) 🐾':'Download Monet Free 🐾';}
-  document.querySelectorAll('.download-btn').forEach(btn=>{if(os==='mac')btn.textContent='Download for Mac (.dmg)';else if(os==='win')btn.textContent='Download for Windows (.exe)';});
-})();
+function setTalking(talking) {
+  if (talking) {
+    figHead.classList.add('talking');
+    armPalette.classList.add('gesturing');
+    armBrush.classList.add('painting');
+  } else {
+    figHead.classList.remove('talking');
+    armPalette.classList.remove('gesturing');
+    armBrush.classList.remove('painting');
+  }
+}
+
+// ── Typewriter ──
+let typeTimer = null;
+function typeText(text, speed = 28, onDone) {
+  clearTimeout(typeTimer);
+  subtitleText.textContent = '';
+  cursor.style.display = 'inline-block';
+  subtitle.classList.add('visible');
+  let i = 0;
+  function tick() {
+    if (i <= text.length) {
+      subtitleText.textContent = text.slice(0, i);
+      i++;
+      typeTimer = setTimeout(tick, speed);
+    } else {
+      cursor.style.display = 'none';
+      if (onDone) onDone();
+    }
+  }
+  tick();
+}
+
+function showText(text, callback) {
+  typeText(text, 24, callback);
+  speak(text, callback);
+}
+
+// ── Scripted responses ──
+const LINES = {
+  greeting: "Bonjour! I am Monet. Not the painter — well, a little the painter. I am an AI that runs entirely on your machine. Free. Private. Yours. May I show you how it works?",
+  how: "Like sunlight on water — everything happens on your computer. Download the app, choose a model, and you are talking to AI. No server, no subscription. Your words never leave your machine.",
+  private: "Magnifique question. Your data is like a private sketchbook — seen only by you. No telemetry. No cloud. Not even I know what you ask. Everything stays on your hardware, always.",
+  free: "Completely free. No credit card, no trial, no expiration. You run Llama, Qwen, DeepSeek — the finest open-source models — on your own hardware. Keep your twenty dollars a month, mon ami.",
+  chat: "Ah, you wish to converse! Ask me anything — about the app, how to set it up, how to use me in your code. Or simply say bonjour.",
+};
+
+// ── Greeting sequence ──
+let greeted = false;
+function startGreeting() {
+  if (greeted) return;
+  greeted = true;
+  subtitle.classList.add('visible');
+  setTimeout(() => {
+    showText(LINES.greeting, () => {
+      setTimeout(showNavButtons, 600);
+    });
+  }, 800);
+}
+
+function showNavButtons() {
+  navButtons.classList.add('visible');
+}
+
+// ── Button responses ──
+function respond(key) {
+  // Mark active
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('btn-' + key);
+  if (btn) btn.classList.add('active');
+
+  if (key === 'chat') {
+    showText(LINES.chat, () => {
+      chatPanel.classList.add('visible');
+      setTimeout(() => chatInput.focus(), 100);
+    });
+    return;
+  }
+
+  const line = LINES[key] || "I do not know that one, mon ami. Perhaps ask me something else?";
+  showText(line);
+}
+
+// ── AI Chat ──
+async function sendChat() {
+  const msg = chatInput.value.trim();
+  if (!msg || isSpeaking) return;
+  chatInput.value = '';
+  chatSend.disabled = true;
+
+  // Show thinking
+  typeText('...', 100);
+  subtitleText.textContent = '...';
+  subtitle.classList.add('visible');
+  cursor.style.display = 'inline-block';
+
+  chatHistory.push({ role: 'user', content: msg });
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userMessage: msg, messages: chatHistory.slice(-8) }),
+    });
+    const data = await res.json();
+    const reply = data.reply || "Pardonnez-moi, I seem to have lost my words. Try again?";
+    chatHistory.push({ role: 'assistant', content: reply });
+    showText(reply);
+  } catch {
+    showText("The connection faltered, like mist on the Seine. Please try again.");
+  } finally {
+    chatSend.disabled = false;
+  }
+}
+
+// ── Voice input ──
+function toggleMic() {
+  if (!window.SpeechRecognition && !window.webkitSpeechRecognition) {
+    showText("Voice input is not supported in this browser. Please type your question.");
+    return;
+  }
+  if (isListening) {
+    recognition?.stop();
+    micBtn.classList.remove('listening');
+    isListening = false;
+    return;
+  }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SR();
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.lang = 'en-US';
+  recognition.onresult = (e) => {
+    const transcript = Array.from(e.results).map(r => r[0].transcript).join('');
+    chatInput.value = transcript;
+    chatPanel.classList.add('visible');
+  };
+  recognition.onend = () => {
+    isListening = false;
+    micBtn.classList.remove('listening');
+    if (chatInput.value.trim()) sendChat();
+  };
+  recognition.onerror = () => {
+    isListening = false;
+    micBtn.classList.remove('listening');
+  };
+  recognition.start();
+  isListening = true;
+  micBtn.classList.add('listening');
+  chatPanel.classList.add('visible');
+  chatInput.focus();
+  chatInput.placeholder = 'Listening...';
+  setTimeout(() => { chatInput.placeholder = 'Ask Monet anything...'; }, 8000);
+}
+
+// ── Volume toggle ──
+function toggleVoice() {
+  voiceEnabled = !voiceEnabled;
+  volumeBtn.textContent = voiceEnabled ? '🔊' : '🔇';
+  if (!voiceEnabled) {
+    window.speechSynthesis?.cancel();
+    setTalking(false);
+  }
+}
+
+// ── Download ──
+function openDownload() {
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+}
+function downloadMac(e) {
+  e.preventDefault();
+  window.location.href = MAC_URL;
+  setTimeout(closeModal, 800);
+}
+function downloadWin(e) {
+  e.preventDefault();
+  window.location.href = WIN_URL;
+  setTimeout(closeModal, 800);
+}
+
+// ── Keyboard ──
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModal();
+});
+
+// ── Init ──
+window.speechSynthesis?.addEventListener('voiceschanged', () => {});
+// Delayed start so voices load
+setTimeout(startGreeting, 400);
 </script>
 </body>
 </html>
