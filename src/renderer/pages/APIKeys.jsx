@@ -8,6 +8,7 @@ export default function APIKeys() {
   const [showSecret, setShowSecret] = useState({});
   const [copied, setCopied] = useState(null);
   const [tunnelStatus, setTunnelStatus] = useState({ connected: false, url: null });
+  const [newlyCreatedKey, setNewlyCreatedKey] = useState(null);
 
   const loadKeys = useCallback(async () => {
     if (!bridge) return;
@@ -30,20 +31,22 @@ export default function APIKeys() {
   async function createKey() {
     if (!bridge) return;
     const label = newLabel.trim() || 'My API Key';
-    await bridge.apikeys.create(label);
+    const created = await bridge.apikeys.create(label);
     setNewLabel('');
+    setNewlyCreatedKey(created);   // ← show the full secret immediately
     loadKeys();
   }
 
   async function revokeKey(id) {
     if (!bridge) return;
     if (!confirm('Revoke this key? Apps using it will stop working.')) return;
+    if (newlyCreatedKey?.id === id) setNewlyCreatedKey(null);
     await bridge.apikeys.revoke(id);
     loadKeys();
   }
 
-  function copyKey(secret, id) {
-    navigator.clipboard.writeText(secret);
+  function copy(text, id) {
+    navigator.clipboard.writeText(text);
     setCopied(id);
     setTimeout(() => setCopied(null), 2000);
   }
@@ -56,30 +59,94 @@ export default function APIKeys() {
     <div className="page">
       <div className="page-title">🔑 API Keys</div>
       <div className="page-sub">
-        Generate keys for your apps.
+        Generate keys so your apps can talk to the bear.
       </div>
 
-      {/* URL display */}
+      {/* ── URL display ── */}
       <div style={{ marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 13, color: 'var(--text-light)', minWidth: 100 }}>🏠 Same machine:</span>
-          <code className="font-mono" style={{ fontSize: 13 }}>{localUrl}</code>
+          <span style={{ fontSize: 13, color: 'var(--text-light)', minWidth: 110 }}>🏠 Same machine:</span>
+          <code className="font-mono" style={{ fontSize: 13, flex: 1 }}>{localUrl}</code>
+          <button
+            className="btn btn-sm btn-secondary"
+            onClick={() => copy(localUrl, 'localUrl')}
+            style={{ flexShrink: 0 }}
+          >
+            {copied === 'localUrl' ? '✓ Copied' : 'Copy'}
+          </button>
         </div>
         {publicUrl ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 13, color: 'var(--text-light)', minWidth: 100 }}>🌍 From anywhere:</span>
-            <code className="font-mono" style={{ fontSize: 13 }}>{publicUrl}</code>
+            <span style={{ fontSize: 13, color: 'var(--text-light)', minWidth: 110 }}>🌍 From anywhere:</span>
+            <code className="font-mono" style={{ fontSize: 13, flex: 1 }}>{publicUrl}</code>
+            <button
+              className="btn btn-sm btn-secondary"
+              onClick={() => copy(publicUrl, 'publicUrl')}
+              style={{ flexShrink: 0 }}
+            >
+              {copied === 'publicUrl' ? '✓ Copied' : 'Copy'}
+            </button>
             <span style={{ fontSize: 11, color: 'var(--honey)', fontWeight: 600 }}>✓ Connected</span>
           </div>
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 13, color: 'var(--text-light)', minWidth: 100 }}>🌍 From anywhere:</span>
-            <span style={{ fontSize: 13, color: 'var(--text-light)' }}>Connecting...</span>
+            <span style={{ fontSize: 13, color: 'var(--text-light)', minWidth: 110 }}>🌍 From anywhere:</span>
+            <span style={{ fontSize: 13, color: 'var(--text-light)' }}>Not connected (upgrade to Cloud Bear)</span>
           </div>
         )}
       </div>
 
-      {/* Key explanation */}
+      {/* ── Newly created key banner ── */}
+      {newlyCreatedKey && (
+        <div className="card" style={{
+          marginBottom: 24,
+          background: 'linear-gradient(135deg, rgba(123,198,126,0.12) 0%, rgba(74,166,81,0.06) 100%)',
+          border: '1.5px solid rgba(74,166,81,0.3)',
+          padding: 20,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <div>
+              <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, color: 'var(--earth)', fontSize: 15 }}>
+                🎉 Key created: {newlyCreatedKey.label}
+              </span>
+              <span style={{ fontSize: 12, color: 'var(--text-light)', marginLeft: 10 }}>
+                Copy it now — for security, it won't be shown in full again.
+              </span>
+            </div>
+            <button
+              className="btn btn-sm"
+              style={{ background: 'transparent', color: 'var(--text-light)', border: 'none', cursor: 'pointer' }}
+              onClick={() => setNewlyCreatedKey(null)}
+            >
+              ✕
+            </button>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <code style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: 13,
+              padding: '10px 14px',
+              background: 'var(--cloud)',
+              borderRadius: 'var(--radius-sm)',
+              flex: 1,
+              wordBreak: 'break-all',
+              color: 'var(--earth)',
+              border: '1.5px solid rgba(74,166,81,0.3)',
+            }}>
+              {newlyCreatedKey.secret}
+            </code>
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={() => copy(newlyCreatedKey.secret, 'newKey')}
+              style={{ flexShrink: 0 }}
+            >
+              {copied === 'newKey' ? '✓ Copied!' : 'Copy Key'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Key explanation ── */}
       <div className="upgrade-banner" style={{ marginBottom: 24 }}>
         <div className="bear">🐻🙈</div>
         <div className="upgrade-banner-text">
@@ -88,7 +155,7 @@ export default function APIKeys() {
         </div>
       </div>
 
-      {/* Create new key */}
+      {/* ── Create new key ── */}
       <div className="card" style={{ marginBottom: 24 }}>
         <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 700, color: 'var(--earth)', marginBottom: 12 }}>
           Create New Key
@@ -108,7 +175,7 @@ export default function APIKeys() {
         </div>
       </div>
 
-      {/* Key list */}
+      {/* ── Key list ── */}
       {keys.length === 0 ? (
         <div style={{
           textAlign: 'center',
@@ -151,12 +218,21 @@ export default function APIKeys() {
                     whiteSpace: 'nowrap',
                   }}
                   onClick={() => setShowSecret((prev) => ({ ...prev, [key.id]: !prev[key.id] }))}
+                  title="Click to reveal"
                 >
                   {showSecret[key.id] ? key.secret : key.secret.slice(0, 16) + '••••••••••••'}
                 </code>
                 <button
                   className="btn btn-sm btn-secondary"
-                  onClick={() => copyKey(key.secret, key.id)}
+                  onClick={() => setShowSecret((prev) => ({ ...prev, [key.id]: !prev[key.id] }))}
+                  style={{ flexShrink: 0 }}
+                >
+                  {showSecret[key.id] ? 'Hide' : 'Reveal'}
+                </button>
+                <button
+                  className="btn btn-sm btn-secondary"
+                  onClick={() => copy(key.secret, key.id)}
+                  style={{ flexShrink: 0 }}
                 >
                   {copied === key.id ? '✓ Copied' : 'Copy'}
                 </button>
