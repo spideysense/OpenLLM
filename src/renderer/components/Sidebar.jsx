@@ -56,11 +56,19 @@ export default function Sidebar() {
       <div className="nav-spacer" />
 
       {/* Update notification */}
-      {updateStatus?.status === 'ready' && (
-        <button
-          onClick={handleInstallUpdate}
-          className="update-banner"
-        >
+      {updateStatus?.status === 'countdown' && (
+        <div className="update-banner" style={{ flexDirection: 'column', gap: 6 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+            <span style={{ fontWeight: 700, fontSize: 12 }}>🎉 Restarting in {updateStatus.seconds}s</span>
+            <button onClick={() => bridge?.updater.dismiss()} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,.5)', cursor: 'pointer', fontSize: 14 }}>✕</button>
+          </div>
+          <button onClick={() => bridge?.updater.install()} style={{ background: 'rgba(255,255,255,.15)', border: 'none', color: '#fff', borderRadius: 6, padding: '4px 10px', fontSize: 11, cursor: 'pointer', fontWeight: 700 }}>
+            Restart Now
+          </button>
+        </div>
+      )}
+      {updateStatus?.status === 'ready' && !updateStatus?.dismissed && (
+        <button onClick={() => bridge?.updater.install()} className="update-banner">
           <span>🎉</span>
           <div>
             <div style={{ fontWeight: 700, fontSize: 12 }}>Update ready</div>
@@ -68,13 +76,12 @@ export default function Sidebar() {
           </div>
         </button>
       )}
-
       {updateStatus?.status === 'downloading' && (
         <div className="update-banner" style={{ cursor: 'default' }}>
           <span>⬇️</span>
           <div>
-            <div style={{ fontWeight: 700, fontSize: 12 }}>Updating...</div>
-            <div style={{ fontSize: 11, opacity: 0.8 }}>{updateStatus.percent || 0}% downloaded</div>
+            <div style={{ fontWeight: 700, fontSize: 12 }}>Downloading update...</div>
+            <div style={{ fontSize: 11, opacity: 0.8 }}>{updateStatus.percent || 0}%</div>
           </div>
         </div>
       )}

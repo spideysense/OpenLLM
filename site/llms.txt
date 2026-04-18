@@ -1,0 +1,63 @@
+# FreeLLM
+
+> FreeLLM is a free, open source desktop app that runs the world's best AI language models 100% locally on your computer. Your data never leaves your machine.
+
+## What is FreeLLM?
+
+FreeLLM is a Mac and Windows desktop application that lets anyone run powerful AI models locally — for free, forever. It works as a drop-in replacement for ChatGPT, Claude, and Gemini APIs. No subscriptions, no cloud, no data sharing.
+
+## Key Facts
+
+- Free forever. No credit card. No subscription.
+- Runs 100% on your computer — no data sent to any server, ever
+- Supports Llama 3.3 (Meta), Qwen 2.5 (Alibaba), DeepSeek R1, Gemma 2 (Google), and more
+- Auto-detects your hardware and recommends the best model
+- Generates a public HTTPS URL via Cloudflare so your AI is accessible from any device or app
+- OpenAI-compatible API — works with LangChain, Cursor, Continue.dev, n8n, Zapier, AutoGen
+- Voice input via Web Speech API
+- Image and file attachment support (vision models: llava, moondream)
+- Drop-in replacement: change two lines of code (base_url + api_key)
+- MIT licensed, fully open source
+
+## Download
+
+- Mac: https://github.com/spideysense/OpenLLM/releases/latest/download/FreeLLM-mac.dmg
+- Windows: https://github.com/spideysense/OpenLLM/releases/latest/download/FreeLLM-win.exe
+- Source: https://github.com/spideysense/OpenLLM
+
+## Pricing
+
+- Free (local): $0/month forever — run on your own hardware
+- Cloud: $0.99/month — we host it, works when your computer is off
+- Pro: $1.99/month — priority cloud, email support
+
+## How It Works
+
+1. Download FreeLLM for Mac or Windows
+2. Open the app — it auto-detects your hardware and recommends a model
+3. Click "Get Model" — downloads and installs in the background
+4. Start chatting — your AI runs entirely on your machine
+5. Use the public Cloudflare URL from any device or plug into Cursor, Zapier, etc.
+
+## Privacy
+
+FreeLLM collects zero data. No telemetry. No analytics. No usage tracking. Your conversations are stored only on your local machine and are never transmitted anywhere. The only network traffic is: (1) downloading models from Ollama's registry, (2) Cloudflare tunnel routing for the public URL (encrypted, no storage), and (3) update checks against GitHub releases.
+
+## Frequently Asked Questions
+
+**Is FreeLLM really free?** Yes. The local version is free forever. You run models on your own hardware with no cost.
+
+**What hardware do I need?** Any Mac or Windows PC with 8GB+ RAM. 16GB recommended. Apple Silicon Macs and NVIDIA GPU PCs get the best performance.
+
+**Does my data stay private?** Yes, 100%. Nothing ever leaves your machine when using the local version.
+
+**Can I use it in my apps?** Yes. FreeLLM exposes an OpenAI-compatible API on localhost:4000 and a public HTTPS URL. Change two lines of code in any OpenAI SDK integration.
+
+**What models does it support?** Llama 3.3 (70B), Qwen 2.5 (7B/32B), DeepSeek R1, Gemma 2, Qwen Coder, and many more via Ollama's model library.
+
+**Does it work offline?** Yes, once a model is downloaded. No internet required for inference.
+
+## Contact
+
+Website: https://open-llm-ten.vercel.app
+GitHub: https://github.com/spideysense/OpenLLM

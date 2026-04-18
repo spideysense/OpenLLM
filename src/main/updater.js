@@ -1,36 +1,35 @@
 /**
- * LLM Bear Auto-Updater
+ * FreeLLM Auto-Updater
  *
- * Checks GitHub releases for new versions and installs silently.
- * User sees a subtle notification when an update is ready — click to restart.
- * No manual downloads. No re-dragging to Applications. Just works.
+ * Downloads updates silently in the background.
+ * When ready, shows a 30-second countdown banner then auto-restarts.
+ * User can click "Restart Now" or dismiss and it'll install on next quit.
+ *
+ * Works on Mac (DMG/ZIP) and Windows (NSIS).
  */
 const { autoUpdater } = require('electron-updater');
 const { app } = require('electron');
 
 let mainWindow = null;
 let updateReady = false;
+let countdownTimer = null;
 
 function init(win) {
   mainWindow = win;
 
-  // Don't check for updates in dev mode
   if (!app.isPackaged) {
-    console.log('[Updater] Skipping — not packaged');
+    console.log('[Updater] Skipping — dev mode');
     return;
   }
 
-  // Configure
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
   autoUpdater.allowPrerelease = false;
 
-  // ── Events ──
+  // Mac: must use ZIP target for delta updates — DMG alone won't auto-update
+  // Windows: NSIS installer handles it natively
 
-  autoUpdater.on('checking-for-update', () => {
-    console.log('[Updater] Checking for update...');
-    notify('checking');
-  });
+  autoUpdater.on('checking-for-update', () => notify('checking'));
 
   autoUpdater.on('update-available', (info) => {
     console.log('[Updater] Update available:', info.version);
@@ -38,19 +37,18 @@ function init(win) {
   });
 
   autoUpdater.on('update-not-available', () => {
-    console.log('[Updater] Already up to date');
-    notify('up-to-date');
+    console.log('[Updater] Up to date');
   });
 
   autoUpdater.on('download-progress', (progress) => {
-    const pct = Math.round(progress.percent);
-    notify('downloading', { percent: pct });
+    notify('downloading', { percent: Math.round(progress.percent) });
   });
 
   autoUpdater.on('update-downloaded', (info) => {
-    console.log('[Updater] Update downloaded:', info.version);
+    console.log('[Updater] Downloaded:', info.version);
     updateReady = true;
     notify('ready', { version: info.version });
+    startAutoRestartCountdown(info.version);
   });
 
   autoUpdater.on('error', (err) => {
@@ -58,9 +56,31 @@ function init(win) {
     notify('error', { message: err.message });
   });
 
-  // Check now, then every 4 hours
   checkForUpdates();
   setInterval(checkForUpdates, 4 * 60 * 60 * 1000);
+}
+
+function startAutoRestartCountdown(version) {
+  let seconds = 30;
+  notify('countdown', { version, seconds });
+
+  countdownTimer = setInterval(() => {
+    seconds--;
+    notify('countdown', { version, seconds });
+    if (seconds <= 0) {
+      clearInterval(countdownTimer);
+      installUpdate();
+    }
+  }, 1000);
+}
+
+function dismissCountdown() {
+  if (countdownTimer) {
+    clearInterval(countdownTimer);
+    countdownTimer = null;
+  }
+  // Will still install on next app quit
+  notify('ready', { version: null, dismissed: true });
 }
 
 function checkForUpdates() {
@@ -72,15 +92,14 @@ function checkForUpdates() {
 
 function installUpdate() {
   if (updateReady) {
+    // isSilent=false on Windows shows the installer UI
+    // isForceRunAfter=true reopens the app after install
     autoUpdater.quitAndInstall(false, true);
   }
 }
 
 function getStatus() {
-  return {
-    updateReady,
-    currentVersion: app.getVersion(),
-  };
+  return { updateReady, currentVersion: app.getVersion() };
 }
 
 function notify(status, data = {}) {
@@ -89,4 +108,4 @@ function notify(status, data = {}) {
   }
 }
 
-module.exports = { init, checkForUpdates, installUpdate, getStatus };
+module.exports = { init, checkForUpdates, installUpdate, dismissCountdown, getStatus };

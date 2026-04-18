@@ -44,6 +44,15 @@ function createWindow() {
     mainWindow.loadFile(path.join(__dirname, '..', '..', 'build', 'index.html'));
   }
 
+  // Grant microphone permission for voice input (Web Speech API)
+  mainWindow.webContents.session.setPermissionRequestHandler((webContents, permission, callback) => {
+    if (permission === 'media' || permission === 'microphone') {
+      callback(true);
+    } else {
+      callback(false);
+    }
+  });
+
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
   });
@@ -344,6 +353,11 @@ ipcMain.handle('updater:check', async () => {
 
 ipcMain.handle('updater:install', async () => {
   updater.installUpdate();
+  return true;
+});
+
+ipcMain.handle('updater:dismiss', async () => {
+  updater.dismissCountdown();
   return true;
 });
 

@@ -19,7 +19,13 @@
 <meta name="author" content="FreeLLM">
 <meta name="theme-color" content="#E8F4F8">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"SoftwareApplication","name":"FreeLLM","applicationCategory":"DeveloperApplication","operatingSystem":"macOS, Windows","offers":[{"@type":"Offer","price":"0","priceCurrency":"USD","name":"Free","description":"Run AI locally on your own machine. All models, API gateway, forever free."}],"description":"FreeLLM is a free, open source desktop app that runs the best AI models locally on your computer. Your data never leaves your machine. Drop-in replacement for ChatGPT, Claude, and Gemini APIs.","url":"https://open-llm-ten.vercel.app","downloadUrl":"https://github.com/spideysense/OpenLLM","softwareVersion":"0.1.17","license":"https://opensource.org/licenses/MIT"}
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"FreeLLM","applicationCategory":"DeveloperApplication","operatingSystem":"macOS, Windows","offers":[{"@type":"Offer","price":"0","priceCurrency":"USD","name":"Free","description":"Run AI locally on your own machine. All models, API gateway, forever free."},{"@type":"Offer","price":"0.99","priceCurrency":"USD","name":"Cloud","description":"Cloud-hosted AI, works when your computer is off."},{"@type":"Offer","price":"1.99","priceCurrency":"USD","name":"Pro","description":"Priority cloud, faster models, email support."}],"description":"FreeLLM is a free, open source desktop app that runs the best AI models 100% locally on your computer. Your data never leaves your machine. Drop-in replacement for ChatGPT, Claude, and Gemini APIs. Works with Cursor, n8n, Zapier, LangChain.","url":"https://open-llm-ten.vercel.app","downloadUrl":"https://github.com/spideysense/OpenLLM/releases/latest","softwareVersion":"0.1.17","license":"https://opensource.org/licenses/MIT","screenshot":"https://open-llm-ten.vercel.app/og-image.png","featureList":["Run AI models locally","100% private — no data leaves your machine","Free forever","OpenAI-compatible API","Voice input","Image and file attachments","Public HTTPS URL via Cloudflare","Drop-in ChatGPT replacement","Works with Cursor, Zapier, n8n, LangChain"]}
+</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What is FreeLLM?","acceptedAnswer":{"@type":"Answer","text":"FreeLLM is a free, open source desktop app for Mac and Windows that runs the best AI language models — like Llama, Qwen, and DeepSeek — 100% locally on your computer. No subscriptions, no cloud, no data sharing. It works as a drop-in replacement for ChatGPT, Claude, and Gemini."}},{"@type":"Question","name":"Is FreeLLM really free?","acceptedAnswer":{"@type":"Answer","text":"Yes. The local version is free forever. You download the app, it runs AI models on your own hardware at zero cost. No credit card required."}},{"@type":"Question","name":"Does my data stay private with FreeLLM?","acceptedAnswer":{"@type":"Answer","text":"Yes, 100%. Everything runs on your local machine. Your conversations are never sent to any server — not to FreeLLM, not to anyone. Zero telemetry, zero data collection."}},{"@type":"Question","name":"What AI models does FreeLLM support?","acceptedAnswer":{"@type":"Answer","text":"FreeLLM supports Llama 3.3 (Meta), Qwen 2.5 (Alibaba), DeepSeek R1, Gemma 2 (Google), Qwen Coder, and many more. The app automatically recommends the best model for your hardware."}},{"@type":"Question","name":"Can I use FreeLLM as an API in my apps?","acceptedAnswer":{"@type":"Answer","text":"Yes. FreeLLM runs an OpenAI-compatible API on localhost:4000 and gives you a public HTTPS URL via Cloudflare. Change two lines of code — the base URL and API key — and your existing OpenAI integrations work instantly. Compatible with LangChain, Cursor, Continue.dev, n8n, Zapier, and AutoGen."}},{"@type":"Question","name":"What hardware do I need to run FreeLLM?","acceptedAnswer":{"@type":"Answer","text":"Any Mac or Windows PC with at least 8GB of RAM. 16GB or more is recommended. Apple Silicon Macs (M1/M2/M3/M4) and PCs with NVIDIA GPUs get the best performance."}},{"@type":"Question","name":"Does FreeLLM work offline?","acceptedAnswer":{"@type":"Answer","text":"Yes. Once a model is downloaded, FreeLLM works completely offline. No internet connection required for AI inference."}},{"@type":"Question","name":"How is FreeLLM different from ChatGPT?","acceptedAnswer":{"@type":"Answer","text":"FreeLLM runs entirely on your computer — your data never leaves your machine. ChatGPT sends all your conversations to OpenAI's servers. FreeLLM is also free forever, while ChatGPT Plus costs $20/month. The AI quality is comparable for most tasks."}},{"@type":"Question","name":"Can FreeLLM replace my ChatGPT or Claude subscription?","acceptedAnswer":{"@type":"Answer","text":"For most users, yes. FreeLLM runs models like Qwen 2.5 and Llama 3.3 that rival GPT-4 and Claude for everyday tasks — for free. You keep the $20/month subscription cost in your pocket."}}]}
+</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"HowTo","name":"How to run free private AI locally with FreeLLM","description":"Get your own private AI assistant running on your computer in under 2 minutes — for free.","totalTime":"PT2M","supply":[],"tool":[],"step":[{"@type":"HowToStep","position":1,"name":"Download FreeLLM","text":"Download the free FreeLLM app for Mac (.dmg) or Windows (.exe). One file, one click install.","url":"https://open-llm-ten.vercel.app/#pricing"},{"@type":"HowToStep","position":2,"name":"Open the app and install a model","text":"FreeLLM automatically detects your hardware and recommends the best AI model. Click Get Model — it downloads in the background.","url":"https://open-llm-ten.vercel.app/#how"},{"@type":"HowToStep","position":3,"name":"Start chatting — from anywhere","text":"Your AI is running 100% on your machine. Chat in the app, or use the public HTTPS URL to access it from your phone, Cursor, Zapier, or any OpenAI-compatible tool.","url":"https://open-llm-ten.vercel.app/#api"}]}
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -182,6 +188,7 @@
   <ul class="nav-links">
     <li><a href="#why">Why FreeLLM</a></li>
     <li><a href="#how">How It Works</a></li>
+    <li><a href="#faq">FAQ</a></li>
     <li><a href="#api">For Developers</a></li>
     <li><a href="https://github.com/spideysense/OpenLLM" target="_blank">GitHub</a></li>
     <li><a href="#" onclick="downloadApp(event)" class="nav-cta">Download Free</a></li>
@@ -507,6 +514,54 @@ response = client.chat.completions.<span class="fn">create</span>(
   </div>
 </section>
 
+<section style="padding:100px 24px;background:var(--cloud);text-align:left" id="faq">
+  <div style="max-width:800px;margin:0 auto">
+    <div style="text-align:center;margin-bottom:60px">
+      <span class="section-label">FAQ</span>
+      <h2 class="section-title">Common Questions</h2>
+      <p class="section-sub" style="margin-bottom:0">Everything you need to know about FreeLLM.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:2px">
+      <details style="background:var(--sky-top);border-radius:12px;padding:20px 24px;border:2px solid rgba(93,78,55,.06);cursor:pointer">
+        <summary style="font-family:var(--display);font-size:17px;font-weight:700;color:var(--earth);list-style:none;display:flex;justify-content:space-between;align-items:center">
+          Is FreeLLM really completely free? <span style="color:var(--accent);font-size:20px">+</span>
+        </summary>
+        <p style="margin-top:12px;font-size:15px;color:var(--text-light);line-height:1.7">Yes. The local version is free forever with no limits. You download the app, it runs AI models on your own hardware. No credit card, no trial, no hidden costs. Optional paid plans ($0.99–$1.99/mo) exist only if you want us to host it for you.</p>
+      </details>
+      <details style="background:var(--sky-top);border-radius:12px;padding:20px 24px;border:2px solid rgba(93,78,55,.06);cursor:pointer;margin-top:8px">
+        <summary style="font-family:var(--display);font-size:17px;font-weight:700;color:var(--earth);list-style:none;display:flex;justify-content:space-between;align-items:center">
+          Does my data actually stay private? <span style="color:var(--accent);font-size:20px">+</span>
+        </summary>
+        <p style="margin-top:12px;font-size:15px;color:var(--text-light);line-height:1.7">Yes, 100%. The AI model runs entirely on your CPU/GPU. Your conversations never leave your machine — not to us, not to Cloudflare, not to anyone. Zero telemetry. Zero data collection. You can inspect every line of code on GitHub to verify.</p>
+      </details>
+      <details style="background:var(--sky-top);border-radius:12px;padding:20px 24px;border:2px solid rgba(93,78,55,.06);cursor:pointer;margin-top:8px">
+        <summary style="font-family:var(--display);font-size:17px;font-weight:700;color:var(--earth);list-style:none;display:flex;justify-content:space-between;align-items:center">
+          Can I replace ChatGPT or Claude with FreeLLM? <span style="color:var(--accent);font-size:20px">+</span>
+        </summary>
+        <p style="margin-top:12px;font-size:15px;color:var(--text-light);line-height:1.7">For most tasks, yes. Models like Qwen 2.5 7B and Llama 3.3 70B rival GPT-4 and Claude for writing, coding, analysis, and Q&A. FreeLLM also gives you an OpenAI-compatible API — change two lines of code and your existing integrations work instantly.</p>
+      </details>
+      <details style="background:var(--sky-top);border-radius:12px;padding:20px 24px;border:2px solid rgba(93,78,55,.06);cursor:pointer;margin-top:8px">
+        <summary style="font-family:var(--display);font-size:17px;font-weight:700;color:var(--earth);list-style:none;display:flex;justify-content:space-between;align-items:center">
+          What hardware do I need? <span style="color:var(--accent);font-size:20px">+</span>
+        </summary>
+        <p style="margin-top:12px;font-size:15px;color:var(--text-light);line-height:1.7">Any Mac or Windows PC with 8GB+ RAM can run smaller models (3B–7B). For best results, 16GB RAM is recommended. Apple Silicon Macs (M1–M4) are exceptionally fast due to unified memory. NVIDIA GPU PCs also perform well. FreeLLM automatically detects your hardware and recommends the right model.</p>
+      </details>
+      <details style="background:var(--sky-top);border-radius:12px;padding:20px 24px;border:2px solid rgba(93,78,55,.06);cursor:pointer;margin-top:8px">
+        <summary style="font-family:var(--display);font-size:17px;font-weight:700;color:var(--earth);list-style:none;display:flex;justify-content:space-between;align-items:center">
+          Does it work offline? <span style="color:var(--accent);font-size:20px">+</span>
+        </summary>
+        <p style="margin-top:12px;font-size:15px;color:var(--text-light);line-height:1.7">Yes. Once a model is downloaded, FreeLLM works completely offline. No internet connection needed for AI inference. The only time you need internet is the initial model download and for the Cloudflare public URL feature.</p>
+      </details>
+      <details style="background:var(--sky-top);border-radius:12px;padding:20px 24px;border:2px solid rgba(93,78,55,.06);cursor:pointer;margin-top:8px">
+        <summary style="font-family:var(--display);font-size:17px;font-weight:700;color:var(--earth);list-style:none;display:flex;justify-content:space-between;align-items:center">
+          How do I use FreeLLM in Cursor, Zapier, or my own code? <span style="color:var(--accent);font-size:20px">+</span>
+        </summary>
+        <p style="margin-top:12px;font-size:15px;color:var(--text-light);line-height:1.7">FreeLLM runs an OpenAI-compatible API and gives you a public HTTPS URL. In any OpenAI SDK: set <code style="font-family:monospace;background:rgba(93,78,55,.08);padding:2px 6px;border-radius:4px">base_url</code> to your FreeLLM URL and <code style="font-family:monospace;background:rgba(93,78,55,.08);padding:2px 6px;border-radius:4px">api_key</code> to the key from the app. Works with LangChain, Cursor, Continue.dev, n8n, Zapier, AutoGen, and anything OpenAI-compatible.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
 <section style="padding:80px 24px;background:linear-gradient(180deg,var(--cloud) 0%,var(--sky) 100%);text-align:center">
   <h2 class="section-title">Own your AI. Own your data.</h2>
   <p class="section-sub">Free forever. Private by default. Running on your machine in 2 minutes.</p>
@@ -522,6 +577,7 @@ response = client.chat.completions.<span class="fn">create</span>(
   <div class="footer-links">
     <a href="#why">Why FreeLLM</a>
     <a href="#how">How It Works</a>
+    <a href="#faq">FAQ</a>
     <a href="#api">API Docs</a>
     <a href="#pricing">Pricing</a>
     <a href="https://github.com/spideysense/OpenLLM" target="_blank">GitHub</a>

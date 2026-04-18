@@ -310,11 +310,16 @@ async function install() {
 async function chat(model, messages, onChunk) {
   chatController = new AbortController();
 
-  try {
-    const res = await fetch(`${OLLAMA_HOST}/api/chat`, {
+  // Strip images from message history for non-vision requests (Ollama ignores gracefully,
+  // but keep them for the actual request to support vision models like llava, moondream)
+  const ollamaMessages = messages.map((m) => {
+    const msg = { role: m.role, content: m.content };
+    if (m.images && m.images.length > 0) msg.images = m.images;
+    return msg;
+  });
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, messages, stream: true }),
+      body: JSON.stringify({ model, messages: ollamaMessages, stream: true }),
       signal: chatController.signal,
     });
 
