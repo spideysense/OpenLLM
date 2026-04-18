@@ -16,7 +16,7 @@
   },
   "build": {
     "appId": "com.llmbear.app",
-    "productName": "LLM Bear",
+    "productName": "FreeLLM",
     "directories": {
       "output": "dist",
       "buildResources": "assets"
@@ -31,7 +31,7 @@
     ],
     "mac": {
       "category": "public.app-category.developer-tools",
-      "artifactName": "LLMBear-mac.${ext}",
+      "artifactName": "FreeLLM-mac.${ext}",
       "icon": "assets/icon.png",
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
@@ -62,7 +62,7 @@
           ]
         }
       ],
-      "artifactName": "LLMBear-win.${ext}"
+      "artifactName": "FreeLLM-win.${ext}"
     },
     "afterSign": "scripts/notarize.js",
     "publish": [
