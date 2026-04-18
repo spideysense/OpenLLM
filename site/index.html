@@ -787,13 +787,40 @@ html, body {
       <span id="subtitle-text"></span>
       <span class="cursor" id="cursor"></span>
     </div>
-    <!-- Tap to hear nudge (fades in after greeting starts, dismissed on interaction) -->
-    <div id="hear-prompt" onclick="enableVoiceAndSpeak(document.getElementById('subtitle-text').textContent)" style="opacity:0;transition:opacity 0.6s;margin-top:10px;text-align:center;cursor:pointer;">
-      <span style="font-family:var(--serif);font-size:13px;font-style:italic;color:var(--earth-light);background:rgba(253,249,243,.7);padding:5px 14px;border-radius:50px;border:1px solid rgba(155,120,88,.18);display:inline-flex;align-items:center;gap:6px;backdrop-filter:blur(6px)">
-        🔊 Tap to hear Monet
-      </span>
-    </div>
+
   </div>
+
+  <!-- Hear Monet button — appears after greeting, centered, disappears after first click -->
+  <button
+    id="hear-prompt"
+    onclick="enableVoiceAndSpeak(document.getElementById('subtitle-text').textContent)"
+    style="
+      opacity:0;
+      transition:opacity 0.5s, transform 0.3s;
+      transform:translateY(4px);
+      margin-top:12px;
+      font-family:var(--serif);
+      font-size:15px;
+      font-style:italic;
+      color:var(--earth);
+      background:rgba(253,249,243,0.92);
+      border:1.5px solid rgba(155,120,88,0.22);
+      border-radius:50px;
+      padding:11px 28px;
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      gap:9px;
+      backdrop-filter:blur(10px);
+      box-shadow:0 4px 20px rgba(61,46,32,0.10);
+      z-index:5;
+      pointer-events:none;
+    "
+    onmouseenter="this.style.background='rgba(155,126,200,0.15)';this.style.borderColor='var(--lavender)'"
+    onmouseleave="this.style.background='rgba(253,249,243,0.92)';this.style.borderColor='rgba(155,120,88,0.22)'"
+  >
+    <span style="font-size:18px">🔊</span> Hear Monet speak
+  </button>
 
   <!-- Navigation buttons -->
   <div class="nav-buttons" id="nav-buttons">
@@ -1083,24 +1110,38 @@ function startGreeting() {
 
 function showHearPrompt() {
   const prompt = document.getElementById('hear-prompt');
-  if (prompt) prompt.style.opacity = '1';
+  if (prompt) {
+    prompt.style.opacity = '1';
+    prompt.style.transform = 'translateY(0)';
+    prompt.style.pointerEvents = 'all';
+  }
 }
 
 function enableVoiceAndSpeak(text) {
   hasGesture = true;
   const prompt = document.getElementById('hear-prompt');
-  if (prompt) prompt.style.opacity = '0';
+  if (prompt) {
+    prompt.style.opacity = '0';
+    prompt.style.transform = 'translateY(-4px)';
+    prompt.style.pointerEvents = 'none';
+    setTimeout(() => { if (prompt.parentNode) prompt.style.display = 'none'; }, 500);
+  }
   speak(text, null);
 }
 
-// Any button click grants the gesture and can start/re-speak
 function grantGesture() {
-  if (!hasGesture) {
-    hasGesture = true;
-    const prompt = document.getElementById('hear-prompt');
-    if (prompt) prompt.style.opacity = '0';
+  if (hasGesture) return;
+  hasGesture = true;
+  const prompt = document.getElementById('hear-prompt');
+  if (prompt) {
+    prompt.style.opacity = '0';
+    prompt.style.pointerEvents = 'none';
+    setTimeout(() => { if (prompt.parentNode) prompt.style.display = 'none'; }, 500);
   }
 }
+
+// Any button click grants the gesture and can start/re-speak
+
 
 function showNavButtons() {
   navButtons.classList.add('visible');
