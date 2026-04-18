@@ -754,6 +754,12 @@ html, body {
       <span id="subtitle-text"></span>
       <span class="cursor" id="cursor"></span>
     </div>
+    <!-- Tap to hear nudge (fades in after greeting starts, dismissed on interaction) -->
+    <div id="hear-prompt" onclick="enableVoiceAndSpeak(document.getElementById('subtitle-text').textContent)" style="opacity:0;transition:opacity 0.6s;margin-top:10px;text-align:center;cursor:pointer;">
+      <span style="font-family:var(--serif);font-size:13px;font-style:italic;color:var(--earth-light);background:rgba(253,249,243,.7);padding:5px 14px;border-radius:50px;border:1px solid rgba(155,120,88,.18);display:inline-flex;align-items:center;gap:6px;backdrop-filter:blur(6px)">
+        🔊 Tap to hear Monet
+      </span>
+    </div>
   </div>
 
   <!-- Navigation buttons -->
@@ -763,6 +769,22 @@ html, body {
     <button class="nav-btn" onclick="respond('free')" id="btn-free">Is it really free?</button>
     <button class="nav-btn download-btn" onclick="openDownload()" id="btn-download">Download Monet ↓</button>
     <button class="nav-btn" onclick="respond('chat')" id="btn-chat">Ask me anything</button>
+  </div>
+
+  <!-- Value props strip (always visible, no interaction needed) -->
+  <div id="value-strip" style="display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:14px;z-index:5;opacity:0;transform:translateY(10px);transition:opacity 0.7s 0.3s,transform 0.7s 0.3s;">
+    <div style="font-family:var(--serif);font-size:13px;color:var(--earth);background:rgba(253,249,243,.82);border:1.5px solid rgba(90,140,106,.3);border-radius:50px;padding:7px 16px;backdrop-filter:blur(6px);display:flex;align-items:center;gap:6px;">
+      <span style="color:#5A8C6A;font-size:15px">✓</span> Replaces ChatGPT &amp; Claude
+    </div>
+    <div style="font-family:var(--serif);font-size:13px;color:var(--earth);background:rgba(253,249,243,.82);border:1.5px solid rgba(200,136,10,.3);border-radius:50px;padding:7px 16px;backdrop-filter:blur(6px);display:flex;align-items:center;gap:6px;">
+      <span style="color:#C8880A;font-size:15px">✓</span> Keep your $20/month
+    </div>
+    <div style="font-family:var(--serif);font-size:13px;color:var(--earth);background:rgba(253,249,243,.82);border:1.5px solid rgba(155,126,200,.3);border-radius:50px;padding:7px 16px;backdrop-filter:blur(6px);display:flex;align-items:center;gap:6px;">
+      <span style="color:#9B7EC8;font-size:15px">✓</span> Your data never leaves
+    </div>
+    <div style="font-family:var(--serif);font-size:13px;color:var(--earth);background:rgba(253,249,243,.82);border:1.5px solid rgba(58,114,184,.3);border-radius:50px;padding:7px 16px;backdrop-filter:blur(6px);display:flex;align-items:center;gap:6px;">
+      <span style="color:#3A72B8;font-size:15px">✓</span> Runs on your Mac or PC
+    </div>
   </div>
 
   <!-- Chat panel -->
@@ -812,12 +834,12 @@ const MAC_URL = REPO + '/releases/latest/download/Monet-mac.dmg';
 const WIN_URL = REPO + '/releases/latest/download/Monet-win.exe';
 
 // ── State ──
-let voiceEnabled = true;
-let isListening = false;
-let isSpeaking = false;
-let chatHistory = [];
-let recognition = null;
-let currentUtterance = null;
+let voiceEnabled  = true;
+let hasGesture    = false;   // Chrome blocks autoplay — gate speech on first user interaction
+let isListening   = false;
+let isSpeaking    = false;
+let chatHistory   = [];
+let recognition   = null;
 
 // ── Elements ──
 const subtitle = document.getElementById('subtitle');
@@ -984,9 +1006,19 @@ function typeText(text, speed = 28, onDone) {
   tick();
 }
 
+// once() ensures callback fires exactly once even if both typewriter and speech call it
+function once(fn) {
+  let fired = false;
+  return (...args) => { if (!fired) { fired = true; fn?.(...args); } };
+}
+
 function showText(text, callback) {
-  typeText(text, 24, callback);
-  speak(text, callback);
+  const done = once(callback);
+  typeText(text, 24, done);     // typewriter fires done when text finishes
+  if (voiceEnabled && hasGesture) {
+    speak(text, done);          // speech also fires done when audio ends
+  }
+  // If speech isn't playing, typewriter alone drives the callback
 }
 
 // ── Scripted responses ──
@@ -1004,20 +1036,51 @@ function startGreeting() {
   if (greeted) return;
   greeted = true;
   subtitle.classList.add('visible');
+
+  // Show text greeting immediately (no gesture needed for text)
   setTimeout(() => {
-    showText(LINES.greeting, () => {
-      setTimeout(showNavButtons, 600);
-    });
-  }, 800);
+    typeText(LINES.greeting, 22, () => setTimeout(showNavButtons, 600));
+  }, 400);
+
+  // Show a "tap to hear" nudge after text starts appearing
+  setTimeout(() => {
+    if (!hasGesture) showHearPrompt();
+  }, 1000);
+}
+
+function showHearPrompt() {
+  const prompt = document.getElementById('hear-prompt');
+  if (prompt) prompt.style.opacity = '1';
+}
+
+function enableVoiceAndSpeak(text) {
+  hasGesture = true;
+  const prompt = document.getElementById('hear-prompt');
+  if (prompt) prompt.style.opacity = '0';
+  speak(text, null);
+}
+
+// Any button click grants the gesture and can start/re-speak
+function grantGesture() {
+  if (!hasGesture) {
+    hasGesture = true;
+    const prompt = document.getElementById('hear-prompt');
+    if (prompt) prompt.style.opacity = '0';
+  }
 }
 
 function showNavButtons() {
   navButtons.classList.add('visible');
+  // Animate value strip in after buttons
+  setTimeout(() => {
+    const strip = document.getElementById('value-strip');
+    if (strip) { strip.style.opacity = '1'; strip.style.transform = 'translateY(0)'; }
+  }, 200);
 }
 
 // ── Button responses ──
 function respond(key) {
-  // Mark active
+  grantGesture();
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   const btn = document.getElementById('btn-' + key);
   if (btn) btn.classList.add('active');
@@ -1036,6 +1099,7 @@ function respond(key) {
 
 // ── AI Chat ──
 async function sendChat() {
+  grantGesture();
   const msg = chatInput.value.trim();
   if (!msg || isSpeaking) return;
   chatInput.value = '';
