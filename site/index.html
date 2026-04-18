@@ -522,36 +522,69 @@ html, body {
 
 <!-- Branding -->
 <div class="brand">
-  <svg class="brand-logo" width="36" height="36" viewBox="0 0 200 200">
-    <defs><clipPath id="bfc"><circle cx="100" cy="100" r="98"/></clipPath>
-    <filter id="bfs"><feGaussianBlur stdDeviation=".9" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-    <filter id="bfb"><feGaussianBlur stdDeviation="1.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-    </defs>
-    <circle cx="100" cy="100" r="100" fill="#FDF6EC"/>
-    <circle cx="72" cy="130" r="55" fill="#9B7EC8" opacity=".10" clip-path="url(#bfc)"/>
-    <g clip-path="url(#bfc)">
-      <g filter="url(#bfb)"><path d="M58 108 Q52 128 54 155 Q60 182 100 190 Q140 182 146 155 Q148 128 142 108 Q130 100 100 98 Q70 100 58 108 Z" fill="#EEE8DC" opacity=".97"/></g>
-      <rect x="86" y="118" width="28" height="32" rx="8" fill="#B88058" filter="url(#bfs)"/>
-      <ellipse cx="100" cy="95" rx="44" ry="52" fill="#C8906A" filter="url(#bfs)"/>
-      <ellipse cx="97" cy="74" rx="22" ry="14" fill="#D8A878" opacity=".50"/>
-      <ellipse cx="100" cy="58" rx="50" ry="16" fill="#28244A"/>
-      <path d="M55 55 Q63 24 100 18 Q137 24 145 55" fill="#28244A"/>
-      <ellipse cx="100" cy="18" rx="7" ry="6" fill="#28244A"/>
-      <path d="M56 80 Q50 94 52 112" stroke="#E8E4DC" stroke-width="7" fill="none" stroke-linecap="round" opacity=".72"/>
-      <path d="M144 80 Q150 94 148 112" stroke="#E8E4DC" stroke-width="7" fill="none" stroke-linecap="round" opacity=".72"/>
-      <path d="M74 103 Q88 108 100 106 Q112 108 126 103 Q118 116 100 113 Q82 116 74 103 Z" fill="#E8E2D4" opacity=".92"/>
-      <ellipse cx="84" cy="86" rx="5.5" ry="6.5" fill="#2A2018"/>
-      <ellipse cx="116" cy="86" rx="5.5" ry="6.5" fill="#2A2018"/>
-      <circle cx="86.5" cy="83.5" r="2.2" fill="white" opacity=".88"/>
-      <circle cx="118.5" cy="83.5" r="2.2" fill="white" opacity=".88"/>
-      <circle cx="84" cy="86" r="13" fill="none" stroke="#8B7040" stroke-width="2" opacity=".62"/>
-      <circle cx="116" cy="86" r="13" fill="none" stroke="#8B7040" stroke-width="2" opacity=".62"/>
-      <line x1="97" y1="86" x2="103" y2="86" stroke="#8B7040" stroke-width="2" opacity=".62"/>
-      <line x1="56" y1="81" x2="71" y2="84" stroke="#8B7040" stroke-width="2" opacity=".62"/>
-      <line x1="129" y1="84" x2="144" y2="81" stroke="#8B7040" stroke-width="2" opacity=".62"/>
-    </g>
-    <circle cx="100" cy="100" r="98" fill="none" stroke="#D8C8A8" stroke-width="2"/>
-  </svg>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" class="brand-logo" width="36" height="36">
+  <defs>
+    <radialGradient id="wood" cx="38%" cy="32%" r="72%">
+      <stop offset="0%"   stop-color="#D4883A"/>
+      <stop offset="45%"  stop-color="#B8702A"/>
+      <stop offset="100%" stop-color="#8B5018"/>
+    </radialGradient>
+    <radialGradient id="wood-edge" cx="50%" cy="50%" r="50%">
+      <stop offset="70%"  stop-color="transparent"/>
+      <stop offset="100%" stop-color="rgba(0,0,0,0.18)"/>
+    </radialGradient>
+    <filter id="blob-shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="1.5" stdDeviation="1.5" flood-color="rgba(0,0,0,0.25)"/>
+    </filter>
+    <filter id="palette-shadow" x="-8%" y="-6%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="rgba(100,60,10,0.35)"/>
+    </filter>
+  </defs>
+
+  <!-- Palette board — irregular oval, slightly rotated -->
+  <g transform="rotate(-12, 100, 100)" filter="url(#palette-shadow)">
+    <!-- Main board shape -->
+    <path d="M30 88 Q22 50 55 28 Q88 8 130 14 Q172 20 178 58 Q184 96 168 128 Q152 160 118 168 Q84 176 58 158 Q32 140 30 88 Z"
+          fill="url(#wood)"/>
+    <!-- Wood grain highlights -->
+    <path d="M40 80 Q36 55 62 36 Q88 17 122 22" stroke="rgba(255,220,150,0.25)" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M48 100 Q44 75 68 55 Q92 35 128 38" stroke="rgba(255,220,150,0.18)" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <!-- Edge shadow -->
+    <path d="M30 88 Q22 50 55 28 Q88 8 130 14 Q172 20 178 58 Q184 96 168 128 Q152 160 118 168 Q84 176 58 158 Q32 140 30 88 Z"
+          fill="url(#wood-edge)"/>
+    <!-- Thumb hole -->
+    <ellipse cx="76" cy="138" rx="17" ry="22" fill="#6B3A10"/>
+    <ellipse cx="76" cy="138" rx="13" ry="18" fill="#4A2508"/>
+    <!-- Hole highlight -->
+    <ellipse cx="72" cy="133" rx="5" ry="7" fill="rgba(255,180,80,0.15)"/>
+
+    <!-- Paint blobs — 6 colors from the Monet palette -->
+    <!-- Purple -->
+    <ellipse cx="80" cy="38" rx="17" ry="13" fill="#8B4AC8" filter="url(#blob-shadow)"/>
+    <ellipse cx="77" cy="35" rx="9" ry="6" fill="#B070E8" opacity=".7"/>
+
+    <!-- Blue -->
+    <ellipse cx="126" cy="32" rx="16" ry="12" fill="#2A68C0" filter="url(#blob-shadow)"/>
+    <ellipse cx="123" cy="29" rx="8" ry="5.5" fill="#5090E0" opacity=".7"/>
+
+    <!-- Red-Pink -->
+    <ellipse cx="160" cy="68" rx="15" ry="13" fill="#D03050" filter="url(#blob-shadow)"/>
+    <ellipse cx="157" cy="65" rx="8" ry="6" fill="#F05878" opacity=".7"/>
+
+    <!-- Green -->
+    <ellipse cx="160" cy="112" rx="14" ry="12" fill="#38A050" filter="url(#blob-shadow)"/>
+    <ellipse cx="157" cy="109" rx="7" ry="5.5" fill="#60C870" opacity=".7"/>
+
+    <!-- Yellow-Gold -->
+    <ellipse cx="128" cy="150" rx="16" ry="12" fill="#D0920A" filter="url(#blob-shadow)"/>
+    <ellipse cx="125" cy="147" rx="8.5" ry="5.5" fill="#F0B830" opacity=".7"/>
+
+    <!-- White/Cream -->
+    <ellipse cx="80" cy="62" rx="14" ry="11" fill="#E8E0D0" filter="url(#blob-shadow)"/>
+    <ellipse cx="77" cy="59" rx="7" ry="5" fill="#FAFAF5" opacity=".8"/>
+  </g>
+</svg>
+
   <div>
     <span class="brand-name">Monet</span>
     <span class="brand-tagline">The Free LLM</span>
@@ -809,7 +842,7 @@ html, body {
 <div class="modal-overlay" id="modal" onclick="if(event.target===this)closeModal()">
   <div class="modal" style="position:relative">
     <button class="modal-close" onclick="closeModal()">✕</button>
-    <div class="modal-logo">🎨</div>
+    <div class="modal-logo" style="font-size:52px;margin-bottom:4px">🎨</div>
     <h2>Download Monet</h2>
     <p>Free, private AI — running entirely on your machine.<br>No subscriptions. No data sharing. Just art.</p>
     <div class="modal-btns">

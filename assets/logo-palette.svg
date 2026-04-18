@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <radialGradient id="wood" cx="38%" cy="32%" r="72%">
+      <stop offset="0%"   stop-color="#D4883A"/>
+      <stop offset="45%"  stop-color="#B8702A"/>
+      <stop offset="100%" stop-color="#8B5018"/>
+    </radialGradient>
+    <radialGradient id="wood-edge" cx="50%" cy="50%" r="50%">
+      <stop offset="70%"  stop-color="transparent"/>
+      <stop offset="100%" stop-color="rgba(0,0,0,0.18)"/>
+    </radialGradient>
+    <filter id="blob-shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="1.5" stdDeviation="1.5" flood-color="rgba(0,0,0,0.25)"/>
+    </filter>
+    <filter id="palette-shadow" x="-8%" y="-6%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="rgba(100,60,10,0.35)"/>
+    </filter>
+  </defs>
+
+  <!-- Palette board — irregular oval, slightly rotated -->
+  <g transform="rotate(-12, 100, 100)" filter="url(#palette-shadow)">
+    <!-- Main board shape -->
+    <path d="M30 88 Q22 50 55 28 Q88 8 130 14 Q172 20 178 58 Q184 96 168 128 Q152 160 118 168 Q84 176 58 158 Q32 140 30 88 Z"
+          fill="url(#wood)"/>
+    <!-- Wood grain highlights -->
+    <path d="M40 80 Q36 55 62 36 Q88 17 122 22" stroke="rgba(255,220,150,0.25)" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M48 100 Q44 75 68 55 Q92 35 128 38" stroke="rgba(255,220,150,0.18)" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <!-- Edge shadow -->
+    <path d="M30 88 Q22 50 55 28 Q88 8 130 14 Q172 20 178 58 Q184 96 168 128 Q152 160 118 168 Q84 176 58 158 Q32 140 30 88 Z"
+          fill="url(#wood-edge)"/>
+    <!-- Thumb hole -->
+    <ellipse cx="76" cy="138" rx="17" ry="22" fill="#6B3A10"/>
+    <ellipse cx="76" cy="138" rx="13" ry="18" fill="#4A2508"/>
+    <!-- Hole highlight -->
+    <ellipse cx="72" cy="133" rx="5" ry="7" fill="rgba(255,180,80,0.15)"/>
+
+    <!-- Paint blobs — 6 colors from the Monet palette -->
+    <!-- Purple -->
+    <ellipse cx="80" cy="38" rx="17" ry="13" fill="#8B4AC8" filter="url(#blob-shadow)"/>
+    <ellipse cx="77" cy="35" rx="9" ry="6" fill="#B070E8" opacity=".7"/>
+
+    <!-- Blue -->
+    <ellipse cx="126" cy="32" rx="16" ry="12" fill="#2A68C0" filter="url(#blob-shadow)"/>
+    <ellipse cx="123" cy="29" rx="8" ry="5.5" fill="#5090E0" opacity=".7"/>
+
+    <!-- Red-Pink -->
+    <ellipse cx="160" cy="68" rx="15" ry="13" fill="#D03050" filter="url(#blob-shadow)"/>
+    <ellipse cx="157" cy="65" rx="8" ry="6" fill="#F05878" opacity=".7"/>
+
+    <!-- Green -->
+    <ellipse cx="160" cy="112" rx="14" ry="12" fill="#38A050" filter="url(#blob-shadow)"/>
+    <ellipse cx="157" cy="109" rx="7" ry="5.5" fill="#60C870" opacity=".7"/>
+
+    <!-- Yellow-Gold -->
+    <ellipse cx="128" cy="150" rx="16" ry="12" fill="#D0920A" filter="url(#blob-shadow)"/>
+    <ellipse cx="125" cy="147" rx="8.5" ry="5.5" fill="#F0B830" opacity=".7"/>
+
+    <!-- White/Cream -->
+    <ellipse cx="80" cy="62" rx="14" ry="11" fill="#E8E0D0" filter="url(#blob-shadow)"/>
+    <ellipse cx="77" cy="59" rx="7" ry="5" fill="#FAFAF5" opacity=".8"/>
+  </g>
+</svg>

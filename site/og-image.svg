@@ -1,129 +1,141 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630">
   <defs>
-    <filter id="soft"><feGaussianBlur stdDeviation="1" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-    <filter id="bd"><feGaussianBlur stdDeviation="1.8" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-    <clipPath id="cc"><circle cx="230" cy="315" r="215"/></clipPath>
-    <radialGradient id="bg" cx="45%" cy="50%" r="80%">
-      <stop offset="0%" stop-color="#FDF9F3"/>
-      <stop offset="100%" stop-color="#EDE4D4"/>
+    <radialGradient id="bg1" cx="30%" cy="40%" r="70%">
+      <stop offset="0%" stop-color="#9B7EC8" stop-opacity="0.28"/>
+      <stop offset="100%" stop-color="#9B7EC8" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="bg2" cx="75%" cy="65%" r="60%">
+      <stop offset="0%" stop-color="#5A8C6A" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#5A8C6A" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="bg3" cx="55%" cy="20%" r="55%">
+      <stop offset="0%" stop-color="#3A72B8" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#3A72B8" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="bg4" cx="85%" cy="25%" r="50%">
+      <stop offset="0%" stop-color="#C05888" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="#C05888" stop-opacity="0"/>
     </radialGradient>
   </defs>
 
   <!-- Background -->
-  <rect width="1200" height="630" fill="url(#bg)"/>
-  <!-- Impressionist color washes -->
-  <ellipse cx="200" cy="200" rx="380" ry="300" fill="#9B7EC8" opacity=".22"/>
-  <ellipse cx="900" cy="480" rx="340" ry="260" fill="#5A8C6A" opacity=".18"/>
-  <ellipse cx="700" cy="150" rx="300" ry="220" fill="#3A72B8" opacity=".15"/>
-  <ellipse cx="1100" cy="200" rx="280" ry="200" fill="#C05888" opacity=".13"/>
-  <ellipse cx="300" cy="580" rx="260" ry="180" fill="#C8880A" opacity=".12"/>
-  <ellipse cx="950" cy="100" rx="240" ry="180" fill="#9B7EC8" opacity=".14"/>
+  <rect width="1200" height="630" fill="#F8F2E6"/>
+  <rect width="1200" height="630" fill="url(#bg1)"/>
+  <rect width="1200" height="630" fill="url(#bg2)"/>
+  <rect width="1200" height="630" fill="url(#bg3)"/>
+  <rect width="1200" height="630" fill="url(#bg4)"/>
 
-  <!-- Face circle on left -->
-  <circle cx="230" cy="315" r="215" fill="#FDF6EC"/>
-  <circle cx="230" cy="315" r="215" fill="none" stroke="#D8C8A8" stroke-width="3"/>
+  <!-- Left side: palette logo — large, centered vertically -->
+  <g transform="translate(80, 155)">
+    
+  <defs>
+    <radialGradient id="wood" cx="38%" cy="32%" r="72%">
+      <stop offset="0%"   stop-color="#D4883A"/>
+      <stop offset="45%"  stop-color="#B8702A"/>
+      <stop offset="100%" stop-color="#8B5018"/>
+    </radialGradient>
+    <radialGradient id="wood-edge" cx="50%" cy="50%" r="50%">
+      <stop offset="70%"  stop-color="transparent"/>
+      <stop offset="100%" stop-color="rgba(0,0,0,0.18)"/>
+    </radialGradient>
+    <filter id="blob-shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="1.5" stdDeviation="1.5" flood-color="rgba(0,0,0,0.25)"/>
+    </filter>
+    <filter id="palette-shadow" x="-8%" y="-6%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="rgba(100,60,10,0.35)"/>
+    </filter>
+  </defs>
 
-  <!-- Impressionist washes inside circle -->
-  <circle cx="185" cy="370" r="120" fill="#9B7EC8" opacity=".08" clip-path="url(#cc)"/>
-  <circle cx="290" cy="250" r="100" fill="#3A72B8" opacity=".07" clip-path="url(#cc)"/>
+  <!-- Palette board — irregular oval, slightly rotated -->
+  <g transform="rotate(-12, 100, 100)" filter="url(#palette-shadow)">
+    <!-- Main board shape -->
+    <path d="M30 88 Q22 50 55 28 Q88 8 130 14 Q172 20 178 58 Q184 96 168 128 Q152 160 118 168 Q84 176 58 158 Q32 140 30 88 Z"
+          fill="url(#wood)"/>
+    <!-- Wood grain highlights -->
+    <path d="M40 80 Q36 55 62 36 Q88 17 122 22" stroke="rgba(255,220,150,0.25)" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M48 100 Q44 75 68 55 Q92 35 128 38" stroke="rgba(255,220,150,0.18)" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <!-- Edge shadow -->
+    <path d="M30 88 Q22 50 55 28 Q88 8 130 14 Q172 20 178 58 Q184 96 168 128 Q152 160 118 168 Q84 176 58 158 Q32 140 30 88 Z"
+          fill="url(#wood-edge)"/>
+    <!-- Thumb hole -->
+    <ellipse cx="76" cy="138" rx="17" ry="22" fill="#6B3A10"/>
+    <ellipse cx="76" cy="138" rx="13" ry="18" fill="#4A2508"/>
+    <!-- Hole highlight -->
+    <ellipse cx="72" cy="133" rx="5" ry="7" fill="rgba(255,180,80,0.15)"/>
 
-  <!-- Paint dabs around circle -->
-  <circle cx="42"  cy="180" r="9"  fill="#9B7EC8" opacity=".55"/>
-  <circle cx="35"  cy="195" r="5"  fill="#C05888" opacity=".48"/>
-  <circle cx="418" cy="170" r="9"  fill="#3A72B8" opacity=".55"/>
-  <circle cx="425" cy="185" r="5"  fill="#5A8C6A" opacity=".48"/>
-  <circle cx="55"  cy="450" r="7"  fill="#C8880A" opacity=".50"/>
-  <circle cx="405" cy="455" r="7"  fill="#9B7EC8" opacity=".50"/>
-  <circle cx="230" cy="96"  r="7"  fill="#C05888" opacity=".52"/>
-  <circle cx="218" cy="88"  r="4"  fill="#3A72B8" opacity=".42"/>
-  <circle cx="230" cy="534" r="6"  fill="#5A8C6A" opacity=".48"/>
+    <!-- Paint blobs — 6 colors from the Monet palette -->
+    <!-- Purple -->
+    <ellipse cx="80" cy="38" rx="17" ry="13" fill="#8B4AC8" filter="url(#blob-shadow)"/>
+    <ellipse cx="77" cy="35" rx="9" ry="6" fill="#B070E8" opacity=".7"/>
 
-  <g clip-path="url(#cc)">
-    <!-- Beard -->
-    <g filter="url(#bd)">
-      <path d="M145 330 Q138 355 140 385 Q148 415 230 422 Q312 415 320 385 Q322 355 315 330 Q300 322 230 320 Q160 322 145 330 Z" fill="#EEE8DC" opacity=".97"/>
-      <path d="M158 334 Q155 360 157 388 Q165 413 230 420" stroke="#C8C0B0" stroke-width="2" fill="none" opacity=".35"/>
-      <path d="M230 322 Q230 370 230 420" stroke="#C8C0B0" stroke-width="1.5" fill="none" opacity=".28"/>
-      <path d="M302 334 Q305 360 303 388 Q295 413 230 420" stroke="#C8C0B0" stroke-width="2" fill="none" opacity=".35"/>
-    </g>
-    <!-- Neck -->
-    <rect x="212" y="305" width="36" height="38" rx="10" fill="#B88058" filter="url(#soft)"/>
-    <!-- Head -->
-    <ellipse cx="230" cy="270" rx="74" ry="85" fill="#C8906A" filter="url(#soft)"/>
-    <ellipse cx="226" cy="245" rx="36" ry="22" fill="#D8A878" opacity=".48"/>
-    <ellipse cx="195" cy="278" rx="20" ry="16" fill="#D89068" opacity=".28"/>
-    <ellipse cx="265" cy="278" rx="20" ry="16" fill="#D89068" opacity=".28"/>
-    <!-- Beret -->
-    <ellipse cx="230" cy="197" rx="82" ry="26" fill="#28244A"/>
-    <path d="M155 192 Q168 148 230 140 Q292 148 305 192" fill="#28244A"/>
-    <ellipse cx="230" cy="140" rx="11" ry="9" fill="#28244A"/>
-    <path d="M168 165 Q188 150 230 146" stroke="#3D3870" stroke-width="3.5" fill="none" opacity=".42"/>
-    <!-- White hair -->
-    <path d="M157 220 Q148 238 150 260" stroke="#E8E4DC" stroke-width="11" fill="none" stroke-linecap="round" opacity=".70"/>
-    <path d="M303 220 Q312 238 310 260" stroke="#E8E4DC" stroke-width="11" fill="none" stroke-linecap="round" opacity=".70"/>
-    <!-- Mustache -->
-    <path d="M170 296 Q200 304 230 301 Q260 304 290 296 Q280 316 230 312 Q180 316 170 296 Z" fill="#E8E2D4" opacity=".92"/>
-    <!-- Eyes -->
-    <ellipse cx="205" cy="254" rx="8.5" ry="10" fill="#2A2018"/>
-    <ellipse cx="255" cy="254" rx="8.5" ry="10" fill="#2A2018"/>
-    <circle cx="209" cy="249" r="3.5" fill="white" opacity=".88"/>
-    <circle cx="259" cy="249" r="3.5" fill="white" opacity=".88"/>
-    <!-- Eyebrows -->
-    <path d="M188 238 Q204 231 220 234" stroke="#5A4830" stroke-width="5.5" fill="none" stroke-linecap="round" opacity=".80"/>
-    <path d="M240 234 Q256 231 272 238" stroke="#5A4830" stroke-width="5.5" fill="none" stroke-linecap="round" opacity=".80"/>
-    <!-- Glasses -->
-    <circle cx="205" cy="254" r="21" fill="none" stroke="#8B7040" stroke-width="3.5" opacity=".60"/>
-    <circle cx="255" cy="254" r="21" fill="none" stroke="#8B7040" stroke-width="3.5" opacity=".60"/>
-    <line x1="226" y1="254" x2="234" y2="254" stroke="#8B7040" stroke-width="3.5" opacity=".60"/>
-    <line x1="148" y1="247" x2="184" y2="252" stroke="#8B7040" stroke-width="3" opacity=".60"/>
-    <line x1="276" y1="252" x2="312" y2="247" stroke="#8B7040" stroke-width="3" opacity=".60"/>
-    <!-- Nose -->
-    <ellipse cx="230" cy="272" rx="9" ry="11" fill="#B87850" opacity=".50"/>
+    <!-- Blue -->
+    <ellipse cx="126" cy="32" rx="16" ry="12" fill="#2A68C0" filter="url(#blob-shadow)"/>
+    <ellipse cx="123" cy="29" rx="8" ry="5.5" fill="#5090E0" opacity=".7"/>
+
+    <!-- Red-Pink -->
+    <ellipse cx="160" cy="68" rx="15" ry="13" fill="#D03050" filter="url(#blob-shadow)"/>
+    <ellipse cx="157" cy="65" rx="8" ry="6" fill="#F05878" opacity=".7"/>
+
+    <!-- Green -->
+    <ellipse cx="160" cy="112" rx="14" ry="12" fill="#38A050" filter="url(#blob-shadow)"/>
+    <ellipse cx="157" cy="109" rx="7" ry="5.5" fill="#60C870" opacity=".7"/>
+
+    <!-- Yellow-Gold -->
+    <ellipse cx="128" cy="150" rx="16" ry="12" fill="#D0920A" filter="url(#blob-shadow)"/>
+    <ellipse cx="125" cy="147" rx="8.5" ry="5.5" fill="#F0B830" opacity=".7"/>
+
+    <!-- White/Cream -->
+    <ellipse cx="80" cy="62" rx="14" ry="11" fill="#E8E0D0" filter="url(#blob-shadow)"/>
+    <ellipse cx="77" cy="59" rx="7" ry="5" fill="#FAFAF5" opacity=".8"/>
   </g>
 
-  <!-- RIGHT SIDE — text content -->
-  <!-- "Monet" in large serif -->
-  <text x="540" y="200" font-family="Georgia,serif" font-size="128" font-weight="700" fill="#3D2E20" letter-spacing="-3">Monet</text>
 
-  <!-- Underline accent in lavender -->
-  <rect x="540" y="218" width="560" height="5" rx="2.5" fill="#9B7EC8" opacity=".55"/>
+  </g>
+
+  <!-- Vertical divider -->
+  <line x1="480" y1="80" x2="480" y2="550" stroke="#D8C8A8" stroke-width="1.5"/>
+
+  <!-- Right side: text -->
+  <!-- Product name -->
+  <text x="530" y="148" font-family="Georgia,serif" font-size="110" font-weight="700" fill="#3D2E20" letter-spacing="-3">Monet</text>
+
+  <!-- Accent line under name -->
+  <rect x="530" y="165" width="600" height="5" rx="2.5" fill="#9B7EC8" opacity=".5"/>
 
   <!-- Tagline -->
-  <text x="543" y="272" font-family="Georgia,serif" font-size="28" font-style="italic" fill="#6B5040" letter-spacing="0.5">The Free LLM</text>
+  <text x="533" y="218" font-family="Georgia,serif" font-size="30" font-style="italic" fill="#6B5040">The Free LLM</text>
 
-  <!-- Divider line -->
-  <line x1="540" y1="300" x2="1140" y2="300" stroke="#D8C8A8" stroke-width="1"/>
+  <!-- Divider -->
+  <line x1="530" y1="248" x2="1130" y2="248" stroke="#D8C8A8" stroke-width="1"/>
 
-  <!-- Value props as badges -->
-  <!-- Badge 1: Free forever -->
-  <rect x="540" y="325" width="160" height="42" rx="21" fill="#EEE8DC" stroke="#9B7EC8" stroke-width="1.5"/>
-  <text x="620" y="351" text-anchor="middle" font-family="Georgia,serif" font-size="16" fill="#5B3A8E">Free forever</text>
+  <!-- Value props -->
+  <text x="533" y="298" font-family="Georgia,serif" font-size="24" fill="#5A8C6A">✓</text>
+  <text x="563" y="298" font-family="Georgia,serif" font-size="24" fill="#3D2E20">  Replaces ChatGPT, Claude &amp; Gemini</text>
 
-  <!-- Badge 2: 100% private -->
-  <rect x="714" y="325" width="160" height="42" rx="21" fill="#EEE8DC" stroke="#C05888" stroke-width="1.5"/>
-  <text x="794" y="351" text-anchor="middle" font-family="Georgia,serif" font-size="16" fill="#8B2858">100% private</text>
+  <text x="533" y="342" font-family="Georgia,serif" font-size="24" fill="#C8880A">✓</text>
+  <text x="563" y="342" font-family="Georgia,serif" font-size="24" fill="#3D2E20">  Keep your $20/month</text>
 
-  <!-- Badge 3: Runs locally -->
-  <rect x="888" y="325" width="148" height="42" rx="21" fill="#EEE8DC" stroke="#3A72B8" stroke-width="1.5"/>
-  <text x="962" y="351" text-anchor="middle" font-family="Georgia,serif" font-size="16" fill="#1A4A88">Runs locally</text>
+  <text x="533" y="386" font-family="Georgia,serif" font-size="24" fill="#9B7EC8">✓</text>
+  <text x="563" y="386" font-family="Georgia,serif" font-size="24" fill="#3D2E20">  Your data never leaves your machine</text>
 
-  <!-- Main description -->
-  <text x="540" y="410" font-family="Georgia,serif" font-size="22" fill="#6B5040">Your AI runs entirely on your computer.</text>
-  <text x="540" y="444" font-family="Georgia,serif" font-size="22" fill="#6B5040">Free. Private. No subscription. No cloud.</text>
-  <text x="540" y="478" font-family="Georgia,serif" font-size="22" fill="#6B5040">Your conversations never leave your machine.</text>
+  <text x="533" y="430" font-family="Georgia,serif" font-size="24" fill="#3A72B8">✓</text>
+  <text x="563" y="430" font-family="Georgia,serif" font-size="24" fill="#3D2E20">  Free forever. No subscription.</text>
 
-  <!-- Download badge at bottom -->
-  <rect x="540" y="520" width="220" height="52" rx="26" fill="#C8880A"/>
-  <text x="650" y="552" text-anchor="middle" font-family="Georgia,serif" font-size="20" font-style="italic" fill="white">Download Free ↓</text>
+  <!-- Download pill -->
+  <rect x="530" y="466" width="250" height="58" rx="29" fill="#C8880A"/>
+  <text x="655" y="501" text-anchor="middle" font-family="Georgia,serif" font-size="22" font-style="italic" fill="white">Download Free ↓</text>
 
-  <!-- Platform text -->
-  <text x="775" y="548" font-family="Georgia,serif" font-size="16" fill="#9B7858" font-style="italic">Mac &amp; Windows</text>
+  <!-- Platform -->
+  <text x="795" y="498" font-family="Georgia,serif" font-size="17" fill="#9B7858" font-style="italic">Mac &amp; Windows</text>
 
-  <!-- Floating paint dabs right side -->
-  <circle cx="1080" cy="340" r="8"  fill="#9B7EC8" opacity=".45"/>
-  <circle cx="1090" cy="355" r="5"  fill="#C05888" opacity=".40"/>
-  <circle cx="1150" cy="420" r="7"  fill="#3A72B8" opacity=".42"/>
-  <circle cx="1160" cy="435" r="4"  fill="#5A8C6A" opacity=".38"/>
-  <circle cx="1120" cy="280" r="9"  fill="#C8880A" opacity=".38"/>
-  <circle cx="560"  cy="490" r="5"  fill="#9B7EC8" opacity=".40"/>
+  <!-- URL at bottom -->
+  <text x="530" y="560" font-family="Georgia,serif" font-size="15" fill="#B09878" font-style="italic">open-llm-ten.vercel.app</text>
+
+  <!-- Paint dabs scattered -->
+  <circle cx="1120" cy="120" r="9"  fill="#9B7EC8" opacity=".45"/>
+  <circle cx="1132" cy="136" r="5"  fill="#C05888" opacity=".38"/>
+  <circle cx="1150" cy="480" r="8"  fill="#3A72B8" opacity=".42"/>
+  <circle cx="1165" cy="498" r="5"  fill="#5A8C6A" opacity=".38"/>
+  <circle cx="510"  cy="580" r="6"  fill="#C8880A" opacity=".40"/>
+  <circle cx="498"  cy="570" r="4"  fill="#9B7EC8" opacity=".35"/>
 </svg>
