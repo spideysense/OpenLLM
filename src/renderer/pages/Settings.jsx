@@ -40,7 +40,7 @@ export default function Settings() {
       {/* System Info */}
       <div className="card mb-6">
         <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 700, color: 'var(--earth)', marginBottom: 12 }}>
-          🐻 Your Machine
+          💻 Your Machine
         </h3>
         {systemInfo ? (
           <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', gap: '8px 16px', fontSize: 14 }}>

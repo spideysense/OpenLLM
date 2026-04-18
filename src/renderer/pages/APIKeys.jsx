@@ -157,7 +157,7 @@ export default function APIKeys() {
 
       {/* ── Key explanation ── */}
       <div className="upgrade-banner" style={{ marginBottom: 24 }}>
-        <div className="bear">🐻🙈</div>
+        <div className="bear">🎨</div>
         <div className="upgrade-banner-text">
           <h4>Keys are 100% local</h4>
           <p>They never leave your machine. They just give your apps something to authenticate with.</p>

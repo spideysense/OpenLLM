@@ -27,16 +27,39 @@ export default function Chat() {
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
   const recognitionRef = useRef(null);
-
-  const convo = conversations.find((c) => c.id === activeConvo);
-  const messages = convo?.messages || [];
-  const moneySaved = (totalExchanges * COST_PER_EXCHANGE).toFixed(2);
+  const saveTimer = useRef(null);
 
   // Load saved exchange count
   useEffect(() => {
     if (!bridge) return;
     bridge.store.get('totalExchanges').then((n) => setTotalExchanges(n || 0)).catch(() => {});
   }, [bridge]);
+
+  const convo = conversations.find((c) => c.id === activeConvo);
+  const messages = convo?.messages || [];
+  const moneySaved = (totalExchanges * COST_PER_EXCHANGE).toFixed(2);
+
+  // Load saved conversations on mount
+  useEffect(() => {
+    if (!bridge?.conversations) return;
+    bridge.conversations.load().then((saved) => {
+      if (saved && saved.length > 0) {
+        setConversations(saved);
+        setActiveConvo(saved[saved.length - 1].id);
+      }
+    }).catch(() => {});
+  }, [bridge]);
+
+  // Save conversations whenever they change (debounced)
+  const saveTimer = useRef(null);
+  useEffect(() => {
+    if (!bridge?.conversations || conversations.length === 0) return;
+    clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      bridge.conversations.save(conversations).catch(() => {});
+    }, 800);
+    return () => clearTimeout(saveTimer.current);
+  }, [bridge, conversations]);
 
   // Check voice support
   useEffect(() => {
@@ -189,8 +212,23 @@ export default function Chat() {
 
   const newConvo = () => {
     const id = Date.now();
-    setConversations((prev) => [...prev, { id, title: 'New Chat', messages: [] }]);
+    const newC = { id, title: 'New Chat', messages: [] };
+    setConversations((prev) => [...prev, newC]);
     setActiveConvo(id);
+  };
+
+  const deleteConvo = (id) => {
+    setConversations((prev) => {
+      const remaining = prev.filter((c) => c.id !== id);
+      if (remaining.length === 0) {
+        const fresh = { id: Date.now(), title: 'New Chat', messages: [] };
+        setActiveConvo(fresh.id);
+        return [fresh];
+      }
+      if (id === activeConvo) setActiveConvo(remaining[remaining.length - 1].id);
+      return remaining;
+    });
+    bridge?.conversations.delete(id).catch(() => {});
   };
 
   const stopStreaming = () => {
@@ -201,10 +239,47 @@ export default function Chat() {
   const hasVision = isVisionModel(activeModel);
 
   return (
-    <div className="chat-container">
+    <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
+      {/* Conversation history panel */}
+      <div style={{
+        width: 200, flexShrink: 0, borderRight: '1.5px solid rgba(93,78,55,.08)',
+        display: 'flex', flexDirection: 'column', background: 'rgba(93,78,55,.02)', overflow: 'hidden',
+      }}>
+        <div style={{ padding: '12px 12px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: 1 }}>Chats</span>
+          <button onClick={newConvo} style={{ background: 'var(--pipe-yellow)', border: 'none', borderRadius: 6, padding: '3px 8px', fontSize: 13, fontWeight: 700, cursor: 'pointer', color: 'var(--earth)' }}>+</button>
+        </div>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '0 6px 8px' }}>
+          {[...conversations].reverse().map((c) => (
+            <div
+              key={c.id}
+              style={{
+                borderRadius: 8, padding: '7px 10px', marginBottom: 2, cursor: 'pointer',
+                background: c.id === activeConvo ? 'rgba(245,166,35,.15)' : 'transparent',
+                border: c.id === activeConvo ? '1.5px solid rgba(245,166,35,.3)' : '1.5px solid transparent',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4,
+              }}
+              onClick={() => setActiveConvo(c.id)}
+            >
+              <span style={{ fontSize: 12, color: 'var(--text-mid)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, fontWeight: c.id === activeConvo ? 700 : 400 }}>
+                {c.title || 'New Chat'}
+              </span>
+              {conversations.length > 1 && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); deleteConvo(c.id); }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-light)', fontSize: 12, padding: '0 2px', lineHeight: 1, opacity: 0.5, flexShrink: 0 }}
+                >✕</button>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Main chat area */}
+      <div className="chat-container" style={{ flex: 1, minWidth: 0 }}>
       {/* Header */}
       <div className="chat-header">
-        <span style={{ fontSize: 24 }}>🐻</span>
+        <span style={{ fontSize: 24 }}>🎨</span>
         <h2>Chat</h2>
 
         {/* Savings counter */}
@@ -232,14 +307,14 @@ export default function Chat() {
           ))}
         </select>
 
-        <button className="btn btn-sm btn-secondary" onClick={newConvo}>+ New</button>
+        <button className="btn btn-sm btn-secondary" onClick={newConvo} style={{ display: 'none' }}>+ New</button>
       </div>
 
       {/* Messages */}
       <div className="chat-messages">
         {messages.length === 0 && !streamBuffer && (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', opacity: 0.6 }}>
-            <div style={{ fontSize: 64, marginBottom: 12 }}>🐻</div>
+            <div style={{ fontSize: 64, marginBottom: 12 }}>🎨</div>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, color: 'var(--earth)', marginBottom: 6 }}>Ask Monet anything!</div>
             <div style={{ fontSize: 14, color: 'var(--text-light)', maxWidth: 300, textAlign: 'center', lineHeight: 1.5 }}>
               Everything stays on your machine. Your data, always private. 🎨
@@ -249,7 +324,7 @@ export default function Chat() {
 
         {messages.map((msg, i) => (
           <div key={i} className={`chat-message ${msg.role}`}>
-            <div className="chat-avatar">{msg.role === 'assistant' ? '🐻' : '👤'}</div>
+            <div className="chat-avatar">{msg.role === 'assistant' ? '🎨' : '👤'}</div>
             <div className="chat-bubble">
               {msg.attachmentPreviews?.map((a, j) => (
                 a.type === 'image'
@@ -263,7 +338,7 @@ export default function Chat() {
 
         {(isStreaming || streamBuffer) && (
           <div className="chat-message assistant">
-            <div className="chat-avatar">🐻</div>
+            <div className="chat-avatar">🎨</div>
             <div className="chat-bubble">
               <MessageContent content={streamBuffer || ''} />
               {isStreaming && (
@@ -354,10 +429,11 @@ export default function Chat() {
             disabled={(!input.trim() && attachments.length === 0) || !activeModel}
             title="Send"
           >
-            🐾
+            🖌️
           </button>
         )}
       </div>
+    </div>
     </div>
   );
 }

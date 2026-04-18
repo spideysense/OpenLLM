@@ -10,6 +10,7 @@ const registry = require('./registry');
 const store = require('./store');
 const tunnel = require('./tunnel');
 const updater = require('./updater');
+const conversations = require('./conversations');
 
 const isDev = !app.isPackaged;
 let mainWindow = null;
@@ -333,6 +334,23 @@ ipcMain.handle('app:openExternal', async (event, url) => {
   } catch {
     console.warn('[Security] Blocked openExternal with invalid URL');
   }
+});
+
+// ── Conversation Persistence ──
+ipcMain.handle('conversations:load', async () => {
+  return conversations.load();
+});
+
+ipcMain.handle('conversations:save', async (event, convos) => {
+  return conversations.save(convos);
+});
+
+ipcMain.handle('conversations:delete', async (event, id) => {
+  return conversations.deleteConversation(id);
+});
+
+ipcMain.handle('conversations:clear', async () => {
+  return conversations.clear();
 });
 
 ipcMain.handle('app:getVersion', async () => {

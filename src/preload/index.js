@@ -88,6 +88,14 @@ contextBridge.exposeInMainWorld('monet', {
     getVersion: () => ipcRenderer.invoke('app:getVersion'),
   },
 
+  // ── Conversations ──
+  conversations: {
+    load: () => ipcRenderer.invoke('conversations:load'),
+    save: (convos) => ipcRenderer.invoke('conversations:save', convos),
+    delete: (id) => ipcRenderer.invoke('conversations:delete', id),
+    clear: () => ipcRenderer.invoke('conversations:clear'),
+  },
+
   // ── Tunnel ──
   tunnel: {
     getStatus: () => ipcRenderer.invoke('tunnel:getStatus'),

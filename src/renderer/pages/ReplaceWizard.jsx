@@ -177,7 +177,7 @@ export default function ReplaceWizard() {
               </div>
             </div>
             <div className="card" style={{ padding: 16 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-light)', marginBottom: 6 }}>API Key 🐻🙈</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-light)', marginBottom: 6 }}>API Key 🔑</div>
               <div className="flex items-center gap-2">
                 <code style={{
                   fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--earth)',

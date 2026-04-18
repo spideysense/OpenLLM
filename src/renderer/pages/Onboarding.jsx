@@ -70,7 +70,7 @@ export default function Onboarding() {
   }
 
   const bearStates = {
-    welcome: '🐻',
+    welcome: '🎨',
     detect: '🔍',
     recommend: '⭐',
     download: '📦',
@@ -191,15 +191,15 @@ export default function Onboarding() {
       {currentStep === 'ready' && (
         <>
           <div className="onboarding-bear">🎉</div>
-          <h1>Rawr! Your AI is Running!</h1>
+          <h1>Your AI is Running!</h1>
           <p>
             Everything is 100% local. Your data never leaves this machine.
-            The bear's got you covered.
+            Zero subscriptions. Zero data sharing. Everything local.
           </p>
 
           <div className="flex gap-3">
             <button className="btn btn-primary" onClick={completeOnboarding}>
-              Start Chatting 🐾
+              Start Chatting 🎨
             </button>
           </div>
         </>
