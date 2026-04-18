@@ -836,34 +836,80 @@ const armPalette = document.querySelector('.arm-palette');
 const armBrush = document.querySelector('.arm-brush');
 
 // ── Speech Synthesis ──
-// Priority order: ElevenLabs API (natural) → browser neural → browser default
-const VOICE_PRIORITY = [
-  'Google UK English Male','Google UK English Female','Google US English',
-  'Daniel','Arthur','Gordon','Karen','Moira','Rishi',
-  'Microsoft Guy Online (Natural) - English (United States)',
-  'Microsoft Jenny Online (Natural) - English (United States)',
-  'Microsoft Mark Online (Natural) - English (United States)',
-  'Alex','Tom','Fred',
+// Tier 1: Azure Neural (AZURE_SPEECH_KEY) or Google Cloud TTS (GOOGLE_TTS_KEY)
+// Tier 2: Browser built-in neural voices — Chrome ships Google Neural, macOS ships Enhanced voices
+//
+// Browser voice priority — these are the neural/enhanced voices that sound genuinely natural:
+// Chrome (any OS):   "Google UK English Male" (warm British male, neural quality)
+// macOS Safari:      "Daniel (Enhanced)" → "Daniel" → "Arthur" → "Ava (Enhanced)"
+// iOS Safari:        Same as macOS
+// Windows Edge:      "Microsoft DavisNeural" → "Microsoft GuyNeural" → "Microsoft BrianNeural"
+// Windows Chrome:    Google voices same as other Chrome
+
+const BROWSER_VOICES = [
+  // Chrome neural voices (built-in, no download)
+  'Google UK English Male',
+  'Google UK English Female',
+  'Google US English',
+  // macOS enhanced / neural
+  'Daniel (Enhanced)',
+  'Daniel',
+  'Arthur (Enhanced)',
+  'Arthur',
+  'Ava (Enhanced)',
+  'Ava',
+  'Gordon (Enhanced)',
+  'Gordon',
+  'Karen (Enhanced)',
+  'Karen',
+  'Moira (Enhanced)',
+  // Windows Edge Neural voices
+  'Microsoft DavisNeural',
+  'Microsoft GuyNeural',
+  'Microsoft BrianNeural',
+  'Microsoft RyanNeural',
+  'Microsoft AnaNeural',
+  // Older fallbacks — still decent
+  'Alex',
+  'Tom',
+  'Samantha',
+  'Fred',
+  'Rishi',
 ];
 
-let bestVoice = null;
-function pickBestVoice() {
-  if (bestVoice) return bestVoice;
-  const voices = window.speechSynthesis?.getVoices() || [];
-  for (const name of VOICE_PRIORITY) {
-    const v = voices.find(v => v.name.includes(name));
-    if (v) { bestVoice = v; return v; }
-  }
-  // Last resort: first English voice
-  return voices.find(v => v.lang?.startsWith('en')) || voices[0] || null;
+// Voice selection — resolves async since voices load after page
+let _voiceReady = false;
+let _bestVoice  = null;
+
+function loadVoices() {
+  return new Promise((resolve) => {
+    const attempt = () => {
+      const voices = window.speechSynthesis.getVoices();
+      if (voices.length === 0) return false;
+      for (const name of BROWSER_VOICES) {
+        const v = voices.find(v => v.name === name || v.name.startsWith(name));
+        if (v) { _bestVoice = v; break; }
+      }
+      // Final fallback: any English voice
+      if (!_bestVoice) _bestVoice = voices.find(v => v.lang?.startsWith('en')) || voices[0] || null;
+      _voiceReady = true;
+      resolve(_bestVoice);
+      return true;
+    };
+    if (!attempt()) {
+      window.speechSynthesis.addEventListener('voiceschanged', () => attempt(), { once: true });
+      // Some browsers never fire voiceschanged — poll as backup
+      const t = setInterval(() => { if (attempt()) clearInterval(t); }, 100);
+      setTimeout(() => clearInterval(t), 3000); // give up after 3s
+    }
+  });
 }
 
+// API speak — tries Azure/Google server first, then browser
 async function speak(text, onEnd) {
   if (!voiceEnabled) { if (onEnd) onEnd(); return; }
-
   setTalking(true);
 
-  // Try ElevenLabs via serverless first
   try {
     const res = await fetch('/api/tts', {
       method: 'POST',
@@ -874,45 +920,44 @@ async function speak(text, onEnd) {
       const ct = res.headers.get('content-type') || '';
       if (ct.includes('audio')) {
         const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
+        const url  = URL.createObjectURL(blob);
         const audio = new Audio(url);
-        audio.playbackRate = 0.94; // slightly slower = warmer
-        audio.onended = () => {
-          URL.revokeObjectURL(url);
-          setTalking(false);
-          if (onEnd) onEnd();
-        };
-        audio.onerror = () => {
-          URL.revokeObjectURL(url);
-          setTalking(false);
-          browserSpeak(text, onEnd);
-        };
-        audio.play().catch(() => browserSpeak(text, onEnd));
+        audio.playbackRate = 0.93;
+        audio.onended = () => { URL.revokeObjectURL(url); setTalking(false); if (onEnd) onEnd(); };
+        audio.onerror = () => { URL.revokeObjectURL(url); setTalking(false); browserSpeak(text, onEnd); };
+        audio.play().catch(() => { setTalking(false); browserSpeak(text, onEnd); });
         return;
       }
-      // { useBrowser: true } response — fall through
+      // Server returned { useBrowser: true } — fall through
     }
   } catch {}
 
-  // Browser TTS fallback
   browserSpeak(text, onEnd);
 }
 
-function browserSpeak(text, onEnd) {
+// Browser TTS with the best available neural voice
+async function browserSpeak(text, onEnd) {
   if (!window.speechSynthesis) { setTalking(false); if (onEnd) onEnd(); return; }
   window.speechSynthesis.cancel();
 
-  const utt = new SpeechSynthesisUtterance(text);
-  utt.rate   = 0.84;  // slower = more natural
-  utt.pitch  = 0.92;  // slightly lower = warmer
-  utt.volume = 0.92;
+  // Wait for voices to be loaded (async on many browsers)
+  if (!_voiceReady) await loadVoices();
 
-  const voice = pickBestVoice();
-  if (voice) utt.voice = voice;
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.rate   = 0.85;  // slower = warmer, more deliberate
+  utt.pitch  = 0.90;  // slightly lower = richer tone
+  utt.volume = 0.95;
+
+  if (_bestVoice) utt.voice = _bestVoice;
 
   utt.onstart = () => setTalking(true);
   utt.onend   = () => { setTalking(false); if (onEnd) onEnd(); };
-  utt.onerror = () => { setTalking(false); if (onEnd) onEnd(); };
+  utt.onerror = (e) => {
+    // Chrome has a known bug where onend fires as onerror for long utterances
+    // after the first one. Treat as success.
+    setTalking(false);
+    if (onEnd) onEnd();
+  };
   window.speechSynthesis.speak(utt);
 }
 
@@ -1095,19 +1140,9 @@ document.addEventListener('keydown', e => {
 });
 
 // ── Init ──
-// Load voices eagerly so they are ready when greeting fires
-function initVoices() {
-  if (window.speechSynthesis) {
-    const voices = window.speechSynthesis.getVoices();
-    if (voices.length > 0) {
-      pickBestVoice();
-    } else {
-      window.speechSynthesis.addEventListener('voiceschanged', () => pickBestVoice(), { once: true });
-    }
-  }
-}
-initVoices();
-setTimeout(startGreeting, 500);
+// Start voice loading in background; greeting waits until voices are ready
+if (window.speechSynthesis) loadVoices();
+setTimeout(startGreeting, 600);
 </script>
 </body>
 </html>
