@@ -45,9 +45,12 @@ const CATALOG = [
 
 export default function ModelHub() {
   const { bridge, models, refreshModels, hardwareTier, selectModel, setPage } = useApp();
-  const [pulling, setPulling] = useState(null); // model id being pulled
+  const [pulling, setPulling] = useState(null);
   const [pullProgress, setPullProgress] = useState(0);
   const [pullStatus, setPullStatus] = useState('');
+  const [pullEta, setPullEta] = useState(null);
+  const pullStartRef = React.useRef(null);
+  const lastBytesRef = React.useRef(0);
 
   const installedNames = models.map((m) => m.name);
 
@@ -55,7 +58,21 @@ export default function ModelHub() {
     if (!bridge) return;
     const unsub = bridge.models.onPullProgress((data) => {
       setPullStatus(data.status);
-      if (data.total > 0) setPullProgress(data.percent);
+      if (data.total > 0) {
+        const pct = data.percent;
+        setPullProgress(pct);
+
+        // ETA calculation
+        const now = Date.now();
+        if (!pullStartRef.current) pullStartRef.current = now;
+        const elapsed = (now - pullStartRef.current) / 1000; // seconds
+        if (elapsed > 2 && pct > 1) {
+          const totalEstSec = elapsed / (pct / 100);
+          const remaining = Math.max(0, totalEstSec - elapsed);
+          const speed = data.completed ? (data.completed / 1e6 / elapsed).toFixed(1) : null;
+          setPullEta({ remaining: Math.round(remaining), speed });
+        }
+      }
     });
     return unsub;
   }, [bridge]);
@@ -65,6 +82,9 @@ export default function ModelHub() {
     setPulling(modelId);
     setPullProgress(0);
     setPullStatus('Starting...');
+    setPullEta(null);
+    pullStartRef.current = null;
+    lastBytesRef.current = 0;
 
     await bridge.ollama.ensureRunning();
     const result = await bridge.models.pull(modelId);
@@ -152,8 +172,16 @@ export default function ModelHub() {
                       <div className="progress-bar">
                         <div className="progress-fill" style={{ width: `${pullProgress}%` }} />
                       </div>
-                      <div style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 4 }}>
-                        {pullStatus} ({pullProgress}%)
+                      <div style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 4, display: 'flex', justifyContent: 'space-between' }}>
+                        <span>{pullStatus} · {pullProgress}%</span>
+                        {pullEta && pullEta.remaining > 0 && (
+                          <span>
+                            {pullEta.remaining >= 60
+                              ? `~${Math.ceil(pullEta.remaining / 60)} min left`
+                              : `~${pullEta.remaining}s left`}
+                            {pullEta.speed && ` · ${pullEta.speed} MB/s`}
+                          </span>
+                        )}
                       </div>
                     </div>
                   ) : installed ? (

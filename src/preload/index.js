@@ -18,6 +18,11 @@ contextBridge.exposeInMainWorld('llmbear', {
       ipcRenderer.on('ollama:progress', handler);
       return () => ipcRenderer.removeListener('ollama:progress', handler);
     },
+    onStatus: (cb) => {
+      const handler = (event, data) => cb(data);
+      ipcRenderer.on('ollama:status', handler);
+      return () => ipcRenderer.removeListener('ollama:status', handler);
+    },
   },
 
   // ── Models ──

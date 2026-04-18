@@ -28,6 +28,18 @@ export default function App() {
   const [isOnboarded, setIsOnboarded] = useState(true);
   const [loading, setLoading] = useState(true);
 
+  // ─── Listen for Ollama status push (sent when it starts up or every 5s poll) ───
+  useEffect(() => {
+    if (!bridge?.ollama?.onStatus) return;
+    const unsub = bridge.ollama.onStatus((status) => {
+      setOllamaStatus(status);
+      if (status.running) {
+        refreshModels();
+      }
+    });
+    return unsub;
+  }, [bridge, refreshModels]);
+
   // ─── Initial load ───
   useEffect(() => {
     async function init() {

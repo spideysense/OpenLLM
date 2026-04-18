@@ -78,8 +78,20 @@ app.whenReady().then(async () => {
   createWindow();
   createTray();
 
-  // Start Ollama if not running
-  await ollama.ensureRunning();
+  // Start Ollama — push status to renderer once ready, then poll every 5s
+  ollama.ensureRunning((progress) => {
+    if (mainWindow && !mainWindow.isDestroyed())
+      mainWindow.webContents.send('ollama:progress', { message: progress });
+  }).then(async () => {
+    const status = await ollama.getStatus();
+    if (mainWindow && !mainWindow.isDestroyed())
+      mainWindow.webContents.send('ollama:status', status);
+  });
+  setInterval(async () => {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    const status = await ollama.getStatus();
+    mainWindow.webContents.send('ollama:status', status);
+  }, 5000);
 
   // Start API gateway
   gateway.start();
