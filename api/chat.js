@@ -62,7 +62,7 @@ export default async function handler(req, res) {
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'llama3.2:3b', // small + fast for website chat; overridden by active model
+        model: 'gpt-3.5-turbo', // Monet aliases this to whatever local model is active
         messages: [
           { role: 'system', content: SYSTEM },
           ...history,
@@ -70,7 +70,7 @@ export default async function handler(req, res) {
         ],
         stream: false,
       }),
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(8000),
     });
 
     if (!response.ok) {
@@ -84,7 +84,10 @@ export default async function handler(req, res) {
     res.setHeader('Cache-Control', 'no-store');
     return res.status(200).json({ reply });
   } catch (err) {
-    console.error('[Chat] Could not reach Monet instance:', err.message);
+    const reason = err.name === 'TimeoutError' ? 'timeout after 8s'
+      : err.cause?.code || err.message || 'unknown';
+    console.error('[Chat] Could not reach Monet instance:', reason,
+      '| URL:', baseUrl ? baseUrl.slice(0, 50) : 'not set');
     return res.status(200).json({ reply: fallback() });
   }
 }
