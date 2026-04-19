@@ -88,8 +88,30 @@ function start() {
           },
         },
         (proxyRes) => {
-          res.writeHead(proxyRes.statusCode, proxyRes.headers);
-          proxyRes.pipe(res, { end: true });
+          // Detect streaming vs non-streaming response.
+          // When stream:false, Ollama sets transfer-encoding:chunked but sends one
+          // JSON blob — piping those headers to the caller breaks Vercel/fetch clients
+          // that expect Content-Length. Buffer and re-send with correct headers.
+          const isStreaming = req.method === 'POST' &&
+            (req.url.includes('chat/completions') || req.url.includes('completions')) &&
+            (() => { try { return JSON.parse(body).stream !== false; } catch { return true; } })();
+
+          if (!isStreaming) {
+            // Buffer the full response, set Content-Length, strip chunked encoding
+            const chunks = [];
+            proxyRes.on('data', c => chunks.push(c));
+            proxyRes.on('end', () => {
+              const buf = Buffer.concat(chunks);
+              const headers = { ...proxyRes.headers };
+              delete headers['transfer-encoding'];
+              headers['content-length'] = String(buf.length);
+              res.writeHead(proxyRes.statusCode, headers);
+              res.end(buf);
+            });
+          } else {
+            res.writeHead(proxyRes.statusCode, proxyRes.headers);
+            proxyRes.pipe(res, { end: true });
+          }
         }
       );
 
