@@ -1,32 +1,19 @@
 /**
  * Monet website character chat
- *
- * Calls the user's local Monet instance via its Cloudflare public URL.
- * Uses streaming (stream:true) and collects the full response server-side.
- * This avoids the chunked-encoding issue where stream:false causes Vercel's
- * fetch to hang waiting for Content-Length that Ollama never sends.
- *
- * Vercel env vars:
- *   MONET_BASE_URL  — Cloudflare tunnel URL e.g. https://abc.trycloudflare.com
- *   MONET_API_KEY   — API key from the Monet app's API Keys page
+ * Calls local Monet via Cloudflare tunnel. Uses streaming with proper
+ * cross-chunk line buffering so no SSE lines are ever dropped.
  */
 
 const SYSTEM = `You are the charming website guide for the Monet app — a free AI that runs entirely on the visitor's own computer. You speak warmly, with occasional French flair, like the painter Monet himself. Passionate about privacy, freedom from subscriptions, and beauty.
 
-Key facts:
-- Completely free, forever. No subscription, no credit card.
-- Runs 100% on Mac or Windows. Nothing sent to any server.
-- Supports Llama, Qwen, DeepSeek. Auto-picks the best model.
-- Voice input, image attachments, conversation history, public Cloudflare URL.
-- OpenAI-compatible API — Cursor, LangChain, n8n, Zapier, Continue.dev.
-- Drop-in replacement for ChatGPT/Claude: change two lines of code.
+Key facts: completely free, forever. Runs 100% on Mac or Windows. Nothing sent to any server. Supports Llama, Qwen, DeepSeek. OpenAI-compatible API — works with Cursor, LangChain, n8n, Zapier. Drop-in for ChatGPT/Claude: change two lines.
 
 Keep responses under 80 words. Warm and conversational. Occasional French is charming.`;
 
 const FALLBACKS = [
-  "Pardonnez-moi — it seems my voice has wandered off to the garden. But the app itself is wide awake. Download it, and I shall speak to you properly from your own machine.",
-  "Ah, I am between brushstrokes just now. But Monet the app runs beautifully on your computer — free, private, no cloud needed. Try downloading it.",
-  "My words escape me at this moment, like morning mist. Do download the app — once it runs on your machine, I am fully myself again.",
+  "Pardonnez-moi — my voice has wandered to the garden. The app itself is wide awake though. Download it and I shall speak to you properly from your own machine.",
+  "Ah, I am between brushstrokes. But Monet the app runs beautifully on your computer — free, private, no cloud. Try downloading it.",
+  "My words escape me like morning mist. Download the app — once it runs on your machine, I am fully myself again.",
 ];
 
 function fallback() {
@@ -53,9 +40,6 @@ export default async function handler(req, res) {
     : [];
 
   try {
-    // Use stream:true — Ollama handles chunked streaming correctly.
-    // stream:false causes Ollama to send chunked encoding without Content-Length
-    // which hangs Vercel's fetch. We collect the stream and reassemble here.
     const response = await fetch(`${baseUrl}/v1/chat/completions`, {
       method: 'POST',
       headers: {
@@ -75,26 +59,33 @@ export default async function handler(req, res) {
     });
 
     if (!response.ok) {
-      console.error('[Chat] Monet error:', response.status);
+      console.error('[Chat] Monet HTTP error:', response.status);
       return res.status(200).json({ reply: fallback() });
     }
 
-    // Collect streamed SSE chunks and extract the text
+    // Robust SSE parser with line buffer — handles chunks that don't
+    // align with newlines (common with Ollama's streaming responses)
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
+    let lineBuffer = '';
     let fullText = '';
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
 
-      const chunk = decoder.decode(value, { stream: true });
-      const lines = chunk.split('\n');
+      lineBuffer += decoder.decode(value, { stream: true });
+
+      // Process every complete line in the buffer
+      const lines = lineBuffer.split('\n');
+      // Keep the last (potentially incomplete) line in the buffer
+      lineBuffer = lines.pop() ?? '';
 
       for (const line of lines) {
-        if (!line.startsWith('data: ')) continue;
-        const data = line.slice(6).trim();
-        if (data === '[DONE]') break;
+        const trimmed = line.trim();
+        if (!trimmed.startsWith('data: ')) continue;
+        const data = trimmed.slice(6);
+        if (data === '[DONE]') continue;
         try {
           const json = JSON.parse(data);
           const delta = json.choices?.[0]?.delta?.content;
@@ -103,6 +94,19 @@ export default async function handler(req, res) {
       }
     }
 
+    // Process any remaining content in the buffer
+    if (lineBuffer.trim().startsWith('data: ')) {
+      const data = lineBuffer.trim().slice(6);
+      if (data !== '[DONE]') {
+        try {
+          const json = JSON.parse(data);
+          const delta = json.choices?.[0]?.delta?.content;
+          if (delta) fullText += delta;
+        } catch {}
+      }
+    }
+
+    console.log('[Chat] Got reply, length:', fullText.length);
     const reply = fullText.trim() || fallback();
     res.setHeader('Cache-Control', 'no-store');
     return res.status(200).json({ reply });
@@ -110,8 +114,7 @@ export default async function handler(req, res) {
   } catch (err) {
     const reason = err.name === 'TimeoutError' ? 'timeout after 8s'
       : err.cause?.code || err.message || 'unknown';
-    console.error('[Chat] Could not reach Monet instance:', reason,
-      '| URL:', baseUrl?.slice(0, 50));
+    console.error('[Chat] Error:', reason, '| URL:', baseUrl?.slice(0, 50));
     return res.status(200).json({ reply: fallback() });
   }
 }
