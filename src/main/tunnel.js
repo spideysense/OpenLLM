@@ -185,6 +185,8 @@ async function launch() {
       reconnectDelay = RECONNECT_BASE;
       console.log('[Tunnel] Public URL:', publicUrl);
       notifyStatus('connected', { url: publicUrl });
+      // Push the new URL to Vercel so the website character chat stays current
+      pushUrlToVercel(publicUrl).catch(() => {});
     }
   }
 
@@ -219,6 +221,98 @@ function scheduleReconnect() {
 
 function notifyStatus(status, data = {}) {
   if (onStatusChange) onStatusChange({ status, ...data });
+}
+
+// Push current tunnel URL to Vercel environment variable so the website
+// character chat always points at the live instance.
+// Requires VERCEL_TOKEN + VERCEL_PROJECT_ID in the app's env (optional).
+async function pushUrlToVercel(url) {
+  const token     = process.env.VERCEL_TOKEN;
+  const projectId = process.env.VERCEL_PROJECT_ID;
+  if (!token || !projectId) return; // not configured — skip silently
+
+  try {
+    // Upsert the MONET_BASE_URL env var on the production deployment
+
+    const https = require('https');
+    const body = JSON.stringify([{
+      key: 'MONET_BASE_URL',
+      value: url,
+      type: 'plain',
+      target: ['production'],
+    }]);
+
+    await new Promise((resolve, reject) => {
+      const req = https.request({
+        hostname: 'api.vercel.com',
+        path: `/v10/projects/${projectId}/env`,
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(body),
+        },
+      }, (res) => {
+        let data = '';
+        res.on('data', c => data += c);
+        res.on('end', () => {
+          if (res.statusCode === 201 || res.statusCode === 200) {
+            console.log('[Tunnel] Updated MONET_BASE_URL in Vercel');
+          } else if (res.statusCode === 409) {
+            // Already exists — update it instead
+            updateVercelEnv(token, projectId, url);
+          }
+          resolve();
+        });
+      });
+      req.on('error', reject);
+      req.write(body);
+      req.end();
+    });
+  } catch (err) {
+    console.log('[Tunnel] Could not update Vercel env:', err.message);
+  }
+}
+
+async function updateVercelEnv(token, projectId, url) {
+  // First find the env var ID, then patch it
+  const https = require('https');
+  try {
+    const listRes = await new Promise((resolve, reject) => {
+      https.get({
+        hostname: 'api.vercel.com',
+        path: `/v10/projects/${projectId}/env`,
+        headers: { 'Authorization': `Bearer ${token}` },
+      }, (res) => {
+        let data = '';
+        res.on('data', c => data += c);
+        res.on('end', () => resolve(JSON.parse(data)));
+      }).on('error', reject);
+    });
+
+    const envVar = listRes.envs?.find(e => e.key === 'MONET_BASE_URL');
+    if (!envVar) return;
+
+    const body = JSON.stringify({ value: url });
+    const req = https.request({
+      hostname: 'api.vercel.com',
+      path: `/v10/projects/${projectId}/env/${envVar.id}`,
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(body),
+      },
+    }, (res) => {
+      res.resume();
+      if (res.statusCode === 200) {
+        console.log('[Tunnel] Patched MONET_BASE_URL in Vercel →', url);
+      }
+    });
+    req.on('error', () => {});
+    req.write(body);
+    req.end();
+  } catch {}
 }
 
 module.exports = { start, stop, getPublicUrl, isConnected };
