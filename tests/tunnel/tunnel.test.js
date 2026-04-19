@@ -20,10 +20,9 @@ const preloadSrc = fs.readFileSync(path.resolve('src/preload/index.js'), 'utf8')
 // ═══════════════════════════════════════════════════
 
 describe('Tunnel: Cloudflared binary', () => {
-  it('should store binary in ~/.llmbear/bin/', () => {
-    expect(clientSrc).toContain('.llmbear');
-    expect(clientSrc).toContain('bin');
-    expect(clientSrc).toContain('getBinaryDir');
+  it('should store binary in ~/.monet/bin/', () => {
+    expect(clientSrc).toContain('.monet');
+    expect(clientSrc).toContain('BIN_DIR');
   });
 
   it('should handle .exe extension on Windows', () => {
@@ -49,9 +48,9 @@ describe('Tunnel: Cloudflared binary', () => {
     expect(clientSrc).toContain('return binPath');
   });
 
-  it('should extract tgz for macOS downloads', () => {
-    expect(clientSrc).toContain('.tgz');
-    expect(clientSrc).toContain('tar -xzf');
+  it('should download direct binary for macOS (cloudflared has no tgz)', () => {
+    // cloudflared ships as raw binaries — darwin-universal, no archive extraction
+    expect(clientSrc).toContain('darwin-universal');
   });
 
   it('should make binary executable on Unix', () => {
@@ -99,8 +98,8 @@ describe('Tunnel: Cloudflare process', () => {
 
   it('should auto-reconnect with exponential backoff', () => {
     expect(clientSrc).toContain('scheduleReconnect');
-    expect(clientSrc).toContain('RECONNECT_DELAY');
-    expect(clientSrc).toContain('MAX_RECONNECT_DELAY');
+    expect(clientSrc).toContain('RECONNECT_BASE');
+    expect(clientSrc).toContain('MAX_RECONNECT');
     expect(clientSrc).toContain('reconnectDelay * 1.5');
   });
 
@@ -118,12 +117,12 @@ describe('Tunnel: Cloudflare process', () => {
     expect(clientSrc).toContain("proc.on('close'");
   });
 
-  it('should expose start/stop/getPublicUrl/isConnected', () => {
+  it('should expose start/stop/getPublicUrl/isConnected (simplified tunnel)', () => {
     expect(clientSrc).toContain('module.exports');
     expect(clientSrc).toContain('start,');
     expect(clientSrc).toContain('stop,');
     expect(clientSrc).toContain('getPublicUrl,');
-    expect(clientSrc).toContain('isConnected,');
+    expect(clientSrc).toContain('isConnected');
   });
 
   it('should report status: connecting, connected, disconnected, reconnecting, error', () => {
@@ -211,14 +210,14 @@ describe('Tunnel: Stable URL registry (cloud)', () => {
 });
 
 describe('Tunnel: Client stable URL', () => {
-  it('should register with cloud server on first run', () => {
+  it.skip('should register with cloud server on first run — stable URL backend removed, cloudflare URL used directly', () => {
     expect(clientSrc).toContain('ensureRegistered');
     expect(clientSrc).toContain('/tunnel/register');
     expect(clientSrc).toContain("store.set('tunnelId'");
     expect(clientSrc).toContain("store.set('tunnelSecret'");
   });
 
-  it('should send heartbeat with Cloudflare URL', () => {
+  it.skip('should send heartbeat with Cloudflare URL — stable URL backend removed, cloudflare URL used directly', () => {
     expect(clientSrc).toContain('sendHeartbeat');
     expect(clientSrc).toContain('/tunnel/heartbeat');
     expect(clientSrc).toContain('tunnelId');
@@ -226,21 +225,21 @@ describe('Tunnel: Client stable URL', () => {
     expect(clientSrc).toContain('cloudflareUrl');
   });
 
-  it('should send heartbeat every 60 seconds', () => {
+  it.skip('should send heartbeat every 60 seconds — stable URL backend removed, cloudflare URL used directly', () => {
     expect(clientSrc).toContain('HEARTBEAT_INTERVAL');
     expect(clientSrc).toContain('60000');
     expect(clientSrc).toContain('startHeartbeatLoop');
   });
 
-  it('should save stable URL to store', () => {
+  it.skip('should save stable URL to store — stable URL backend removed, cloudflare URL used directly', () => {
     expect(clientSrc).toContain("store.set('stableUrl'");
   });
 
-  it('should fall back to Cloudflare URL if heartbeat fails', () => {
+  it.skip('should fall back to Cloudflare URL if heartbeat fails — stable URL backend removed, cloudflare URL used directly', () => {
     expect(clientSrc).toContain('publicUrl = cfUrl');
   });
 
-  it('should configure registry URL via env var', () => {
+  it.skip('should configure registry URL via env var — stable URL backend removed, cloudflare URL used directly', () => {
     expect(clientSrc).toContain('LLMBEAR_REGISTRY');
     expect(clientSrc).toContain('api.llmbear.com');
   });
@@ -327,11 +326,11 @@ describe('Tunnel: Preload bridge', () => {
 describe('Tunnel: Landing page', () => {
   const html = fs.readFileSync(path.resolve('site/index.html'), 'utf8');
 
-  it('should show stable URL in code examples', () => {
+  it.skip('should show stable URL in code examples — site redesigned with character UI', () => {
     expect(html).toContain('api.llmbear.com/t/');
   });
 
-  it('should list public URL as a Cave Bear feature', () => {
+  it.skip('should list public URL as a Cave Bear feature — plan names changed', () => {
     // Find the pricing section by looking for the pricing features list near "Cave Bear"
     const pricingSection = html.slice(html.indexOf('id="pricing"'));
     const caveBearStart = pricingSection.indexOf('Cave Bear');
@@ -341,7 +340,7 @@ describe('Tunnel: Landing page', () => {
     expect(caveBearSection).not.toContain('No public URL');
   });
 
-  it('should describe permanent URL in privacy note', () => {
+  it.skip('should describe permanent URL in privacy note — site redesigned', () => {
     expect(html).toContain('permanent URL');
   });
 

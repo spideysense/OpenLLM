@@ -51,7 +51,6 @@ export default function Chat() {
   }, [bridge]);
 
   // Save conversations whenever they change (debounced)
-  const saveTimer = useRef(null);
   useEffect(() => {
     if (!bridge?.conversations || conversations.length === 0) return;
     clearTimeout(saveTimer.current);
@@ -315,7 +314,7 @@ export default function Chat() {
         {messages.length === 0 && !streamBuffer && (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', opacity: 0.6 }}>
             <div style={{ fontSize: 64, marginBottom: 12 }}>🎨</div>
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, color: 'var(--earth)', marginBottom: 6 }}>Ask Monet anything!</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, color: 'var(--earth)', marginBottom: 6 }}>Ask me anything</div>
             <div style={{ fontSize: 14, color: 'var(--text-light)', maxWidth: 300, textAlign: 'center', lineHeight: 1.5 }}>
               Everything stays on your machine. Your data, always private. 🎨
             </div>

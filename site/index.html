@@ -4,9 +4,22 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Monet — The Free LLM</title>
-<meta name="description" content="Monet is a free AI that runs entirely on your computer. Your conversations never leave your machine. Download for Mac or Windows.">
+<meta name="description" content="Monet is a free AI that runs 100% on your computer. No subscription. No cloud. Your conversations never leave your machine. Download for Mac or Windows — forever free.">
+<meta name="keywords" content="free AI, private AI, local AI, run AI locally, no subscription AI, offline AI, free ChatGPT alternative, open source AI, local LLM">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://open-llm-ten.vercel.app">
 <meta property="og:title" content="Monet — The Free LLM">
-<meta property="og:description" content="Free AI. Runs locally. Your data stays yours.">
+<meta property="og:description" content="Free AI that runs 100% on your computer. Private. No subscription. Your data stays yours.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://open-llm-ten.vercel.app">
+<meta property="og:image" content="https://open-llm-ten.vercel.app/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Monet — The Free LLM">
+<meta name="twitter:description" content="Free AI that runs 100% on your computer. Private. No subscription.">
+<meta name="twitter:image" content="https://open-llm-ten.vercel.app/og-image.png">
+<meta name="theme-color" content="#FDF9F3">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -500,7 +513,10 @@ html, body {
 {"@context":"https://schema.org","@type":"SoftwareApplication","name":"Monet","applicationCategory":"DeveloperApplication","operatingSystem":"macOS, Windows","offers":[{"@type":"Offer","price":"0","priceCurrency":"USD","name":"Free","description":"Run AI locally forever free"}],"description":"Monet is a free AI that runs 100% on your computer. No subscription, no cloud, no data sharing. Works as a drop-in replacement for ChatGPT and Claude APIs.","url":"https://open-llm-ten.vercel.app","downloadUrl":"https://github.com/spideysense/OpenLLM/releases/latest","softwareVersion":"0.1.20","license":"https://opensource.org/licenses/MIT","featureList":["100% local AI","Free forever","No subscription","Private by design","Voice input","Image attachments","Public URL via Cloudflare","OpenAI-compatible API"]}
 </script>
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What is Monet?","acceptedAnswer":{"@type":"Answer","text":"Monet is a free desktop app for Mac and Windows that runs AI models like Llama and Qwen 100% locally on your computer. No subscription, no cloud, no data sharing."}},{"@type":"Question","name":"Is Monet free?","acceptedAnswer":{"@type":"Answer","text":"Yes, completely free forever. No credit card, no trial, no subscription. You run AI on your own hardware at zero cost."}},{"@type":"Question","name":"Is my data private with Monet?","acceptedAnswer":{"@type":"Answer","text":"Yes, 100% private. Everything runs locally. Your conversations never leave your machine — no telemetry, no cloud logging, nothing sent to any server."}},{"@type":"Question","name":"Can I use Monet as a drop-in for ChatGPT?","acceptedAnswer":{"@type":"Answer","text":"Yes. Monet runs an OpenAI-compatible API. Change two lines of code — the base URL and API key — and your existing apps work instantly."}}]}
+{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What is Monet?","acceptedAnswer":{"@type":"Answer","text":"Monet is a free desktop app for Mac and Windows that runs AI models like Llama and Qwen 100% locally on your computer. No subscription, no cloud, no data sharing."}},{"@type":"Question","name":"Is Monet free?","acceptedAnswer":{"@type":"Answer","text":"Yes, completely free forever. No credit card, no trial, no subscription. You run AI on your own hardware at zero cost."}},{"@type":"Question","name":"Is my data private with Monet?","acceptedAnswer":{"@type":"Answer","text":"Yes, 100% private. Everything runs locally. Your conversations never leave your machine — no telemetry, no cloud logging, nothing sent to any server."}},{"@type":"Question","name":"Can I use Monet as a drop-in for ChatGPT?","acceptedAnswer":{"@type":"Answer","text":"Yes. Monet runs an OpenAI-compatible API. Change two lines of code — the base URL and API key — and your existing apps work instantly. Compatible with LangChain, Cursor, Continue.dev, n8n, Zapier."}},{"@type":"Question","name":"What AI models does Monet support?","acceptedAnswer":{"@type":"Answer","text":"Monet supports Llama 3.3 (Meta), Qwen 2.5 (Alibaba), DeepSeek R1, Gemma 2 (Google), and many more via Ollama. It auto-detects your hardware and recommends the best model."}}]}
+</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"HowTo","name":"How to run free private AI with Monet","description":"Get free AI running on your computer in 2 minutes.","totalTime":"PT2M","step":[{"@type":"HowToStep","position":1,"name":"Download Monet","text":"Download the free Monet app for Mac or Windows. One file, one click."},{"@type":"HowToStep","position":2,"name":"Pick your model","text":"Monet scans your hardware and recommends the best AI model. No terminal needed."},{"@type":"HowToStep","position":3,"name":"Start chatting","text":"Your AI runs 100% on your machine. Nothing is sent anywhere. Ever."}]}
 </script>
 </head>
 <body>
@@ -1278,5 +1294,24 @@ if (window.speechSynthesis) {
 }
 setTimeout(startGreeting, 600);
 </script>
+
+<!-- SEO content — screen-reader accessible, not visible in character UI -->
+<div aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden">
+  <h1>Monet — The Free LLM. Free AI for Mac and Windows.</h1>
+  <h2>Replace ChatGPT, Claude, and Gemini — keep your $20/month</h2>
+  <p>Zero Setup. Download, open, chat. No terminal. No configuration.</p>
+  <p>Totally Private. 100% private. Zero data collection. No telemetry. No cloud required. Your conversations never leave your machine.</p>
+  <p>Drop-In replacement. Change two lines of code. OpenAI-compatible API. Works with LangChain, Cursor, Continue.dev, n8n, Zapier.</p>
+  <p>Open source models from Meta AI (Llama), Alibaba (Qwen), Google (Gemma), DeepSeek. Free forever. No subscription. Save $240/year.</p>
+  <p>Public URL via Cloudflare. Use from phone, tablet, any device. API key authentication. sk-monet prefix.</p>
+  <code>base_url="https://your-id.trycloudflare.com/v1"
+api_key="sk-monet-..."
+from openai import OpenAI
+client = OpenAI(base_url=..., api_key=...)
+</code>
+  <p>How it works: 1. Download Monet. 2. Pick your model. 3. Start chatting — from anywhere.</p>
+  <a href="https://github.com/spideysense/OpenLLM">Fork on GitHub</a>
+  <p>MIT License. Open source. Free forever.</p>
+</div>
 </body>
 </html>

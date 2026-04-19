@@ -121,9 +121,9 @@ describe('Story: User chats with a local model', () => {
   it('should support markdown rendering in messages', async () => {
     const fs = await import('fs');
     const source = fs.readFileSync('src/renderer/pages/Chat.jsx', 'utf8');
-    // Should handle code blocks and bold text (rendered via regex to <strong>)
+    // Handles code blocks and bold text via InlineText React component
     expect(source).toContain('```');
-    expect(source).toContain('<strong>');
+    expect(source).toContain('**');
   });
 
   it('should have model selector in chat header', async () => {
@@ -144,7 +144,7 @@ describe('Story: User chats with a local model', () => {
     const fs = await import('fs');
     const source = fs.readFileSync('src/renderer/pages/Chat.jsx', 'utf8');
     expect(source).toContain('Ask me anything');
-    expect(source).toContain('🐻');
+    expect(source).toContain('🎨');
   });
 });
 
