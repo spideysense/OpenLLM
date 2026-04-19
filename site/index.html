@@ -1282,6 +1282,22 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeModal();
 });
 
+// ── Visitor counter ──
+(async () => {
+  try {
+    const r = await fetch('/api/visits', { method: 'POST' });
+    if (r.ok) {
+      const { count } = await r.json();
+      const el = document.getElementById('visit-counter');
+      if (el && count) {
+        el.textContent = count.toLocaleString() + ' visitors';
+        setTimeout(() => { el.style.opacity = '1'; }, 1800);
+        setTimeout(() => { el.style.opacity = '0'; }, 6000);
+      }
+    }
+  } catch {}
+})();
+
 // ── Init ──
 // Trigger voice list loading by calling getVoices() — some browsers need this call
 // to start async loading before the user interacts.
@@ -1294,6 +1310,9 @@ if (window.speechSynthesis) {
 }
 setTimeout(startGreeting, 600);
 </script>
+
+<!-- Visitor counter -->
+<div class="visit-counter" id="visit-counter"></div>
 
 <!-- SEO content — screen-reader accessible, not visible in character UI -->
 <div aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden">
