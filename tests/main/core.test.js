@@ -573,3 +573,22 @@ describe('Syntax validation: all main process files must parse', () => {
     }
   });
 });
+
+describe('macOS Gatekeeper: quarantine attribute handling', () => {
+  const tunnelSrc = fs.readFileSync(path.resolve('src/main/tunnel.js'), 'utf8');
+  const ollamaSrc = fs.readFileSync(path.resolve('src/main/ollama.js'), 'utf8');
+
+  it('should clear quarantine on cloudflared binary (macOS)', () => {
+    expect(tunnelSrc).toContain('xattr -cr');
+  });
+
+  it('should clear quarantine on Ollama binary (macOS)', () => {
+    expect(ollamaSrc).toContain('xattr -cr');
+  });
+
+  it('should clear quarantine before spawning, not just after downloading', () => {
+    // The binary may have been downloaded before this fix was deployed
+    const launchSection = tunnelSrc.slice(tunnelSrc.indexOf('async function launch'));
+    expect(launchSection).toContain('xattr -cr');
+  });
+});

@@ -143,6 +143,13 @@ async function downloadOllama(notify) {
     fs.chmodSync(destPath, 0o755);
   }
 
+  // macOS: clear quarantine attribute or Gatekeeper silently blocks execution
+  if (process.platform === 'darwin') {
+    try {
+      require('child_process').execSync(`xattr -cr "${destPath}"`, { stdio: 'pipe' });
+    } catch (e) {}
+  }
+
   const sizeMB = (fs.statSync(destPath).size / 1e6).toFixed(0);
   notify(`AI engine ready (${sizeMB}MB)`);
   return destPath;
@@ -247,9 +254,12 @@ async function ensureRunning(onProgress) {
     };
   }
 
-  // Make sure it's executable
+  // Make sure it's executable + clear macOS quarantine
   if (process.platform !== 'win32') {
     try { fs.chmodSync(ollamaPath, 0o755); } catch {}
+  }
+  if (process.platform === 'darwin') {
+    try { require('child_process').execSync(`xattr -cr "${ollamaPath}"`, { stdio: 'pipe' }); } catch {}
   }
 
   notify('Starting AI engine...');

@@ -114,6 +114,16 @@ async function ensureBinary() {
       fs.chmodSync(binPath, 0o755);
     }
 
+    // macOS: clear quarantine attribute or Gatekeeper silently blocks execution
+    if (process.platform === 'darwin') {
+      try {
+        require('child_process').execSync(`xattr -cr "${binPath}"`, { stdio: 'pipe' });
+        console.log('[Tunnel] Cleared quarantine attribute');
+      } catch (e) {
+        console.log('[Tunnel] xattr clear skipped:', e.message);
+      }
+    }
+
     const sizeMB = (fs.statSync(binPath).size / 1e6).toFixed(0);
     console.log(`[Tunnel] cloudflared ready (${sizeMB}MB) at ${binPath}`);
     return binPath;
@@ -163,6 +173,13 @@ async function launch() {
 
   const args = ['tunnel', '--url', LOCAL_API, '--no-autoupdate'];
 
+  // Clear quarantine on existing binary (might have been downloaded before this fix)
+  if (process.platform === 'darwin') {
+    try {
+      require('child_process').execSync(`xattr -cr "${binPath}"`, { stdio: 'pipe' });
+    } catch (e) {}
+  }
+
   try {
     proc = spawn(binPath, args, {
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -177,8 +194,9 @@ async function launch() {
 
   // cloudflared logs the assigned URL to stderr
   function parseUrl(data) {
-    if (publicUrl) return; // already found
     const text = data.toString();
+    console.log('[Tunnel] cloudflared:', text.trim().slice(0, 200));
+    if (publicUrl) return; // already found
     const match = text.match(/https:\/\/[a-zA-Z0-9-]+\.trycloudflare\.com/);
     if (match) {
       publicUrl = match[0];
