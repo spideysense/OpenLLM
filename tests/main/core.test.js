@@ -592,3 +592,29 @@ describe('macOS Gatekeeper: quarantine attribute handling', () => {
     expect(launchSection).toContain('xattr -cr');
   });
 });
+
+describe('Auto-updater: no forced restarts', () => {
+  const updaterSrc = fs.readFileSync(path.resolve('src/main/updater.js'), 'utf8');
+  const sidebarSrc = fs.readFileSync(path.resolve('src/renderer/components/Sidebar.jsx'), 'utf8');
+
+  it('should NOT have any countdown timer', () => {
+    // No countdown status, no seconds tracking, no auto-restart timer
+    expect(updaterSrc).not.toContain("'countdown'");
+    expect(updaterSrc).not.toContain('startAutoRestart');
+    expect(updaterSrc).not.toContain('dismissCountdown');
+  });
+
+  it('should NOT auto-restart the app', () => {
+    expect(updaterSrc).not.toContain('startAutoRestart');
+  });
+
+  it('should NOT show countdown in sidebar', () => {
+    expect(sidebarSrc).not.toContain("'countdown'");
+    expect(sidebarSrc).not.toContain('Restarting in');
+  });
+
+  it('should only restart when user clicks', () => {
+    expect(sidebarSrc).toContain('click to restart');
+    expect(sidebarSrc).toContain('updater.install');
+  });
+});

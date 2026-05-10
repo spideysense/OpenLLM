@@ -402,11 +402,6 @@ ipcMain.handle('updater:install', async () => {
   return true;
 });
 
-ipcMain.handle('updater:dismiss', async () => {
-  updater.dismissCountdown();
-  return true;
-});
-
 ipcMain.handle('updater:status', async () => {
   return updater.getStatus();
 });

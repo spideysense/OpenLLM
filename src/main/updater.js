@@ -2,17 +2,15 @@
  * Monet Auto-Updater
  *
  * Downloads updates silently in the background.
- * When ready, shows a 30-second countdown banner then auto-restarts.
- * User can click "Restart Now" or dismiss and it'll install on next quit.
- *
- * Works on Mac (DMG/ZIP) and Windows (NSIS).
+ * Shows a quiet sidebar notification when ready.
+ * User clicks to restart when THEY want. No countdowns. No forced restarts.
+ * Also installs silently on next quit.
  */
 const { autoUpdater } = require('electron-updater');
 const { app } = require('electron');
 
 let mainWindow = null;
 let updateReady = false;
-let countdownTimer = null;
 
 function init(win) {
   mainWindow = win;
@@ -26,14 +24,13 @@ function init(win) {
   autoUpdater.autoInstallOnAppQuit = true;
   autoUpdater.allowPrerelease = false;
 
-  // Mac: must use ZIP target for delta updates — DMG alone won't auto-update
-  // Windows: NSIS installer handles it natively
-
-  autoUpdater.on('checking-for-update', () => notify('checking'));
+  autoUpdater.on('checking-for-update', () => {
+    console.log('[Updater] Checking...');
+  });
 
   autoUpdater.on('update-available', (info) => {
     console.log('[Updater] Update available:', info.version);
-    notify('available', { version: info.version });
+    notify('downloading', { version: info.version, percent: 0 });
   });
 
   autoUpdater.on('update-not-available', () => {
@@ -47,40 +44,17 @@ function init(win) {
   autoUpdater.on('update-downloaded', (info) => {
     console.log('[Updater] Downloaded:', info.version);
     updateReady = true;
+    // Just notify — no countdown, no forced restart
     notify('ready', { version: info.version });
-    startAutoRestartCountdown(info.version);
   });
 
   autoUpdater.on('error', (err) => {
     console.error('[Updater] Error:', err.message);
-    notify('error', { message: err.message });
   });
 
+  // Check on launch, then every 4 hours
   checkForUpdates();
   setInterval(checkForUpdates, 4 * 60 * 60 * 1000);
-}
-
-function startAutoRestartCountdown(version) {
-  let seconds = 30;
-  notify('countdown', { version, seconds });
-
-  countdownTimer = setInterval(() => {
-    seconds--;
-    notify('countdown', { version, seconds });
-    if (seconds <= 0) {
-      clearInterval(countdownTimer);
-      installUpdate();
-    }
-  }, 1000);
-}
-
-function dismissCountdown() {
-  if (countdownTimer) {
-    clearInterval(countdownTimer);
-    countdownTimer = null;
-  }
-  // Will still install on next app quit
-  notify('ready', { version: null, dismissed: true });
 }
 
 function checkForUpdates() {
@@ -92,8 +66,6 @@ function checkForUpdates() {
 
 function installUpdate() {
   if (updateReady) {
-    // isSilent=false on Windows shows the installer UI
-    // isForceRunAfter=true reopens the app after install
     autoUpdater.quitAndInstall(false, true);
   }
 }
@@ -108,4 +80,4 @@ function notify(status, data = {}) {
   }
 }
 
-module.exports = { init, checkForUpdates, installUpdate, dismissCountdown, getStatus };
+module.exports = { init, checkForUpdates, installUpdate, getStatus };

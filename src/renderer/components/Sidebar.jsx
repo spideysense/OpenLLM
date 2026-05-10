@@ -55,19 +55,8 @@ export default function Sidebar() {
 
       <div className="nav-spacer" />
 
-      {/* Update notification */}
-      {updateStatus?.status === 'countdown' && (
-        <div className="update-banner" style={{ flexDirection: 'column', gap: 6 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-            <span style={{ fontWeight: 700, fontSize: 12 }}>🎉 Restarting in {updateStatus.seconds}s</span>
-            <button onClick={() => bridge?.updater.dismiss()} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,.5)', cursor: 'pointer', fontSize: 14 }}>✕</button>
-          </div>
-          <button onClick={() => bridge?.updater.install()} style={{ background: 'rgba(255,255,255,.15)', border: 'none', color: '#fff', borderRadius: 6, padding: '4px 10px', fontSize: 11, cursor: 'pointer', fontWeight: 700 }}>
-            Restart Now
-          </button>
-        </div>
-      )}
-      {updateStatus?.status === 'ready' && !updateStatus?.dismissed && (
+      {/* Update notification — quiet, no countdowns */}
+      {updateStatus?.status === 'ready' && (
         <button onClick={() => bridge?.updater.install()} className="update-banner">
           <span>🎉</span>
           <div>

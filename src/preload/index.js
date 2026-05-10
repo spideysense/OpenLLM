@@ -112,7 +112,6 @@ contextBridge.exposeInMainWorld('monet', {
   updater: {
     check: () => ipcRenderer.invoke('updater:check'),
     install: () => ipcRenderer.invoke('updater:install'),
-    dismiss: () => ipcRenderer.invoke('updater:dismiss'),
     getStatus: () => ipcRenderer.invoke('updater:status'),
     onStatus: (cb) => {
       const handler = (event, data) => cb(data);
