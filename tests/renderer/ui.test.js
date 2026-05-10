@@ -26,7 +26,7 @@ describe('Story: First-time user sees onboarding', () => {
     // Mock the useApp hook
     vi.doMock('../../src/renderer/App.jsx', () => ({
       useApp: () => ({
-        bridge: window.llmbear,
+        bridge: window.monet,
         systemInfo: {
           machineName: 'Mac (Apple M2, 16GB RAM)',
           totalRAMGB: 16,

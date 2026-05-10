@@ -1,7 +1,7 @@
 /**
  * Landing Page Tests
  *
- * STORY: Visitor lands on llmbear.com and can understand what it does
+ * STORY: Visitor lands on getmonet.com and can understand what it does
  * STORY: Search engines can properly index the page
  * STORY: AI engines (AEO) can extract structured answers
  * STORY: No TunnelBear branding leaks anywhere
@@ -226,13 +226,13 @@ describe('Content: Calls to action', () => {
   });
 
   it('should use version-less filenames so /latest/ always resolves', () => {
-    // BUG: If filename includes version (LLMBear-0.1.3-mac.dmg) but "latest"
+    // BUG: If filename includes version (Monet-0.1.3-mac.dmg) but "latest"
     // points to an older release, download 404s. Filenames must be stable.
     expect(html).toContain('Monet-mac.dmg');
     expect(html).toContain('Monet-win.exe');
     // Must NOT have version in filename
-    expect(html).not.toMatch(/LLMBear-\d+\.\d+\.\d+-mac\.dmg/);
-    expect(html).not.toMatch(/LLMBear-\d+\.\d+\.\d+-win\.exe/);
+    expect(html).not.toMatch(/Monet-\d+\.\d+\.\d+-mac\.dmg/);
+    expect(html).not.toMatch(/Monet-\d+\.\d+\.\d+-win\.exe/);
   });
 
   it('should have matching artifact names in electron-builder config', () => {

@@ -1,12 +1,12 @@
 {
-  "name": "@llmbear/cloud",
+  "name": "@getmonet/cloud",
   "version": "0.1.0",
-  "description": "LLM Bear Cloud — multi-tenant AI gateway with Stripe billing",
+  "description": "Monet Cloud — multi-tenant AI gateway with Stripe billing",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "db:reset": "rm -f data/llmbear.db && node -e \"require('./db').init()\""
+    "db:reset": "rm -f data/monet.db && node -e \"require('./db').init()\""
   },
   "dependencies": {
     "better-sqlite3": "^11.0.0",

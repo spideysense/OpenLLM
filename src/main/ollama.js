@@ -7,8 +7,8 @@ const http = require('http');
 const os = require('os');
 
 const OLLAMA_HOST = 'http://127.0.0.1:11434';
-const LLMBEAR_DIR = path.join(os.homedir(), '.monet');
-const BIN_DIR = path.join(LLMBEAR_DIR, 'bin');
+const MONET_DIR = path.join(os.homedir(), '.monet');
+const BIN_DIR = path.join(MONET_DIR, 'bin');
 let chatController = null;
 let ollamaProcess = null;
 
@@ -160,7 +160,7 @@ function downloadFileWithProgress(url, dest, notify) {
     const follow = (url, redirects = 0) => {
       if (redirects > 10) return reject(new Error('Too many redirects'));
       const mod = url.startsWith('https') ? https : http;
-      mod.get(url, { headers: { 'User-Agent': 'LLMBear/1.0' } }, (res) => {
+      mod.get(url, { headers: { 'User-Agent': 'Monet/1.0' } }, (res) => {
         if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
           return follow(res.headers.location, redirects + 1);
         }
@@ -272,7 +272,7 @@ async function ensureRunning(onProgress) {
         env: {
           ...process.env,
           OLLAMA_HOST: '127.0.0.1:11434',
-          OLLAMA_MODELS: path.join(LLMBEAR_DIR, 'models'),
+          OLLAMA_MODELS: path.join(MONET_DIR, 'models'),
         },
       });
       ollamaProcess.unref();

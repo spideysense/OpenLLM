@@ -1,4 +1,4 @@
-# LLM Bear Cloud
+# Monet Cloud
 
 Multi-tenant AI gateway with Stripe billing. Gives every paying user their own API key to a shared GPU pool running open source models.
 
@@ -51,7 +51,7 @@ Then in **Vercel Dashboard → Settings → Environment Variables**, add:
 
 ### Custom Domain
 
-Point `api.llmbear.com` at your Vercel deployment in **Settings → Domains**.
+Point `api.getmonet.com` at your Vercel deployment in **Settings → Domains**.
 
 ### Stripe Setup
 
@@ -104,7 +104,7 @@ Recommended: **Fly.io** or **Railway** for the gateway, with GPU backend on RunP
 
 ```bash
 # Fly.io example
-fly launch --name llmbear-cloud
+fly launch --name monet-cloud
 fly secrets set STRIPE_SECRET_KEY=sk_live_xxx ...
 fly deploy
 ```

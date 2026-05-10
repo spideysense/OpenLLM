@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom';
 
 // ═══════════════════════════════════════════════════
-// Mock window.llmbear (Electron preload bridge)
+// Mock window.monet (Electron preload bridge)
 // ═══════════════════════════════════════════════════
 
 const mockBridge = {
@@ -45,7 +45,7 @@ const mockBridge = {
   },
   apikeys: {
     list: vi.fn().mockResolvedValue([]),
-    create: vi.fn().mockResolvedValue({ id: 'test-id', label: 'Test', secret: 'sk-llmbear-test123', created: new Date().toISOString() }),
+    create: vi.fn().mockResolvedValue({ id: 'test-id', label: 'Test', secret: 'sk-monet-test123', created: new Date().toISOString() }),
     revoke: vi.fn().mockResolvedValue({ success: true }),
   },
   aliases: {

@@ -21,14 +21,18 @@ const https = require('https');
 const http = require('http');
 const os = require('os');
 
-const LOCAL_API = process.env.LLMBEAR_LOCAL_API || 'http://localhost:4000';
+const LOCAL_API = process.env.MONET_LOCAL_API || 'http://localhost:4000';
 const BIN_DIR = path.join(os.homedir(), '.monet', 'bin');
+const RELAY_URL = process.env.MONET_RELAY_URL || 'https://api.getmonet.com';
+const store = require('./store');
 
 const RECONNECT_BASE = 5000;
 const MAX_RECONNECT = 60000;
 
 let proc = null;
-let publicUrl = null;
+let publicUrl = null;    // raw cloudflare URL (changes on restart)
+let stableUrl = null;    // stable relay URL (never changes)
+let heartbeatInterval = null;
 let isShuttingDown = false;
 let reconnectDelay = RECONNECT_BASE;
 let onStatusChange = null;
@@ -41,18 +45,25 @@ function start(statusCallback) {
   onStatusChange = statusCallback || (() => {});
   isShuttingDown = false;
   reconnectDelay = RECONNECT_BASE;
+  // Load last known stable URL
+  stableUrl = store.get('stableUrl') || null;
   launch();
+  // Heartbeat every 2 minutes to keep the stable URL mapping alive
+  heartbeatInterval = setInterval(() => {
+    if (publicUrl) sendHeartbeat(publicUrl).catch(() => {});
+  }, 2 * 60 * 1000);
 }
 
 function stop() {
   isShuttingDown = true;
+  if (heartbeatInterval) { clearInterval(heartbeatInterval); heartbeatInterval = null; }
   if (proc) { proc.kill(); proc = null; }
   publicUrl = null;
   notifyStatus('disconnected');
 }
 
-function getPublicUrl() { return publicUrl; }
-function isConnected() { return !!publicUrl && !!proc; }
+function getPublicUrl() { return stableUrl || publicUrl; }
+function isConnected() { return !!(publicUrl && proc); }
 
 // ═══════════════════════════════════════════════════
 // Binary — correct URLs verified against GitHub releases API
@@ -169,7 +180,7 @@ function downloadFile(url, dest) {
     const follow = (url, redirects = 0) => {
       if (redirects > 10) return reject(new Error('Too many redirects'));
       const mod = url.startsWith('https') ? https : http;
-      mod.get(url, { headers: { 'User-Agent': 'LLMBear/1.0' } }, (res) => {
+      mod.get(url, { headers: { 'User-Agent': 'Monet/1.0' } }, (res) => {
         if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
           return follow(res.headers.location, redirects + 1);
         }
@@ -183,6 +194,83 @@ function downloadFile(url, dest) {
       }).on('error', reject);
     };
     follow(url);
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
+// Stable URL — register with relay, heartbeat to keep mapping alive
+// ═══════════════════════════════════════════════════
+
+async function ensureRegistered() {
+  let tunnelId = store.get('tunnelId');
+  let tunnelSecret = store.get('tunnelSecret');
+  if (tunnelId && tunnelSecret) return { tunnelId, tunnelSecret };
+
+  console.log('[Tunnel] Registering for stable URL...');
+  try {
+    const data = await postJson(`${RELAY_URL}/tunnel/register`, {});
+    tunnelId = data.tunnelId;
+    tunnelSecret = data.tunnelSecret;
+    store.set('tunnelId', tunnelId);
+    store.set('tunnelSecret', tunnelSecret);
+    stableUrl = data.url;
+    store.set('stableUrl', data.url);
+    console.log(`[Tunnel] Stable URL: ${data.url}`);
+    return { tunnelId, tunnelSecret };
+  } catch (err) {
+    console.error('[Tunnel] Registration failed:', err.message);
+    return null;
+  }
+}
+
+async function sendHeartbeat(cfUrl) {
+  const tunnelId = store.get('tunnelId');
+  const tunnelSecret = store.get('tunnelSecret');
+  if (!tunnelId || !tunnelSecret) return;
+
+  try {
+    const data = await postJson(`${RELAY_URL}/tunnel/heartbeat`, {
+      tunnelId, tunnelSecret, cloudflareUrl: cfUrl,
+    });
+    if (data.url) {
+      stableUrl = data.url;
+      store.set('stableUrl', data.url);
+    }
+    return data;
+  } catch (err) {
+    console.error('[Tunnel] Heartbeat failed:', err.message);
+    return null;
+  }
+}
+
+function postJson(url, body) {
+  return new Promise((resolve, reject) => {
+    const mod = url.startsWith('https') ? https : http;
+    const parsed = new URL(url);
+    const payload = JSON.stringify(body);
+    const req = mod.request({
+      hostname: parsed.hostname,
+      port: parsed.port,
+      path: parsed.pathname,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(payload),
+        'User-Agent': 'Monet/1.0',
+      },
+    }, (res) => {
+      let data = '';
+      res.on('data', (d) => data += d);
+      res.on('end', () => {
+        if (res.statusCode >= 400) return reject(new Error(`HTTP ${res.statusCode}: ${data}`));
+        try { resolve(JSON.parse(data)); } catch { reject(new Error('Invalid JSON')); }
+      });
+    });
+    req.on('error', reject);
+    req.setTimeout(10000, () => { req.destroy(); reject(new Error('Timeout')); });
+    req.write(payload);
+    req.end();
   });
 }
 
@@ -231,9 +319,20 @@ async function launch() {
     if (match) {
       publicUrl = match[0];
       reconnectDelay = RECONNECT_BASE;
-      console.log('[Tunnel] Public URL:', publicUrl);
-      notifyStatus('connected', { url: publicUrl });
-      // Push the new URL to Vercel so the website character chat stays current
+      console.log('[Tunnel] Cloudflare URL:', publicUrl);
+
+      // Register for a stable URL, then heartbeat with the new cloudflare URL
+      (async () => {
+        await ensureRegistered();
+        await sendHeartbeat(publicUrl);
+        const displayUrl = stableUrl || publicUrl;
+        console.log('[Tunnel] Display URL:', displayUrl);
+        notifyStatus('connected', { url: displayUrl });
+      })().catch(() => {
+        // Fall back to raw cloudflare URL if relay is down
+        notifyStatus('connected', { url: publicUrl });
+      });
+
       pushUrlToVercel(publicUrl).catch(() => {});
     }
   }

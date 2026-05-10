@@ -1,7 +1,7 @@
 /**
  * Tunnel Tests — Cloudflare Quick Tunnel
  *
- * STORY: User opens LLM Bear → app downloads cloudflared → starts tunnel
+ * STORY: User opens Monet → app downloads cloudflared → starts tunnel
  *        → gets free public URL → AI accessible from anywhere
  * STORY: Auto-reconnect on disconnect, auto-download binary
  * STORY: IPC bridge exposes tunnel status to the renderer UI
@@ -246,7 +246,7 @@ describe('Tunnel: Client stable URL', () => {
 
   it.skip('should configure registry URL via env var — stable URL backend removed, cloudflare URL used directly', () => {
     expect(clientSrc).toContain('LLMBEAR_REGISTRY');
-    expect(clientSrc).toContain('api.llmbear.com');
+    expect(clientSrc).toContain('api.getmonet.com');
   });
 });
 
@@ -332,7 +332,7 @@ describe('Tunnel: Landing page', () => {
   const html = fs.readFileSync(path.resolve('site/index.html'), 'utf8');
 
   it.skip('should show stable URL in code examples — site redesigned with character UI', () => {
-    expect(html).toContain('api.llmbear.com/t/');
+    expect(html).toContain('api.getmonet.com/t/');
   });
 
   it.skip('should list public URL as a Cave Bear feature — plan names changed', () => {
