@@ -548,3 +548,28 @@ describe('Auto-Updater: OTA updates', () => {
     expect(workflowSrc).toContain('latest-mac.yml');
   });
 });
+
+describe('Syntax validation: all main process files must parse', () => {
+  const { execSync } = require('child_process');
+  const mainFiles = [
+    'src/main/index.js',
+    'src/main/ollama.js',
+    'src/main/models.js',
+    'src/main/gateway.js',
+    'src/main/apikeys.js',
+    'src/main/tunnel.js',
+    'src/main/updater.js',
+    'src/main/store.js',
+  ];
+
+  mainFiles.forEach(file => {
+    const filePath = path.resolve(file);
+    if (fs.existsSync(filePath)) {
+      it(`${file} should have valid JavaScript syntax`, () => {
+        // node -c does a syntax check without executing
+        const result = execSync(`node -c "${filePath}" 2>&1`, { encoding: 'utf8' });
+        expect(result.trim()).toBe('');
+      });
+    }
+  });
+});
