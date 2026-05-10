@@ -48,9 +48,14 @@ describe('Tunnel: Cloudflared binary', () => {
     expect(clientSrc).toContain('return binPath');
   });
 
-  it('should download direct binary for macOS (cloudflared has no tgz)', () => {
-    // cloudflared ships as raw binaries — darwin-universal, no archive extraction
-    expect(clientSrc).toContain('darwin-universal');
+  it('should download arch-specific tgz for macOS', () => {
+    // cloudflared now ships as .tgz archives, not raw binaries
+    expect(clientSrc).toContain('cloudflared-darwin-arm64.tgz');
+    expect(clientSrc).toContain('cloudflared-darwin-amd64.tgz');
+  });
+
+  it('should extract tgz archives', () => {
+    expect(clientSrc).toContain('tar -xzf');
   });
 
   it('should make binary executable on Unix', () => {

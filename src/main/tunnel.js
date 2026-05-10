@@ -68,8 +68,10 @@ function getDownloadUrl() {
   const p = process.platform;
   const a = process.arch;
   if (p === 'darwin') {
-    // Universal binary works on both Intel and Apple Silicon
-    return 'https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-darwin-universal';
+    // No more universal binary — use arch-specific tgz archives
+    return a === 'arm64'
+      ? 'https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-darwin-arm64.tgz'
+      : 'https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-darwin-amd64.tgz';
   }
   if (p === 'win32') {
     return 'https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe';
@@ -102,12 +104,40 @@ async function ensureBinary() {
   fs.mkdirSync(BIN_DIR, { recursive: true });
 
   try {
-    // All cloudflared releases are raw binaries — download directly, no extraction
-    await downloadFile(url, binPath);
+    const isTgz = url.endsWith('.tgz');
 
-    if (fs.statSync(binPath).size < 1_000_000) {
-      fs.unlinkSync(binPath);
-      throw new Error('Downloaded file too small — likely a redirect error');
+    if (isTgz) {
+      // Download archive, extract the binary
+      const archivePath = binPath + '.tgz';
+      await downloadFile(url, archivePath);
+
+      if (fs.statSync(archivePath).size < 100_000) {
+        fs.unlinkSync(archivePath);
+        throw new Error('Downloaded file too small — likely a 404 or redirect error');
+      }
+
+      // Extract — cloudflared tgz contains the binary at the root
+      const { execSync } = require('child_process');
+      execSync(`tar -xzf "${archivePath}" -C "${BIN_DIR}"`, { stdio: 'pipe' });
+      fs.unlinkSync(archivePath);
+
+      // The extracted binary might be named 'cloudflared' already, or we need to find it
+      if (!fs.existsSync(binPath)) {
+        // Scan for it
+        const files = fs.readdirSync(BIN_DIR);
+        const match = files.find(f => f.startsWith('cloudflared') && !f.endsWith('.tgz'));
+        if (match && match !== path.basename(binPath)) {
+          fs.renameSync(path.join(BIN_DIR, match), binPath);
+        }
+      }
+    } else {
+      // Direct binary download (Windows, Linux)
+      await downloadFile(url, binPath);
+    }
+
+    if (!fs.existsSync(binPath) || fs.statSync(binPath).size < 1_000_000) {
+      if (fs.existsSync(binPath)) fs.unlinkSync(binPath);
+      throw new Error('Binary not found or too small after extraction');
     }
 
     if (process.platform !== 'win32') {
