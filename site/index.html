@@ -1042,27 +1042,16 @@ async function speakViaApi(text, onEnd) {
   speak(text, onEnd);
 }
 
-// ── Typewriter ──
+// ── Text display (instant — no typewriter) ──
 
-// ── Typewriter ──
+// ── Text display ──
 let typeTimer = null;
 function typeText(text, speed = 28, onDone) {
   clearTimeout(typeTimer);
-  subtitleText.textContent = '';
-  cursor.style.display = 'inline-block';
+  subtitleText.textContent = text;
+  cursor.style.display = 'none';
   subtitle.classList.add('visible');
-  let i = 0;
-  function tick() {
-    if (i <= text.length) {
-      subtitleText.textContent = text.slice(0, i);
-      i++;
-      typeTimer = setTimeout(tick, speed);
-    } else {
-      cursor.style.display = 'none';
-      if (onDone) onDone();
-    }
-  }
-  tick();
+  if (onDone) onDone();
 }
 
 // once() ensures callback fires exactly once even if both typewriter and speech call it
@@ -1099,16 +1088,8 @@ function startGreeting() {
   if (greeted) return;
   greeted = true;
   subtitle.classList.add('visible');
-
-  // Show text greeting immediately (no gesture needed for text)
-  setTimeout(() => {
-    typeText(LINES.greeting, 22, () => setTimeout(showNavButtons, 600));
-  }, 400);
-
-  // Show a "tap to hear" nudge after text starts appearing
-  setTimeout(() => {
-    if (!hasGesture) showHearPrompt();
-  }, 1000);
+  typeText(LINES.greeting, 0, () => showNavButtons());
+  if (!hasGesture) showHearPrompt();
 }
 
 function showHearPrompt() {
