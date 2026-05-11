@@ -809,38 +809,6 @@ html, body {
 
   </div>
 
-  <!-- Hear Monet button — appears after greeting, centered, disappears after first click -->
-  <button
-    id="hear-prompt"
-    onclick="enableVoiceAndSpeak(document.getElementById('subtitle-text').textContent)"
-    style="
-      opacity:0;
-      transition:opacity 0.5s, transform 0.3s;
-      transform:translateY(4px);
-      margin-top:12px;
-      font-family:var(--serif);
-      font-size:15px;
-      font-style:italic;
-      color:var(--earth);
-      background:rgba(253,249,243,0.92);
-      border:1.5px solid rgba(155,120,88,0.22);
-      border-radius:50px;
-      padding:11px 28px;
-      cursor:pointer;
-      display:inline-flex;
-      align-items:center;
-      gap:9px;
-      backdrop-filter:blur(10px);
-      box-shadow:0 4px 20px rgba(61,46,32,0.10);
-      z-index:5;
-      pointer-events:none;
-    "
-    onmouseenter="this.style.background='rgba(155,126,200,0.15)';this.style.borderColor='var(--lavender)'"
-    onmouseleave="this.style.background='rgba(253,249,243,0.92)';this.style.borderColor='rgba(155,120,88,0.22)'"
-  >
-    <span style="font-size:18px">🔊</span> Hear Monet speak
-  </button>
-
   <!-- Navigation buttons -->
   <div class="nav-buttons" id="nav-buttons">
     <button class="nav-btn" onclick="respond('how')" id="btn-how">How does it work?</button>
@@ -1042,15 +1010,40 @@ async function speakViaApi(text, onEnd) {
   speak(text, onEnd);
 }
 
-// ── Text display (instant — no typewriter) ──
+// ── Text display (instant text, animated character) ──
 
-// ── Text display ──
 let typeTimer = null;
+let animTimer = null;
+
+function startCharacterAnim() {
+  document.querySelector('.figure-head')?.classList.add('talking');
+  document.querySelector('.arm-palette')?.classList.add('gesturing');
+  document.querySelector('.arm-brush')?.classList.add('painting');
+}
+
+function stopCharacterAnim() {
+  document.querySelector('.figure-head')?.classList.remove('talking');
+  document.querySelector('.arm-palette')?.classList.remove('gesturing');
+  document.querySelector('.arm-brush')?.classList.remove('painting');
+}
+
 function typeText(text, speed = 28, onDone) {
   clearTimeout(typeTimer);
+  clearTimeout(animTimer);
+
+  // Animate the character while "speaking"
+  startCharacterAnim();
+
   subtitleText.textContent = text;
   cursor.style.display = 'none';
   subtitle.classList.add('visible');
+
+  // Stop animation after a duration proportional to text length (min 1s, max 4s)
+  const animDuration = Math.min(4000, Math.max(1000, text.length * 30));
+  animTimer = setTimeout(() => {
+    stopCharacterAnim();
+  }, animDuration);
+
   if (onDone) onDone();
 }
 
@@ -1089,45 +1082,12 @@ function startGreeting() {
   greeted = true;
   subtitle.classList.add('visible');
   typeText(LINES.greeting, 0, () => showNavButtons());
-  if (!hasGesture) showHearPrompt();
 }
 
-function showHearPrompt() {
-  const prompt = document.getElementById('hear-prompt');
-  if (prompt) {
-    prompt.style.opacity = '1';
-    prompt.style.transform = 'translateY(0)';
-    prompt.style.pointerEvents = 'all';
-  }
-}
-
-function enableVoiceAndSpeak(text) {
-  hasGesture = true;
-  const prompt = document.getElementById('hear-prompt');
-  if (prompt) {
-    prompt.style.opacity = '0';
-    prompt.style.transform = 'translateY(-4px)';
-    prompt.style.pointerEvents = 'none';
-    setTimeout(() => { if (prompt.parentNode) prompt.style.display = 'none'; }, 500);
-  }
-  // MUST call speak() synchronously here — no await before this point
-  // Chrome requires speechSynthesis.speak() in the gesture callstack
-  speak(text, null);
-}
-
-function grantGesture() {
-  if (hasGesture) return;
-  hasGesture = true;
-  const prompt = document.getElementById('hear-prompt');
-  if (prompt) {
-    prompt.style.opacity = '0';
-    prompt.style.pointerEvents = 'none';
-    setTimeout(() => { if (prompt.parentNode) prompt.style.display = 'none'; }, 500);
-  }
-}
-
-// Any button click grants the gesture and can start/re-speak
-
+// Hear prompt removed — character animates instead
+function showHearPrompt() {}
+function enableVoiceAndSpeak() {}
+function grantGesture() { hasGesture = true; }
 
 function showNavButtons() {
   navButtons.classList.add('visible');
