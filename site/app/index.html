@@ -378,10 +378,6 @@ select.settings-select:focus{border-color:var(--gd)}
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
           Chat
         </button>
-        <button class="sb-nav-item" data-panel="setup" id="nav-setup">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
-          App Setup
-        </button>
         <button class="sb-nav-item" data-panel="settings" id="nav-settings">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           Settings
@@ -439,53 +435,6 @@ select.settings-select:focus{border-color:var(--gd)}
           </button>
         </div>
         <div class="input-footer">Running on your machine · <span id="model-footer">–</span></div>
-      </div>
-    </div>
-
-    <!-- ── SETUP PANEL ── -->
-    <div class="panel" id="panel-setup">
-      <div class="panel-inner">
-        <h2 class="panel-title">App <em>Setup</em></h2>
-        <p class="panel-sub">Connect any browser to your local Aspen in 3 steps. Your tunnel URL and API key are in the desktop app — copy them right here.</p>
-
-        <div class="setup-steps">
-
-          <div class="setup-step">
-            <div class="step-num">1</div>
-            <div class="step-title">Open the Aspen app</div>
-            <div class="step-desc">Make sure the desktop app is running and shows "Running locally" in the sidebar.</div>
-          </div>
-
-          <div class="setup-step">
-            <div class="step-num">2</div>
-            <div class="step-title">Copy your Tunnel URL</div>
-            <div class="step-desc">In the Aspen app, go to <strong>API Keys</strong>. Copy the "From anywhere" URL — it's your permanent tunnel address.</div>
-            <div class="copy-row">
-              <code id="setup-tunnel-url">Loading…</code>
-              <button class="copy-btn-sm" id="copy-tunnel-btn">Copy</button>
-            </div>
-            <div class="step-note">This is your permanent URL. Bookmark it — it never changes.</div>
-          </div>
-
-          <div class="setup-step">
-            <div class="step-num">3</div>
-            <div class="step-title">Copy your API Key</div>
-            <div class="step-desc">Still in API Keys, copy any key. You'll paste it when connecting from a new browser.</div>
-            <div class="copy-row">
-              <code class="secret" id="setup-api-key">sk-aspen-••••••••••••••</code>
-              <button class="reveal-btn" id="reveal-key-btn">Reveal</button>
-              <button class="copy-btn-sm" id="copy-key-btn">Copy</button>
-            </div>
-            <div class="step-note">Keys never leave your machine. They only authenticate apps talking to your local Aspen.</div>
-          </div>
-
-          <div class="setup-step">
-            <div class="step-num">✓</div>
-            <div class="step-title">You're connected</div>
-            <div class="step-desc">This browser is paired with your Aspen. To connect another browser or device, go to <strong>runonaspen.com/app</strong> and paste your tunnel URL and API key.</div>
-          </div>
-
-        </div>
       </div>
     </div>
 
