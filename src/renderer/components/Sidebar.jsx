@@ -28,12 +28,14 @@ export default function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="sidebar-logo">
-        <svg viewBox="0 0 28 28" fill="none" width="28" height="28">
-          <path d="M14 2L14 25" stroke="#1D1D1F" strokeWidth="2" strokeLinecap="round"/>
-          <path d="M14 7C10.5 3.5,5 4.5,4.5 8C4 11.5,7.5 12.5,11 10.5" stroke="#B8860B" strokeWidth="1.6" fill="none" strokeLinecap="round"/>
-          <path d="M14 7C17.5 3.5,23 4.5,23.5 8C24 11.5,20.5 12.5,17 10.5" stroke="#B8860B" strokeWidth="1.6" fill="none" strokeLinecap="round"/>
-          <path d="M14 14C10 10.5,3.5 12.5,3.5 16C3.5 19.5,8 19.5,12 17.5" stroke="#DAA520" strokeWidth="1.6" fill="none" strokeLinecap="round"/>
-          <path d="M14 14C18 10.5,24.5 12.5,24.5 16C24.5 19.5,20 19.5,16 17.5" stroke="#DAA520" strokeWidth="1.6" fill="none" strokeLinecap="round"/>
+        <svg viewBox="0 0 24 32" fill="none" width="22" height="28">
+          <path d="M12 31L12 16" stroke="#B8860B" strokeWidth="1.3" strokeLinecap="round"/>
+          <path d="M12 1C12 1,2 7,2 15.5C2 22,6.5 26,12 26C17.5 26,22 22,22 15.5C22 7,12 1,12 1Z" stroke="#B8860B" strokeWidth="1.2" fill="none"/>
+          <path d="M12 5L12 23.5" stroke="#B8860B" strokeWidth="0.7" strokeLinecap="round"/>
+          <path d="M12 11C9.5 13,6 14,4.5 14.8" stroke="#B8860B" strokeWidth="0.6" fill="none" strokeLinecap="round"/>
+          <path d="M12 11C14.5 13,18 14,19.5 14.8" stroke="#B8860B" strokeWidth="0.6" fill="none" strokeLinecap="round"/>
+          <path d="M12 16C9.5 18,6.5 19,5 19.8" stroke="#B8860B" strokeWidth="0.6" fill="none" strokeLinecap="round"/>
+          <path d="M12 16C14.5 18,17.5 19,19 19.8" stroke="#B8860B" strokeWidth="0.6" fill="none" strokeLinecap="round"/>
         </svg>
         <span>ASPEN</span>
       </div>
