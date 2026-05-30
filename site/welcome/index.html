@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Welcome to Aspen Cloud 🐻</title>
+<title>Welcome to Aspen Cloud 🌿</title>
 <meta name="robots" content="noindex">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{--earth:#5D4E37;--accent:#F5A623;--grass-dark:#4AA651;--sky-top:#E8F4F8;--cloud:#fff;--text-dark:#2D3436;--text-light:#6B7B8D;--code-bg:#1E293B;--display:'Baloo 2',cursive;--body:'Nunito',sans-serif;--mono:'JetBrains Mono',monospace}
 *{margin:0;padding:0;box-sizing:border-box}body{font-family:var(--body);color:var(--text-dark);background:var(--sky-top);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
 .card{background:var(--cloud);border-radius:24px;padding:48px 40px;max-width:640px;width:100%;box-shadow:0 12px 48px rgba(0,0,0,.08);text-align:center}
-.bear{font-size:64px;margin-bottom:12px}
+.aspen-icon{font-size:64px;margin-bottom:12px}
 h1{font-family:var(--display);font-size:32px;font-weight:800;color:var(--earth);margin-bottom:8px}
 .plan-badge{display:inline-block;background:rgba(245,166,35,.12);color:var(--earth);font-family:var(--display);font-size:14px;font-weight:700;padding:6px 18px;border-radius:50px;margin-bottom:24px}
 .sub{color:var(--text-light);font-size:16px;line-height:1.6;margin-bottom:32px}
@@ -38,13 +38,13 @@ a.btn:hover{transform:translateY(-2px)}
 <body>
 <div class="card" id="content">
   <div class="loading" id="loading">
-    <div class="bear">🐻</div>
+    <div class="aspen-icon">🌿</div>
     <p>Setting up your account...</p>
   </div>
 </div>
 
 <script>
-const API=window.location.origin.replace('open-llm-ten.vercel.app','api.runonaspen.com');
+const API=window.location.origin.replace('runonaspen.com','api.runonaspen.com');
 const CLOUD_API=new URLSearchParams(window.location.search).get('api_url')||API;
 
 async function load(){
@@ -53,7 +53,7 @@ async function load(){
 
   if(!sessionId){
     document.getElementById('content').innerHTML=`
-      <div class="bear">🐻</div>
+      <div class="aspen-icon">🌿</div>
       <h1>Oops!</h1>
       <p class="sub">No checkout session found. <a href="/#pricing">Go back to pricing</a>.</p>
     `;
@@ -72,7 +72,7 @@ async function load(){
 
   if(!data){
     document.getElementById('content').innerHTML=`
-      <div class="bear">🐻</div>
+      <div class="aspen-icon">🌿</div>
       <h1>Almost there!</h1>
       <p class="sub">Your account is being set up. Please refresh in a few seconds.</p>
       <a class="btn" href="" onclick="location.reload();return false">Refresh</a>
@@ -84,7 +84,7 @@ async function load(){
   const baseUrl=data.api_base_url||'https://api.runonaspen.com/v1';
 
   document.getElementById('content').innerHTML=`
-    <div class="bear">🐻</div>
+    <div class="aspen-icon">🌿</div>
     <h1>Welcome to Aspen!</h1>
     <div class="plan-badge">${data.plan_name} — Active</div>
     <p class="sub">You're all set. Here's your API key and everything you need to start using AI in the cloud.</p>
@@ -94,7 +94,7 @@ async function load(){
     ${key?`
     <div class="key-box">
       <div class="key-label">Your API Key</div>
-      <div class="key-value" id="api-key">${key.secret_prefix||'sk-bear-...'}</div>
+      <div class="key-value" id="api-key">${key.secret_prefix||'sk-aspen-...'}</div>
       <button class="copy-btn" onclick="copyKey()">Copy</button>
     </div>
     `:`
@@ -115,7 +115,7 @@ async function load(){
 
 client = OpenAI(
     <span class="hl">base_url="${baseUrl}"</span>,
-    <span class="hl">api_key="sk-bear-..."</span>
+    <span class="hl">api_key="sk-aspen-..."</span>
 )
 
 response = client.chat.completions.create(

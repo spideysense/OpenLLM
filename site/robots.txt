@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://open-llm-ten.vercel.app/sitemap.xml
+Sitemap: https://runonaspen.com/sitemap.xml
