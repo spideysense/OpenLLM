@@ -62,6 +62,8 @@ export default async function handler(req) {
 
   const upstream = `${tunnelUrl.replace(/\/+$/, '')}/v1/chat/completions`;
 
+  const { stream = true } = body;
+
   const upstreamHeaders = {
     'Content-Type': 'application/json',
     'User-Agent': 'Aspen-Web-Proxy/1.0',
@@ -73,7 +75,7 @@ export default async function handler(req) {
     upstreamRes = await fetch(upstream, {
       method: 'POST',
       headers: upstreamHeaders,
-      body: JSON.stringify({ model: model || 'llama3', messages: messages || [], stream: true }),
+      body: JSON.stringify({ model: model || 'llama3', messages: messages || [], stream }),
     });
   } catch (err) {
     return new Response(JSON.stringify({ error: 'Could not reach tunnel', detail: err.message }), {
@@ -86,6 +88,15 @@ export default async function handler(req) {
     const text = await upstreamRes.text().catch(() => '');
     return new Response(JSON.stringify({ error: `Upstream error: HTTP ${upstreamRes.status}`, detail: text }), {
       status: upstreamRes.status,
+      headers: { ...corsHeaders(), 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Non-streaming: return JSON directly
+  if (!stream) {
+    const json = await upstreamRes.json();
+    return new Response(JSON.stringify(json), {
+      status: 200,
       headers: { ...corsHeaders(), 'Content-Type': 'application/json' },
     });
   }

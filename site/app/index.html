@@ -885,6 +885,7 @@ async function sendMessage() {
     renderChatList();
   }
   saveChats();
+  console.log('[Aspen] Saved user msg, chat has', chat.messages.length, 'messages');
   appendMessage('user', text, false);
   inputBox.value = '';
   inputBox.style.height = 'auto';
@@ -908,7 +909,10 @@ async function sendMessage() {
         tunnelUrl: config.tunnelUrl,
         apiKey: config.apiKey || '',
         model,
-        messages: history,
+        messages: (() => {
+          const sys = worldModelSystemPrompt();
+          return sys ? [{ role: 'system', content: sys }, ...history] : history;
+        })(),
       }),
       signal: streamController.signal,
     });
@@ -952,7 +956,18 @@ async function sendMessage() {
   }
 
   bubble.innerHTML = fullText ? formatMessage(fullText) : '<em style="color:var(--t3);font-size:.8rem">No response</em>';
-  if (fullText) { chat.messages.push({ role: 'assistant', content: fullText }); saveChats(); }
+  console.log('[Aspen] Stream done, fullText length:', fullText.length);
+  if (fullText) {
+    // Re-fetch the chat object in case activeChatId changed during stream
+    const currentChat = chats[activeChatId];
+    if (currentChat) {
+      currentChat.messages.push({ role: 'assistant', content: fullText });
+      saveChats();
+      // Silently extract user facts in background — doesn't block UI
+      const lastUserMsg = currentChat.messages.filter(m => m.role === 'user').slice(-1)[0]?.content || '';
+      extractFactsFromExchange(lastUserMsg, fullText);
+    }
+  }
   isStreaming = false; sendBtn.classList.remove('hidden'); stopBtn.classList.add('hidden'); sendBtn.disabled = false; streamController = null;
   inputBox.focus();
 }
@@ -1005,6 +1020,88 @@ async function checkStatus() {
     statusDot.className = 'dot offline';
     statusText.textContent = 'Offline';
     offlineBanner.classList.add('visible');
+  }
+}
+
+
+// ══════════════════════════════════════════════════════
+// WORLD MODEL — local user profile built from conversations
+// Nothing leaves the device. Stored in localStorage.
+// After each completed exchange, extract facts silently.
+// Prepended as system context on every chat.
+// ══════════════════════════════════════════════════════
+const WORLD_MODEL_KEY = 'aspen_world_model';
+
+function getWorldModel() {
+  try { return JSON.parse(localStorage.getItem(WORLD_MODEL_KEY) || '{}'); } catch { return {}; }
+}
+
+function saveWorldModel(wm) {
+  localStorage.setItem(WORLD_MODEL_KEY, JSON.stringify(wm));
+}
+
+function worldModelSystemPrompt() {
+  const wm = getWorldModel();
+  const facts = wm.facts;
+  if (!facts || facts.length === 0) return null;
+  return `You are a helpful private AI assistant running locally on the user's machine via Aspen.\n\nWhat you know about this user from past conversations:\n${facts.join('\n')}\n\nUse this context naturally. Don't reference it explicitly unless asked.`;
+}
+
+async function extractFactsFromExchange(userMsg, assistantMsg) {
+  if (!config?.tunnelUrl || !userMsg || !assistantMsg) return;
+  // Only bother if there's something substantive
+  if (userMsg.length < 20) return;
+
+  const model = modelSelect.value;
+  if (!model) return;
+
+  const wm = getWorldModel();
+  const existingFacts = (wm.facts || []).join('\n');
+
+  const extractPrompt = `You are extracting factual information about a user from a conversation snippet.
+Extract ONLY concrete, reusable facts about the USER (not the topic discussed).
+Examples: name, job, location, preferences, ongoing projects, relationships, expertise.
+Do NOT extract: generic statements, questions asked, things the AI said.
+If there's nothing new to extract, return exactly: NONE
+
+Existing known facts:
+${existingFacts || '(none yet)'}
+
+Conversation snippet:
+User: ${userMsg.slice(0, 300)}
+Assistant: ${assistantMsg.slice(0, 300)}
+
+New facts to add (one per line, or NONE):`;
+
+  try {
+    const res = await fetch('/api/proxy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tunnelUrl: config.tunnelUrl,
+        apiKey: config.apiKey || '',
+        model,
+        messages: [{ role: 'user', content: extractPrompt }],
+        stream: false,
+      }),
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    const raw = data.choices?.[0]?.message?.content?.trim();
+    if (!raw || raw === 'NONE' || raw.toUpperCase().includes('NONE')) return;
+
+    const newFacts = raw.split('\n')
+      .map(f => f.trim())
+      .filter(f => f.length > 5 && f.length < 200);
+
+    if (newFacts.length === 0) return;
+
+    // Merge, dedupe loosely by keeping last 50 facts
+    const merged = [...(wm.facts || []), ...newFacts].slice(-50);
+    saveWorldModel({ ...wm, facts: merged, updatedAt: new Date().toISOString() });
+    console.log('[WorldModel] Extracted', newFacts.length, 'new facts');
+  } catch (e) {
+    console.log('[WorldModel] Extraction failed silently:', e.message);
   }
 }
 
