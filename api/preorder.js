@@ -34,7 +34,7 @@ export default async function handler(req, res) {
             Your Aspen pre-order has been received. We'll reach out when your device is ready to ship.
           </p>
           <p style="font-size:16px;line-height:1.7;color:#6E6E73;margin-top:16px;">
-            In the meantime, you can <a href="https://github.com/spideysense/OpenLLM/releases/latest" style="color:#B8860B;text-decoration:none;font-weight:500;">download the free Aspen software</a> and start running private AI on your current computer.
+            In the meantime, you can <a href="https://runonaspen.com" style="color:#B8860B;text-decoration:none;font-weight:500;">download the free Aspen software</a> and start running private AI on your current computer.
           </p>
           <hr style="border:none;border-top:1px solid #E5E5E5;margin:32px 0;" />
           <p style="font-size:13px;color:#AEAEB2;">Aspen &middot; Own your intelligence &middot; <a href="https://runonaspen.com" style="color:#B8860B;text-decoration:none;">runonaspen.com</a></p>
