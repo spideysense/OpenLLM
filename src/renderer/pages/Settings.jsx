@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../App';
+import ModelHub from './ModelHub';
+import ReplaceWizard from './ReplaceWizard';
 
 export default function Settings() {
+  const [section, setSection] = useState('system');
   const { bridge, systemInfo, hardwareTier, ollamaStatus, gatewayStatus, models } = useApp();
   const [aliases, setAliases] = useState({});
   const [editingAlias, setEditingAlias] = useState(null);
@@ -32,10 +35,20 @@ export default function Settings() {
 
   const installedModels = models.map((m) => m.name);
 
+  const tabs = [{ id: 'system', label: 'System' }, { id: 'models', label: 'Models' }, { id: 'replace', label: 'Replace AI' }];
+
   return (
     <div className="page">
       <div className="page-title">⚙️ Settings</div>
       <div className="page-sub">Configure Aspen to work your way.</div>
+      <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '2px solid rgba(93,78,55,0.1)', paddingBottom: 0 }}>
+        {tabs.map(t => (
+          <button key={t.id} onClick={() => setSection(t.id)} style={{ padding: '7px 16px', fontSize: 13, fontWeight: 600, background: 'transparent', border: 'none', cursor: 'pointer', color: section === t.id ? 'var(--earth)' : 'var(--text-light)', borderBottom: section === t.id ? '2px solid var(--pipe-yellow)' : '2px solid transparent', marginBottom: -2, borderRadius: 0, fontFamily: 'var(--font-display)' }}>{t.label}</button>
+        ))}
+      </div>
+      {section === 'models' && <ModelHub />}
+      {section === 'replace' && <ReplaceWizard />}
+      {section === 'system' && <div>
 
       {/* System Info */}
       <div className="card mb-6">
@@ -188,6 +201,7 @@ export default function Settings() {
           </a>
         </p>
       </div>
+    </div>}
     </div>
   );
 }

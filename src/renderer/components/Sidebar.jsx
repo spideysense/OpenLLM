@@ -4,20 +4,30 @@ import { useApp } from '../App';
 export default function Sidebar() {
   const { page, setPage, ollamaStatus, activeModel, gatewayStatus, bridge } = useApp();
   const [updateStatus, setUpdateStatus] = useState(null);
+  const [appVersion, setAppVersion] = useState('...');
 
   useEffect(() => {
     if (!bridge?.updater) return;
-    const unsub = bridge.updater.onStatus((data) => {
+    const unsub = bridge.updater.onStatus((data) => { setUpdateStatus(data); });
+    return unsub;
+  }, [bridge]);
+
+  useEffect(() => {
+    if (!bridge?.hotUpdater) return;
+    bridge.hotUpdater.getVersion().then(v => setAppVersion(v || '?'));
+    const unsub = bridge.hotUpdater.onStatus((data) => {
       setUpdateStatus(data);
+      if (data.status === 'ready') bridge.hotUpdater.getVersion().then(v => setAppVersion(v || '?'));
     });
     return unsub;
   }, [bridge]);
 
   const nav = [
+    { id: 'home', icon: '🏠', label: 'Home' },
     { id: 'chat', icon: '💬', label: 'Chat' },
-    { id: 'models', icon: '🖼️', label: 'Models' },
-    { id: 'replace', icon: '🔌', label: 'Replace AI' },
+    { id: 'worldmodel', icon: '🧠', label: 'World Model' },
     { id: 'apikeys', icon: '🔑', label: 'API Keys' },
+    { id: 'appsetup', icon: '📱', label: 'App Setup' },
     { id: 'settings', icon: '⚙️', label: 'Settings' },
   ];
 
@@ -47,11 +57,11 @@ export default function Sidebar() {
 
       {/* Update notification — quiet, no countdowns */}
       {updateStatus?.status === 'ready' && (
-        <button onClick={() => bridge?.updater.install()} className="update-banner">
+        <button onClick={() => bridge?.hotUpdater?.reload ? bridge.hotUpdater.reload() : window.location.reload()} className="update-banner">
           <span>🎉</span>
           <div>
             <div style={{ fontWeight: 700, fontSize: 12 }}>Update ready</div>
-            <div style={{ fontSize: 11, opacity: 0.8 }}>v{updateStatus.version} — click to restart</div>
+            <div style={{ fontSize: 11, opacity: 0.8 }}>v{updateStatus.version} — click to apply</div>
           </div>
         </button>
       )}

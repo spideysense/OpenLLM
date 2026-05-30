@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell, Tray, Menu, nativeImage, clipboard } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, Tray, Menu, nativeImage, clipboard, systemPreferences } = require('electron');
 const path = require('path');
 const ollama = require('./ollama');
 const models = require('./models');
@@ -10,6 +10,7 @@ const registry = require('./registry');
 const store = require('./store');
 const tunnel = require('./tunnel');
 const updater = require('./updater');
+const hotUpdater = require('./hot-updater');
 const conversations = require('./conversations');
 
 const isDev = !app.isPackaged;
@@ -42,16 +43,16 @@ function createWindow() {
     mainWindow.loadURL('http://localhost:5173');
     mainWindow.webContents.openDevTools({ mode: 'detach' });
   } else {
-    mainWindow.loadFile(path.join(__dirname, '..', '..', 'build', 'index.html'));
+    mainWindow.loadFile(hotUpdater.resolveRendererPath());
   }
 
-  // Grant microphone permission for voice input (Web Speech API)
+  // Grant microphone/audio permissions for voice input (Web Speech API)
   mainWindow.webContents.session.setPermissionRequestHandler((webContents, permission, callback) => {
-    if (permission === 'media' || permission === 'microphone') {
-      callback(true);
-    } else {
-      callback(false);
-    }
+    const allowed = ['media', 'microphone', 'audioCapture'];
+    callback(allowed.includes(permission));
+  });
+  mainWindow.webContents.session.setPermissionCheckHandler((webContents, permission) => {
+    return ['media', 'microphone', 'audioCapture'].includes(permission);
   });
 
   mainWindow.once('ready-to-show', () => {
@@ -85,6 +86,14 @@ function createTray() {
 // ═══════════════════════════════════════════════════
 
 app.whenReady().then(async () => {
+  // Request mic access upfront so macOS grants it once permanently
+  if (process.platform === 'darwin' && systemPreferences.getMediaAccessStatus('microphone') !== 'granted') {
+    await systemPreferences.askForMediaAccess('microphone').catch(() => {});
+  }
+
+  // Hot update check BEFORE window — correct renderer loads immediately, no flicker
+  await hotUpdater.checkForUpdate();
+
   createWindow();
   createTray();
 
@@ -218,15 +227,12 @@ ipcMain.handle('models:recommend', async () => {
 
 ipcMain.handle('chat:send', async (event, { model, messages }) => {
   // Prepend system prompt so the model knows it's running locally
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
   const SYSTEM_PROMPT = {
     role: 'system',
-    content:
-      'You are a helpful AI assistant running locally inside Aspen, ' +
-      'a desktop application on the user\'s own computer. You are NOT running ' +
-      'in any cloud service. All processing happens 100% on this machine. ' +
-      'The user\'s data never leaves their device. ' +
-      'Be helpful, friendly, and concise. Never claim to be running on any ' +
-      'cloud provider or remote server — you are fully local and private.',
+    content: `You are a helpful AI assistant running locally inside Aspen on the user's own computer. All processing is 100% on this machine — nothing leaves the device. The current date is ${dateStr} and the time is ${timeStr}. Be helpful, friendly, and concise.`,
   };
 
   // Only prepend if there's no existing system message
@@ -307,7 +313,7 @@ ipcMain.handle('registry:checkUpgrades', async () => {
 
 // ── Store IPC ── allowlisted keys only (renderer must not touch security-sensitive state)
 const STORE_ALLOWLIST = new Set([
-  'onboarded', 'activeModel', 'totalExchanges', 'theme', 'windowBounds',
+  'onboarded', 'activeModel', 'totalExchanges', 'theme', 'windowBounds', 'worldModel',
 ]);
 
 ipcMain.handle('store:get', async (event, key) => {
@@ -392,6 +398,12 @@ ipcMain.handle('tunnel:restart', async () => {
 // IPC Handlers — Auto-Updater
 // ═══════════════════════════════════════════════════
 
+// Clipboard
+ipcMain.handle('clipboard:write', async (_, text) => {
+  if (typeof text === 'string') clipboard.writeText(text);
+  return true;
+});
+
 ipcMain.handle('updater:check', async () => {
   updater.checkForUpdates();
   return true;
@@ -404,4 +416,12 @@ ipcMain.handle('updater:install', async () => {
 
 ipcMain.handle('updater:status', async () => {
   return updater.getStatus();
+});
+
+// Hot updater IPC
+ipcMain.handle('hotUpdater:check', async () => { hotUpdater.checkForUpdate(); return true; });
+ipcMain.handle('hotUpdater:version', async () => hotUpdater.getCurrentVersion());
+ipcMain.handle('hotUpdater:reload', async () => {
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.loadFile(hotUpdater.resolveRendererPath());
+  return true;
 });

@@ -47,6 +47,7 @@ function touchKey(token) {
   const key = keys.find((k) => k.secret === token);
   if (key) {
     key.lastUsed = new Date().toISOString();
+    key.usageCount = (key.usageCount || 0) + 1;
     store.set('apikeys', keys);
   }
 }

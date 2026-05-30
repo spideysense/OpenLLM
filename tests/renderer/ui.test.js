@@ -63,8 +63,8 @@ describe('Story: User navigates with sidebar', () => {
 
   it('should define 5 navigation items', () => {
     // Verify the nav structure matches our design
-    const expectedPages = ['chat', 'models', 'replace', 'apikeys', 'settings'];
-    expect(expectedPages).toHaveLength(5);
+    const expectedPages = ['home','chat','worldmodel','apikeys','appsetup','settings'];
+    expect(expectedPages).toHaveLength(6);
   });
 });
 
@@ -274,8 +274,8 @@ describe('Story: App shell and routing', () => {
     const fs = await import('fs');
     const source = fs.readFileSync('src/renderer/App.jsx', 'utf8');
     expect(source).toContain("page === 'chat'");
-    expect(source).toContain("page === 'models'");
-    expect(source).toContain("page === 'replace'");
+    expect(source).toContain("page === 'home'");
+    expect(source).toContain("page === 'worldmodel'");
     expect(source).toContain("page === 'apikeys'");
     expect(source).toContain("page === 'settings'");
   });

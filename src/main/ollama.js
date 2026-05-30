@@ -316,15 +316,76 @@ async function install() {
 // ═══════════════════════════════════════════════════
 // Chat / Streaming
 // ═══════════════════════════════════════════════════
+// Web search helpers
+const SEARCH_TRIGGERS = [
+  /\b(stock|share)\s*(price|cost|value|ticker|quote)/i,
+  /\b(weather|forecast|temperature)\b/i,
+  /\b(news|latest|breaking)\b/i,
+  /\b(score|result|match|game)\s*(today|tonight|yesterday)/i,
+  /\b(price of|cost of|how much is|how much does)\b/i,
+  /\bwho (won|is winning|leads)\b/i,
+  /\b(crypto|bitcoin|ethereum|btc|eth)\s*(price|value)/i,
+];
+
+const CLASSIFIER_PROMPT = `You are a search intent classifier. Does this question require real-time internet data to answer accurately? Real-time data: current prices, today's news, live scores, recent events, current weather. Answer with exactly one word: YES or NO.\nQuestion: `;
+
+async function classifierNeedsSearch(userMessage, model) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 3000);
+  try {
+    const res = await fetch(`${OLLAMA_HOST}/api/generate`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model, prompt: CLASSIFIER_PROMPT + userMessage.slice(0, 300), stream: false, options: { temperature: 0, num_predict: 5 } }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return null;
+    const data = await res.json();
+    return (data.response || '').trim().toUpperCase().startsWith('YES');
+  } catch { clearTimeout(timeout); return null; }
+}
+
+async function fetchSearchResults(query) {
+  try {
+    const res = await fetch('https://runonaspen.com/api/search', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data.results?.length) return null;
+    return data.results.slice(0, 5).map((r, i) => `[${i+1}] ${r.title}\n${r.snippet}${r.url ? `\nSource: ${r.url}` : ''}`).join('\n\n');
+  } catch { return null; }
+}
 
 async function chat(model, messages, onChunk) {
   chatController = new AbortController();
 
   try {
+    // Search intent detection: LLM classifier → regex fallback
+    const lastUser = [...messages].reverse().find(m => m.role === 'user');
+    const userText = lastUser?.content || '';
+    let enrichedMessages = messages;
+    if (userText.length > 3) {
+      let needsSearch = await classifierNeedsSearch(userText, model);
+      if (needsSearch === null) needsSearch = SEARCH_TRIGGERS.some(t => t.test(userText));
+      if (needsSearch) {
+        onChunk({ content: '🔍 Searching…', done: false });
+        const results = await fetchSearchResults(userText);
+        if (results) {
+          const searchBlock = `\n\n--- Live web search results ---\n${results}\n--- End results. Use these to answer accurately. ---`;
+          const hasSystem = enrichedMessages[0]?.role === 'system';
+          if (hasSystem) enrichedMessages = [{ ...enrichedMessages[0], content: enrichedMessages[0].content + searchBlock }, ...enrichedMessages.slice(1)];
+          else enrichedMessages = [{ role: 'system', content: `You are a helpful assistant.${searchBlock}` }, ...enrichedMessages];
+        }
+        onChunk({ content: '', done: false });
+      }
+    }
+
     const res = await fetch(`${OLLAMA_HOST}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, messages, stream: true }),
+      body: JSON.stringify({ model, messages: enrichedMessages, stream: true }),
       signal: chatController.signal,
     });
 
