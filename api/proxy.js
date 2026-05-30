@@ -15,14 +15,14 @@ Real-time data: current prices, today's news, live scores, recent events, curren
 Answer with exactly one word: YES or NO.
 Question: `;
 
-async function classifierShouldSearch(userMessage, tunnelUrl, apiKey) {
+async function classifierShouldSearch(userMessage, tunnelUrl, apiKey, model) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 3000);
   try {
     const res = await fetch(`${tunnelUrl}/v1/chat/completions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...(apiKey ? { 'Authorization': `Bearer ${apiKey}` } : {}) },
-      body: JSON.stringify({ model: 'llama3.2', messages: [{ role: 'user', content: CLASSIFIER_PROMPT + userMessage.slice(0, 300) }], max_tokens: 5, temperature: 0, stream: false }),
+      body: JSON.stringify({ model: model || 'llama3', messages: [{ role: 'user', content: CLASSIFIER_PROMPT + userMessage.slice(0, 300) }], max_tokens: 5, temperature: 0, stream: false }),
       signal: controller.signal,
     });
     clearTimeout(timeout);
@@ -32,7 +32,7 @@ async function classifierShouldSearch(userMessage, tunnelUrl, apiKey) {
   } catch { clearTimeout(timeout); return null; }
 }
 
-async function runSearch(query, baseUrl) {
+async function runSearch(query, baseUrl = 'https://runonaspen.com') {
   try {
     const res = await fetch(`${baseUrl}/api/search`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query }) });
     if (!res.ok) return null;
@@ -75,11 +75,16 @@ export default async function handler(req) {
   let enrichedMessages = messages || [];
 
   if (userText.length > 3) {
-    let needsSearch = await classifierShouldSearch(userText, tunnelUrl.replace(/\/+$/, ''), apiKey);
-    if (needsSearch === null) needsSearch = SEARCH_TRIGGERS.some(t => t.test(userText));
+    // Fast path: regex first (no latency). Only use LLM classifier for ambiguous queries.
+    const regexHit = SEARCH_TRIGGERS.some(t => t.test(userText));
+    let needsSearch = regexHit;
+    if (!regexHit) {
+      // Classifier for queries regex misses (adds ~200ms only when needed)
+      const classified = await classifierShouldSearch(userText, tunnelUrl.replace(/\/+$/, ''), apiKey, model);
+      needsSearch = classified === true;
+    }
     if (needsSearch) {
-      const baseUrl = new URL(req.url).origin;
-      const results = await runSearch(userText, baseUrl);
+      const results = await runSearch(userText, 'https://runonaspen.com');
       if (results) enrichedMessages = injectSearch(messages, userText.slice(0, 100), results);
     }
   }
