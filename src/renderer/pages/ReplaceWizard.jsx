@@ -35,7 +35,17 @@ export default function ReplaceWizard() {
   }, [step, apiKey, bridge]);
 
   function copyToClipboard(text, id) {
-    navigator.clipboard.writeText(text);
+    if (bridge?.clipboard?.write) {
+      bridge.clipboard.write(text);
+    } else {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
     setCopied(id);
     setTimeout(() => setCopied(null), 2000);
   }
