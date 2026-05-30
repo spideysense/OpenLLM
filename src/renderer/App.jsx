@@ -6,6 +6,7 @@ import ModelHub from './pages/ModelHub';
 import ReplaceWizard from './pages/ReplaceWizard';
 import APIKeys from './pages/APIKeys';
 import Settings from './pages/Settings';
+import AppSetup from './pages/AppSetup';
 
 // ═══════════════════════════════════════════════════
 // Global App Context
@@ -148,9 +149,8 @@ export default function App() {
         <Sidebar />
         <main className="main-content">
           {page === 'chat' && <Chat />}
-          {page === 'models' && <ModelHub />}
-          {page === 'replace' && <ReplaceWizard />}
           {page === 'apikeys' && <APIKeys />}
+          {page === 'appsetup' && <AppSetup />}
           {page === 'settings' && <Settings />}
         </main>
       </div>

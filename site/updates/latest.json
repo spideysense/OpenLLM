@@ -1,6 +1,6 @@
 {
-  "rendererVersion": "0.2.7",
-  "rendererUrl": "https://github.com/spideysense/OpenLLM/releases/download/v0.2.7/renderer.zip",
-  "releaseNotes": "See GitHub release for details",
+  "rendererVersion": "0.2.8",
+  "rendererUrl": "https://github.com/spideysense/OpenLLM/releases/download/v0.2.8/renderer.zip",
+  "releaseNotes": "Desktop: App Setup nav, Models+Replace AI in Settings, chat hint",
   "publishedAt": "2026-05-30"
 }

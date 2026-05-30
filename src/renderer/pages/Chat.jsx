@@ -315,8 +315,11 @@ export default function Chat() {
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', opacity: 0.6 }}>
             <div style={{ fontSize: 64, marginBottom: 12 }}>🌿</div>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, color: 'var(--earth)', marginBottom: 6 }}>Ask me anything</div>
-            <div style={{ fontSize: 14, color: 'var(--text-light)', maxWidth: 300, textAlign: 'center', lineHeight: 1.5 }}>
+            <div style={{ fontSize: 14, color: 'var(--text-light)', maxWidth: 320, textAlign: 'center', lineHeight: 1.6 }}>
               Everything stays on your machine. Your data, always private. 🌿
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-light)', maxWidth: 300, textAlign: 'center', lineHeight: 1.6, marginTop: 12, opacity: 0.7 }}>
+              You can also ask for help with anything related to Aspen — setting it up, connecting apps, or using the API.
             </div>
           </div>
         )}

@@ -61,10 +61,10 @@ describe('Story: User navigates with sidebar', () => {
     expect(typeof Sidebar).toBe('function');
   });
 
-  it('should define 5 navigation items', () => {
-    // Verify the nav structure matches our design
-    const expectedPages = ['chat', 'models', 'replace', 'apikeys', 'settings'];
-    expect(expectedPages).toHaveLength(5);
+  it('should define 4 navigation items', () => {
+    // Models and Replace AI moved into Settings tabs
+    const expectedPages = ['chat', 'apikeys', 'appsetup', 'settings'];
+    expect(expectedPages).toHaveLength(4);
   });
 });
 
@@ -274,8 +274,8 @@ describe('Story: App shell and routing', () => {
     const fs = await import('fs');
     const source = fs.readFileSync('src/renderer/App.jsx', 'utf8');
     expect(source).toContain("page === 'chat'");
-    expect(source).toContain("page === 'models'");
-    expect(source).toContain("page === 'replace'");
+    expect(source).toContain("page === 'appsetup'");
+    expect(source).toContain("page === 'settings'");
     expect(source).toContain("page === 'apikeys'");
     expect(source).toContain("page === 'settings'");
   });
