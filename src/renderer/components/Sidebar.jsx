@@ -28,15 +28,7 @@ export default function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="sidebar-logo">
-        <svg viewBox="0 0 24 32" fill="none" width="22" height="28">
-          <path d="M12 31L12 16" stroke="#B8860B" strokeWidth="1.3" strokeLinecap="round"/>
-          <path d="M12 1C12 1,2 7,2 15.5C2 22,6.5 26,12 26C17.5 26,22 22,22 15.5C22 7,12 1,12 1Z" stroke="#B8860B" strokeWidth="1.2" fill="none"/>
-          <path d="M12 5L12 23.5" stroke="#B8860B" strokeWidth="0.7" strokeLinecap="round"/>
-          <path d="M12 11C9.5 13,6 14,4.5 14.8" stroke="#B8860B" strokeWidth="0.6" fill="none" strokeLinecap="round"/>
-          <path d="M12 11C14.5 13,18 14,19.5 14.8" stroke="#B8860B" strokeWidth="0.6" fill="none" strokeLinecap="round"/>
-          <path d="M12 16C9.5 18,6.5 19,5 19.8" stroke="#B8860B" strokeWidth="0.6" fill="none" strokeLinecap="round"/>
-          <path d="M12 16C14.5 18,17.5 19,19 19.8" stroke="#B8860B" strokeWidth="0.6" fill="none" strokeLinecap="round"/>
-        </svg>
+        <img src="../../../assets/aspen-leaf-24.png" alt="Aspen" width="24" height="24" />
         <span>ASPEN</span>
       </div>
 
