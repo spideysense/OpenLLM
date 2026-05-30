@@ -66,7 +66,7 @@ async function runSearch(query) {
 }
 
 function injectSearch(messages, query, results) {
-  const searchBlock = `\n\n--- Live web search results for "${query}" ---\n${results}\n--- End results. Use these to answer accurately. Cite sources where relevant. ---`;
+  const searchBlock = `\n\n--- Live web search results for "${query}" ---\n${results}\n--- End of search results ---\n\nIMPORTANT: Use the search results above to answer the user's question directly and concisely. Do NOT write code. Just answer the question in plain English using the data from the search results.`;
   const hasSystem = messages[0]?.role === 'system';
   if (hasSystem) {
     return [{ ...messages[0], content: messages[0].content + searchBlock }, ...messages.slice(1)];

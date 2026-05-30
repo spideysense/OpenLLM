@@ -379,7 +379,7 @@ async function chat(model, messages, onChunk) {
         onChunk({ content: '🔍 Searching…', done: false });
         const results = await fetchSearchResults(userText);
         if (results) {
-          const searchBlock = `\n\n--- Live web search results ---\n${results}\n--- End results. Use these to answer accurately. ---`;
+          const searchBlock = `\n\n--- Live web search results ---\n${results}\n--- End of search results ---\n\nIMPORTANT: Use the search results above to answer the user's question directly and concisely in plain English. Do NOT write code. Just state the answer using the data from the results.`;
           const hasSystem = enrichedMessages[0]?.role === 'system';
           if (hasSystem) enrichedMessages = [{ ...enrichedMessages[0], content: enrichedMessages[0].content + searchBlock }, ...enrichedMessages.slice(1)];
           else enrichedMessages = [{ role: 'system', content: `You are a helpful assistant.${searchBlock}` }, ...enrichedMessages];
