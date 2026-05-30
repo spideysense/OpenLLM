@@ -2,335 +2,328 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#FAFAF7">
 <title>Aspen — Your AI</title>
 <meta name="robots" content="noindex">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@200;300;400;500;600&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 :root{
-  --bg:#FAFAF7;--wh:#FFFFFF;--bk:#1D1D1F;--bk2:#0A0A0A;
+  --bg:#FAFAF7;--wh:#FFFFFF;--bk:#1D1D1F;
   --t2:#6E6E73;--t3:#86868B;--t4:#AEAEB2;
   --gd:#B8860B;--gd2:#DAA520;--gd-light:rgba(184,134,11,0.08);
   --brd:rgba(0,0,0,0.07);--brd2:rgba(0,0,0,0.12);
+  --danger:#DC2626;
   --ser:'DM Serif Display',Georgia,serif;
   --san:'Outfit',-apple-system,sans-serif;
   --mono:'SF Mono','JetBrains Mono',monospace;
-  --sidebar:220px;--header:54px;
+  --sidebar:260px;
+  --header:52px;
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+  --safe-top:env(safe-area-inset-top,0px);
 }
-html,body{height:100%;overflow:hidden}
-body{font-family:var(--san);background:var(--bg);color:var(--bk);-webkit-font-smoothing:antialiased}
+html{height:100%;-webkit-text-size-adjust:100%}
+body{font-family:var(--san);background:var(--bg);color:var(--bk);-webkit-font-smoothing:antialiased;height:100%;overflow:hidden;position:fixed;width:100%}
 
-/* ── SCREENS ── */
-.screen{position:fixed;inset:0;display:none;align-items:center;justify-content:center}
+/* ══════════════════════════════════════
+   SCREENS
+══════════════════════════════════════ */
+.screen{position:fixed;inset:0;display:none;flex-direction:column}
 .screen.active{display:flex}
 
-/* ══════════════════════════════════════════
+/* ══════════════════════════════════════
    PAIRING SCREEN
-══════════════════════════════════════════ */
-#pair-screen{background:var(--bg);flex-direction:column}
-.pair-card{
-  width:100%;max-width:420px;padding:2.8rem 2.4rem;
-  background:var(--wh);border:1px solid var(--brd);
-  border-radius:20px;
-  box-shadow:0 2px 8px rgba(0,0,0,.04),0 24px 64px rgba(0,0,0,.06);
+══════════════════════════════════════ */
+#pair-screen{background:var(--bg);justify-content:center;align-items:center;padding:1.5rem;overflow-y:auto}
+.pair-card{width:100%;max-width:420px;background:var(--wh);border:1px solid var(--brd);border-radius:20px;padding:2.4rem 2rem;box-shadow:0 2px 8px rgba(0,0,0,.04),0 20px 60px rgba(0,0,0,.06)}
+@media(max-width:480px){
+  .pair-card{border-radius:16px;padding:2rem 1.5rem;box-shadow:none;border:none;background:transparent}
+  #pair-screen{background:var(--wh);padding:1rem}
 }
-.pair-logo{display:flex;align-items:center;gap:.6rem;margin-bottom:1.8rem}
-.pair-logo img{height:26px}
-.pair-logo span{font-weight:600;font-size:1rem;letter-spacing:.06em}
-.pair-tagline{font-family:var(--ser);font-size:1.45rem;line-height:1.2;margin-bottom:.5rem}
+.pair-logo{display:flex;align-items:center;gap:.5rem;margin-bottom:1.6rem}
+.pair-logo img{height:24px}
+.pair-logo span{font-weight:600;font-size:.95rem;letter-spacing:.06em}
+.pair-tagline{font-family:var(--ser);font-size:1.4rem;line-height:1.2;margin-bottom:.4rem}
 .pair-tagline em{font-style:italic;color:var(--gd)}
-.pair-sub{font-size:.83rem;color:var(--t2);line-height:1.6;margin-bottom:1.8rem;font-weight:300}
-.field{margin-bottom:1.1rem}
-.field label{display:block;font-size:.7rem;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--t3);margin-bottom:.4rem}
-.field input{
-  width:100%;padding:.68rem .9rem;
-  font-family:var(--san);font-size:.86rem;
-  background:var(--bg);border:1.5px solid var(--brd2);
-  border-radius:10px;color:var(--bk);outline:none;transition:border-color .2s;
-}
+.pair-sub{font-size:.82rem;color:var(--t2);line-height:1.6;margin-bottom:1.6rem;font-weight:300}
+.field{margin-bottom:1rem}
+.field label{display:block;font-size:.68rem;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--t3);margin-bottom:.4rem}
+.field input{width:100%;padding:.75rem 1rem;font-family:var(--san);font-size:1rem;background:var(--bg);border:1.5px solid var(--brd2);border-radius:12px;color:var(--bk);outline:none;transition:border-color .2s;-webkit-appearance:none}
 .field input:focus{border-color:var(--gd)}
 .field input::placeholder{color:var(--t4)}
 .field .hint{font-size:.7rem;color:var(--t3);margin-top:.35rem;line-height:1.5}
-.pair-btn{
-  width:100%;padding:.78rem;background:var(--bk);color:var(--bg);
-  border:none;border-radius:10px;font-family:var(--san);
-  font-size:.88rem;font-weight:500;cursor:pointer;transition:all .2s;margin-top:.4rem;
-}
-.pair-btn:hover{background:#333}
+.pair-btn{width:100%;padding:.85rem;background:var(--bk);color:var(--bg);border:none;border-radius:12px;font-family:var(--san);font-size:1rem;font-weight:500;cursor:pointer;transition:all .2s;margin-top:.3rem;-webkit-appearance:none}
+.pair-btn:active{background:#333;transform:scale(.99)}
 .pair-btn:disabled{opacity:.4;cursor:not-allowed}
-.pair-err{
-  margin-top:.9rem;padding:.65rem .9rem;
-  background:rgba(220,38,38,.06);border:1px solid rgba(220,38,38,.2);
-  border-radius:8px;font-size:.78rem;color:#DC2626;line-height:1.5;display:none;
-}
+.pair-err{margin-top:.8rem;padding:.65rem .9rem;background:rgba(220,38,38,.06);border:1px solid rgba(220,38,38,.2);border-radius:10px;font-size:.8rem;color:var(--danger);line-height:1.5;display:none}
 .pair-err.visible{display:block}
-.pair-privacy{text-align:center;margin-top:1.1rem;font-size:.7rem;color:var(--t4);line-height:1.5}
+.pair-privacy{text-align:center;margin-top:1rem;font-size:.7rem;color:var(--t4);line-height:1.6}
 .pair-privacy a{color:var(--gd);text-decoration:none}
 
-/* ══════════════════════════════════════════
-   APP LAYOUT
-══════════════════════════════════════════ */
-#app-screen{background:var(--bg);align-items:stretch}
-.app-layout{display:flex;width:100%;height:100%}
+/* ══════════════════════════════════════
+   APP SCREEN — LAYOUT
+══════════════════════════════════════ */
+#app-screen{background:var(--bg)}
+.app-layout{display:flex;height:100%;overflow:hidden}
 
-/* ── SIDEBAR ── */
+/* ══════════════════════════════════════
+   SIDEBAR DRAWER
+══════════════════════════════════════ */
 .sidebar{
   width:var(--sidebar);flex-shrink:0;
   background:var(--wh);border-right:1px solid var(--brd);
   display:flex;flex-direction:column;overflow:hidden;
+  transition:transform .28s cubic-bezier(.4,0,.2,1);
+  z-index:20;
 }
-.sidebar-header{padding:.9rem 1rem .8rem;border-bottom:1px solid var(--brd)}
-.sb-logo{display:flex;align-items:center;gap:.5rem;margin-bottom:.9rem}
-.sb-logo img{height:19px}
-.sb-logo span{font-weight:600;font-size:.85rem;letter-spacing:.06em}
+
+/* Mobile: sidebar is off-canvas */
+@media(max-width:768px){
+  .sidebar{
+    position:fixed;top:0;left:0;bottom:0;
+    width:min(var(--sidebar), 85vw);
+    transform:translateX(-100%);
+    box-shadow:none;
+    padding-top:var(--safe-top);
+  }
+  .sidebar.open{
+    transform:translateX(0);
+    box-shadow:4px 0 24px rgba(0,0,0,.12);
+  }
+}
+
+.sidebar-header{padding:.85rem 1rem .75rem;border-bottom:1px solid var(--brd)}
+.sb-logo{display:flex;align-items:center;gap:.5rem;margin-bottom:.85rem}
+.sb-logo img{height:18px}
+.sb-logo span{font-weight:600;font-size:.82rem;letter-spacing:.06em}
 .new-chat-btn{
   width:100%;padding:.5rem .85rem;
   background:var(--bg);border:1.5px solid var(--brd2);
   border-radius:9px;font-family:var(--san);font-size:.78rem;color:var(--bk);
   cursor:pointer;display:flex;align-items:center;gap:.5rem;transition:all .2s;
+  -webkit-appearance:none;
 }
-.new-chat-btn:hover{border-color:rgba(0,0,0,.25);background:#f5f5f2}
+.new-chat-btn:active{background:#f0f0ed}
 .new-chat-btn svg{flex-shrink:0;opacity:.5}
 
-/* nav */
-.sb-nav{padding:.6rem .7rem;border-bottom:1px solid var(--brd)}
+.sb-nav{padding:.5rem .6rem;border-bottom:1px solid var(--brd)}
 .sb-nav-item{
   display:flex;align-items:center;gap:.55rem;
-  padding:.48rem .7rem;border-radius:7px;
-  font-size:.78rem;color:var(--t2);cursor:pointer;
+  padding:.5rem .7rem;border-radius:8px;
+  font-size:.8rem;color:var(--t2);cursor:pointer;
   transition:all .15s;border:none;background:transparent;
-  font-family:var(--san);width:100%;text-align:left;
+  font-family:var(--san);width:100%;text-align:left;-webkit-appearance:none;
 }
-.sb-nav-item:hover{background:rgba(0,0,0,.04);color:var(--bk)}
+.sb-nav-item:active{background:rgba(0,0,0,.06)}
 .sb-nav-item.active{background:var(--gd-light);color:var(--gd)}
 .sb-nav-item svg{flex-shrink:0;opacity:.5}
 .sb-nav-item.active svg{opacity:.8}
 
-.chat-list{flex:1;overflow-y:auto;padding:.4rem .6rem}
-.chat-list::-webkit-scrollbar{width:3px}
-.chat-list::-webkit-scrollbar-thumb{background:rgba(0,0,0,.1);border-radius:2px}
+.chat-list{flex:1;overflow-y:auto;padding:.4rem .6rem;-webkit-overflow-scrolling:touch}
+.chat-list::-webkit-scrollbar{display:none}
 .chat-item{
-  padding:.45rem .7rem;border-radius:7px;
-  font-size:.76rem;color:var(--t2);cursor:pointer;
+  padding:.5rem .7rem;border-radius:8px;
+  font-size:.78rem;color:var(--t2);cursor:pointer;
   display:flex;align-items:center;gap:.45rem;
-  transition:background .15s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  margin-bottom:1px;border:none;background:transparent;font-family:var(--san);width:100%;text-align:left;
+  transition:background .15s;white-space:nowrap;overflow:hidden;
+  margin-bottom:2px;border:none;background:transparent;font-family:var(--san);width:100%;text-align:left;
+  -webkit-appearance:none;min-height:36px;
 }
-.chat-item:hover{background:rgba(0,0,0,.04)}
-.chat-item:hover .chat-delete{opacity:1}
+.chat-item:active{background:rgba(0,0,0,.05)}
+.chat-item.active{background:var(--gd-light);color:var(--gd)}
+.chat-item svg{flex-shrink:0;opacity:.35}
+.chat-item span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
 .chat-delete{
   flex-shrink:0;opacity:0;margin-left:auto;
   background:transparent;border:none;cursor:pointer;
-  color:var(--t3);padding:2px 4px;border-radius:4px;
-  transition:all .15s;line-height:1;font-size:14px;
+  color:var(--t3);padding:4px 6px;border-radius:4px;
+  transition:all .15s;line-height:1;font-size:16px;
 }
-.chat-delete:hover{background:rgba(220,38,38,.1);color:#DC2626}
-.chat-item.active{background:var(--gd-light);color:var(--gd)}
-.chat-item svg{flex-shrink:0;opacity:.35}
-.chat-item span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:768px){.chat-delete{opacity:.4}}
+.chat-item:hover .chat-delete,.chat-item.active .chat-delete{opacity:1}
+.chat-delete:active{background:rgba(220,38,38,.1);color:var(--danger)}
 .chat-section-label{
-  font-size:.63rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
-  color:var(--t4);padding:.8rem .7rem .25rem;
+  font-size:.62rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--t4);padding:.7rem .7rem .2rem;
 }
-
-.sidebar-footer{padding:.75rem .9rem;border-top:1px solid var(--brd)}
-.status-dot{display:flex;align-items:center;gap:.5rem;font-size:.73rem;color:var(--t3)}
+.sidebar-footer{padding:.7rem .9rem;border-top:1px solid var(--brd);padding-bottom:calc(.7rem + var(--safe-bottom))}
+.status-dot{display:flex;align-items:center;gap:.5rem;font-size:.72rem;color:var(--t3)}
 .dot{width:7px;height:7px;border-radius:50%;background:var(--t4);flex-shrink:0;transition:background .4s}
 .dot.online{background:#34C759;box-shadow:0 0 0 2px rgba(52,199,89,.15)}
 .dot.offline{background:#FF3B30}
-.dot.checking{animation:pulse 1.5s ease-in-out infinite}
-@keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
+.dot.checking{animation:dotpulse 1.5s ease-in-out infinite}
+@keyframes dotpulse{0%,100%{opacity:.3}50%{opacity:1}}
 
-/* ── MAIN AREA ── */
-.chat-main{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
-
-.chat-header{
-  height:var(--header);flex-shrink:0;padding:0 1.4rem;
-  display:flex;align-items:center;justify-content:space-between;
-  border-bottom:1px solid var(--brd);
-  background:rgba(250,250,247,.9);backdrop-filter:blur(12px);
+/* ── DRAWER OVERLAY ── */
+.drawer-overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:19;
+  backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);
+  animation:fadein .2s ease;
 }
-.chat-title{font-size:.86rem;font-weight:500;color:var(--bk);max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+
+/* ══════════════════════════════════════
+   MAIN CHAT AREA
+══════════════════════════════════════ */
+.chat-main{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden;position:relative}
+
+/* ── HEADER ── */
+.chat-header{
+  height:var(--header);flex-shrink:0;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 1rem;gap:.75rem;
+  border-bottom:1px solid var(--brd);
+  background:rgba(250,250,247,.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  padding-top:var(--safe-top);height:calc(var(--header) + var(--safe-top));
+}
+.header-hamburger{
+  width:36px;height:36px;display:none;align-items:center;justify-content:center;
+  background:transparent;border:none;cursor:pointer;border-radius:8px;flex-shrink:0;
+  color:var(--bk);-webkit-appearance:none;
+}
+.header-hamburger:active{background:rgba(0,0,0,.06)}
+@media(max-width:768px){.header-hamburger{display:flex}}
+.chat-title{font-size:.86rem;font-weight:500;color:var(--bk);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tunnel-badge{
-  font-size:.68rem;color:var(--t3);
-  display:flex;align-items:center;gap:.35rem;
+  font-size:.65rem;color:var(--t3);
+  display:flex;align-items:center;gap:.3rem;flex-shrink:0;
 }
 .tunnel-badge code{
-  font-family:var(--mono);font-size:.66rem;color:var(--gd);
-  background:var(--gd-light);padding:.1rem .4rem;border-radius:4px;
+  font-family:var(--mono);font-size:.63rem;color:var(--gd);
+  background:var(--gd-light);padding:.1rem .35rem;border-radius:4px;
+  max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;
 }
+@media(max-width:480px){.tunnel-badge{display:none}}
+.header-new-btn{
+  width:32px;height:32px;display:none;align-items:center;justify-content:center;
+  background:transparent;border:none;cursor:pointer;border-radius:8px;
+  color:var(--bk);flex-shrink:0;-webkit-appearance:none;
+}
+.header-new-btn:active{background:rgba(0,0,0,.06)}
+@media(max-width:768px){.header-new-btn{display:flex}}
+
+/* ── OFFLINE BANNER ── */
+.offline-banner{
+  background:rgba(220,38,38,.07);border-bottom:1px solid rgba(220,38,38,.12);
+  padding:.4rem 1rem;text-align:center;font-size:.75rem;color:var(--danger);display:none;flex-shrink:0;
+}
+.offline-banner.visible{display:block}
 
 /* ── MESSAGES ── */
-.messages{flex:1;overflow-y:auto;padding:2rem 0}
+.messages{flex:1;overflow-y:auto;padding:1.5rem 0 1rem;-webkit-overflow-scrolling:touch}
 .messages::-webkit-scrollbar{width:3px}
 .messages::-webkit-scrollbar-thumb{background:rgba(0,0,0,.08);border-radius:2px}
-.msg-row{padding:.22rem 1.4rem;display:flex;max-width:740px;margin:0 auto;width:100%}
+.msg-row{padding:.2rem 1rem;display:flex;max-width:700px;margin:0 auto;width:100%}
 .msg-row.user{justify-content:flex-end}
 .msg-row.assistant{justify-content:flex-start}
 .msg-bubble{
-  max-width:76%;padding:.75rem 1.05rem;
-  border-radius:16px;font-size:.86rem;line-height:1.72;word-break:break-word;
+  max-width:80%;padding:.75rem 1rem;
+  border-radius:18px;font-size:.9rem;line-height:1.7;word-break:break-word;
+}
+@media(max-width:480px){
+  .msg-row{padding:.18rem .75rem}
+  .msg-bubble{max-width:88%;font-size:.88rem;padding:.7rem .9rem}
 }
 .msg-row.user .msg-bubble{background:var(--bk);color:var(--bg);border-bottom-right-radius:4px}
-.msg-row.assistant .msg-bubble{
-  background:var(--wh);color:var(--bk);
-  border:1px solid var(--brd);border-bottom-left-radius:4px;
-  box-shadow:0 1px 3px rgba(0,0,0,.04);
-}
+.msg-row.assistant .msg-bubble{background:var(--wh);color:var(--bk);border:1px solid var(--brd);border-bottom-left-radius:4px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
 .msg-bubble p{margin-bottom:.55rem}.msg-bubble p:last-child{margin-bottom:0}
-.msg-bubble code{font-family:var(--mono);font-size:.78em;background:rgba(0,0,0,.06);padding:.1em .32em;border-radius:4px}
+.msg-bubble code{font-family:var(--mono);font-size:.8em;background:rgba(0,0,0,.06);padding:.1em .32em;border-radius:4px}
 .msg-row.user .msg-bubble code{background:rgba(255,255,255,.15)}
-.msg-bubble pre{background:rgba(0,0,0,.05);border-radius:8px;padding:.75rem .9rem;overflow-x:auto;margin:.45rem 0}
-.msg-bubble pre code{background:none;padding:0}
+.msg-bubble pre{background:rgba(0,0,0,.05);border-radius:10px;padding:.8rem 1rem;overflow-x:auto;margin:.45rem 0}
+.msg-bubble pre code{background:none;padding:0;font-size:.82rem}
 .msg-row.user .msg-bubble pre{background:rgba(255,255,255,.1)}
 .msg-bubble strong{font-weight:600}
-.msg-bubble ul,.msg-bubble ol{padding-left:1.3rem;margin:.35rem 0}
-.msg-bubble li{margin-bottom:.18rem}
+.msg-bubble ul,.msg-bubble ol{padding-left:1.4rem;margin:.35rem 0}
+.msg-bubble li{margin-bottom:.2rem}
 .cursor{display:inline-block;width:2px;height:1em;background:var(--gd);margin-left:2px;vertical-align:text-bottom;animation:blink .8s step-end infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
 
 /* empty state */
-.empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;text-align:center}
-.empty-icon{font-size:2.2rem;margin-bottom:.9rem}
-.empty-title{font-family:var(--ser);font-size:1.5rem;margin-bottom:.45rem}
+.empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem 1.5rem;text-align:center}
+.empty-icon{font-size:2.4rem;margin-bottom:.8rem}
+.empty-title{font-family:var(--ser);font-size:1.55rem;margin-bottom:.4rem}
 .empty-title em{font-style:italic;color:var(--gd)}
-.empty-sub{font-size:.82rem;color:var(--t3);max-width:320px;line-height:1.6;font-weight:300}
-.starters{display:flex;flex-wrap:wrap;gap:.55rem;justify-content:center;margin-top:1.5rem;max-width:500px}
+.empty-sub{font-size:.83rem;color:var(--t3);max-width:300px;line-height:1.6;font-weight:300}
+.starters{display:flex;flex-wrap:wrap;gap:.5rem;justify-content:center;margin-top:1.4rem;max-width:480px}
 .starter{
-  padding:.45rem .95rem;border-radius:20px;
+  padding:.5rem 1rem;border-radius:20px;
   background:var(--wh);border:1.5px solid var(--brd2);
-  font-size:.76rem;color:var(--t2);cursor:pointer;transition:all .2s;
+  font-size:.78rem;color:var(--t2);cursor:pointer;transition:all .2s;-webkit-appearance:none;
 }
-.starter:hover{border-color:var(--gd);color:var(--gd);background:var(--gd-light)}
+.starter:active{border-color:var(--gd);color:var(--gd);background:var(--gd-light)}
+@media(hover:hover){.starter:hover{border-color:var(--gd);color:var(--gd);background:var(--gd-light)}}
 
-/* ── INPUT ── */
-.input-area{padding:.75rem 1.4rem 1.1rem;border-top:1px solid var(--brd);background:rgba(250,250,247,.95);backdrop-filter:blur(12px)}
+/* ── INPUT AREA ── */
+.input-area{
+  flex-shrink:0;
+  padding:.6rem 1rem;
+  padding-bottom:calc(.8rem + var(--safe-bottom));
+  border-top:1px solid var(--brd);
+  background:rgba(250,250,247,.97);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+}
 .input-wrap{
-  max-width:740px;margin:0 auto;background:var(--wh);
-  border:1.5px solid var(--brd2);border-radius:13px;
-  display:flex;align-items:flex-end;gap:.5rem;
+  max-width:700px;margin:0 auto;background:var(--wh);
+  border:1.5px solid var(--brd2);border-radius:14px;
+  display:flex;align-items:center;gap:.4rem;
   padding:.55rem .55rem .55rem .85rem;
   box-shadow:0 1px 4px rgba(0,0,0,.04);transition:border-color .2s;
-  align-items:center;
 }
-.input-wrap:focus-within{border-color:rgba(0,0,0,.2)}
+.input-wrap:focus-within{border-color:rgba(0,0,0,.22)}
 .input-box{
-  flex:1;min-height:22px;max-height:180px;resize:none;border:none;outline:none;
-  font-family:var(--san);font-size:.86rem;line-height:1.6;background:transparent;color:var(--bk);overflow-y:auto;
+  flex:1;min-height:22px;max-height:140px;resize:none;border:none;outline:none;
+  font-family:var(--san);font-size:1rem;line-height:1.5;background:transparent;color:var(--bk);overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
 }
 .input-box::placeholder{color:var(--t4)}
-.mic-btn{
-  width:32px;height:32px;border-radius:8px;border:none;cursor:pointer;
+.mic-btn,.send-btn,.stop-btn{
+  width:34px;height:34px;border-radius:9px;border:none;cursor:pointer;
   display:flex;align-items:center;justify-content:center;flex-shrink:0;
-  background:transparent;color:var(--t3);transition:all .2s;
+  transition:all .2s;-webkit-appearance:none;
 }
-.mic-btn:hover{background:rgba(0,0,0,.06);color:var(--bk)}
-.mic-btn.listening{background:rgba(220,38,38,.1);color:#DC2626;animation:micpulse 1s ease-in-out infinite}
+.mic-btn{background:transparent;color:var(--t3)}
+.mic-btn:active{background:rgba(0,0,0,.06)}
+.mic-btn.listening{background:rgba(220,38,38,.1);color:var(--danger);animation:micpulse 1s ease-in-out infinite}
 .mic-btn.unsupported{display:none}
 @keyframes micpulse{0%,100%{opacity:1}50%{opacity:.4}}
-.send-btn,.stop-btn{
-  width:32px;height:32px;border-radius:8px;border:none;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;
-}
 .send-btn{background:var(--bk)}.send-btn svg{color:white}
-.send-btn:hover:not(:disabled){background:#333}
+.send-btn:active:not(:disabled){background:#333}
 .send-btn:disabled{background:rgba(0,0,0,.12);cursor:not-allowed}
 .stop-btn{background:rgba(220,38,38,.9)}.stop-btn svg{color:white}
-.stop-btn:hover{background:#DC2626}
-.input-footer{max-width:740px;margin:.45rem auto 0;text-align:center;font-size:.67rem;color:var(--t4)}
+.stop-btn:active{background:var(--danger)}
+.input-footer{max-width:700px;margin:.35rem auto 0;text-align:center;font-size:.66rem;color:var(--t4)}
 
-/* ── OFFLINE BANNER ── */
-.offline-banner{
-  background:rgba(220,38,38,.08);border-bottom:1px solid rgba(220,38,38,.15);
-  padding:.45rem 1.4rem;text-align:center;font-size:.76rem;color:#DC2626;display:none;
-}
-.offline-banner.visible{display:block}
-
-/* ══════════════════════════════════════════
-   SETUP SCREEN (main panel, not sidebar)
-══════════════════════════════════════════ */
-.panel{flex:1;overflow-y:auto;display:none;flex-direction:column}
+/* ── SETTINGS PANEL ── */
+.panel{flex:1;overflow-y:auto;display:none;flex-direction:column;-webkit-overflow-scrolling:touch}
 .panel.active{display:flex}
-.panel-inner{max-width:620px;width:100%;margin:0 auto;padding:2.5rem 2rem}
-.panel-title{font-family:var(--ser);font-size:2rem;margin-bottom:.35rem}
+.panel-inner{max-width:580px;width:100%;margin:0 auto;padding:1.5rem 1rem 2rem}
+@media(min-width:600px){.panel-inner{padding:2rem 1.5rem 3rem}}
+.panel-title{font-family:var(--ser);font-size:1.8rem;margin-bottom:.3rem}
 .panel-title em{font-style:italic;color:var(--gd)}
-.panel-sub{font-size:.85rem;color:var(--t2);line-height:1.6;font-weight:300;margin-bottom:2rem}
-
-/* setup steps */
-.setup-steps{display:flex;flex-direction:column;gap:1.2rem}
-.setup-step{
-  background:var(--wh);border:1px solid var(--brd);
-  border-radius:14px;padding:1.4rem 1.5rem;
-}
-.step-num{
-  display:inline-flex;align-items:center;justify-content:center;
-  width:22px;height:22px;border-radius:50%;
-  background:var(--bk);color:var(--bg);
-  font-size:.65rem;font-weight:700;margin-bottom:.7rem;
-}
-.step-title{font-weight:600;font-size:.9rem;margin-bottom:.3rem}
-.step-desc{font-size:.8rem;color:var(--t2);line-height:1.6;font-weight:300;margin-bottom:1rem}
-.copy-row{
-  display:flex;align-items:center;gap:.5rem;
-  background:var(--bg);border:1.5px solid var(--brd2);
-  border-radius:9px;padding:.55rem .65rem .55rem .85rem;
-}
-.copy-row code{
-  flex:1;font-family:var(--mono);font-size:.78rem;color:var(--gd);
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;
-}
-.copy-row code.secret{letter-spacing:.08em;color:var(--t3)}
-.copy-btn-sm{
-  flex-shrink:0;padding:.35rem .75rem;
-  background:var(--bk);color:var(--bg);border:none;
-  border-radius:6px;font-family:var(--san);font-size:.72rem;font-weight:500;
-  cursor:pointer;transition:all .15s;white-space:nowrap;
-}
-.copy-btn-sm:hover{background:#333}
-.copy-btn-sm.copied{background:#34C759}
-.reveal-btn{
-  flex-shrink:0;padding:.35rem .65rem;
-  background:transparent;color:var(--t3);border:1.5px solid var(--brd2);
-  border-radius:6px;font-family:var(--san);font-size:.72rem;
-  cursor:pointer;transition:all .15s;
-}
-.reveal-btn:hover{border-color:rgba(0,0,0,.25);color:var(--bk)}
-.step-note{
-  margin-top:.75rem;padding:.6rem .8rem;
-  background:var(--gd-light);border-radius:8px;
-  font-size:.75rem;color:var(--gd);line-height:1.5;
-}
-
-/* ── SETTINGS SCREEN ── */
-.settings-section{margin-bottom:1.8rem}
-.settings-label{font-size:.7rem;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--t3);margin-bottom:.8rem}
-.settings-row{
-  background:var(--wh);border:1px solid var(--brd);border-radius:12px;
-  overflow:hidden;margin-bottom:.5rem;
-}
-.settings-item{
-  display:flex;align-items:center;padding:.85rem 1.1rem;gap:.8rem;
-  border-bottom:1px solid var(--brd);font-size:.84rem;
-}
+.panel-sub{font-size:.84rem;color:var(--t2);line-height:1.6;font-weight:300;margin-bottom:1.5rem}
+.settings-section{margin-bottom:1.6rem}
+.settings-label{font-size:.68rem;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--t3);margin-bottom:.6rem}
+.settings-row{background:var(--wh);border:1px solid var(--brd);border-radius:13px;overflow:hidden;margin-bottom:.5rem}
+.settings-item{display:flex;align-items:center;padding:.9rem 1rem;gap:.8rem;border-bottom:1px solid var(--brd);font-size:.86rem;min-height:52px}
 .settings-item:last-child{border-bottom:none}
 .settings-item-label{flex:1;font-weight:400}
-.settings-item-val{color:var(--t2);font-size:.8rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.settings-item-val{color:var(--t2);font-size:.8rem;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 select.settings-select{
-  font-family:var(--san);font-size:.82rem;color:var(--bk);
+  font-family:var(--san);font-size:.84rem;color:var(--bk);
   background:var(--bg);border:1.5px solid var(--brd2);
-  border-radius:7px;padding:.35rem .6rem;outline:none;cursor:pointer;
+  border-radius:8px;padding:.4rem .7rem;outline:none;cursor:pointer;-webkit-appearance:none;
 }
-select.settings-select:focus{border-color:var(--gd)}
 .danger-btn{
-  padding:.55rem 1.1rem;background:transparent;
-  color:#DC2626;border:1.5px solid rgba(220,38,38,.25);
-  border-radius:8px;font-family:var(--san);font-size:.8rem;
-  cursor:pointer;transition:all .2s;
+  padding:.65rem 1.2rem;background:transparent;color:var(--danger);
+  border:1.5px solid rgba(220,38,38,.25);border-radius:10px;
+  font-family:var(--san);font-size:.84rem;cursor:pointer;transition:all .2s;-webkit-appearance:none;
 }
-.danger-btn:hover{background:rgba(220,38,38,.06);border-color:rgba(220,38,38,.5)}
+.danger-btn:active{background:rgba(220,38,38,.06)}
 
 /* ── UTIL ── */
 .hidden{display:none!important}
@@ -358,16 +351,12 @@ select.settings-select:focus{border-color:var(--gd)}
     <div class="field">
       <label>API Key</label>
       <input type="text" id="apikey-input" placeholder="sk-aspen-…" autocomplete="new-password" spellcheck="false" style="-webkit-text-security:disc">
-      <div class="hint">Aspen app → API Keys → copy any key. Leave blank if no keys set.</div>
+      <div class="hint">Aspen app → API Keys → copy any key.</div>
     </div>
 
     <button class="pair-btn" id="connect-btn">Connect to my Aspen</button>
     <div class="pair-err" id="pair-err"></div>
-
-    <p class="pair-privacy">
-      🔒 We never see your messages or data.
-      <a href="https://runonaspen.com">Learn how it works →</a>
-    </p>
+    <p class="pair-privacy">🔒 We never see your messages or data. <a href="https://runonaspen.com">Learn how →</a></p>
   </div>
 </div>
 
@@ -375,10 +364,14 @@ select.settings-select:focus{border-color:var(--gd)}
      APP SCREEN
 ══════════════════════════════════════════════════════ -->
 <div id="app-screen" class="screen">
+
+  <!-- Drawer overlay (mobile) -->
+  <div class="drawer-overlay" id="drawer-overlay"></div>
+
   <div class="app-layout">
 
-    <!-- Sidebar -->
-    <aside class="sidebar">
+    <!-- ── SIDEBAR ── -->
+    <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <div class="sb-logo">
           <img src="/favicon.svg" alt="Aspen">
@@ -390,7 +383,6 @@ select.settings-select:focus{border-color:var(--gd)}
         </button>
       </div>
 
-      <!-- Nav -->
       <div class="sb-nav">
         <button class="sb-nav-item active" data-panel="chat" id="nav-chat">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
@@ -402,10 +394,8 @@ select.settings-select:focus{border-color:var(--gd)}
         </button>
       </div>
 
-      <!-- Chat list -->
       <div class="chat-list" id="chat-list"></div>
 
-      <!-- Footer status -->
       <div class="sidebar-footer">
         <div class="status-dot">
           <span class="dot checking" id="status-dot"></span>
@@ -414,92 +404,103 @@ select.settings-select:focus{border-color:var(--gd)}
       </div>
     </aside>
 
-    <!-- ── CHAT PANEL ── -->
-    <div class="panel active" id="panel-chat">
-      <div class="offline-banner" id="offline-banner">
-        Your Aspen machine appears to be offline. Check that the app is running and the tunnel is active.
-      </div>
-      <header class="chat-header">
-        <span class="chat-title" id="chat-title">New chat</span>
-        <span class="tunnel-badge">
-          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          <code id="tunnel-display"></code>
-        </span>
-      </header>
+    <!-- ── MAIN ── -->
+    <div class="chat-main">
 
-      <div class="messages" id="messages">
-        <div class="empty-state" id="empty-state">
-          <div class="empty-icon">🍃</div>
-          <h3 class="empty-title">Your <em>private</em> AI</h3>
-          <p class="empty-sub">Ask anything. Runs on your machine, through your tunnel. Nothing leaves.</p>
-          <div class="starters">
-            <button class="starter" data-msg="What can you help me with?">What can you help me with?</button>
-            <button class="starter" data-msg="Summarize this for me: ">Summarize something</button>
-            <button class="starter" data-msg="Write a quick email about ">Draft an email</button>
-            <button class="starter" data-msg="Explain this concept simply: ">Explain a concept</button>
-            <button class="starter" data-msg="Debug this code: ">Debug code</button>
-          </div>
+      <!-- ── CHAT PANEL ── -->
+      <div class="panel active" id="panel-chat" style="flex-direction:column">
+
+        <header class="chat-header">
+          <button class="header-hamburger" id="hamburger-btn" aria-label="Open menu">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <span class="chat-title" id="chat-title">New chat</span>
+          <span class="tunnel-badge">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <code id="tunnel-display"></code>
+          </span>
+          <button class="header-new-btn" id="header-new-btn" aria-label="New chat">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+        </header>
+
+        <div class="offline-banner" id="offline-banner">
+          Your Aspen machine appears to be offline.
         </div>
-      </div>
 
-      <div class="input-area">
-        <!-- Hidden dummy to stop Chrome/iCloud password manager probing the textarea -->
-        <input type="password" style="display:none" aria-hidden="true" tabindex="-1" autocomplete="new-password">
-        <div class="input-wrap">
-          <textarea class="input-box" id="input-box" placeholder="Message your Aspen…" rows="1"></textarea>
-          <button class="mic-btn" id="mic-btn" title="Voice input">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M19 10a7 7 0 0 1-14 0"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>
-          </button>
-          <button class="stop-btn hidden" id="stop-btn" title="Stop">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
-          </button>
-          <button class="send-btn" id="send-btn" title="Send">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
-          </button>
-        </div>
-        <div class="input-footer">Running on your machine · <span id="model-footer">–</span></div>
-      </div>
-    </div>
-
-    <!-- ── SETTINGS PANEL ── -->
-    <div class="panel" id="panel-settings">
-      <div class="panel-inner">
-        <h2 class="panel-title"><em>Settings</em></h2>
-        <p class="panel-sub">Manage your connection, model, and preferences.</p>
-
-        <div class="settings-section">
-          <div class="settings-label">Model</div>
-          <div class="settings-row">
-            <div class="settings-item">
-              <span class="settings-item-label">Active model</span>
-              <select class="settings-select" id="model-select">
-                <option value="">Loading…</option>
-              </select>
+        <div class="messages" id="messages">
+          <div class="empty-state" id="empty-state">
+            <div class="empty-icon">🍃</div>
+            <h3 class="empty-title">Your <em>private</em> AI</h3>
+            <p class="empty-sub">Runs on your machine. Nothing leaves.</p>
+            <div class="starters">
+              <button class="starter" data-msg="What can you help me with?">What can you help me with?</button>
+              <button class="starter" data-msg="Summarize this for me: ">Summarize something</button>
+              <button class="starter" data-msg="Write a quick email about ">Draft an email</button>
+              <button class="starter" data-msg="Explain this concept simply: ">Explain a concept</button>
+              <button class="starter" data-msg="Debug this code: ">Debug code</button>
             </div>
           </div>
         </div>
 
-        <div class="settings-section">
-          <div class="settings-label">Connection</div>
-          <div class="settings-row">
-            <div class="settings-item">
-              <span class="settings-item-label">Tunnel</span>
-              <span class="settings-item-val" id="settings-tunnel-display">–</span>
-            </div>
-            <div class="settings-item">
-              <span class="settings-item-label">Status</span>
-              <span class="settings-item-val" id="settings-status">–</span>
-            </div>
+        <div class="input-area">
+          <input type="password" style="display:none" aria-hidden="true" tabindex="-1" autocomplete="new-password">
+          <div class="input-wrap">
+            <textarea class="input-box" id="input-box" placeholder="Message your Aspen…" rows="1" autocomplete="one-time-code"></textarea>
+            <button class="mic-btn" id="mic-btn" title="Voice input">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M19 10a7 7 0 0 1-14 0"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>
+            </button>
+            <button class="stop-btn hidden" id="stop-btn" title="Stop">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
+            </button>
+            <button class="send-btn" id="send-btn" title="Send">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+            </button>
           </div>
-        </div>
-
-        <div class="settings-section">
-          <div class="settings-label">Danger zone</div>
-          <button class="danger-btn" id="disconnect-btn">Disconnect this browser</button>
+          <div class="input-footer">Running on your machine · <span id="model-footer">–</span></div>
         </div>
       </div>
-    </div>
 
+      <!-- ── SETTINGS PANEL ── -->
+      <div class="panel" id="panel-settings">
+        <header class="chat-header">
+          <button class="header-hamburger" id="hamburger-btn-settings" aria-label="Open menu">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <span class="chat-title">Settings</span>
+          <span></span>
+        </header>
+        <div class="panel-inner">
+          <div class="settings-section">
+            <div class="settings-label">Model</div>
+            <div class="settings-row">
+              <div class="settings-item">
+                <span class="settings-item-label">Active model</span>
+                <select class="settings-select" id="model-select"><option value="">Loading…</option></select>
+              </div>
+            </div>
+          </div>
+          <div class="settings-section">
+            <div class="settings-label">Connection</div>
+            <div class="settings-row">
+              <div class="settings-item">
+                <span class="settings-item-label">Tunnel</span>
+                <span class="settings-item-val" id="settings-tunnel-display">–</span>
+              </div>
+              <div class="settings-item">
+                <span class="settings-item-label">Status</span>
+                <span class="settings-item-val" id="settings-status">–</span>
+              </div>
+            </div>
+          </div>
+          <div class="settings-section">
+            <div class="settings-label">Danger zone</div>
+            <button class="danger-btn" id="disconnect-btn">Disconnect this browser</button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- .chat-main -->
   </div><!-- .app-layout -->
 </div><!-- #app-screen -->
 
@@ -510,28 +511,33 @@ select.settings-select:focus{border-color:var(--gd)}
 const STORAGE_KEY = 'aspen_config';
 const CHATS_KEY   = 'aspen_chats';
 
-let config = null;     // { tunnelUrl, apiKey }
-let chats  = {};       // { [id]: { id, title, messages:[] } }
+let config = null;
+let chats  = {};
 let activeChatId  = null;
 let streamController = null;
 let isStreaming    = false;
 let statusInterval = null;
-let keyRevealed    = false;
+let isListening    = false;
+let recognition    = null;
 
-// ── Element refs ──
+// ── Elements ──
 const pairScreen    = document.getElementById('pair-screen');
 const appScreen     = document.getElementById('app-screen');
 const tunnelInput   = document.getElementById('tunnel-input');
 const apikeyInput   = document.getElementById('apikey-input');
 const connectBtn    = document.getElementById('connect-btn');
 const pairErr       = document.getElementById('pair-err');
+const sidebar       = document.getElementById('sidebar');
+const drawerOverlay = document.getElementById('drawer-overlay');
 const chatList      = document.getElementById('chat-list');
 const newChatBtn    = document.getElementById('new-chat-btn');
+const headerNewBtn  = document.getElementById('header-new-btn');
 const messagesEl    = document.getElementById('messages');
 const emptyState    = document.getElementById('empty-state');
 const inputBox      = document.getElementById('input-box');
 const sendBtn       = document.getElementById('send-btn');
 const stopBtn       = document.getElementById('stop-btn');
+const micBtn        = document.getElementById('mic-btn');
 const statusDot     = document.getElementById('status-dot');
 const statusText    = document.getElementById('status-text');
 const modelSelect   = document.getElementById('model-select');
@@ -540,30 +546,75 @@ const tunnelDisplay = document.getElementById('tunnel-display');
 const chatTitle     = document.getElementById('chat-title');
 const offlineBanner = document.getElementById('offline-banner');
 const disconnectBtn = document.getElementById('disconnect-btn');
-const micBtn        = document.getElementById('mic-btn');
+const settingsTunnel= document.getElementById('settings-tunnel-display');
+const settingsStatus= document.getElementById('settings-status');
+
+// ══════════════════════════════════════════════════════
+// DRAWER (mobile sidebar)
+// ══════════════════════════════════════════════════════
+function openDrawer() {
+  sidebar.classList.add('open');
+  drawerOverlay.style.display = 'block';
+  document.body.style.overflow = 'hidden';
+}
+function closeDrawer() {
+  sidebar.classList.remove('open');
+  drawerOverlay.style.display = 'none';
+  document.body.style.overflow = '';
+}
+document.getElementById('hamburger-btn').addEventListener('click', openDrawer);
+document.getElementById('hamburger-btn-settings').addEventListener('click', openDrawer);
+drawerOverlay.addEventListener('click', closeDrawer);
+// Swipe left to close
+let touchStartX = 0;
+sidebar.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, {passive:true});
+sidebar.addEventListener('touchend', e => {
+  if (touchStartX - e.changedTouches[0].clientX > 60) closeDrawer();
+}, {passive:true});
+
+// ══════════════════════════════════════════════════════
+// NAV — panel switching
+// ══════════════════════════════════════════════════════
+document.querySelectorAll('.sb-nav-item').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const target = btn.dataset.panel;
+    document.querySelectorAll('.sb-nav-item').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-' + target).classList.add('active');
+    closeDrawer();
+    if (target === 'chat') inputBox.focus();
+  });
+});
+
+function switchToChat() {
+  document.querySelectorAll('.sb-nav-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('nav-chat').classList.add('active');
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-chat').classList.add('active');
+  closeDrawer();
+}
 
 // ══════════════════════════════════════════════════════
 // BOOT
 // ══════════════════════════════════════════════════════
 function boot() {
-  // 1. Check URL hash for deep link: #tunnel=https://...&key=sk-aspen-...
+  // 1. Check URL hash deep link
   const hash = window.location.hash.slice(1);
   if (hash) {
     const params = new URLSearchParams(hash);
     const tunnelParam = params.get('tunnel');
     const keyParam = params.get('key');
     if (tunnelParam) {
-      // Auto-connect from deep link — save and go straight in
       const url = tunnelParam.replace(/\/v1\/?$/, '').replace(/\/+$/, '');
       config = { tunnelUrl: url, apiKey: keyParam || '' };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
-      // Clean the hash so it's not visible or bookmarked with credentials
       history.replaceState(null, '', window.location.pathname);
       showApp();
       return;
     }
   }
-  // 2. Fall back to localStorage
+  // 2. localStorage
   try { config = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch {}
   if (config?.tunnelUrl) showApp();
   else showPair();
@@ -579,18 +630,15 @@ function showApp() {
   appScreen.classList.add('active');
   config.tunnelUrl = config.tunnelUrl.replace(/\/+$/, '').replace(/\/v1$/, '');
 
-  // Populate tunnel display
   try {
-    tunnelDisplay.textContent = new URL(config.tunnelUrl).hostname;
+    const host = new URL(config.tunnelUrl).hostname;
+    tunnelDisplay.textContent = host;
+    settingsTunnel.textContent = host;
   } catch { tunnelDisplay.textContent = config.tunnelUrl; }
 
-  // Setup screen values
-
-  // Load persisted data
   try { chats = JSON.parse(localStorage.getItem(CHATS_KEY) || '{}') || {}; } catch { chats = {}; }
 
   renderChatList();
-  // Restore most recent chat, or create one only if none exist
   const existingIds = Object.keys(chats);
   if (existingIds.length > 0) {
     activeChatId = existingIds[existingIds.length - 1];
@@ -602,90 +650,6 @@ function showApp() {
   loadModels();
   startStatusCheck();
 }
-
-// ══════════════════════════════════════════════════════
-// NAV — panel switching
-// ══════════════════════════════════════════════════════
-document.querySelectorAll('.sb-nav-item').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const target = btn.dataset.panel;
-    document.querySelectorAll('.sb-nav-item').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-    document.getElementById('panel-' + target).classList.add('active');
-    if (target === 'chat') inputBox.focus();
-  });
-});
-
-function switchToChat() {
-  document.querySelectorAll('.sb-nav-item').forEach(b => b.classList.remove('active'));
-  document.getElementById('nav-chat').classList.add('active');
-  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  document.getElementById('panel-chat').classList.add('active');
-}
-
-// ══════════════════════════════════════════════════════
-// VOICE INPUT
-// ══════════════════════════════════════════════════════
-const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-if (!SR) micBtn.classList.add('unsupported');
-
-micBtn.addEventListener('click', () => {
-  if (!SR) return;
-  if (isListening) {
-    recognition?.stop();
-    return;
-  }
-  recognition = new SR();
-  recognition.continuous = false;
-  recognition.interimResults = true;
-  recognition.lang = 'en-US';
-  recognition.onstart = () => { isListening = true; micBtn.classList.add('listening'); inputBox.placeholder = 'Listening…'; };
-  recognition.onresult = (e) => {
-    const transcript = Array.from(e.results).map(r => r[0].transcript).join('');
-    inputBox.value = transcript;
-    inputBox.dispatchEvent(new Event('input'));
-  };
-  recognition.onend = () => {
-    isListening = false;
-    micBtn.classList.remove('listening');
-    inputBox.placeholder = 'Message your Aspen…';
-    if (inputBox.value.trim()) sendMessage();
-  };
-  recognition.onerror = (e) => {
-    console.error('[Voice]', e.error);
-    isListening = false;
-    micBtn.classList.remove('listening');
-    inputBox.placeholder = 'Message your Aspen…';
-  };
-  recognition.start();
-});
-
-// ══════════════════════════════════════════════════════
-// COPY UTILITY
-// ══════════════════════════════════════════════════════
-async function copyText(text, btn) {
-  try {
-    await navigator.clipboard.writeText(text);
-  } catch {
-    // Fallback for non-HTTPS or browser quirk
-    const ta = document.createElement('textarea');
-    ta.value = text;
-    ta.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
-    document.body.removeChild(ta);
-  }
-  if (btn) {
-    const orig = btn.textContent;
-    btn.textContent = 'Copied!';
-    btn.classList.add('copied');
-    setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 1800);
-  }
-}
-
-// (setup panel elements removed — tunnel/key copying lives in desktop App Setup)
 
 // ══════════════════════════════════════════════════════
 // PAIRING
@@ -700,7 +664,6 @@ async function attemptConnect() {
   const key = apikeyInput.value.trim();
   if (!raw) { showPairErr('Please enter your tunnel URL.'); return; }
   if (!raw.startsWith('http')) raw = 'https://' + raw;
-  // Strip /v1 if pasted with it
   raw = raw.replace(/\/v1\/?$/, '').replace(/\/+$/, '');
 
   connectBtn.disabled = true;
@@ -735,9 +698,58 @@ disconnectBtn.addEventListener('click', () => {
 });
 
 // ══════════════════════════════════════════════════════
+// VOICE INPUT
+// ══════════════════════════════════════════════════════
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (!SR) micBtn.classList.add('unsupported');
+
+micBtn.addEventListener('click', () => {
+  if (!SR) return;
+  if (isListening) { recognition?.stop(); return; }
+  recognition = new SR();
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.lang = 'en-US';
+  recognition.onstart = () => { isListening = true; micBtn.classList.add('listening'); inputBox.placeholder = 'Listening…'; };
+  recognition.onresult = (e) => {
+    const transcript = Array.from(e.results).map(r => r[0].transcript).join('');
+    inputBox.value = transcript;
+    inputBox.dispatchEvent(new Event('input'));
+  };
+  recognition.onend = () => {
+    isListening = false; micBtn.classList.remove('listening'); inputBox.placeholder = 'Message your Aspen…';
+    if (inputBox.value.trim()) sendMessage();
+  };
+  recognition.onerror = () => { isListening = false; micBtn.classList.remove('listening'); inputBox.placeholder = 'Message your Aspen…'; };
+  recognition.start();
+});
+
+// ══════════════════════════════════════════════════════
+// COPY UTILITY
+// ══════════════════════════════════════════════════════
+async function copyText(text, btn) {
+  try { await navigator.clipboard.writeText(text); }
+  catch {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+  }
+  if (btn) {
+    const orig = btn.textContent; btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 1800);
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// PAIRING
+// ══════════════════════════════════════════════════════
+// (disconnect already handled above)
+
+// ══════════════════════════════════════════════════════
 // CHAT MANAGEMENT
 // ══════════════════════════════════════════════════════
 newChatBtn.addEventListener('click', () => { newChat(); switchToChat(); });
+headerNewBtn.addEventListener('click', () => { newChat(); });
 
 function newChat() {
   const id = 'c' + Date.now();
@@ -747,14 +759,22 @@ function newChat() {
   renderChatList();
   renderMessages();
   chatTitle.textContent = 'New chat';
-  inputBox.focus();
+  setTimeout(() => inputBox.focus(), 100);
+}
+
+function switchChat(id) {
+  if (isStreaming) return;
+  activeChatId = id;
+  renderChatList();
+  renderMessages();
+  chatTitle.textContent = chats[id]?.title || 'Chat';
+  switchToChat();
 }
 
 function deleteChat(id, e) {
   e.stopPropagation();
   delete chats[id];
   saveChats();
-  // If we deleted the active chat, switch to most recent or create new
   if (id === activeChatId) {
     const remaining = Object.keys(chats);
     if (remaining.length > 0) {
@@ -768,15 +788,6 @@ function deleteChat(id, e) {
   renderChatList();
 }
 
-function switchChat(id) {
-  if (isStreaming) return;
-  activeChatId = id;
-  renderChatList();
-  renderMessages();
-  chatTitle.textContent = chats[id]?.title || 'Chat';
-  switchToChat();
-}
-
 function saveChats() {
   const ids = Object.keys(chats);
   if (ids.length > 40) ids.slice(0, ids.length - 40).forEach(id => delete chats[id]);
@@ -788,13 +799,12 @@ function renderChatList() {
   const ids = Object.keys(chats).reverse();
   if (!ids.length) return;
   const lbl = document.createElement('div');
-  lbl.className = 'chat-section-label';
-  lbl.textContent = 'Recent';
+  lbl.className = 'chat-section-label'; lbl.textContent = 'Recent';
   chatList.appendChild(lbl);
   ids.forEach(id => {
     const btn = document.createElement('button');
     btn.className = 'chat-item' + (id === activeChatId ? ' active' : '');
-    btn.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>${escHtml(chats[id].title)}</span><button class="chat-delete" title="Delete chat">×</button>`;
+    btn.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>${escHtml(chats[id].title)}</span><button class="chat-delete" title="Delete">×</button>`;
     btn.addEventListener('click', () => switchChat(id));
     btn.querySelector('.chat-delete').addEventListener('click', (e) => deleteChat(id, e));
     chatList.appendChild(btn);
@@ -802,7 +812,7 @@ function renderChatList() {
 }
 
 // ══════════════════════════════════════════════════════
-// RENDER MESSAGES
+// MESSAGES
 // ══════════════════════════════════════════════════════
 function renderMessages() {
   const chat = chats[activeChatId];
@@ -839,15 +849,11 @@ function formatMessage(text) {
   html = html.replace(/`([^`\n]+)`/g, '<code>$1</code>');
   html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   const paras = html.split(/\n\n+/);
-  return paras.length > 1
-    ? paras.map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('')
-    : html.replace(/\n/g, '<br>');
+  return paras.length > 1 ? paras.map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('') : html.replace(/\n/g, '<br>');
 }
 
-function escHtml(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-function scrollToBottom() { messagesEl.scrollTop = messagesEl.scrollHeight; }
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function scrollToBottom() { requestAnimationFrame(() => { messagesEl.scrollTop = messagesEl.scrollHeight; }); }
 
 // ══════════════════════════════════════════════════════
 // SEND MESSAGE
@@ -858,7 +864,7 @@ inputBox.addEventListener('keydown', e => {
 });
 inputBox.addEventListener('input', () => {
   inputBox.style.height = 'auto';
-  inputBox.style.height = Math.min(inputBox.scrollHeight, 180) + 'px';
+  inputBox.style.height = Math.min(inputBox.scrollHeight, 140) + 'px';
 });
 
 document.querySelectorAll('.starter').forEach(btn => {
@@ -885,7 +891,6 @@ async function sendMessage() {
     renderChatList();
   }
   saveChats();
-  console.log('[Aspen] Saved user msg, chat has', chat.messages.length, 'messages');
   appendMessage('user', text, false);
   inputBox.value = '';
   inputBox.style.height = 'auto';
@@ -901,7 +906,7 @@ async function sendMessage() {
   let fullText = '';
 
   try {
-    // POST via server-side proxy — Cloudflare blocks direct browser→tunnel POSTs
+    const sys = worldModelSystemPrompt();
     const res = await fetch('/api/proxy', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -909,17 +914,13 @@ async function sendMessage() {
         tunnelUrl: config.tunnelUrl,
         apiKey: config.apiKey || '',
         model,
-        messages: (() => {
-          const sys = worldModelSystemPrompt();
-          return sys ? [{ role: 'system', content: sys }, ...history] : history;
-        })(),
+        messages: sys ? [{ role: 'system', content: sys }, ...history] : history,
       }),
       signal: streamController.signal,
     });
 
     if (!res.ok) {
       const errBody = await res.text().catch(() => '');
-      console.error('[Aspen] HTTP error:', res.status, errBody);
       throw new Error(`HTTP ${res.status}${errBody ? ': ' + errBody.slice(0, 200) : ''}`);
     }
 
@@ -948,22 +949,18 @@ async function sendMessage() {
       const errText = e.message?.includes('Failed to fetch') || e.message?.includes('NetworkError')
         ? 'Could not reach your Aspen machine. Is the tunnel running?'
         : (e.message || 'Unknown error');
-      console.error('[Aspen] Chat error:', e);
-      bubble.innerHTML = `<div style="color:#DC2626;font-size:.82rem;line-height:1.5;padding:.2rem 0">⚠️ ${escHtml(errText)}</div>`;
+      bubble.innerHTML = `<div style="color:var(--danger);font-size:.82rem;line-height:1.5;padding:.2rem 0">⚠️ ${escHtml(errText)}</div>`;
       isStreaming = false; sendBtn.classList.remove('hidden'); stopBtn.classList.add('hidden'); sendBtn.disabled = false; streamController = null;
       return;
     }
   }
 
   bubble.innerHTML = fullText ? formatMessage(fullText) : '<em style="color:var(--t3);font-size:.8rem">No response</em>';
-  console.log('[Aspen] Stream done, fullText length:', fullText.length);
   if (fullText) {
-    // Re-fetch the chat object in case activeChatId changed during stream
     const currentChat = chats[activeChatId];
     if (currentChat) {
       currentChat.messages.push({ role: 'assistant', content: fullText });
       saveChats();
-      // Silently extract user facts in background — doesn't block UI
       const lastUserMsg = currentChat.messages.filter(m => m.role === 'user').slice(-1)[0]?.content || '';
       extractFactsFromExchange(lastUserMsg, fullText);
     }
@@ -1004,105 +1001,51 @@ function updateModelFooter() { modelFooter.textContent = modelSelect.value?.spli
 function startStatusCheck() { checkStatus(); statusInterval = setInterval(checkStatus, 15000); }
 
 async function checkStatus() {
-  statusDot.className = 'dot checking';
-  statusText.textContent = 'Checking…';
+  statusDot.className = 'dot checking'; statusText.textContent = 'Checking…'; settingsStatus.textContent = 'Checking…';
   try {
     const res = await fetch(`${config.tunnelUrl}/v1/models`, {
       headers: config.apiKey ? { 'Authorization': `Bearer ${config.apiKey}` } : {},
       signal: AbortSignal.timeout(5000),
     });
     if (res.ok || res.status === 401) {
-      statusDot.className = 'dot online';
-      statusText.textContent = 'Your machine';
-      offlineBanner.classList.remove('visible');
+      statusDot.className = 'dot online'; statusText.textContent = 'Your machine';
+      settingsStatus.textContent = 'Connected'; offlineBanner.classList.remove('visible');
     } else throw new Error();
   } catch {
-    statusDot.className = 'dot offline';
-    statusText.textContent = 'Offline';
-    offlineBanner.classList.add('visible');
+    statusDot.className = 'dot offline'; statusText.textContent = 'Offline';
+    settingsStatus.textContent = 'Offline'; offlineBanner.classList.add('visible');
   }
 }
 
-
 // ══════════════════════════════════════════════════════
-// WORLD MODEL — local user profile built from conversations
-// Nothing leaves the device. Stored in localStorage.
-// After each completed exchange, extract facts silently.
-// Prepended as system context on every chat.
+// WORLD MODEL
 // ══════════════════════════════════════════════════════
 const WORLD_MODEL_KEY = 'aspen_world_model';
-
-function getWorldModel() {
-  try { return JSON.parse(localStorage.getItem(WORLD_MODEL_KEY) || '{}'); } catch { return {}; }
-}
-
-function saveWorldModel(wm) {
-  localStorage.setItem(WORLD_MODEL_KEY, JSON.stringify(wm));
-}
-
+function getWorldModel() { try { return JSON.parse(localStorage.getItem(WORLD_MODEL_KEY) || '{}'); } catch { return {}; } }
+function saveWorldModel(wm) { localStorage.setItem(WORLD_MODEL_KEY, JSON.stringify(wm)); }
 function worldModelSystemPrompt() {
-  const wm = getWorldModel();
-  const facts = wm.facts;
-  if (!facts || facts.length === 0) return null;
+  const facts = getWorldModel().facts;
+  if (!facts?.length) return null;
   return `You are a helpful private AI assistant running locally on the user's machine via Aspen.\n\nWhat you know about this user from past conversations:\n${facts.join('\n')}\n\nUse this context naturally. Don't reference it explicitly unless asked.`;
 }
-
 async function extractFactsFromExchange(userMsg, assistantMsg) {
-  if (!config?.tunnelUrl || !userMsg || !assistantMsg) return;
-  // Only bother if there's something substantive
-  if (userMsg.length < 20) return;
-
-  const model = modelSelect.value;
-  if (!model) return;
-
+  if (!config?.tunnelUrl || !userMsg || !assistantMsg || userMsg.length < 20) return;
+  const model = modelSelect.value; if (!model) return;
   const wm = getWorldModel();
   const existingFacts = (wm.facts || []).join('\n');
-
-  const extractPrompt = `You are extracting factual information about a user from a conversation snippet.
-Extract ONLY concrete, reusable facts about the USER (not the topic discussed).
-Examples: name, job, location, preferences, ongoing projects, relationships, expertise.
-Do NOT extract: generic statements, questions asked, things the AI said.
-If there's nothing new to extract, return exactly: NONE
-
-Existing known facts:
-${existingFacts || '(none yet)'}
-
-Conversation snippet:
-User: ${userMsg.slice(0, 300)}
-Assistant: ${assistantMsg.slice(0, 300)}
-
-New facts to add (one per line, or NONE):`;
-
+  const prompt = `Extract ONLY concrete facts about the USER from this conversation snippet.\nExamples: name, job, location, preferences, projects.\nIf nothing new, return exactly: NONE\n\nKnown facts:\n${existingFacts || '(none)'}\n\nUser: ${userMsg.slice(0,300)}\nAssistant: ${assistantMsg.slice(0,300)}\n\nNew facts (one per line, or NONE):`;
   try {
     const res = await fetch('/api/proxy', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        tunnelUrl: config.tunnelUrl,
-        apiKey: config.apiKey || '',
-        model,
-        messages: [{ role: 'user', content: extractPrompt }],
-        stream: false,
-      }),
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tunnelUrl: config.tunnelUrl, apiKey: config.apiKey || '', model, messages: [{ role: 'user', content: prompt }], stream: false }),
     });
     if (!res.ok) return;
-    const data = await res.json();
-    const raw = data.choices?.[0]?.message?.content?.trim();
-    if (!raw || raw === 'NONE' || raw.toUpperCase().includes('NONE')) return;
-
-    const newFacts = raw.split('\n')
-      .map(f => f.trim())
-      .filter(f => f.length > 5 && f.length < 200);
-
-    if (newFacts.length === 0) return;
-
-    // Merge, dedupe loosely by keeping last 50 facts
-    const merged = [...(wm.facts || []), ...newFacts].slice(-50);
-    saveWorldModel({ ...wm, facts: merged, updatedAt: new Date().toISOString() });
-    console.log('[WorldModel] Extracted', newFacts.length, 'new facts');
-  } catch (e) {
-    console.log('[WorldModel] Extraction failed silently:', e.message);
-  }
+    const raw = (await res.json()).choices?.[0]?.message?.content?.trim();
+    if (!raw || raw.toUpperCase().includes('NONE')) return;
+    const newFacts = raw.split('\n').map(f => f.trim()).filter(f => f.length > 5 && f.length < 200);
+    if (!newFacts.length) return;
+    saveWorldModel({ ...wm, facts: [...(wm.facts || []), ...newFacts].slice(-50), updatedAt: new Date().toISOString() });
+  } catch {}
 }
 
 // ══════════════════════════════════════════════════════
