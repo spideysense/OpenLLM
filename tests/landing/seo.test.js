@@ -171,11 +171,11 @@ describe('Content: Pricing tiers', () => {
     expect(html).toContain('Most Popular');
   });
 
-  it('should mention cost savings', () => {
+  it.skip('should mention cost savings — removed competitor comparisons', () => {
     expect(html).toContain('$20');
   });
 
-  it('should mention AI alternatives', () => {
+  it.skip('should mention AI alternatives — removed competitor comparisons', () => {
     expect(html).toContain('ChatGPT');
     expect(html).toContain('Claude');
     expect(html).toContain('$20');
