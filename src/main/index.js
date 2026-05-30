@@ -326,7 +326,7 @@ ipcMain.handle('registry:checkUpgrades', async () => {
 
 // ── Store IPC ── allowlisted keys only (renderer must not touch security-sensitive state)
 const STORE_ALLOWLIST = new Set([
-  'onboarded', 'activeModel', 'totalExchanges', 'theme', 'windowBounds',
+  'onboarded', 'activeModel', 'totalExchanges', 'theme', 'windowBounds', 'worldModel',
 ]);
 
 ipcMain.handle('store:get', async (event, key) => {

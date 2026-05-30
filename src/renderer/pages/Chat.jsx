@@ -35,6 +35,30 @@ export default function Chat() {
     bridge.store.get('totalExchanges').then((n) => setTotalExchanges(n || 0)).catch(() => {});
   }, [bridge]);
 
+  // ── World Model helpers ──
+  const extractAndSaveFacts = useCallback(async (userMsg, assistantMsg) => {
+    if (!bridge || !userMsg || !assistantMsg || userMsg.length < 20) return;
+    const model = activeModel;
+    if (!model) return;
+    try {
+      const wm = await bridge.store.get('worldModel') || { facts: [] };
+      const existingFacts = (wm.facts || []).join('\n');
+      const prompt = `Extract ONLY concrete facts about the USER from this conversation.
+Examples: name, job, location, preferences, projects, family, interests.
+If nothing new to extract, return exactly: NONE
+
+Known facts:
+${existingFacts || '(none yet)'}
+
+User: ${userMsg.slice(0, 400)}
+Assistant: ${assistantMsg.slice(0, 400)}
+
+New facts (one per line, or NONE):`;
+      await bridge.chat.send(model, [{ role: 'user', content: prompt }]);
+      // The response comes through onStream — we use a one-shot listener
+    } catch {}
+  }, [bridge, activeModel]);
+
   const convo = conversations.find((c) => c.id === activeConvo);
   const messages = convo?.messages || [];
   const moneySaved = (totalExchanges * COST_PER_EXCHANGE).toFixed(2);
@@ -97,6 +121,38 @@ export default function Chat() {
           const next = prev + 1;
           bridge?.store.set('totalExchanges', next).catch(() => {});
           return next;
+        });
+        // Extract user facts for world model (background, non-blocking)
+        setConversations((convos) => {
+          const convo = convos.find(c => c.id === activeConvo);
+          if (convo && convo.messages.length >= 1 && bridge && activeModel) {
+            const lastUser = [...convo.messages].reverse().find(m => m.role === 'user');
+            const finalContent = buf + (chunk.content || '');
+            if (lastUser && finalContent && lastUser.content.length >= 20) {
+              // Fire-and-forget fact extraction using a simple non-streaming call
+              (async () => {
+                try {
+                  const wm = await bridge.store.get('worldModel') || { facts: [] };
+                  const existingFacts = (wm.facts || []).join('\n');
+                  const prompt = `Extract ONLY concrete facts about the USER from this snippet.\nExamples: name, job, location, preferences, projects, family.\nReturn NONE if nothing new.\n\nKnown facts:\n${existingFacts || '(none)'}\n\nUser: ${lastUser.content.slice(0, 300)}\nAssistant: ${finalContent.slice(0, 300)}\n\nNew facts (one per line, or NONE):`;
+                  const res = await fetch('http://127.0.0.1:11434/api/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ model: activeModel, prompt, stream: false }),
+                  });
+                  if (!res.ok) return;
+                  const data = await res.json();
+                  const raw = (data.response || '').trim();
+                  if (!raw || raw.toUpperCase().includes('NONE')) return;
+                  const newFacts = raw.split('\n').map(f => f.trim()).filter(f => f.length > 5 && f.length < 200);
+                  if (!newFacts.length) return;
+                  const merged = [...(wm.facts || []), ...newFacts].slice(-60);
+                  await bridge.store.set('worldModel', { facts: merged, updatedAt: new Date().toISOString() });
+                } catch {}
+              })();
+            }
+          }
+          return convos;
         });
       } else {
         setStreamBuffer((prev) => prev + chunk.content);

@@ -8,6 +8,7 @@ import APIKeys from './pages/APIKeys';
 import Settings from './pages/Settings';
 import AppSetup from './pages/AppSetup';
 import Home from './pages/Home';
+import WorldModel from './pages/WorldModel';
 
 // ═══════════════════════════════════════════════════
 // Global App Context
@@ -150,6 +151,7 @@ export default function App() {
         <Sidebar />
         <main className="main-content">
           {page === 'home' && <Home />}
+          {page === 'worldmodel' && <WorldModel />}
           {page === 'chat' && <Chat />}
           {page === 'apikeys' && <APIKeys />}
           {page === 'appsetup' && <AppSetup />}

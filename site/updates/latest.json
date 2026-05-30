@@ -1,6 +1,6 @@
 {
-  "rendererVersion": "0.2.17",
-  "rendererUrl": "https://github.com/spideysense/OpenLLM/releases/download/v0.2.17/renderer.zip",
-  "releaseNotes": "See GitHub release for details",
+  "rendererVersion": "0.2.18",
+  "rendererUrl": "https://github.com/spideysense/OpenLLM/releases/download/v0.2.18/renderer.zip",
+  "releaseNotes": "feat: World Model nav \u2014 see/edit what your local AI knows about you",
   "publishedAt": "2026-05-30"
 }
