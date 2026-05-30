@@ -67,8 +67,9 @@ function getCurrentVersion() {
 // Core logic
 // ═══════════════════════════════════════════════════
 
-async function checkForUpdate({ timeout = 8000 } = {}) {
-  // Wrap with a timeout so startup is never blocked indefinitely
+async function checkForUpdate({ timeout = 30000 } = {}) {
+  // Wrap with a generous timeout — 30s covers manifest fetch + 65KB download
+  // The manifest fetch itself has its own 8s timeout internally
   return Promise.race([
     _doCheckForUpdate(),
     new Promise(resolve => setTimeout(resolve, timeout)),
