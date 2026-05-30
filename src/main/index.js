@@ -375,6 +375,11 @@ ipcMain.handle('tunnel:getStatus', async () => {
   };
 });
 
+ipcMain.handle('clipboard:write', async (_, text) => {
+  if (typeof text === 'string') clipboard.writeText(text);
+  return true;
+});
+
 ipcMain.handle('tunnel:copyUrl', async () => {
   const url = tunnel.getPublicUrl();
   if (url) clipboard.writeText(url + '/v1');

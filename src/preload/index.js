@@ -96,6 +96,11 @@ contextBridge.exposeInMainWorld('aspen', {
     clear: () => ipcRenderer.invoke('conversations:clear'),
   },
 
+  // ── Clipboard ──
+  clipboard: {
+    write: (text) => ipcRenderer.invoke('clipboard:write', text),
+  },
+
   // ── Tunnel ──
   tunnel: {
     getStatus: () => ipcRenderer.invoke('tunnel:getStatus'),

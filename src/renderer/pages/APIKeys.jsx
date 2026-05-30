@@ -50,7 +50,12 @@ export default function APIKeys() {
   }
 
   function copy(text, id) {
-    navigator.clipboard.writeText(text);
+    if (bridge?.clipboard?.write) {
+      bridge.clipboard.write(text);
+    } else {
+      // fallback for dev/browser context
+      navigator.clipboard.writeText(text).catch(() => {});
+    }
     setCopied(id);
     setTimeout(() => setCopied(null), 2000);
   }

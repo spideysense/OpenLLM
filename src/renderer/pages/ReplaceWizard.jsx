@@ -35,7 +35,11 @@ export default function ReplaceWizard() {
   }, [step, apiKey, bridge]);
 
   function copyToClipboard(text, id) {
-    navigator.clipboard.writeText(text);
+    if (bridge?.clipboard?.write) {
+      bridge.clipboard.write(text);
+    } else {
+      navigator.clipboard.writeText(text).catch(() => {});
+    }
     setCopied(id);
     setTimeout(() => setCopied(null), 2000);
   }
