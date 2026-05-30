@@ -1,6 +1,6 @@
 {
   "name": "aspen",
-  "version": "0.2.11",
+  "version": "0.2.12",
   "description": "Run the best open source AI locally. No API keys. No subscriptions. No terminal.",
   "main": "src/main/index.js",
   "scripts": {
@@ -76,7 +76,8 @@
   "dependencies": {
     "electron-store": "^8.1.0",
     "electron-updater": "^6.8.3",
-    "sharp": "^0.34.5"
+    "sharp": "^0.34.5",
+    "yauzl": "^3.3.1"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.1.5",

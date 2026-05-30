@@ -173,31 +173,47 @@ async function downloadZip(url, dest) {
 }
 
 /**
- * Minimal zip extractor — Node has no built-in zip support.
- * Uses the system unzip command (available on macOS and most Linux).
- * Falls back to a pure-JS approach for Windows.
+ * Pure-JS zip extractor using yauzl — works in packaged Electron on all platforms.
+ * No shell commands, no PATH dependency.
  */
 async function extractZip(zipPath, destDir) {
   fs.mkdirSync(destDir, { recursive: true });
-
-  const { execFile } = require('child_process');
-  const { promisify } = require('util');
-  const execFileAsync = promisify(execFile);
-
+  const yauzl = require('yauzl');
   console.log('[HotUpdater] Extracting', zipPath, 'to', destDir);
 
-  if (process.platform === 'win32') {
-    await execFileAsync('powershell', [
-      '-Command',
-      `Expand-Archive -Force -Path "${zipPath}" -DestinationPath "${destDir}"`,
-    ]);
-  } else {
-    // macOS / Linux — unzip is at /usr/bin/unzip on macOS
-    const unzipPath = fs.existsSync('/usr/bin/unzip') ? '/usr/bin/unzip' : 'unzip';
-    console.log('[HotUpdater] Using unzip at:', unzipPath);
-    const result = await execFileAsync(unzipPath, ['-o', '-q', zipPath, '-d', destDir]);
-    console.log('[HotUpdater] Extraction complete');
-  }
+  return new Promise((resolve, reject) => {
+    yauzl.open(zipPath, { lazyEntries: true }, (err, zipfile) => {
+      if (err) return reject(err);
+
+      zipfile.readEntry();
+
+      zipfile.on('entry', (entry) => {
+        const outPath = path.join(destDir, entry.fileName);
+
+        if (/\/$/.test(entry.fileName)) {
+          // Directory entry
+          fs.mkdirSync(outPath, { recursive: true });
+          zipfile.readEntry();
+        } else {
+          // File entry
+          fs.mkdirSync(path.dirname(outPath), { recursive: true });
+          zipfile.openReadStream(entry, (err, readStream) => {
+            if (err) return reject(err);
+            const writeStream = fs.createWriteStream(outPath);
+            readStream.pipe(writeStream);
+            writeStream.on('finish', () => zipfile.readEntry());
+            writeStream.on('error', reject);
+          });
+        }
+      });
+
+      zipfile.on('end', () => {
+        console.log('[HotUpdater] Extraction complete');
+        resolve();
+      });
+      zipfile.on('error', reject);
+    });
+  });
 }
 
 function notify(status, data = {}) {

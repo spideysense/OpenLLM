@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell, Tray, Menu, nativeImage, clipboard } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, Tray, Menu, nativeImage, clipboard, systemPreferences } = require('electron');
 const path = require('path');
 const ollama = require('./ollama');
 const models = require('./models');
@@ -46,13 +46,16 @@ function createWindow() {
     mainWindow.loadFile(hotUpdater.resolveRendererPath());
   }
 
-  // Grant microphone permission for voice input (Web Speech API)
+  // Grant microphone/audio permissions for voice input (Web Speech API)
   mainWindow.webContents.session.setPermissionRequestHandler((webContents, permission, callback) => {
-    if (permission === 'media' || permission === 'microphone') {
-      callback(true);
-    } else {
-      callback(false);
-    }
+    const allowed = ['media', 'microphone', 'audioCapture', 'mediakeyboard'];
+    callback(allowed.includes(permission));
+  });
+
+  // Also handle permission checks (not just requests)
+  mainWindow.webContents.session.setPermissionCheckHandler((webContents, permission) => {
+    const allowed = ['media', 'microphone', 'audioCapture'];
+    return allowed.includes(permission);
   });
 
   mainWindow.once('ready-to-show', () => {
@@ -86,6 +89,12 @@ function createTray() {
 // ═══════════════════════════════════════════════════
 
 app.whenReady().then(async () => {
+  // Request microphone access upfront so macOS grants it once permanently
+  // Without this, Web Speech API triggers a system dialog on every recognition start
+  if (process.platform === 'darwin' && systemPreferences.getMediaAccessStatus('microphone') !== 'granted') {
+    await systemPreferences.askForMediaAccess('microphone').catch(() => {});
+  }
+
   // Check for hot renderer update BEFORE window — loads correct version immediately, no reload flicker
   await hotUpdater.checkForUpdate();
 
