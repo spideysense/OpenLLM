@@ -77,8 +77,14 @@ export default function Chat() {
     const unsub = bridge.chat.onStream((chunk) => {
       if (chunk.done) {
         setIsStreaming(false);
-        setStreamBuffer((buf) => {
-          const finalContent = buf + (chunk.content || '');
+        // Capture buffer content before clearing
+        let finalContent = '';
+        setStreamBuffer((prev) => {
+          finalContent = prev + (chunk.content || '');
+          return '';
+        });
+        // Use setTimeout to ensure buffer state is settled
+        setTimeout(() => {
           setConversations((prev) =>
             prev.map((c) =>
               c.id === activeConvo
@@ -90,8 +96,7 @@ export default function Chat() {
                 : c
             )
           );
-          return '';
-        });
+        }, 0);
         // Increment savings counter
         setTotalExchanges((prev) => {
           const next = prev + 1;

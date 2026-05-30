@@ -88,7 +88,7 @@ export default function Sidebar() {
           <span>AI engine offline</span>
         )}
       </div>
-      <div style={{ padding: '6px 14px', fontSize: 10, color: 'var(--t4, #AEAEB2)', letterSpacing: '.02em' }}>v0.2.4</div>
+      <div style={{ padding: '6px 14px', fontSize: 10, color: 'var(--t4, #AEAEB2)', letterSpacing: '.02em' }}>v0.2.6</div>
     </aside>
   );
 }
