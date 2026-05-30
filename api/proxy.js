@@ -1,41 +1,68 @@
 /**
- * /api/proxy — Chat proxy with proactive web search injection
+ * /api/proxy — Chat proxy with LLM-based search intent detection
  *
- * Strategy: detect search-worthy queries by keyword BEFORE sending to model.
- * Inject search results into the system prompt. Works with ALL models,
- * no tool-call support required.
+ * Before sending the user's message to the local model, we run a tiny
+ * pre-flight call: "Does this need real-time internet data? YES or NO"
+ * ~200ms overhead, works for any question, any phrasing.
  *
- * Triggers search when the last user message contains signals like:
- * stock price, weather, news, score, latest, current price, today, etc.
+ * Falls back to keyword regex if the classifier times out or fails.
  */
 
 export const config = { runtime: 'edge' };
 
-// Keywords that reliably indicate real-time data is needed
+// ── Regex fallback (catches obvious cases if classifier fails) ──
 const SEARCH_TRIGGERS = [
   /\b(stock|share)\s*(price|cost|value|ticker|quote)/i,
-  /\b(weather|forecast|temperature|rain|snow|wind)\b/i,
-  /\b(news|latest|recent|current|today'?s?|right now|live)\b/i,
-  /\b(score|result|match|game)\s*(today|tonight|yesterday|last night)/i,
+  /\b(weather|forecast|temperature)\b/i,
+  /\b(news|latest|breaking)\b/i,
+  /\b(score|result|match|game)\s*(today|tonight|yesterday)/i,
   /\b(price of|cost of|how much is|how much does)\b/i,
-  /\bwho (won|is winning|leads|is ahead)\b/i,
-  /\b(election|vote|poll)\s*(result|result|winner|outcome)/i,
-  /\b(crypto|bitcoin|ethereum|btc|eth)\s*(price|value|cost)/i,
-  /\bwhat'?s\s+(happening|going on|the (news|score|price|weather))/i,
-  /\b(released|launched|announced|dropped)\s*(today|this week|recently)/i,
+  /\bwho (won|is winning|leads)\b/i,
+  /\b(crypto|bitcoin|ethereum|btc|eth)\s*(price|value)/i,
 ];
 
-function shouldSearch(messages) {
-  const last = [...messages].reverse().find(m => m.role === 'user');
-  if (!last?.content) return null;
-  const text = last.content;
-  for (const trigger of SEARCH_TRIGGERS) {
-    if (trigger.test(text)) {
-      // Extract a clean search query from the user message
-      return text.slice(0, 200);
-    }
+function regexShouldSearch(text) {
+  return SEARCH_TRIGGERS.some(t => t.test(text));
+}
+
+// ── LLM classifier ──
+const CLASSIFIER_PROMPT = `You are a search intent classifier. Your only job is to decide if a question requires real-time internet data to answer accurately.
+
+Real-time data means: current prices, today's news, live scores, recent events, current weather, who holds a position right now, anything that changes over time.
+
+Answer with exactly one word: YES or NO.
+
+Question: `;
+
+async function classifierShouldSearch(userMessage, tunnelUrl, apiKey) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 3000); // 3s max
+
+  try {
+    const res = await fetch(`${tunnelUrl}/v1/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(apiKey ? { 'Authorization': `Bearer ${apiKey}` } : {}),
+      },
+      body: JSON.stringify({
+        model: 'llama3.2', // use a fast small model — will fall back gracefully if not found
+        messages: [{ role: 'user', content: CLASSIFIER_PROMPT + userMessage.slice(0, 300) }],
+        max_tokens: 5,
+        temperature: 0,
+        stream: false,
+      }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return null;
+    const data = await res.json();
+    const answer = (data.choices?.[0]?.message?.content || '').trim().toUpperCase();
+    return answer.startsWith('YES');
+  } catch {
+    clearTimeout(timeout);
+    return null; // timeout or error → fall back to regex
   }
-  return null;
 }
 
 async function runSearch(query, baseUrl) {
@@ -48,13 +75,28 @@ async function runSearch(query, baseUrl) {
     if (!res.ok) return null;
     const data = await res.json();
     if (!data.results?.length) return null;
-    return data.results
-      .slice(0, 5)
+    return data.results.slice(0, 5)
       .map((r, i) => `[${i + 1}] ${r.title}\n${r.snippet}${r.url ? `\nSource: ${r.url}` : ''}`)
       .join('\n\n');
-  } catch {
-    return null;
+  } catch { return null; }
+}
+
+function injectSearch(messages, query, results) {
+  const searchBlock = `\n\n--- Live web search results for "${query}" ---\n${results}\n--- End results. Use these to answer accurately. Cite sources where relevant. ---`;
+  const hasSystem = messages[0]?.role === 'system';
+  if (hasSystem) {
+    return [
+      { ...messages[0], content: messages[0].content + searchBlock },
+      ...messages.slice(1),
+    ];
   }
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
+  return [
+    { role: 'system', content: `You are a helpful private AI assistant. Today is ${dateStr}, ${timeStr}.${searchBlock}` },
+    ...messages,
+  ];
 }
 
 export default async function handler(req) {
@@ -88,31 +130,25 @@ export default async function handler(req) {
     ...(apiKey ? { 'Authorization': `Bearer ${apiKey}` } : {}),
   };
 
-  // ── Detect if search is needed ──
-  const searchQuery = shouldSearch(messages || []);
+  // ── Search intent detection ──
+  const lastUser = [...(messages || [])].reverse().find(m => m.role === 'user');
+  const userText = lastUser?.content || '';
   let enrichedMessages = messages || [];
 
-  if (searchQuery) {
-    const baseUrl = new URL(req.url).origin;
-    const searchResults = await runSearch(searchQuery, baseUrl);
-    if (searchResults) {
-      // Inject search results by prepending/updating the system message
-      const hasSystem = enrichedMessages[0]?.role === 'system';
-      const searchBlock = `\n\n--- Live web search results for "${searchQuery}" ---\n${searchResults}\n--- End search results ---\nUse these results to answer the user's question accurately. Cite sources where relevant.`;
+  if (userText.length > 3) {
+    // 1. Try LLM classifier first (fast, smart)
+    let needsSearch = await classifierShouldSearch(userText, tunnelUrl.replace(/\/+$/, ''), apiKey);
 
-      if (hasSystem) {
-        enrichedMessages = [
-          { ...enrichedMessages[0], content: enrichedMessages[0].content + searchBlock },
-          ...enrichedMessages.slice(1),
-        ];
-      } else {
-        const now = new Date();
-        const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-        const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
-        enrichedMessages = [
-          { role: 'system', content: `You are a helpful private AI assistant. The current date is ${dateStr} and the time is ${timeStr}.${searchBlock}` },
-          ...enrichedMessages,
-        ];
+    // 2. If classifier failed/timed out, fall back to regex
+    if (needsSearch === null) {
+      needsSearch = regexShouldSearch(userText);
+    }
+
+    if (needsSearch) {
+      const baseUrl = new URL(req.url).origin;
+      const results = await runSearch(userText, baseUrl);
+      if (results) {
+        enrichedMessages = injectSearch(messages, userText.slice(0, 100), results);
       }
     }
   }
@@ -137,8 +173,7 @@ export default async function handler(req) {
   if (!stream) {
     const json = await upstreamRes.json();
     return new Response(JSON.stringify(json), {
-      status: 200,
-      headers: { ...corsHeaders(), 'Content-Type': 'application/json' },
+      status: 200, headers: { ...corsHeaders(), 'Content-Type': 'application/json' },
     });
   }
 
@@ -150,8 +185,7 @@ export default async function handler(req) {
 
 function jsonError(msg, status) {
   return new Response(JSON.stringify({ error: msg }), {
-    status,
-    headers: { ...corsHeaders(), 'Content-Type': 'application/json' },
+    status, headers: { ...corsHeaders(), 'Content-Type': 'application/json' },
   });
 }
 

@@ -317,17 +317,43 @@ async function install() {
 // Chat / Streaming
 // ═══════════════════════════════════════════════════
 
-// ── Keyword-based search trigger (works with all models) ──
+// ── Regex fallback (fast, catches obvious cases) ──
 const SEARCH_TRIGGERS = [
   /\b(stock|share)\s*(price|cost|value|ticker|quote)/i,
-  /\b(weather|forecast|temperature|rain|snow|wind)\b/i,
-  /\b(news|latest|recent|current|today'?s?|right now|live)\b/i,
-  /\b(score|result|match|game)\s*(today|tonight|yesterday|last night)/i,
+  /\b(weather|forecast|temperature)\b/i,
+  /\b(news|latest|breaking)\b/i,
+  /\b(score|result|match|game)\s*(today|tonight|yesterday)/i,
   /\b(price of|cost of|how much is|how much does)\b/i,
-  /\bwho (won|is winning|leads|is ahead)\b/i,
-  /\b(crypto|bitcoin|ethereum|btc|eth)\s*(price|value|cost)/i,
-  /\b(released|launched|announced|dropped)\s*(today|this week|recently)/i,
+  /\bwho (won|is winning|leads)\b/i,
+  /\b(crypto|bitcoin|ethereum|btc|eth)\s*(price|value)/i,
 ];
+
+const CLASSIFIER_PROMPT = `You are a search intent classifier. Decide if this question requires real-time internet data to answer accurately.
+Real-time data: current prices, today's news, live scores, recent events, current weather, who holds a position right now.
+Answer with exactly one word: YES or NO.
+Question: `;
+
+async function classifierNeedsSearch(userMessage, model) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 3000);
+  try {
+    const res = await fetch(`${OLLAMA_HOST}/api/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model,
+        prompt: CLASSIFIER_PROMPT + userMessage.slice(0, 300),
+        stream: false,
+        options: { temperature: 0, num_predict: 5 },
+      }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return null;
+    const data = await res.json();
+    return (data.response || '').trim().toUpperCase().startsWith('YES');
+  } catch { clearTimeout(timeout); return null; }
+}
 
 function getSearchQuery(messages) {
   const last = [...messages].reverse().find(m => m.role === 'user');

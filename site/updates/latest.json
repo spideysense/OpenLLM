@@ -1,6 +1,6 @@
 {
-  "rendererVersion": "0.2.19",
-  "rendererUrl": "https://github.com/spideysense/OpenLLM/releases/download/v0.2.19/renderer.zip",
-  "releaseNotes": "See GitHub release for details",
+  "rendererVersion": "0.2.20",
+  "rendererUrl": "https://github.com/spideysense/OpenLLM/releases/download/v0.2.20/renderer.zip",
+  "releaseNotes": "feat: LLM classifier for search intent \u2014 works for any phrasing",
   "publishedAt": "2026-05-30"
 }
