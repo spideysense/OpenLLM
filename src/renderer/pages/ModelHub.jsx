@@ -193,14 +193,23 @@ export default function ModelHub() {
                         Remove
                       </button>
                     </div>
-                  ) : (
-                    <button
-                      className="btn btn-sm btn-primary"
-                      onClick={() => handlePull(model.id)}
-                      disabled={!fitsHardware}
-                    >
-                      {fitsHardware ? 'Get Model' : 'Too large for your machine'}
+                  ) : fitsHardware ? (
+                    <button className="btn btn-sm btn-primary" onClick={() => handlePull(model.id)}>
+                      Get Model
                     </button>
+                  ) : (
+                    <div>
+                      <div style={{ fontSize: 12, color: 'var(--text-light)', marginBottom: 8, lineHeight: 1.5 }}>
+                        May be too large for your RAM — could be slow or crash. Try at your own risk.
+                      </div>
+                      <button
+                        className="btn btn-sm"
+                        onClick={() => handlePull(model.id)}
+                        style={{ background: 'transparent', border: '1.5px solid rgba(93,78,55,0.3)', color: 'var(--text-light)' }}
+                      >
+                        Try anyway
+                      </button>
+                    </div>
                   )}
                 </div>
               );
