@@ -518,13 +518,6 @@ const tunnelDisplay = document.getElementById('tunnel-display');
 const chatTitle     = document.getElementById('chat-title');
 const offlineBanner = document.getElementById('offline-banner');
 const disconnectBtn = document.getElementById('disconnect-btn');
-const setupTunnelUrl= document.getElementById('setup-tunnel-url');
-const setupApiKey   = document.getElementById('setup-api-key');
-const copyTunnelBtn = document.getElementById('copy-tunnel-btn');
-const copyKeyBtn    = document.getElementById('copy-key-btn');
-const revealKeyBtn  = document.getElementById('reveal-key-btn');
-const settingsTunnel= document.getElementById('settings-tunnel-display');
-const settingsStatus= document.getElementById('settings-status');
 
 // ══════════════════════════════════════════════════════
 // BOOT
@@ -569,11 +562,6 @@ function showApp() {
   } catch { tunnelDisplay.textContent = config.tunnelUrl; }
 
   // Setup screen values
-  const tunnelForV1 = config.tunnelUrl + '/v1';
-  setupTunnelUrl.textContent = tunnelForV1;
-  setupApiKey.textContent = config.apiKey ? config.apiKey : '(no key set)';
-  setupApiKey.classList.toggle('secret', !!config.apiKey);
-  settingsTunnel.textContent = new URL(config.tunnelUrl).hostname;
 
   // Load persisted data
   try { chats = JSON.parse(localStorage.getItem(CHATS_KEY) || '{}') || {}; } catch { chats = {}; }
@@ -629,17 +617,7 @@ async function copyText(text, btn) {
   }
 }
 
-// Copy tunnel URL (always show /v1)
-copyTunnelBtn.addEventListener('click', () => copyText(config.tunnelUrl + '/v1', copyTunnelBtn));
-
-// Reveal / copy API key
-revealKeyBtn.addEventListener('click', () => {
-  keyRevealed = !keyRevealed;
-  setupApiKey.textContent = keyRevealed ? (config.apiKey || '(none)') : 'sk-aspen-••••••••••••••';
-  setupApiKey.classList.toggle('secret', !keyRevealed);
-  revealKeyBtn.textContent = keyRevealed ? 'Hide' : 'Reveal';
-});
-copyKeyBtn.addEventListener('click', () => copyText(config.apiKey || '', copyKeyBtn));
+// (setup panel elements removed — tunnel/key copying lives in desktop App Setup)
 
 // ══════════════════════════════════════════════════════
 // PAIRING
@@ -926,7 +904,6 @@ function startStatusCheck() { checkStatus(); statusInterval = setInterval(checkS
 async function checkStatus() {
   statusDot.className = 'dot checking';
   statusText.textContent = 'Checking…';
-  settingsStatus.textContent = 'Checking…';
   try {
     const res = await fetch(`${config.tunnelUrl}/v1/models`, {
       headers: config.apiKey ? { 'Authorization': `Bearer ${config.apiKey}` } : {},
@@ -935,13 +912,11 @@ async function checkStatus() {
     if (res.ok || res.status === 401) {
       statusDot.className = 'dot online';
       statusText.textContent = 'Your machine';
-      settingsStatus.textContent = 'Connected';
       offlineBanner.classList.remove('visible');
     } else throw new Error();
   } catch {
     statusDot.className = 'dot offline';
     statusText.textContent = 'Offline';
-    settingsStatus.textContent = 'Offline';
     offlineBanner.classList.add('visible');
   }
 }
