@@ -21,6 +21,8 @@
 <meta name="theme-color" content="#FAFAF7">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="sitemap" type="application/xml" href="/sitemap.xml">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Organization","name":"Aspen","url":"https://runonaspen.com","logo":"https://runonaspen.com/favicon.svg","description":"Private AI hardware and software. Own your intelligence.","sameAs":["https://github.com/spideysense/OpenLLM"]}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Aspen","description":"Private AI on your hardware. No subscriptions. No cloud.","operatingSystem":"macOS, Windows","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"downloadUrl":"https://github.com/spideysense/OpenLLM/releases/latest","author":{"@type":"Organization","name":"Aspen"}}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Is Aspen free?","acceptedAnswer":{"@type":"Answer","text":"The software is free. The dedicated device is available via preorder."}},{"@type":"Question","name":"Does my data leave my computer?","acceptedAnswer":{"@type":"Answer","text":"No. Everything runs on your hardware. No cloud. No servers."}},{"@type":"Question","name":"What models does Aspen run?","acceptedAnswer":{"@type":"Answer","text":"The latest open models including Llama, Qwen, DeepSeek, Mistral."}},{"@type":"Question","name":"Can I use Aspen as an API?","acceptedAnswer":{"@type":"Answer","text":"Yes. OpenAI-compatible API. Swap two lines of code with base_url and api_key."}},{"@type":"Question","name":"What is the Aspen device?","acceptedAnswer":{"@type":"Answer","text":"A dedicated AI machine for your home or office. 1 petaflop, 128GB, silent. Join the preorder."}}]}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"Get started with Aspen","step":[{"@type":"HowToStep","position":1,"name":"Download","text":"Download Aspen free for Mac or Windows"},{"@type":"HowToStep","position":2,"name":"Open","text":"No terminal, no configuration. Open the app."},{"@type":"HowToStep","position":3,"name":"Ask","text":"Chat, voice, code. Everything runs privately on your machine."}]}</script>
@@ -268,6 +270,21 @@ footer{border-top:1px solid var(--brd);padding:2rem 0}
 
 <div class="modal" id="preorder-modal" onclick="if(event.target===this)this.style.display='none'"><div class="modal-box" style="position:relative"><button class="modal-close" onclick="this.closest('.modal').style.display='none'">&times;</button><h3>Pre-order Aspen</h3><p>Reserve your Aspen device. We'll reach out when it's ready to ship.</p><input class="modal-input" id="po-name" placeholder="Full name" /><input class="modal-input" id="po-email" type="email" placeholder="Email address" /><button class="modal-submit" onclick="var n=document.getElementById('po-name').value,e=document.getElementById('po-email').value;if(n&&e){this.textContent='Reserved \u2713';this.style.background='#28A745';setTimeout(function(){document.getElementById('preorder-modal').style.display='none'},1500)}">Reserve — $10,000</button></div></div>
 <script>
+const o=new IntersectionObserver(e=>{e.forEach(x=>{if(x.isIntersecting){x.target.classList.add('vis');o.unobserve(x.target)}})},{threshold:.06,rootMargin:'0px 0px -20px 0px'});
+document.querySelectorAll('.rv').forEach(el=>o.observe(el));
+
+function submitPreorder(btn){
+var n=document.getElementById('po-name').value.trim();
+var e=document.getElementById('po-email').value.trim();
+if(!n||!e){btn.textContent='Please fill in both fields';btn.style.background='#DC3545';setTimeout(function(){btn.textContent='Reserve \u2014 $10,000';btn.style.background=''},2000);return}
+btn.textContent='Reserving...';btn.disabled=true;
+fetch('/api/preorder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n,email:e})})
+.then(function(r){return r.json()})
+.then(function(d){
+if(d.ok){btn.textContent='Reserved \u2713';btn.style.background='#28A745';setTimeout(function(){document.getElementById('preorder-modal').style.display='none';btn.textContent='Reserve \u2014 $10,000';btn.style.background='';btn.disabled=false;document.getElementById('po-name').value='';document.getElementById('po-email').value=''},2000)}
+else{btn.textContent='Error \u2014 try again';btn.style.background='#DC3545';setTimeout(function(){btn.textContent='Reserve \u2014 $10,000';btn.style.background='';btn.disabled=false},2500)}
+}).catch(function(){btn.textContent='Error \u2014 try again';btn.style.background='#DC3545';setTimeout(function(){btn.textContent='Reserve \u2014 $10,000';btn.style.background='';btn.disabled=false},2500)});
+}
 const o=new IntersectionObserver(e=>{e.forEach(x=>{if(x.isIntersecting){x.target.classList.add('vis');o.unobserve(x.target)}})},{threshold:.06,rootMargin:'0px 0px -20px 0px'});
 document.querySelectorAll('.rv').forEach(el=>o.observe(el));
 (function(){
