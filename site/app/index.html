@@ -1074,9 +1074,12 @@ const WORLD_MODEL_KEY = 'aspen_world_model';
 function getWorldModel() { try { return JSON.parse(localStorage.getItem(WORLD_MODEL_KEY) || '{}'); } catch { return {}; } }
 function saveWorldModel(wm) { localStorage.setItem(WORLD_MODEL_KEY, JSON.stringify(wm)); }
 function worldModelSystemPrompt() {
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+  const timeStr = now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', timeZoneName:'short' });
   const facts = getWorldModel().facts;
-  if (!facts?.length) return null;
-  return `You are a helpful private AI assistant running locally on the user's machine via Aspen.\n\nWhat you know about this user from past conversations:\n${facts.join('\n')}\n\nUse this context naturally. Don't reference it explicitly unless asked.`;
+  const factBlock = facts?.length ? `\n\nWhat you know about this user from past conversations:\n${facts.join('\n')}\n\nUse this context naturally. Don't reference it explicitly unless asked.` : '';
+  return `You are a helpful private AI assistant running locally on the user's machine via Aspen. The current date is ${dateStr} and the time is ${timeStr}.${factBlock}`;
 }
 async function extractFactsFromExchange(userMsg, assistantMsg) {
   if (!config?.tunnelUrl || !userMsg || !assistantMsg || userMsg.length < 20) return;

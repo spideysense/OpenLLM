@@ -233,16 +233,19 @@ ipcMain.handle('models:recommend', async () => {
 // ═══════════════════════════════════════════════════
 
 ipcMain.handle('chat:send', async (event, { model, messages }) => {
-  // Prepend system prompt so the model knows it's running locally
+  // Prepend system prompt with current date/time so the model always knows when it is
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
   const SYSTEM_PROMPT = {
     role: 'system',
     content:
-      'You are a helpful AI assistant running locally inside Aspen, ' +
-      'a desktop application on the user\'s own computer. You are NOT running ' +
-      'in any cloud service. All processing happens 100% on this machine. ' +
-      'The user\'s data never leaves their device. ' +
-      'Be helpful, friendly, and concise. Never claim to be running on any ' +
-      'cloud provider or remote server — you are fully local and private.',
+      `You are a helpful AI assistant running locally inside Aspen, ` +
+      `a desktop application on the user's own computer. You are NOT running ` +
+      `in any cloud service. All processing happens 100% on this machine. ` +
+      `The user's data never leaves their device. ` +
+      `The current date is ${dateStr} and the time is ${timeStr}. ` +
+      `Be helpful, friendly, and concise.`,
   };
 
   // Only prepend if there's no existing system message
