@@ -867,13 +867,16 @@ async function sendMessage() {
   let fullText = '';
 
   try {
-    const res = await fetch(`${config.tunnelUrl}/v1/chat/completions`, {
+    // POST via server-side proxy — Cloudflare blocks direct browser→tunnel POSTs
+    const res = await fetch('/api/proxy', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(config.apiKey ? { 'Authorization': `Bearer ${config.apiKey}` } : {}),
-      },
-      body: JSON.stringify({ model, messages: history, stream: true }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tunnelUrl: config.tunnelUrl,
+        apiKey: config.apiKey || '',
+        model,
+        messages: history,
+      }),
       signal: streamController.signal,
     });
 
