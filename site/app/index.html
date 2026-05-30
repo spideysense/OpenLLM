@@ -84,7 +84,7 @@ body{font-family:var(--san);background:var(--bg);color:var(--bk);-webkit-font-sm
 }
 
 /* Mobile: sidebar is off-canvas */
-@media(max-width:768px){
+@media(max-width:900px){
   .sidebar{
     position:fixed;top:0;left:0;bottom:0;
     width:min(var(--sidebar), 85vw);
@@ -145,7 +145,7 @@ body{font-family:var(--san);background:var(--bg);color:var(--bk);-webkit-font-sm
   color:var(--t3);padding:4px 6px;border-radius:4px;
   transition:all .15s;line-height:1;font-size:16px;
 }
-@media(max-width:768px){.chat-delete{opacity:.4}}
+@media(max-width:900px){.chat-delete{opacity:.4}}
 .chat-item:hover .chat-delete,.chat-item.active .chat-delete{opacity:1}
 .chat-delete:active{background:rgba(220,38,38,.1);color:var(--danger)}
 .chat-section-label{
@@ -188,7 +188,7 @@ body{font-family:var(--san);background:var(--bg);color:var(--bk);-webkit-font-sm
   color:var(--bk);-webkit-appearance:none;
 }
 .header-hamburger:active{background:rgba(0,0,0,.06)}
-@media(max-width:768px){.header-hamburger{display:flex}}
+@media(max-width:900px){.header-hamburger{display:flex}}
 .chat-title{font-size:.86rem;font-weight:500;color:var(--bk);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tunnel-badge{
   font-size:.65rem;color:var(--t3);
@@ -199,14 +199,14 @@ body{font-family:var(--san);background:var(--bg);color:var(--bk);-webkit-font-sm
   background:var(--gd-light);padding:.1rem .35rem;border-radius:4px;
   max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;
 }
-@media(max-width:480px){.tunnel-badge{display:none}}
+@media(max-width:900px){.tunnel-badge{display:none}}
 .header-new-btn{
   width:32px;height:32px;display:none;align-items:center;justify-content:center;
   background:transparent;border:none;cursor:pointer;border-radius:8px;
   color:var(--bk);flex-shrink:0;-webkit-appearance:none;
 }
 .header-new-btn:active{background:rgba(0,0,0,.06)}
-@media(max-width:768px){.header-new-btn{display:flex}}
+@media(max-width:900px){.header-new-btn{display:flex}}
 
 /* ── OFFLINE BANNER ── */
 .offline-banner{
@@ -250,11 +250,12 @@ body{font-family:var(--san);background:var(--bg);color:var(--bk);-webkit-font-sm
 .empty-title{font-family:var(--ser);font-size:1.55rem;margin-bottom:.4rem}
 .empty-title em{font-style:italic;color:var(--gd)}
 .empty-sub{font-size:.83rem;color:var(--t3);max-width:300px;line-height:1.6;font-weight:300}
-.starters{display:flex;flex-wrap:wrap;gap:.5rem;justify-content:center;margin-top:1.4rem;max-width:480px}
+.starters{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-top:1.4rem;width:100%;max-width:360px}
+@media(min-width:500px){.starters{grid-template-columns:repeat(3,1fr);max-width:480px}}
 .starter{
-  padding:.5rem 1rem;border-radius:20px;
+  padding:.55rem .7rem;border-radius:14px;text-align:center;
   background:var(--wh);border:1.5px solid var(--brd2);
-  font-size:.78rem;color:var(--t2);cursor:pointer;transition:all .2s;-webkit-appearance:none;
+  font-size:.78rem;color:var(--t2);cursor:pointer;transition:all .2s;-webkit-appearance:none;line-height:1.3;
 }
 .starter:active{border-color:var(--gd);color:var(--gd);background:var(--gd-light)}
 @media(hover:hover){.starter:hover{border-color:var(--gd);color:var(--gd);background:var(--gd-light)}}
