@@ -24,7 +24,7 @@ export default async function handler(req, res) {
   try {
     // 1. Confirmation to the customer
     await sendEmail(RESEND_KEY, {
-      from: 'Aspen <hello@runonaspen.com>',
+      from: 'Aspen <mayank@trybutler.xyz>',
       to: email,
       subject: 'Your Aspen pre-order is confirmed',
       html: `
@@ -44,7 +44,7 @@ export default async function handler(req, res) {
 
     // 2. Notification to Mayank (separate email)
     await sendEmail(RESEND_KEY, {
-      from: 'Aspen Pre-orders <hello@runonaspen.com>',
+      from: 'Aspen Pre-orders <mayank@trybutler.xyz>',
       to: NOTIFY,
       subject: `New Aspen pre-order: ${name}`,
       html: `
