@@ -316,45 +316,52 @@ async function install() {
 // ═══════════════════════════════════════════════════
 // Chat / Streaming
 // ═══════════════════════════════════════════════════
-// Web search helpers
-const SEARCH_TRIGGERS = [
-  /\b(stock|share)\s*(price|cost|value|ticker|quote)/i,
-  /\b(weather|forecast|temperature)\b/i,
-  /\b(news|latest|breaking)\b/i,
-  /\b(score|result|match|game)\s*(today|tonight|yesterday)/i,
-  /\b(price of|cost of|how much is|how much does)\b/i,
-  /\bwho (won|is winning|leads)\b/i,
-  /\b(crypto|bitcoin|ethereum|btc|eth)\s*(price|value)/i,
-];
+// Aspen-level web search — local model decides if search is needed
+// No hardcoded keywords. Works with any model (Qwen, Llama, DeepSeek, etc.)
 
-const CLASSIFIER_PROMPT = `You are a search intent classifier. Does this question require real-time internet data to answer accurately? Real-time data: current prices, today's news, live scores, recent events, current weather. Answer with exactly one word: YES or NO.\nQuestion: `;
+const CLASSIFIER_PROMPT = `You are a search intent classifier. Your only job: does this question require real-time internet data to answer accurately?
 
-async function classifierNeedsSearch(userMessage, model) {
+Real-time data: current prices, today's news, live scores, recent events, current weather, who currently holds a position, anything that changes over time.
+
+Answer with exactly one word: YES or NO.
+
+Question: `;
+
+async function askModelIfSearchNeeded(userMessage, model) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 3000);
+  const timeout = setTimeout(() => controller.abort(), 4000);
   try {
     const res = await fetch(`${OLLAMA_HOST}/api/generate`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, prompt: CLASSIFIER_PROMPT + userMessage.slice(0, 300), stream: false, options: { temperature: 0, num_predict: 5 } }),
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model,
+        prompt: CLASSIFIER_PROMPT + userMessage.slice(0, 400),
+        stream: false,
+        options: { temperature: 0, num_predict: 5 },
+      }),
       signal: controller.signal,
     });
     clearTimeout(timeout);
-    if (!res.ok) return null;
+    if (!res.ok) return false;
     const data = await res.json();
     return (data.response || '').trim().toUpperCase().startsWith('YES');
-  } catch { clearTimeout(timeout); return null; }
+  } catch { clearTimeout(timeout); return false; }
 }
 
 async function fetchSearchResults(query) {
   try {
     const res = await fetch('https://runonaspen.com/api/search', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ query }),
     });
     if (!res.ok) return null;
     const data = await res.json();
     if (!data.results?.length) return null;
-    return data.results.slice(0, 5).map((r, i) => `[${i+1}] ${r.title}\n${r.snippet}${r.url ? `\nSource: ${r.url}` : ''}`).join('\n\n');
+    return data.results.slice(0, 5)
+      .map((r, i) => `[${i+1}] ${r.title}\n${r.snippet}${r.url ? `\nSource: ${r.url}` : ''}`)
+      .join('\n\n');
   } catch { return null; }
 }
 
@@ -362,13 +369,12 @@ async function chat(model, messages, onChunk) {
   chatController = new AbortController();
 
   try {
-    // Search intent detection: LLM classifier → regex fallback
+    // Aspen-level search: ask the local model if this needs real-time data
     const lastUser = [...messages].reverse().find(m => m.role === 'user');
     const userText = lastUser?.content || '';
     let enrichedMessages = messages;
     if (userText.length > 3) {
-      let needsSearch = await classifierNeedsSearch(userText, model);
-      if (needsSearch === null) needsSearch = SEARCH_TRIGGERS.some(t => t.test(userText));
+      const needsSearch = await askModelIfSearchNeeded(userText, model);
       if (needsSearch) {
         onChunk({ content: '🔍 Searching…', done: false });
         const results = await fetchSearchResults(userText);
