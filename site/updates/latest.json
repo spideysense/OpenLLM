@@ -1,6 +1,6 @@
 {
   "rendererVersion": "0.2.19",
   "rendererUrl": "https://github.com/spideysense/OpenLLM/releases/download/v0.2.19/renderer.zip",
-  "releaseNotes": "fix: web search now works with all models via keyword injection",
+  "releaseNotes": "See GitHub release for details",
   "publishedAt": "2026-05-30"
 }
