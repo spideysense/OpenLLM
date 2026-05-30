@@ -1,6 +1,6 @@
 {
-  "rendererVersion": "0.2.12",
-  "rendererUrl": "https://github.com/spideysense/OpenLLM/releases/download/v0.2.12/renderer.zip",
-  "releaseNotes": "See GitHub release for details",
+  "rendererVersion": "0.2.13",
+  "rendererUrl": "https://github.com/spideysense/OpenLLM/releases/download/v0.2.13/renderer.zip",
+  "releaseNotes": "Home: savings dashboard, per-key usage, invite flow",
   "publishedAt": "2026-05-30"
 }

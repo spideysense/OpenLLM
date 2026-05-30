@@ -7,6 +7,7 @@ import ReplaceWizard from './pages/ReplaceWizard';
 import APIKeys from './pages/APIKeys';
 import Settings from './pages/Settings';
 import AppSetup from './pages/AppSetup';
+import Home from './pages/Home';
 
 // ═══════════════════════════════════════════════════
 // Global App Context
@@ -148,6 +149,7 @@ export default function App() {
       <div className="app-layout">
         <Sidebar />
         <main className="main-content">
+          {page === 'home' && <Home />}
           {page === 'chat' && <Chat />}
           {page === 'apikeys' && <APIKeys />}
           {page === 'appsetup' && <AppSetup />}
