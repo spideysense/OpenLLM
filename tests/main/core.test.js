@@ -522,7 +522,7 @@ describe('Auto-Updater: OTA updates', () => {
   it('should show update notification in sidebar', () => {
     expect(sidebarSrc).toContain('updateStatus');
     expect(sidebarSrc).toContain('Update ready');
-    expect(sidebarSrc).toContain('click to restart');
+    expect(sidebarSrc).toContain('click to apply');
   });
 
   it('should show download progress in sidebar', () => {
@@ -614,7 +614,7 @@ describe('Auto-updater: no forced restarts', () => {
   });
 
   it('should only restart when user clicks', () => {
-    expect(sidebarSrc).toContain('click to restart');
-    expect(sidebarSrc).toContain('updater.install');
+    expect(sidebarSrc).toContain('click to apply');
+    expect(sidebarSrc).toContain('hotUpdater');
   });
 });

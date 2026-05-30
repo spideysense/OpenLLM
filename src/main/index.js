@@ -442,3 +442,11 @@ ipcMain.handle('hotUpdater:check', async () => {
 ipcMain.handle('hotUpdater:version', async () => {
   return hotUpdater.getCurrentVersion();
 });
+
+ipcMain.handle('hotUpdater:reload', async () => {
+  const rendererPath = hotUpdater.resolveRendererPath();
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.loadFile(rendererPath);
+  }
+  return true;
+});

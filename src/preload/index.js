@@ -129,6 +129,7 @@ contextBridge.exposeInMainWorld('aspen', {
   hotUpdater: {
     check: () => ipcRenderer.invoke('hotUpdater:check'),
     getVersion: () => ipcRenderer.invoke('hotUpdater:version'),
+    reload: () => ipcRenderer.invoke('hotUpdater:reload'),
     onStatus: (cb) => {
       const handler = (event, data) => cb(data);
       ipcRenderer.on('hotUpdater:status', handler);
