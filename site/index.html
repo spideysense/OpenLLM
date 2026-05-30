@@ -250,7 +250,7 @@ footer{border-top:1px solid var(--brd);padding:2rem 0}
 <h2 class="rv">The last AI decision<br>you'll ever make.</h2>
 <p class="sb rv">One machine. Private, powerful intelligence &mdash; on your hardware, in your home, forever.</p>
 <div class="cta-btns rv">
-<a href="mailto:hello@runonaspen.com?subject=Aspen Device Pre-order&body=I'd like to pre-order for the Aspen device." class="nb nb-g nb-l">Pre-order Now &mdash; $10,000</a>
+<a href="#" onclick="document.getElementById('preorder-modal').style.display='flex';return false" class="nb nb-g nb-l">Pre-order Now &mdash; $10,000</a>
 </div>
 <p class="cta-or rv">or</p>
 <p class="cta-dl rv">Get started now for free. <a href="https://github.com/spideysense/OpenLLM/releases/latest/download/Aspen-mac.dmg">Download for Mac</a> or <a href="https://github.com/spideysense/OpenLLM/releases/latest/download/Aspen-win.exe">Windows</a>.</p>
@@ -262,7 +262,7 @@ footer{border-top:1px solid var(--brd);padding:2rem 0}
 <ul class="ft-l"><li><a href="https://github.com/spideysense/OpenLLM">GitHub</a></li><li><a href="#privacy">Privacy</a></li><li><a href="#developers">API</a></li></ul>
 </div></div></footer>
 
-<div class="modal" id="preorder-modal" onclick="if(event.target===this)this.style.display='none'"><div class="modal-box" style="position:relative"><button class="modal-close" onclick="this.closest('.modal').style.display='none'">&times;</button><h3>Pre-order Aspen</h3><p>Reserve your Aspen device. We'll reach out when it's ready to ship.</p><input class="modal-input" id="po-name" placeholder="Full name" /><input class="modal-input" id="po-email" type="email" placeholder="Email address" /><button class="modal-submit" onclick="var n=document.getElementById('po-name').value,e=document.getElementById('po-email').value;if(n&&e){this.textContent='Reserved \u2713';this.style.background='#28A745';setTimeout(function(){document.getElementById('preorder-modal').style.display='none'},1500)}">Reserve — $10,000</button></div></div>
+<div class="modal" id="preorder-modal" onclick="if(event.target===this)this.style.display='none'"><div class="modal-box" style="position:relative"><button class="modal-close" onclick="this.closest('.modal').style.display='none'">&times;</button><h3>Pre-order Aspen</h3><p>Reserve your Aspen device. We'll reach out when it's ready to ship.</p><input class="modal-input" id="po-name" placeholder="Full name" /><input class="modal-input" id="po-email" type="email" placeholder="Email address" /><button class="modal-submit" onclick="submitPreorder(this)">Reserve — $10,000</button></div></div>
 <script>
 const o=new IntersectionObserver(e=>{e.forEach(x=>{if(x.isIntersecting){x.target.classList.add('vis');o.unobserve(x.target)}})},{threshold:.06,rootMargin:'0px 0px -20px 0px'});
 document.querySelectorAll('.rv').forEach(el=>o.observe(el));
@@ -279,8 +279,6 @@ if(d.ok){btn.textContent='Reserved \u2713';btn.style.background='#28A745';setTim
 else{btn.textContent='Error \u2014 try again';btn.style.background='#DC3545';setTimeout(function(){btn.textContent='Reserve \u2014 $10,000';btn.style.background='';btn.disabled=false},2500)}
 }).catch(function(){btn.textContent='Error \u2014 try again';btn.style.background='#DC3545';setTimeout(function(){btn.textContent='Reserve \u2014 $10,000';btn.style.background='';btn.disabled=false},2500)});
 }
-const o=new IntersectionObserver(e=>{e.forEach(x=>{if(x.isIntersecting){x.target.classList.add('vis');o.unobserve(x.target)}})},{threshold:.06,rootMargin:'0px 0px -20px 0px'});
-document.querySelectorAll('.rv').forEach(el=>o.observe(el));
 (function(){
 const c=document.getElementById('particles'),ctx=c.getContext('2d');
 let w,h,mx=-9e3,my=-9e3;const pts=[];const N=100;const R=150;
