@@ -1,6 +1,6 @@
 {
   "rendererVersion": "0.2.10",
   "rendererUrl": "https://github.com/spideysense/OpenLLM/releases/download/v0.2.10/renderer.zip",
-  "releaseNotes": "Fix hot updater timeout; world model; chat save fix",
+  "releaseNotes": "See GitHub release for details",
   "publishedAt": "2026-05-30"
 }
