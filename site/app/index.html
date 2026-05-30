@@ -877,7 +877,11 @@ async function sendMessage() {
       signal: streamController.signal,
     });
 
-    if (!res.ok) throw new Error(await res.text().catch(() => `HTTP ${res.status}`));
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => '');
+      console.error('[Aspen] HTTP error:', res.status, errBody);
+      throw new Error(`HTTP ${res.status}${errBody ? ': ' + errBody.slice(0, 200) : ''}`);
+    }
 
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
@@ -901,11 +905,11 @@ async function sendMessage() {
     }
   } catch (e) {
     if (e.name !== 'AbortError') {
-      bubble.innerHTML = `<span style="color:#DC2626;font-size:.8rem">⚠️ ${escHtml(
-        e.message?.includes('Failed to fetch')
-          ? 'Could not reach your Aspen machine. Is the tunnel running?'
-          : e.message
-      )}</span>`;
+      const errText = e.message?.includes('Failed to fetch') || e.message?.includes('NetworkError')
+        ? 'Could not reach your Aspen machine. Is the tunnel running?'
+        : (e.message || 'Unknown error');
+      console.error('[Aspen] Chat error:', e);
+      bubble.innerHTML = `<div style="color:#DC2626;font-size:.82rem;line-height:1.5;padding:.2rem 0">⚠️ ${escHtml(errText)}</div>`;
       isStreaming = false; sendBtn.classList.remove('hidden'); stopBtn.classList.add('hidden'); sendBtn.disabled = false; streamController = null;
       return;
     }
