@@ -592,7 +592,7 @@ async function extractFacts(userMsg,assistantMsg){
   const model=modelSelect.value;if(!model)return;
   const wm=getWorldModel();
   const existing=(wm.facts||[]).join('\n');
-  const prompt=`Extract ONLY concrete facts about the USER.\nExamples: name, job, location, preferences, projects.\nReturn NONE if nothing new.\n\nKnown:\n${existing||(none)}\n\nUser: ${userMsg.slice(0,300)}\nAssistant: ${assistantMsg.slice(0,300)}\n\nNew facts (one per line, or NONE):`;
+  const prompt=`Extract ONLY concrete facts about the USER.\nExamples: name, job, location, preferences, projects.\nReturn NONE if nothing new.\n\nKnown:\n${existing||'(none)'}\n\nUser: ${userMsg.slice(0,300)}\nAssistant: ${assistantMsg.slice(0,300)}\n\nNew facts (one per line, or NONE):`;
   try{
     const res=await fetch('/api/proxy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tunnelUrl:config.tunnelUrl,apiKey:config.apiKey||'',model,messages:[{role:'user',content:prompt}],stream:false})});
     if(!res.ok)return;
