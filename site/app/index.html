@@ -83,11 +83,14 @@ body{font-family:var(--san);background:var(--bg);color:var(--bk);-webkit-font-sm
   z-index:20;
 }
 
-/* Mobile: sidebar is off-canvas */
+/* Mobile: sidebar is off-canvas, takes zero layout space */
 @media(max-width:900px){
   .sidebar{
     position:fixed;top:0;left:0;bottom:0;
-    width:min(var(--sidebar), 85vw);
+    width:min(var(--sidebar), 85vw) !important;
+    flex-shrink:0 !important;
+    /* Remove from flex flow so chat-main fills full width */
+    margin-left:0 !important;
     transform:translateX(-100%);
     box-shadow:none;
     padding-top:var(--safe-top);
@@ -95,6 +98,14 @@ body{font-family:var(--san);background:var(--bg);color:var(--bk);-webkit-font-sm
   .sidebar.open{
     transform:translateX(0);
     box-shadow:4px 0 24px rgba(0,0,0,.12);
+  }
+  /* Chat main fills full width when sidebar is off-canvas */
+  .app-layout{
+    flex-direction:column;
+  }
+  .chat-main{
+    width:100%;
+    min-width:0;
   }
 }
 
@@ -326,6 +337,26 @@ select.settings-select{
 }
 .danger-btn:active{background:rgba(220,38,38,.06)}
 
+/* ── MOBILE BODY CLASS — JS-driven, always correct ── */
+body.is-mobile .sidebar{
+  position:fixed !important;top:0 !important;left:0 !important;bottom:0 !important;
+  width:min(var(--sidebar), 85vw) !important;
+  transform:translateX(-100%);
+  box-shadow:none;
+  padding-top:var(--safe-top);
+  z-index:20;
+}
+body.is-mobile .sidebar.open{
+  transform:translateX(0) !important;
+  box-shadow:4px 0 24px rgba(0,0,0,.12) !important;
+}
+body.is-mobile .app-layout{flex-direction:row}
+body.is-mobile .chat-main{width:100% !important;min-width:0}
+body.is-mobile .header-hamburger{display:flex !important}
+body.is-mobile .header-new-btn{display:flex !important}
+body.is-mobile .tunnel-badge{display:none !important}
+body.is-mobile .chat-delete{opacity:.4 !important}
+
 /* ── UTIL ── */
 .hidden{display:none!important}
 </style>
@@ -549,6 +580,24 @@ const offlineBanner = document.getElementById('offline-banner');
 const disconnectBtn = document.getElementById('disconnect-btn');
 const settingsTunnel= document.getElementById('settings-tunnel-display');
 const settingsStatus= document.getElementById('settings-status');
+
+// ══════════════════════════════════════════════════════
+// MOBILE DETECTION — force drawer mode on touch devices
+// ══════════════════════════════════════════════════════
+function isMobile() {
+  return window.innerWidth <= 900
+    || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+    || navigator.maxTouchPoints > 1;
+}
+
+// Apply mobile class to body immediately — CSS can key off this
+if (isMobile()) {
+  document.body.classList.add('is-mobile');
+}
+window.addEventListener('resize', () => {
+  if (isMobile()) document.body.classList.add('is-mobile');
+  else document.body.classList.remove('is-mobile');
+});
 
 // ══════════════════════════════════════════════════════
 // DRAWER (mobile sidebar)
