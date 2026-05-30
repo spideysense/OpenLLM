@@ -1,6 +1,6 @@
 {
-  "rendererVersion": "0.2.13",
-  "rendererUrl": "https://github.com/spideysense/OpenLLM/releases/download/v0.2.13/renderer.zip",
-  "releaseNotes": "See GitHub release for details",
+  "rendererVersion": "0.2.14",
+  "rendererUrl": "https://github.com/spideysense/OpenLLM/releases/download/v0.2.14/renderer.zip",
+  "releaseNotes": "Fix: Home savings total now sums key usageCounts correctly",
   "publishedAt": "2026-05-30"
 }

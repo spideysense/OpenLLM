@@ -6,7 +6,6 @@ const COST_PER_EXCHANGE = 0.040; // ~Claude Opus 4 API pricing
 export default function Home() {
   const { bridge, gatewayStatus, models } = useApp();
   const [keys, setKeys] = useState([]);
-  const [totalExchanges, setTotalExchanges] = useState(0);
   const [tunnelStatus, setTunnelStatus] = useState({ connected: false, url: null });
 
   // Invite state
@@ -19,12 +18,8 @@ export default function Home() {
 
   const loadData = useCallback(async () => {
     if (!bridge) return;
-    const [k, exchanges] = await Promise.all([
-      bridge.apikeys.list(),
-      bridge.store.get('totalExchanges'),
-    ]);
+    const k = await bridge.apikeys.list();
     setKeys(k || []);
-    setTotalExchanges(exchanges || 0);
   }, [bridge]);
 
   useEffect(() => { loadData(); }, [loadData]);
@@ -41,6 +36,7 @@ export default function Home() {
     if (keys.length > 0 && !inviteKey) setInviteKey(keys[0].id);
   }, [keys, inviteKey]);
 
+  const totalExchanges = keys.reduce((sum, k) => sum + (k.usageCount || 0), 0);
   const totalSaved = (totalExchanges * COST_PER_EXCHANGE).toFixed(2);
   const tunnelUrl = tunnelStatus?.url || null;
 
