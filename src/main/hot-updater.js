@@ -184,15 +184,19 @@ async function extractZip(zipPath, destDir) {
   const { promisify } = require('util');
   const execFileAsync = promisify(execFile);
 
+  console.log('[HotUpdater] Extracting', zipPath, 'to', destDir);
+
   if (process.platform === 'win32') {
-    // PowerShell expand-archive (available on Win 10+)
     await execFileAsync('powershell', [
       '-Command',
       `Expand-Archive -Force -Path "${zipPath}" -DestinationPath "${destDir}"`,
     ]);
   } else {
-    // macOS / Linux
-    await execFileAsync('unzip', ['-o', '-q', zipPath, '-d', destDir]);
+    // macOS / Linux — unzip is at /usr/bin/unzip on macOS
+    const unzipPath = fs.existsSync('/usr/bin/unzip') ? '/usr/bin/unzip' : 'unzip';
+    console.log('[HotUpdater] Using unzip at:', unzipPath);
+    const result = await execFileAsync(unzipPath, ['-o', '-q', zipPath, '-d', destDir]);
+    console.log('[HotUpdater] Extraction complete');
   }
 }
 

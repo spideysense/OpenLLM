@@ -66,7 +66,7 @@ function checkForUpdates() {
 
 function installUpdate() {
   if (updateReady) {
-    autoUpdater.quitAndInstall(false, true);
+    autoUpdater.quitAndInstall(true, true);
   }
 }
 
