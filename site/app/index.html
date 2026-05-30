@@ -435,6 +435,8 @@ select.settings-select:focus{border-color:var(--gd)}
       </div>
 
       <div class="input-area">
+        <!-- Hidden dummy to stop Chrome/iCloud password manager probing the textarea -->
+        <input type="password" style="display:none" aria-hidden="true" tabindex="-1" autocomplete="new-password">
         <div class="input-wrap">
           <textarea class="input-box" id="input-box" placeholder="Message your Aspen…" rows="1"></textarea>
           <button class="mic-btn" id="mic-btn" title="Voice input">
@@ -580,7 +582,15 @@ function showApp() {
   try { chats = JSON.parse(localStorage.getItem(CHATS_KEY) || '{}') || {}; } catch { chats = {}; }
 
   renderChatList();
-  newChat();
+  // Restore most recent chat, or create one only if none exist
+  const existingIds = Object.keys(chats);
+  if (existingIds.length > 0) {
+    activeChatId = existingIds[existingIds.length - 1];
+    renderMessages();
+    chatTitle.textContent = chats[activeChatId]?.title || 'New chat';
+  } else {
+    newChat();
+  }
   loadModels();
   startStatusCheck();
 }
