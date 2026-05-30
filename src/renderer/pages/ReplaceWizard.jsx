@@ -42,14 +42,14 @@ export default function ReplaceWizard() {
 
   const port = gatewayStatus?.port || 4000;
   const baseUrl = `http://localhost:${port}/v1`;
-  const key = apiKey?.secret || 'sk-monet-xxxxx';
+  const key = apiKey?.secret || 'sk-aspen-xxxxx';
   const service = SERVICES.find((s) => s.id === selectedService);
 
   return (
     <div className="page">
       <div className="page-title">🔌 Replace Your AI Service</div>
       <div className="page-sub">
-        Drop Monet into your existing code. Change two lines and everything works.
+        Drop Aspen into your existing code. Change two lines and everything works.
       </div>
 
       {/* ── Step 0: Pick service ── */}
@@ -89,7 +89,7 @@ export default function ReplaceWizard() {
             Pick your local models
           </h3>
           <p style={{ fontSize: 14, color: 'var(--text-light)', marginBottom: 20, lineHeight: 1.6 }}>
-            When apps ask for a {service.name} model, the bear will answer instead.
+            When apps ask for a {service.name} model, Aspen will answer instead.
             {installedModels.length === 0 && (
               <span style={{ color: 'var(--danger)' }}> You need to install at least one model first.</span>
             )}
@@ -205,12 +205,12 @@ export default function ReplaceWizard() {
             code={`from openai import OpenAI
 
 client = OpenAI(
-    base_url="${baseUrl}",  # ← Monet
+    base_url="${baseUrl}",  # ← Aspen
     api_key="${key}"        # ← Your key
 )
 
 response = client.chat.completions.create(
-    model="gpt-4",  # the bear answers instead
+    model="gpt-4",  # Aspen answers instead
     messages=[{"role": "user", "content": "Hello!"}]
 )
 print(response.choices[0].message.content)`}
@@ -223,12 +223,12 @@ print(response.choices[0].message.content)`}
             code={`import OpenAI from 'openai';
 
 const client = new OpenAI({
-  baseURL: '${baseUrl}',  // ← Monet
+  baseURL: '${baseUrl}',  // ← Aspen
   apiKey: '${key}'        // ← Your key
 });
 
 const response = await client.chat.completions.create({
-  model: 'gpt-4',  // the bear answers instead
+  model: 'gpt-4',  // Aspen answers instead
   messages: [{ role: 'user', content: 'Hello!' }]
 });
 console.log(response.choices[0].message.content);`}
@@ -240,7 +240,7 @@ console.log(response.choices[0].message.content);`}
             title="cURL"
             code={`curl ${baseUrl}/chat/completions \\
   -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer ${key}" \\
+  -H "Authorization: Aspener ${key}" \\
   -d '{
     "model": "gpt-4",
     "messages": [{"role": "user", "content": "Hello!"}]

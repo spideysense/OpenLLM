@@ -63,7 +63,7 @@ export default function APIKeys() {
     <div className="page">
       <div className="page-title">🔑 API Keys</div>
       <div className="page-sub">
-        Generate keys so your apps can talk to the bear.
+        Generate keys so your apps can talk to Aspen.
       </div>
 
       {/* ── URL display ── */}
@@ -157,7 +157,7 @@ export default function APIKeys() {
 
       {/* ── Key explanation ── */}
       <div className="upgrade-banner" style={{ marginBottom: 24 }}>
-        <div className="bear">🎨</div>
+        <div className="aspen">🎨</div>
         <div className="upgrade-banner-text">
           <h4>Keys are 100% local</h4>
           <p>They never leave your machine. They just give your apps something to authenticate with.</p>

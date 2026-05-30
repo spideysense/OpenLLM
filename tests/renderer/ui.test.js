@@ -283,7 +283,7 @@ describe('Story: App shell and routing', () => {
   it('should show loading state while initializing', async () => {
     const fs = await import('fs');
     const source = fs.readFileSync('src/renderer/App.jsx', 'utf8');
-    expect(source).toContain('Waking up the bear');
+    expect(source).toContain('Waking up Aspen');
   });
 
   it('should gate on onboarding state', async () => {
@@ -302,7 +302,7 @@ describe('Theme: CSS design tokens', () => {
   it('should define all required CSS variables', async () => {
     const fs = await import('fs');
     const css = fs.readFileSync('src/renderer/styles.css', 'utf8');
-    const requiredVars = ['--sky', '--cloud', '--bear-brown', '--pipe-yellow', '--grass', '--earth', '--text-dark', '--font-display', '--font-body', '--font-mono'];
+    const requiredVars = ['--bg', '--white', '--black', '--gold', '--green', '--text', '--text-2', '--font-display', '--font-body', '--font-mono'];
     for (const v of requiredVars) {
       expect(css).toContain(v);
     }
@@ -315,11 +315,11 @@ describe('Theme: CSS design tokens', () => {
     expect(css.toLowerCase()).not.toContain('tunnel');
   });
 
-  it('should use Baloo 2 and Nunito fonts', async () => {
+  it('should use DM Serif Display and Outfit fonts', async () => {
     const fs = await import('fs');
     const css = fs.readFileSync('src/renderer/styles.css', 'utf8');
-    expect(css).toContain('Baloo 2');
-    expect(css).toContain('Nunito');
+    expect(css).toContain('DM Serif Display');
+    expect(css).toContain('Outfit');
     expect(css).toContain('JetBrains Mono');
   });
 });

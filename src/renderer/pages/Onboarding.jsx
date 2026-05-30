@@ -51,7 +51,7 @@ export default function Onboarding() {
       setDownloadStatus('Starting AI engine...');
       const runResult = await bridge.ollama.ensureRunning();
       if (!runResult.success) {
-        setError(runResult.message || 'Could not start the AI engine. Please restart Monet.');
+        setError(runResult.message || 'Could not start the AI engine. Please restart Aspen.');
         return;
       }
 
@@ -65,11 +65,11 @@ export default function Onboarding() {
         setError(result.error || 'Download failed. Check your internet connection and try again.');
       }
     } catch (e) {
-      setError(e.message || 'Something went wrong. Please restart Monet and try again.');
+      setError(e.message || 'Something went wrong. Please restart Aspen and try again.');
     }
   }
 
-  const bearStates = {
+  const aspenStates = {
     welcome: '🎨',
     detect: '🔍',
     recommend: '⭐',
@@ -89,8 +89,8 @@ export default function Onboarding() {
       {/* ── Welcome ── */}
       {currentStep === 'welcome' && (
         <>
-          <div className="onboarding-bear">{bearStates.welcome}</div>
-          <h1>Hi! I'm Monet.</h1>
+          <div className="onboarding-bear">{aspenStates.welcome}</div>
+          <h1>Hi! I'm Aspen.</h1>
           <p>
             I run AI right on your computer. No subscriptions, no data sharing, no nonsense.
             Let's get you set up in about 2 minutes.

@@ -28,18 +28,14 @@ export default function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="sidebar-logo">
-        <svg viewBox="0 0 40 40" fill="none" width="32" height="32">
-          <circle cx="20" cy="20" r="18" fill="#B08040"/>
-          <circle cx="13" cy="15" r="3" fill="#2D3436"/>
-          <circle cx="27" cy="15" r="3" fill="#2D3436"/>
-          <circle cx="14" cy="14" r="1" fill="white"/>
-          <circle cx="28" cy="14" r="1" fill="white"/>
-          <ellipse cx="20" cy="23" rx="5" ry="4" fill="#8B6914"/>
-          <ellipse cx="20" cy="22" rx="2.5" ry="2" fill="#2D3436"/>
-          <circle cx="9" cy="10" r="5" fill="#B08040"/>
-          <circle cx="31" cy="10" r="5" fill="#B08040"/>
+        <svg viewBox="0 0 28 28" fill="none" width="28" height="28">
+          <path d="M14 2L14 25" stroke="#1D1D1F" strokeWidth="2" strokeLinecap="round"/>
+          <path d="M14 7C10.5 3.5,5 4.5,4.5 8C4 11.5,7.5 12.5,11 10.5" stroke="#B8860B" strokeWidth="1.6" fill="none" strokeLinecap="round"/>
+          <path d="M14 7C17.5 3.5,23 4.5,23.5 8C24 11.5,20.5 12.5,17 10.5" stroke="#B8860B" strokeWidth="1.6" fill="none" strokeLinecap="round"/>
+          <path d="M14 14C10 10.5,3.5 12.5,3.5 16C3.5 19.5,8 19.5,12 17.5" stroke="#DAA520" strokeWidth="1.6" fill="none" strokeLinecap="round"/>
+          <path d="M14 14C18 10.5,24.5 12.5,24.5 16C24.5 19.5,20 19.5,16 17.5" stroke="#DAA520" strokeWidth="1.6" fill="none" strokeLinecap="round"/>
         </svg>
-        <span>Monet</span>
+        <span>ASPEN</span>
       </div>
 
       {nav.map((item) => (

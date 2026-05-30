@@ -35,7 +35,7 @@ export default function Settings() {
   return (
     <div className="page">
       <div className="page-title">⚙️ Settings</div>
-      <div className="page-sub">Configure Monet to work your way.</div>
+      <div className="page-sub">Configure Aspen to work your way.</div>
 
       {/* System Info */}
       <div className="card mb-6">
@@ -69,7 +69,7 @@ export default function Settings() {
           {saved && <span className="badge badge-green">✓ Saved</span>}
         </div>
         <p style={{ fontSize: 13, color: 'var(--text-light)', marginBottom: 16, lineHeight: 1.5 }}>
-          When an app asks for "gpt-4", Monet routes it to your local model. Edit the mappings below.
+          When an app asks for "gpt-4", Aspen routes it to your local model. Edit the mappings below.
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -158,10 +158,10 @@ export default function Settings() {
       {/* About */}
       <div className="card">
         <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 700, color: 'var(--earth)', marginBottom: 8 }}>
-          About Monet
+          About Aspen
         </h3>
         <p style={{ fontSize: 13, color: 'var(--text-light)', lineHeight: 1.6 }}>
-          Monet v{appVersion} · MIT License
+          Aspen v{appVersion} · MIT License
           <br />
           Run the best open source AI locally. No subscriptions. No data sharing.
           <br /><br />

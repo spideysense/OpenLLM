@@ -15,7 +15,7 @@ const AppContext = createContext(null);
 export const useApp = () => useContext(AppContext);
 
 // Safe bridge access (works in both Electron and browser)
-const bridge = typeof window !== 'undefined' && window.monet ? window.monet : null;
+const bridge = typeof window !== 'undefined' && window.aspen ? window.aspen : null;
 
 export default function App() {
   const [page, setPage] = useState('chat');
@@ -124,8 +124,8 @@ export default function App() {
   if (loading) {
     return (
       <div className="onboarding">
-        <div className="onboarding-bear">🎨</div>
-        <p style={{ color: 'var(--text-light)' }}>Waking up the bear...</p>
+        <div className="onboarding-aspen">🎨</div>
+        <p style={{ color: 'var(--text-light)' }}>Waking up Aspen...</p>
       </div>
     );
   }

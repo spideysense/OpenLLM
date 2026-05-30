@@ -120,7 +120,7 @@ export default function ModelHub() {
     <div className="page">
       <div className="page-title">Models</div>
       <div className="page-sub">
-        The bear picked these for you. Your machine: <strong>{hardwareTier}</strong> tier.
+        Aspen picked these for you. Your machine: <strong>{hardwareTier}</strong> tier.
       </div>
 
       {CATALOG.map((cat) => (
