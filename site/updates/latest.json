@@ -1,6 +1,6 @@
 {
-  "rendererVersion": "0.2.4",
-  "rendererUrl": "https://github.com/spideysense/OpenLLM/releases/download/v0.2.4/renderer.zip",
-  "releaseNotes": "Initial hot update manifest",
+  "rendererVersion": "0.2.5",
+  "rendererUrl": "https://github.com/spideysense/OpenLLM/releases/download/v0.2.5/renderer.zip",
+  "releaseNotes": "Web app, hot updates, setup screen",
   "publishedAt": "2026-05-30"
 }
