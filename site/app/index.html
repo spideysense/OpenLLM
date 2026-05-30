@@ -120,6 +120,14 @@ body{font-family:var(--san);background:var(--bg);color:var(--bk);-webkit-font-sm
   margin-bottom:1px;border:none;background:transparent;font-family:var(--san);width:100%;text-align:left;
 }
 .chat-item:hover{background:rgba(0,0,0,.04)}
+.chat-item:hover .chat-delete{opacity:1}
+.chat-delete{
+  flex-shrink:0;opacity:0;margin-left:auto;
+  background:transparent;border:none;cursor:pointer;
+  color:var(--t3);padding:2px 4px;border-radius:4px;
+  transition:all .15s;line-height:1;font-size:14px;
+}
+.chat-delete:hover{background:rgba(220,38,38,.1);color:#DC2626}
 .chat-item.active{background:var(--gd-light);color:var(--gd)}
 .chat-item svg{flex-shrink:0;opacity:.35}
 .chat-item span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -742,6 +750,24 @@ function newChat() {
   inputBox.focus();
 }
 
+function deleteChat(id, e) {
+  e.stopPropagation();
+  delete chats[id];
+  saveChats();
+  // If we deleted the active chat, switch to most recent or create new
+  if (id === activeChatId) {
+    const remaining = Object.keys(chats);
+    if (remaining.length > 0) {
+      activeChatId = remaining[remaining.length - 1];
+      renderMessages();
+      chatTitle.textContent = chats[activeChatId]?.title || 'New chat';
+    } else {
+      newChat();
+    }
+  }
+  renderChatList();
+}
+
 function switchChat(id) {
   if (isStreaming) return;
   activeChatId = id;
@@ -768,8 +794,9 @@ function renderChatList() {
   ids.forEach(id => {
     const btn = document.createElement('button');
     btn.className = 'chat-item' + (id === activeChatId ? ' active' : '');
-    btn.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>${escHtml(chats[id].title)}</span>`;
+    btn.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>${escHtml(chats[id].title)}</span><button class="chat-delete" title="Delete chat">×</button>`;
     btn.addEventListener('click', () => switchChat(id));
+    btn.querySelector('.chat-delete').addEventListener('click', (e) => deleteChat(id, e));
     chatList.appendChild(btn);
   });
 }
