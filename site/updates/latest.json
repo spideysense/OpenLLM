@@ -1,6 +1,6 @@
 {
   "rendererVersion": "0.2.6",
   "rendererUrl": "https://github.com/spideysense/OpenLLM/releases/download/v0.2.6/renderer.zip",
-  "releaseNotes": "Fix: version display, no-flicker startup update check",
+  "releaseNotes": "See GitHub release for details",
   "publishedAt": "2026-05-30"
 }
