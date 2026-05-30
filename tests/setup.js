@@ -68,7 +68,7 @@ const mockBridge = {
 };
 
 // Attach to window
-Object.defineProperty(window, 'llmbear', { value: mockBridge, writable: true });
+Object.defineProperty(window, 'aspen', { value: mockBridge, writable: true });
 
 // Export for tests to access
 export { mockBridge };

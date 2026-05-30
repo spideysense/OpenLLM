@@ -1,6 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-contextBridge.exposeInMainWorld('monet', {
+contextBridge.exposeInMainWorld('aspen', {
   // ── System ──
   system: {
     getInfo: () => ipcRenderer.invoke('system:getInfo'),

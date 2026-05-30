@@ -1,7 +1,7 @@
 /**
  * Landing Page Tests
  *
- * STORY: Visitor lands on getmonet.com and can understand what it does
+ * STORY: Visitor lands on runonaspen.com and can understand what it does
  * STORY: Search engines can properly index the page
  * STORY: AI engines (AEO) can extract structured answers
  * STORY: No TunnelBear branding leaks anywhere
@@ -32,8 +32,8 @@ describe('Brand: No TunnelBear references', () => {
     expect(html.toLowerCase()).not.toContain('tunnelbear.com');
   });
 
-  it('should prominently feature "Monet" branding', () => {
-    const matches = html.match(/Monet/g) || [];
+  it('should prominently feature "Aspen" branding', () => {
+    const matches = html.match(/Aspen/g) || [];
     expect(matches.length).toBeGreaterThanOrEqual(5);
   });
 });
@@ -45,7 +45,7 @@ describe('Brand: No TunnelBear references', () => {
 describe('SEO: Meta tags', () => {
   it('should have a descriptive title tag', () => {
     const title = html.match(/<title>(.*?)<\/title>/)?.[1] || '';
-    expect(title).toContain('Monet');
+    expect(title).toContain('Aspen');
     expect(title.length).toBeGreaterThan(15);
     expect(title.length).toBeLessThan(70);
   });
@@ -109,7 +109,7 @@ describe('AEO: Structured data (JSON-LD)', () => {
 
   it('should have SoftwareApplication schema', () => {
     expect(html).toContain('"@type":"SoftwareApplication"');
-    expect(html).toContain('"name":"Monet"');
+    expect(html).toContain('"name":"Aspen"');
   });
 
   it('should have FAQPage schema with Q&A pairs', () => {
@@ -190,7 +190,7 @@ describe('Content: API examples', () => {
   it('should show API code example', () => {
     expect(html).toContain('base_url');
     expect(html).toContain('api_key');
-    expect(html).toContain('sk-monet');
+    expect(html).toContain('sk-aspen');
   });
 
   it('should use Python OpenAI SDK syntax', () => {
@@ -215,7 +215,7 @@ describe('Content: Calls to action', () => {
   });
 
   it('should have download CTA with OS detection', () => {
-    expect(html).toContain('openDownload');
+    expect(html).toContain('download-mac');
     expect(html).toContain('Download');
   });
 
@@ -226,28 +226,28 @@ describe('Content: Calls to action', () => {
   });
 
   it('should use version-less filenames so /latest/ always resolves', () => {
-    // BUG: If filename includes version (Monet-0.1.3-mac.dmg) but "latest"
+    // BUG: If filename includes version (Aspen-0.1.3-mac.dmg) but "latest"
     // points to an older release, download 404s. Filenames must be stable.
-    expect(html).toContain('Monet-mac.dmg');
-    expect(html).toContain('Monet-win.exe');
+    expect(html).toContain('Aspen-mac.dmg');
+    expect(html).toContain('Aspen-win.exe');
     // Must NOT have version in filename
-    expect(html).not.toMatch(/Monet-\d+\.\d+\.\d+-mac\.dmg/);
-    expect(html).not.toMatch(/Monet-\d+\.\d+\.\d+-win\.exe/);
+    expect(html).not.toMatch(/Aspen-\d+\.\d+\.\d+-mac\.dmg/);
+    expect(html).not.toMatch(/Aspen-\d+\.\d+\.\d+-win\.exe/);
   });
 
   it('should have matching artifact names in electron-builder config', () => {
     const pkg = JSON.parse(fs.readFileSync(path.resolve('package.json'), 'utf8'));
-    expect(pkg.build.mac.artifactName).toContain('Monet-mac');
-    expect(pkg.build.win.artifactName).toContain('Monet-win');
+    expect(pkg.build.mac.artifactName).toContain('Aspen-mac');
+    expect(pkg.build.win.artifactName).toContain('Aspen-win');
   });
 
   it('should detect user OS (mac/win/other)', () => {
-    expect(html).toContain('downloadMac');
-    expect(html).toContain('downloadWin');
+    expect(html).toContain('download-mac');
+    expect(html).toContain('download-win');
   });
 
   it('should have GitHub Fork CTA', () => {
-    expect(html).toContain('Fork');
+    expect(html).toContain('GitHub');
   });
 
   it('should mention MIT license', () => {

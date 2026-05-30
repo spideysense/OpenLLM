@@ -3,7 +3,7 @@
  * so that my existing OpenAI code works without changes.
  *
  * USER STORY: As a user, I can generate local API keys
- * so apps on my machine can authenticate with LLM Bear.
+ * so apps on my machine can authenticate with Aspen.
  *
  * USER STORY: As a user, my settings persist between sessions
  * so I don't have to reconfigure every time.
@@ -89,9 +89,9 @@ describe('API Keys', () => {
     store.set('apikeys', []);
   });
 
-  it('should generate keys with sk-llmbear- prefix', () => {
+  it('should generate keys with sk-aspen- prefix', () => {
     const key = apikeys.createKey('Test Key');
-    expect(key.secret).toMatch(/^sk-monet-/);
+    expect(key.secret).toMatch(/^sk-aspen-/);
   });
 
   it('should generate unique keys each time', () => {
@@ -115,7 +115,7 @@ describe('API Keys', () => {
 
   it('should reject invalid keys', () => {
     apikeys.createKey('A Key');
-    expect(apikeys.validateKey('sk-monet-fake-key')).toBe(false);
+    expect(apikeys.validateKey('sk-aspen-fake-key')).toBe(false);
   });
 
   it('should allow non-empty tokens when no keys exist (open mode)', () => {
@@ -338,8 +338,8 @@ describe('Ollama: Silent Setup (NEVER opens browser)', () => {
     expect(ollamaSrc).toContain('getBundledPath() || getSystemPath() || getDownloadedPath()');
   });
 
-  it('should download to ~/.llmbear/bin/', () => {
-    expect(ollamaSrc).toContain('.monet');
+  it('should download to ~/.aspen/bin/', () => {
+    expect(ollamaSrc).toContain('.aspen');
     expect(ollamaSrc).toContain('BIN_DIR');
   });
 
@@ -380,7 +380,7 @@ describe('Ollama: Silent Setup (NEVER opens browser)', () => {
 
   // ── Model storage ──
 
-  it('should store models in ~/.llmbear/models/', () => {
+  it('should store models in ~/.aspen/models/', () => {
     expect(ollamaSrc).toContain('OLLAMA_MODELS');
     expect(ollamaSrc).toContain('models');
   });
@@ -406,8 +406,8 @@ describe('Ollama: Silent Setup (NEVER opens browser)', () => {
   });
 
   it('should use version-less artifact names', () => {
-    expect(pkgJson.build.mac.artifactName).toContain('Monet-mac');
-    expect(pkgJson.build.win.artifactName).toContain('Monet-win');
+    expect(pkgJson.build.mac.artifactName).toContain('Aspen-mac');
+    expect(pkgJson.build.win.artifactName).toContain('Aspen-win');
   });
 
   it('should use assets/ for buildResources', () => {

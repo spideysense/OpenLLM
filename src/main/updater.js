@@ -1,5 +1,5 @@
 /**
- * Monet Auto-Updater
+ * Aspen Auto-Updater
  *
  * Downloads updates silently in the background.
  * Shows a quiet sidebar notification when ready.

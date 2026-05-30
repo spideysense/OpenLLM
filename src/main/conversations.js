@@ -1,8 +1,8 @@
 /**
- * Monet Conversation Persistence
+ * Aspen Conversation Persistence
  *
  * Saves chat history to disk so conversations survive app restarts.
- * Stored as JSON in ~/.monet/conversations.json
+ * Stored as JSON in ~/.aspen/conversations.json
  * Max 50 conversations, each capped at 200 messages.
  */
 
@@ -10,7 +10,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 
-const MONET_DIR = path.join(os.homedir(), '.monet');
+const MONET_DIR = path.join(os.homedir(), '.aspen');
 const FILE = path.join(MONET_DIR, 'conversations.json');
 const MAX_CONVOS = 50;
 const MAX_MESSAGES = 200;

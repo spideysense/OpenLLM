@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Welcome to Monet Cloud 🐻</title>
+<title>Welcome to Aspen Cloud 🐻</title>
 <meta name="robots" content="noindex">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -44,7 +44,7 @@ a.btn:hover{transform:translateY(-2px)}
 </div>
 
 <script>
-const API=window.location.origin.replace('open-llm-ten.vercel.app','api.getmonet.com');
+const API=window.location.origin.replace('open-llm-ten.vercel.app','api.runonaspen.com');
 const CLOUD_API=new URLSearchParams(window.location.search).get('api_url')||API;
 
 async function load(){
@@ -81,11 +81,11 @@ async function load(){
   }
 
   const key=data.api_keys?.[0];
-  const baseUrl=data.api_base_url||'https://api.getmonet.com/v1';
+  const baseUrl=data.api_base_url||'https://api.runonaspen.com/v1';
 
   document.getElementById('content').innerHTML=`
     <div class="bear">🐻</div>
-    <h1>Welcome to Monet!</h1>
+    <h1>Welcome to Aspen!</h1>
     <div class="plan-badge">${data.plan_name} — Active</div>
     <p class="sub">You're all set. Here's your API key and everything you need to start using AI in the cloud.</p>
 

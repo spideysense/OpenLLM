@@ -21,7 +21,7 @@ export default async function handler(req, res) {
   if (kvUrl && kvToken) {
     try {
       // INCR is atomic — safe for concurrent requests
-      const r = await fetch(`${kvUrl}/incr/monet:visits`, {
+      const r = await fetch(`${kvUrl}/incr/aspen:visits`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${kvToken}` },
       });

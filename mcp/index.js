@@ -1,21 +1,21 @@
 #!/usr/bin/env node
 
 /**
- * LLM Bear MCP Server
+ * Aspen MCP Server
  *
  * Exposes your local AI models to any MCP-compatible agent (Claude Desktop,
  * Cursor, Continue.dev, etc.) via the Model Context Protocol.
  *
- * Connects to Ollama (localhost:11434) or the LLM Bear gateway (localhost:4000).
+ * Connects to Ollama (localhost:11434) or the Aspen gateway (localhost:4000).
  *
  * Usage:
- *   npx @llmbear/mcp-server
+ *   npx @aspen/mcp-server
  *   node mcp/index.js
  *
  * Claude Desktop config (~/.claude/claude_desktop_config.json):
  *   {
  *     "mcpServers": {
- *       "llmbear": {
+ *       "aspen": {
  *         "command": "node",
  *         "args": ["/path/to/OpenLLM/mcp/index.js"]
  *       }
@@ -194,7 +194,7 @@ const CATALOG = [
 // ═══════════════════════════════════════════════════
 
 const server = new Server(
-  { name: "llmbear", version: "0.1.0" },
+  { name: "aspen", version: "0.1.0" },
   { capabilities: { tools: {}, resources: {} } }
 );
 
@@ -205,7 +205,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: "chat",
       description:
-        "Send a message to a local AI model running on this machine via LLM Bear / Ollama. Returns the model's response. Use this to get AI assistance from a locally-running open source model.",
+        "Send a message to a local AI model running on this machine via Aspen / Ollama. Returns the model's response. Use this to get AI assistance from a locally-running open source model.",
       inputSchema: {
         type: "object",
         properties: {
@@ -289,7 +289,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: "system_info",
       description:
-        "Get information about the host system: CPU, RAM, platform, and LLM Bear/Ollama connection status.",
+        "Get information about the host system: CPU, RAM, platform, and Aspen/Ollama connection status.",
       inputSchema: { type: "object", properties: {} },
     },
   ],
@@ -402,7 +402,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 `CPU: ${info.cpuModel} (${info.cpus} cores)`,
                 `RAM: ${info.freeRAMGB} GB free / ${info.totalRAMGB} GB total`,
                 `Ollama: ${ollamaStatus} (${info.ollamaHost})`,
-                `LLM Bear Gateway: ${gatewayStatus} (${info.gatewayHost})`,
+                `Aspen Gateway: ${gatewayStatus} (${info.gatewayHost})`,
               ].join("\n"),
             },
           ],
@@ -425,19 +425,19 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 server.setRequestHandler(ListResourcesRequestSchema, async () => ({
   resources: [
     {
-      uri: "llmbear://models",
+      uri: "aspen://models",
       name: "Installed Models",
       description: "List of all locally installed AI models",
       mimeType: "application/json",
     },
     {
-      uri: "llmbear://system",
+      uri: "aspen://system",
       name: "System Info",
       description: "Hardware and connectivity information",
       mimeType: "application/json",
     },
     {
-      uri: "llmbear://catalog",
+      uri: "aspen://catalog",
       name: "Model Catalog",
       description: "Curated catalog of recommended models",
       mimeType: "application/json",
@@ -449,18 +449,18 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
   const { uri } = request.params;
 
   switch (uri) {
-    case "llmbear://models": {
+    case "aspen://models": {
       const models = await listModels();
       return {
         contents: [{ uri, mimeType: "application/json", text: JSON.stringify(models, null, 2) }],
       };
     }
-    case "llmbear://system": {
+    case "aspen://system": {
       return {
         contents: [{ uri, mimeType: "application/json", text: JSON.stringify(getSystemInfo(), null, 2) }],
       };
     }
-    case "llmbear://catalog": {
+    case "aspen://catalog": {
       return {
         contents: [{ uri, mimeType: "application/json", text: JSON.stringify(CATALOG, null, 2) }],
       };
@@ -475,10 +475,10 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error("[LLM Bear MCP] Server running on stdio");
+  console.error("[Aspen MCP] Server running on stdio");
 }
 
 main().catch((err) => {
-  console.error("[LLM Bear MCP] Fatal:", err);
+  console.error("[Aspen MCP] Fatal:", err);
   process.exit(1);
 });

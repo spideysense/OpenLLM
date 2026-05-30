@@ -1,17 +1,19 @@
 /**
- * Monet Tunnel — Cloudflare Quick Tunnel
+ * Aspen Tunnel — Cloudflare Named Tunnel
  *
- * Gives every user a free public HTTPS URL for their local AI.
- * Uses Cloudflare's free quick tunnel — no account, no backend needed.
+ * Gives every user a permanent, free public HTTPS URL for their local AI.
+ * Uses Cloudflare named tunnels provisioned via the Aspen provisioning API.
  *
- * On app start:
+ * On first launch:
  * 1. Downloads `cloudflared` binary if not present (~30MB, one time)
- * 2. Runs: cloudflared tunnel --url http://localhost:4000
- * 3. Parses the assigned URL from stderr (e.g. https://abc-xyz.trycloudflare.com)
- * 4. Notifies the renderer — user sees + copies their public URL
+ * 2. Calls provisioning API → gets a tunnel token + stable URL
+ * 3. Stores token locally (never changes)
  *
- * URL changes on each restart (Cloudflare quick tunnel limitation).
- * Cost: $0. No relay server. No Cloudflare account.
+ * On every launch:
+ * 1. Runs: cloudflared tunnel run --token <TOKEN>
+ * 2. Stable URL like https://a1b2c3d4.runonaspen.com is live while Aspen runs
+ *
+ * URL never changes. Cost: $0. No relay server. No Cloudflare account for the user.
  */
 
 const { spawn } = require('child_process');
@@ -22,17 +24,16 @@ const http = require('http');
 const os = require('os');
 
 const LOCAL_API = process.env.MONET_LOCAL_API || 'http://localhost:4000';
-const BIN_DIR = path.join(os.homedir(), '.monet', 'bin');
-const RELAY_URL = process.env.MONET_RELAY_URL || 'https://api.getmonet.com';
+const BIN_DIR = path.join(os.homedir(), '.aspen', 'bin');
+const PROVISION_URL = process.env.MONET_PROVISION_URL || 'https://open-llm-ten.vercel.app/api/tunnel-provision';
+const PROVISION_SECRET = process.env.MONET_PROVISION_SECRET || '';
 const store = require('./store');
 
 const RECONNECT_BASE = 5000;
 const MAX_RECONNECT = 60000;
 
 let proc = null;
-let publicUrl = null;    // raw cloudflare URL (changes on restart)
-let stableUrl = null;    // stable relay URL (never changes)
-let heartbeatInterval = null;
+let stableUrl = null;
 let isShuttingDown = false;
 let reconnectDelay = RECONNECT_BASE;
 let onStatusChange = null;
@@ -45,29 +46,21 @@ function start(statusCallback) {
   onStatusChange = statusCallback || (() => {});
   isShuttingDown = false;
   reconnectDelay = RECONNECT_BASE;
-  // Load last known stable URL
-  stableUrl = store.get('stableUrl') || null;
+  stableUrl = store.get('tunnelUrl') || null;
   launch();
-  // Heartbeat every 2 minutes to keep the stable URL mapping alive
-  heartbeatInterval = setInterval(() => {
-    if (publicUrl) sendHeartbeat(publicUrl).catch(() => {});
-  }, 2 * 60 * 1000);
 }
 
 function stop() {
   isShuttingDown = true;
-  if (heartbeatInterval) { clearInterval(heartbeatInterval); heartbeatInterval = null; }
   if (proc) { proc.kill(); proc = null; }
-  publicUrl = null;
   notifyStatus('disconnected');
 }
 
-function getPublicUrl() { return stableUrl || publicUrl; }
-function isConnected() { return !!(publicUrl && proc); }
+function getPublicUrl() { return stableUrl; }
+function isConnected() { return !!(proc && stableUrl); }
 
 // ═══════════════════════════════════════════════════
-// Binary — correct URLs verified against GitHub releases API
-// cloudflared releases use raw binaries (no archives) on all platforms
+// Binary — download cloudflared if needed
 // ═══════════════════════════════════════════════════
 
 function getBinaryPath() {
@@ -79,7 +72,6 @@ function getDownloadUrl() {
   const p = process.platform;
   const a = process.arch;
   if (p === 'darwin') {
-    // No more universal binary — use arch-specific tgz archives
     return a === 'arm64'
       ? 'https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-darwin-arm64.tgz'
       : 'https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-darwin-amd64.tgz';
@@ -98,7 +90,6 @@ function getDownloadUrl() {
 async function ensureBinary() {
   const binPath = getBinaryPath();
 
-  // Already downloaded — check it's a real binary (> 1MB)
   if (fs.existsSync(binPath) && fs.statSync(binPath).size > 1_000_000) {
     return binPath;
   }
@@ -118,7 +109,6 @@ async function ensureBinary() {
     const isTgz = url.endsWith('.tgz');
 
     if (isTgz) {
-      // Download archive, extract the binary
       const archivePath = binPath + '.tgz';
       await downloadFile(url, archivePath);
 
@@ -127,14 +117,11 @@ async function ensureBinary() {
         throw new Error('Downloaded file too small — likely a 404 or redirect error');
       }
 
-      // Extract — cloudflared tgz contains the binary at the root
       const { execSync } = require('child_process');
       execSync(`tar -xzf "${archivePath}" -C "${BIN_DIR}"`, { stdio: 'pipe' });
       fs.unlinkSync(archivePath);
 
-      // The extracted binary might be named 'cloudflared' already, or we need to find it
       if (!fs.existsSync(binPath)) {
-        // Scan for it
         const files = fs.readdirSync(BIN_DIR);
         const match = files.find(f => f.startsWith('cloudflared') && !f.endsWith('.tgz'));
         if (match && match !== path.basename(binPath)) {
@@ -142,7 +129,6 @@ async function ensureBinary() {
         }
       }
     } else {
-      // Direct binary download (Windows, Linux)
       await downloadFile(url, binPath);
     }
 
@@ -155,7 +141,6 @@ async function ensureBinary() {
       fs.chmodSync(binPath, 0o755);
     }
 
-    // macOS: clear quarantine attribute or Gatekeeper silently blocks execution
     if (process.platform === 'darwin') {
       try {
         require('child_process').execSync(`xattr -cr "${binPath}"`, { stdio: 'pipe' });
@@ -180,7 +165,7 @@ function downloadFile(url, dest) {
     const follow = (url, redirects = 0) => {
       if (redirects > 10) return reject(new Error('Too many redirects'));
       const mod = url.startsWith('https') ? https : http;
-      mod.get(url, { headers: { 'User-Agent': 'Monet/1.0' } }, (res) => {
+      mod.get(url, { headers: { 'User-Agent': 'Aspen/1.0' } }, (res) => {
         if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
           return follow(res.headers.location, redirects + 1);
         }
@@ -198,48 +183,43 @@ function downloadFile(url, dest) {
 }
 
 // ═══════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════
-// Stable URL — register with relay, heartbeat to keep mapping alive
+// Provisioning — get a permanent tunnel token (one-time)
 // ═══════════════════════════════════════════════════
 
-async function ensureRegistered() {
-  let tunnelId = store.get('tunnelId');
-  let tunnelSecret = store.get('tunnelSecret');
-  if (tunnelId && tunnelSecret) return { tunnelId, tunnelSecret };
+async function ensureProvisioned() {
+  let token = store.get('tunnelToken');
+  let url = store.get('tunnelUrl');
 
-  console.log('[Tunnel] Registering for stable URL...');
-  try {
-    const data = await postJson(`${RELAY_URL}/tunnel/register`, {});
-    tunnelId = data.tunnelId;
-    tunnelSecret = data.tunnelSecret;
-    store.set('tunnelId', tunnelId);
-    store.set('tunnelSecret', tunnelSecret);
-    stableUrl = data.url;
-    store.set('stableUrl', data.url);
-    console.log(`[Tunnel] Stable URL: ${data.url}`);
-    return { tunnelId, tunnelSecret };
-  } catch (err) {
-    console.error('[Tunnel] Registration failed:', err.message);
-    return null;
+  if (token && url) {
+    console.log('[Tunnel] Already provisioned:', url);
+    stableUrl = url;
+    return { token, url };
   }
-}
 
-async function sendHeartbeat(cfUrl) {
-  const tunnelId = store.get('tunnelId');
-  const tunnelSecret = store.get('tunnelSecret');
-  if (!tunnelId || !tunnelSecret) return;
+  console.log('[Tunnel] Provisioning permanent tunnel...');
+  notifyStatus('provisioning');
 
   try {
-    const data = await postJson(`${RELAY_URL}/tunnel/heartbeat`, {
-      tunnelId, tunnelSecret, cloudflareUrl: cfUrl,
-    });
-    if (data.url) {
-      stableUrl = data.url;
-      store.set('stableUrl', data.url);
+    const data = await postJson(PROVISION_URL, { secret: PROVISION_SECRET });
+
+    if (!data.token || !data.url) {
+      throw new Error('Provisioning response missing token or url');
     }
-    return data;
+
+    store.set('tunnelToken', data.token);
+    store.set('tunnelUrl', data.url);
+    store.set('tunnelId', data.tunnelId);
+    store.set('tunnelHostname', data.hostname);
+    stableUrl = data.url;
+
+    console.log(`[Tunnel] Provisioned! Permanent URL: ${data.url}`);
+    return { token: data.token, url: data.url };
   } catch (err) {
-    console.error('[Tunnel] Heartbeat failed:', err.message);
+    console.error('[Tunnel] Provisioning failed:', err.message);
+    notifyStatus('error', {
+      message: 'Could not provision tunnel: ' + err.message,
+      recoverable: true,
+    });
     return null;
   }
 }
@@ -257,7 +237,8 @@ function postJson(url, body) {
       headers: {
         'Content-Type': 'application/json',
         'Content-Length': Buffer.byteLength(payload),
-        'User-Agent': 'Monet/1.0',
+        'X-Aspen-Secret': body.secret || '',
+        'User-Agent': 'Aspen/1.0',
       },
     }, (res) => {
       let data = '';
@@ -268,14 +249,14 @@ function postJson(url, body) {
       });
     });
     req.on('error', reject);
-    req.setTimeout(10000, () => { req.destroy(); reject(new Error('Timeout')); });
+    req.setTimeout(15000, () => { req.destroy(); reject(new Error('Timeout')); });
     req.write(payload);
     req.end();
   });
 }
 
 // ═══════════════════════════════════════════════════
-// Launch
+// Launch — named tunnel (permanent URL)
 // ═══════════════════════════════════════════════════
 
 async function launch() {
@@ -283,15 +264,24 @@ async function launch() {
 
   notifyStatus('connecting');
 
+  // Step 1: Ensure cloudflared binary is downloaded
   const binPath = await ensureBinary();
   if (!binPath) {
     scheduleReconnect();
     return;
   }
 
-  const args = ['tunnel', '--url', LOCAL_API, '--no-autoupdate'];
+  // Step 2: Ensure we have a tunnel token (provision if first time)
+  const tunnel = await ensureProvisioned();
+  if (!tunnel) {
+    scheduleReconnect();
+    return;
+  }
 
-  // Clear quarantine on existing binary (might have been downloaded before this fix)
+  // Step 3: Run the named tunnel
+  const args = ['tunnel', '--no-autoupdate', 'run', '--token', tunnel.token];
+
+  // Clear macOS quarantine
   if (process.platform === 'darwin') {
     try {
       require('child_process').execSync(`xattr -cr "${binPath}"`, { stdio: 'pipe' });
@@ -310,40 +300,41 @@ async function launch() {
     return;
   }
 
-  // cloudflared logs the assigned URL to stderr
-  function parseUrl(data) {
+  let connected = false;
+
+  function parseOutput(data) {
     const text = data.toString();
     console.log('[Tunnel] cloudflared:', text.trim().slice(0, 200));
-    if (publicUrl) return; // already found
-    const match = text.match(/https:\/\/[a-zA-Z0-9-]+\.trycloudflare\.com/);
-    if (match) {
-      publicUrl = match[0];
+
+    // Named tunnels log "Registered tunnel connection" when connected
+    if (!connected && (
+      text.includes('Registered tunnel connection') ||
+      text.includes('Connection registered') ||
+      text.includes('connIndex=')
+    )) {
+      connected = true;
       reconnectDelay = RECONNECT_BASE;
-      console.log('[Tunnel] Cloudflare URL:', publicUrl);
+      console.log(`[Tunnel] Connected! URL: ${stableUrl}`);
+      notifyStatus('connected', { url: stableUrl });
+    }
 
-      // Register for a stable URL, then heartbeat with the new cloudflare URL
-      (async () => {
-        await ensureRegistered();
-        await sendHeartbeat(publicUrl);
-        const displayUrl = stableUrl || publicUrl;
-        console.log('[Tunnel] Display URL:', displayUrl);
-        notifyStatus('connected', { url: displayUrl });
-      })().catch(() => {
-        // Fall back to raw cloudflare URL if relay is down
-        notifyStatus('connected', { url: publicUrl });
-      });
-
-      pushUrlToVercel(publicUrl).catch(() => {});
+    // Detect auth errors (bad/expired token)
+    if (text.includes('ERR') && text.includes('auth')) {
+      console.error('[Tunnel] Auth error — token may be invalid. Clearing stored credentials.');
+      store.delete('tunnelToken');
+      store.delete('tunnelUrl');
+      store.delete('tunnelId');
+      store.delete('tunnelHostname');
+      stableUrl = null;
     }
   }
 
-  proc.stderr.on('data', parseUrl);
-  proc.stdout.on('data', parseUrl);
+  proc.stderr.on('data', parseOutput);
+  proc.stdout.on('data', parseOutput);
 
   proc.on('close', (code) => {
     console.log(`[Tunnel] cloudflared exited (code ${code})`);
     proc = null;
-    publicUrl = null;
     if (!isShuttingDown) {
       notifyStatus('disconnected');
       scheduleReconnect();
@@ -353,10 +344,17 @@ async function launch() {
   proc.on('error', (err) => {
     console.error('[Tunnel] Process error:', err.message);
     proc = null;
-    publicUrl = null;
     notifyStatus('error', { message: err.message });
     scheduleReconnect();
   });
+
+  // Timeout: if not connected in 30s, something is wrong
+  setTimeout(() => {
+    if (!connected && proc && !isShuttingDown) {
+      console.warn('[Tunnel] Connection timeout — restarting');
+      proc.kill();
+    }
+  }, 30000);
 }
 
 function scheduleReconnect() {
@@ -368,98 +366,6 @@ function scheduleReconnect() {
 
 function notifyStatus(status, data = {}) {
   if (onStatusChange) onStatusChange({ status, ...data });
-}
-
-// Push current tunnel URL to Vercel environment variable so the website
-// character chat always points at the live instance.
-// Requires VERCEL_TOKEN + VERCEL_PROJECT_ID in the app's env (optional).
-async function pushUrlToVercel(url) {
-  const token     = process.env.VERCEL_TOKEN;
-  const projectId = process.env.VERCEL_PROJECT_ID;
-  if (!token || !projectId) return; // not configured — skip silently
-
-  try {
-    // Upsert the MONET_BASE_URL env var on the production deployment
-
-    const https = require('https');
-    const body = JSON.stringify([{
-      key: 'MONET_BASE_URL',
-      value: url,
-      type: 'plain',
-      target: ['production'],
-    }]);
-
-    await new Promise((resolve, reject) => {
-      const req = https.request({
-        hostname: 'api.vercel.com',
-        path: `/v10/projects/${projectId}/env`,
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'Content-Length': Buffer.byteLength(body),
-        },
-      }, (res) => {
-        let data = '';
-        res.on('data', c => data += c);
-        res.on('end', () => {
-          if (res.statusCode === 201 || res.statusCode === 200) {
-            console.log('[Tunnel] Updated MONET_BASE_URL in Vercel');
-          } else if (res.statusCode === 409) {
-            // Already exists — update it instead
-            updateVercelEnv(token, projectId, url);
-          }
-          resolve();
-        });
-      });
-      req.on('error', reject);
-      req.write(body);
-      req.end();
-    });
-  } catch (err) {
-    console.log('[Tunnel] Could not update Vercel env:', err.message);
-  }
-}
-
-async function updateVercelEnv(token, projectId, url) {
-  // First find the env var ID, then patch it
-  const https = require('https');
-  try {
-    const listRes = await new Promise((resolve, reject) => {
-      https.get({
-        hostname: 'api.vercel.com',
-        path: `/v10/projects/${projectId}/env`,
-        headers: { 'Authorization': `Bearer ${token}` },
-      }, (res) => {
-        let data = '';
-        res.on('data', c => data += c);
-        res.on('end', () => resolve(JSON.parse(data)));
-      }).on('error', reject);
-    });
-
-    const envVar = listRes.envs?.find(e => e.key === 'MONET_BASE_URL');
-    if (!envVar) return;
-
-    const body = JSON.stringify({ value: url });
-    const req = https.request({
-      hostname: 'api.vercel.com',
-      path: `/v10/projects/${projectId}/env/${envVar.id}`,
-      method: 'PATCH',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(body),
-      },
-    }, (res) => {
-      res.resume();
-      if (res.statusCode === 200) {
-        console.log('[Tunnel] Patched MONET_BASE_URL in Vercel →', url);
-      }
-    });
-    req.on('error', () => {});
-    req.write(body);
-    req.end();
-  } catch {}
 }
 
 module.exports = { start, stop, getPublicUrl, isConnected };

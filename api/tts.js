@@ -1,5 +1,5 @@
 /**
- * Monet TTS API — multi-provider, free-first
+ * Aspen TTS API — multi-provider, free-first
  *
  * Priority chain (use whichever key is set):
  *   1. Azure Cognitive Services Neural TTS — 500K chars/month free forever (F0 tier)
@@ -35,7 +35,7 @@ export default async function handler(req, res) {
           'Ocp-Apim-Subscription-Key': azureKey,
           'Content-Type': 'application/ssml+xml',
           'X-Microsoft-OutputFormat': 'audio-24khz-96kbitrate-mono-mp3',
-          'User-Agent': 'MonetApp',
+          'User-Agent': 'AspenApp',
         },
         body: ssml,
       });

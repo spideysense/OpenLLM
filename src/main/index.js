@@ -64,19 +64,19 @@ function createWindow() {
 }
 
 function createTray() {
-  // Placeholder — will use a proper bear icon in production
+  // Placeholder — will use a proper aspen icon in production
   tray = new Tray(nativeImage.createEmpty());
   const contextMenu = Menu.buildFromTemplate([
-    { label: '🐻 Monet', enabled: false },
+    { label: '🐻 Aspen', enabled: false },
     { type: 'separator' },
-    { label: 'Open Monet', click: () => mainWindow?.show() || createWindow() },
+    { label: 'Open Aspen', click: () => mainWindow?.show() || createWindow() },
     { type: 'separator' },
     { label: 'Model: Loading...', id: 'model-status', enabled: false },
     { label: 'API: Loading...', id: 'api-status', enabled: false },
     { type: 'separator' },
     { label: 'Quit', click: () => app.quit() },
   ]);
-  tray.setToolTip('Monet');
+  tray.setToolTip('Aspen');
   tray.setContextMenu(contextMenu);
 }
 
@@ -221,7 +221,7 @@ ipcMain.handle('chat:send', async (event, { model, messages }) => {
   const SYSTEM_PROMPT = {
     role: 'system',
     content:
-      'You are a helpful AI assistant running locally inside Monet, ' +
+      'You are a helpful AI assistant running locally inside Aspen, ' +
       'a desktop application on the user\'s own computer. You are NOT running ' +
       'in any cloud service. All processing happens 100% on this machine. ' +
       'The user\'s data never leaves their device. ' +

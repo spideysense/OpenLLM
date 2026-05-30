@@ -3,1275 +3,499 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Monet — The Free LLM</title>
-<meta name="description" content="Monet is a free AI that runs 100% on your computer. No subscription. No cloud. Your conversations never leave your machine. Download for Mac or Windows — forever free.">
-<meta name="keywords" content="free AI, private AI, local AI, run AI locally, no subscription AI, offline AI, free ChatGPT alternative, open source AI, local LLM">
+<title>Aspen — AI for your home. Forever.</title>
+<meta name="description" content="Aspen is a beautiful AI device you plug in once and use forever. No monthly fees. No cloud. Your data never leaves your home. Chat, voice, coding, any device. One machine. One price. Done.">
+<meta name="keywords" content="private AI device, AI hardware, local AI, on-device AI, AI appliance, private AI, no subscription AI, home AI server, AI for families">
 <meta name="robots" content="index, follow">
-<link rel="canonical" href="https://open-llm-ten.vercel.app">
-<meta property="og:title" content="Monet — The Free LLM">
-<meta property="og:description" content="Free AI that runs 100% on your computer. Private. No subscription. Your data stays yours.">
+<link rel="canonical" href="https://runonaspen.com">
+<meta property="og:title" content="Aspen — AI for your home. Forever.">
+<meta property="og:description" content="A beautiful AI device you plug in once. No monthly fees. No cloud. Your data never leaves your home.">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://open-llm-ten.vercel.app">
-<meta property="og:image" content="https://open-llm-ten.vercel.app/og-image.png">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://runonaspen.com">
+<meta property="og:image" content="https://runonaspen.com/og-image.png">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Monet — The Free LLM">
-<meta name="twitter:description" content="Free AI that runs 100% on your computer. Private. No subscription.">
-<meta name="twitter:image" content="https://open-llm-ten.vercel.app/og-image.png">
-<meta name="theme-color" content="#FDF9F3">
+<meta name="twitter:title" content="Aspen — AI for your home. Forever.">
+<meta name="twitter:description" content="A beautiful AI device. No monthly fees. No cloud. Your data never leaves your home.">
+<meta name="twitter:image" content="https://runonaspen.com/og-image.png">
+<meta name="theme-color" content="#FAFAF7">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Aspen","description":"AI hardware and software that runs entirely in your home. No cloud. No subscription.","applicationCategory":"DeveloperApplication","operatingSystem":"macOS, Windows, iOS, Android, Web","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"downloadUrl":"https://runonaspen.com/download","author":{"@type":"Organization","name":"Aspen"}}
+</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Is there a monthly fee?","acceptedAnswer":{"@type":"Answer","text":"No. You buy the device once and use it forever. No subscriptions, no usage limits, no hidden costs."}},{"@type":"Question","name":"Does my data leave my home?","acceptedAnswer":{"@type":"Answer","text":"No. Everything runs on your Aspen device in your home. Your conversations, your data — none of it ever touches a server."}},{"@type":"Question","name":"What models does Aspen run?","acceptedAnswer":{"@type":"Answer","text":"Aspen always runs the latest open models — Llama, Qwen, DeepSeek, Mistral and more. Models update automatically."}},{"@type":"Question","name":"Who is Aspen for?","acceptedAnswer":{"@type":"Answer","text":"Everyone. Your kids for homework, you for work, your parents for everyday help, your business for private AI. One device, the whole household."}},{"@type":"Question","name":"How much does Aspen save vs ChatGPT?","acceptedAnswer":{"@type":"Answer","text":"ChatGPT Plus costs $20/month per person. A family of four pays $960/year. With Aspen, you pay once and everyone uses it forever."}}]}
+</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"HowTo","name":"Set up Aspen","step":[{"@type":"HowToStep","position":1,"name":"Plug in","text":"Place Aspen anywhere in your home and plug it in"},{"@type":"HowToStep","position":2,"name":"Download the app","text":"Download the Aspen app on your phone, tablet, or computer"},{"@type":"HowToStep","position":3,"name":"Start using AI","text":"You are ready. Chat, voice, code — from any device in your home or anywhere in the world"}]}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Lato:wght@300;400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-
 :root {
-  --lavender: #9B7EC8;
-  --lavender-light: #C8B0E8;
-  --rose: #C05888;
-  --rose-light: #E090B8;
-  --cerulean: #3A72B8;
-  --cerulean-light: #7AAAD8;
-  --sage: #5A8C6A;
-  --sage-light: #90C8A0;
-  --gold: #C8880A;
-  --gold-light: #E8B840;
-  --earth: #3D2E20;
-  --earth-mid: #6B5040;
-  --earth-light: #9B7858;
-  --parchment: #FDF9F3;
-  --cream: #F8F2E8;
-  --mist: rgba(253,249,243,0.7);
-  --serif: 'Playfair Display', Georgia, serif;
-  --sans: 'Lato', system-ui, sans-serif;
+  --bg: #FAFAF7; --bg-warm: #F4F1EB; --bg-soft: #F0EDE6;
+  --text: #1D1D1F; --text-2: #6E6E73; --text-3: #86868B;
+  --border: #E5E5E5; --gold: #B8860B; --gold-light: #DAA520; --gold-bg: rgba(184,134,11,0.06);
+  --white: #FFFFFF; --black: #0A0A0A;
+  --serif: 'DM Serif Display', Georgia, serif;
+  --sans: 'Outfit', -apple-system, sans-serif;
 }
+html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+body { font-family: var(--sans); background: var(--bg); color: var(--text); overflow-x: hidden; }
 
-html, body {
-  width: 100%; height: 100%;
-  overflow: hidden;
-  background: var(--parchment);
-  font-family: var(--sans);
-  color: var(--earth);
-  user-select: none;
-}
+/* ═══ Type ═══ */
+h1 { font-family: var(--serif); font-size: clamp(2.8rem,7vw,5.5rem); line-height: 1.06; font-weight: 400; letter-spacing: -0.02em; }
+h2 { font-family: var(--serif); font-size: clamp(2rem,4.5vw,3.5rem); line-height: 1.1; font-weight: 400; letter-spacing: -0.015em; }
+h3 { font-family: var(--sans); font-size: 1.25rem; font-weight: 500; }
+.sub { font-size: clamp(1.05rem,1.6vw,1.3rem); font-weight: 300; line-height: 1.65; color: var(--text-2); }
+.tag { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold); display: inline-block; margin-bottom: 1rem; }
 
-/* ─── Impressionist background ─── */
-.scene {
-  position: fixed;
-  inset: 0;
-  overflow: hidden;
-  background: radial-gradient(ellipse at 30% 40%, rgba(200,176,232,0.45) 0%, transparent 60%),
-              radial-gradient(ellipse at 70% 60%, rgba(144,200,160,0.35) 0%, transparent 55%),
-              radial-gradient(ellipse at 50% 20%, rgba(122,170,216,0.30) 0%, transparent 50%),
-              radial-gradient(ellipse at 20% 80%, rgba(232,184,64,0.20) 0%, transparent 45%),
-              radial-gradient(ellipse at 80% 20%, rgba(224,144,184,0.25) 0%, transparent 50%),
-              #F5EFE4;
-}
+/* ═══ Layout ═══ */
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 2rem; }
+.wrap-w { max-width: 1280px; margin: 0 auto; padding: 0 2rem; }
+section { padding: clamp(5rem, 14vw, 10rem) 0; }
+.cen { text-align: center; }
 
-.blob {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(80px);
-  opacity: 0;
-  animation: blob-drift linear infinite;
-}
-.b1{width:500px;height:500px;background:rgba(155,126,200,0.3);left:-100px;top:-50px;animation-duration:55s;animation-delay:0s}
-.b2{width:400px;height:400px;background:rgba(90,140,106,0.25);right:-80px;top:100px;animation-duration:65s;animation-delay:-20s}
-.b3{width:350px;height:350px;background:rgba(58,114,184,0.2);left:30%;bottom:-80px;animation-duration:48s;animation-delay:-10s}
-.b4{width:300px;height:300px;background:rgba(192,88,136,0.2);right:10%;bottom:50px;animation-duration:72s;animation-delay:-35s}
-.b5{width:280px;height:280px;background:rgba(200,136,10,0.15);left:60%;top:10%;animation-duration:60s;animation-delay:-15s}
-.b6{width:450px;height:450px;background:rgba(155,126,200,0.15);right:20%;top:-100px;animation-duration:80s;animation-delay:-40s}
+/* ═══ Nav ═══ */
+nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; padding: 0.9rem 0; background: rgba(250,250,247,0.82); backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%); border-bottom: 1px solid rgba(0,0,0,0.04); }
+nav .wrap { display: flex; align-items: center; justify-content: space-between; }
+.logo { display: flex; align-items: center; gap: 0.5rem; text-decoration: none; color: var(--text); }
+.logo svg { height: 24px; }
+.logo-t { font-weight: 600; font-size: 1.05rem; letter-spacing: 0.05em; }
+.nav-r { display: flex; align-items: center; gap: 2.2rem; }
+.nav-r a { color: var(--text-2); text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+.nav-r a:hover { color: var(--text); }
+.btn { display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.55rem 1.5rem; border-radius: 980px; font-size: 0.85rem; font-weight: 500; text-decoration: none; transition: all 0.25s; border: none; cursor: pointer; }
+.btn-p { background: var(--black); color: var(--bg); }
+.btn-p:hover { background: #333; }
+.btn-lg { padding: 0.9rem 2.4rem; font-size: 1.05rem; }
+.btn-s { background: transparent; color: var(--text); border: 1.5px solid var(--border); }
+.btn-s:hover { border-color: #999; }
+.btn-gold { background: var(--gold); color: #fff; }
+.btn-gold:hover { background: var(--gold-light); }
 
-@keyframes blob-drift {
-  0%   { opacity: 0.6; transform: translate(0,0) scale(1); }
-  25%  { opacity: 0.8; transform: translate(30px, 20px) scale(1.05); }
-  50%  { opacity: 0.6; transform: translate(20px, -15px) scale(0.95); }
-  75%  { opacity: 0.75; transform: translate(-15px, 25px) scale(1.03); }
-  100% { opacity: 0.6; transform: translate(0,0) scale(1); }
-}
+/* ═══ Hero ═══ */
+.hero { padding: 9rem 0 0; text-align: center; }
+.hero h1 { margin-bottom: 1.2rem; }
+.hero h1 em { font-style: italic; }
+.hero .sub { max-width: 560px; margin: 0 auto 2.4rem; }
+.hero-btns { display: flex; gap: 0.8rem; justify-content: center; flex-wrap: wrap; margin-bottom: 1rem; }
+.hero-note { font-size: 0.78rem; color: var(--text-3); }
 
-/* Paint dabs floating in air */
-.dab {
-  position: absolute;
-  border-radius: 50%;
-  animation: dab-float ease-in-out infinite alternate;
-  pointer-events: none;
-}
-@keyframes dab-float {
-  from { transform: translateY(0) rotate(0deg); opacity: 0.6; }
-  to   { transform: translateY(-18px) rotate(8deg); opacity: 0.9; }
-}
+/* ═══ Device ═══ */
+.device-section { padding: 4rem 0 6rem; }
+.device-wrap { max-width: 720px; margin: 0 auto; position: relative; }
+.device-svg { width: 100%; height: auto; display: block; filter: drop-shadow(0 30px 80px rgba(0,0,0,0.10)); }
 
-/* ─── Stage / Center ─── */
-.stage {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0;
-}
+/* ═══ Setup ═══ */
+.steps { display: grid; grid-template-columns: repeat(3,1fr); gap: 2rem; margin-top: 3.5rem; }
+.step { text-align: center; }
+.step-num { width: 48px; height: 48px; border-radius: 50%; background: var(--gold-bg); border: 1.5px solid rgba(184,134,11,0.15); display: flex; align-items: center; justify-content: center; font-family: var(--serif); font-size: 1.2rem; color: var(--gold); margin: 0 auto 1.2rem; }
+.step h3 { margin-bottom: 0.4rem; }
+.step p { color: var(--text-2); font-size: 0.92rem; line-height: 1.55; font-weight: 300; }
 
-/* ─── Monet Figure ─── */
-.figure-wrap {
-  position: relative;
-  width: 220px;
-  height: 380px;
-  flex-shrink: 0;
-  transform: translateY(20px);
-  opacity: 0;
-  animation: figure-enter 1.2s cubic-bezier(.22,1,.36,1) 0.3s forwards;
-}
+/* ═══ Software ═══ */
+.sw-section { background: var(--white); }
+.sw-app { max-width: 900px; margin: 3rem auto 0; background: var(--bg); border-radius: 16px; border: 1px solid rgba(0,0,0,0.06); box-shadow: 0 2px 8px rgba(0,0,0,0.04); overflow: hidden; }
+.sw-bar { display: flex; align-items: center; padding: 10px 14px; gap: 6px; border-bottom: 1px solid rgba(0,0,0,0.04); }
+.sw-dot { width: 10px; height: 10px; border-radius: 50%; }
+.sw-dot:nth-child(1) { background: #FF5F57; } .sw-dot:nth-child(2) { background: #FEBC2E; } .sw-dot:nth-child(3) { background: #28C840; }
+.sw-body { display: flex; min-height: 320px; }
+.sw-side { width: 180px; flex-shrink: 0; background: #FCFCFA; border-right: 1px solid rgba(0,0,0,0.04); padding: 0.8rem 0.5rem; }
+.sw-item { padding: 0.4rem 0.6rem; border-radius: 7px; font-size: 0.78rem; color: var(--text-2); margin-bottom: 1px; display: flex; align-items: center; gap: 0.4rem; }
+.sw-item.act { background: var(--gold-bg); color: var(--gold); font-weight: 500; }
+.sw-dot-s { width: 6px; height: 6px; border-radius: 2px; background: var(--border); }
+.sw-item.act .sw-dot-s { background: var(--gold); }
+.sw-chat { flex: 1; padding: 1.2rem; display: flex; flex-direction: column; gap: 1rem; }
+.sw-msg { max-width: 80%; padding: 0.7rem 1rem; border-radius: 14px; font-size: 0.85rem; line-height: 1.5; }
+.sw-u { align-self: flex-end; background: var(--black); color: var(--bg); border-bottom-right-radius: 4px; }
+.sw-a { align-self: flex-start; background: #EFEDE8; color: var(--text); border-bottom-left-radius: 4px; }
+.sw-label { font-size: 0.65rem; color: var(--text-3); font-weight: 500; margin-bottom: 0.2rem; letter-spacing: 0.02em; }
+.sw-input { margin-top: auto; display: flex; align-items: center; padding: 0.6rem 0.8rem; background: #F5F4F0; border: 1px solid rgba(0,0,0,0.05); border-radius: 10px; }
+.sw-input span { color: var(--text-3); font-size: 0.82rem; flex: 1; }
+.sw-send { width: 26px; height: 26px; background: var(--gold); border-radius: 7px; display: flex; align-items: center; justify-content: center; }
 
-@keyframes figure-enter {
-  from { opacity: 0; transform: translateY(40px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
+/* ═══ Features ═══ */
+.feat-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 1.2rem; margin-top: 3.5rem; }
+.feat { padding: 1.8rem; border-radius: 16px; background: var(--white); border: 1px solid rgba(0,0,0,0.05); }
+.feat-icon { color: var(--gold); margin-bottom: 1rem; }
+.feat h3 { margin-bottom: 0.4rem; font-size: 1.1rem; }
+.feat p { color: var(--text-2); font-size: 0.9rem; line-height: 1.55; font-weight: 300; }
 
-.monet-figure {
-  width: 100%; height: 100%;
-  overflow: visible;
-}
+/* ═══ For Everyone ═══ */
+.everyone-section { background: var(--white); }
+.personas { display: grid; grid-template-columns: repeat(4,1fr); gap: 1.5rem; margin-top: 3.5rem; }
+.persona { text-align: center; padding: 2rem 1.2rem; border-radius: 16px; background: var(--bg); }
+.persona-emoji { font-size: 2.2rem; margin-bottom: 0.8rem; }
+.persona h3 { font-size: 1.05rem; margin-bottom: 0.4rem; }
+.persona p { font-size: 0.85rem; color: var(--text-2); line-height: 1.5; font-weight: 300; }
 
-/* Idle breathing */
-.figure-body {
-  transform-origin: 50% 90%;
-  animation: breathe 4s ease-in-out infinite;
-}
-@keyframes breathe {
-  0%,100% { transform: scaleY(1) translateY(0); }
-  50%     { transform: scaleY(1.012) translateY(-2px); }
-}
+/* ═══ Privacy ═══ */
+.priv-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 1.2rem; margin-top: 3.5rem; }
+.priv { padding: 1.8rem; border-radius: 16px; background: var(--white); border: 1px solid rgba(0,0,0,0.05); }
+.priv-icon { color: var(--gold); margin-bottom: 1rem; }
+.priv h3 { margin-bottom: 0.4rem; font-size: 1.1rem; }
+.priv p { color: var(--text-2); font-size: 0.9rem; line-height: 1.55; font-weight: 300; }
 
-/* Head slight sway */
-.figure-head {
-  transform-origin: 50% 100%;
-  animation: head-sway 5s ease-in-out infinite;
-}
-@keyframes head-sway {
-  0%,100% { transform: rotate(0deg); }
-  30%     { transform: rotate(1.2deg); }
-  70%     { transform: rotate(-0.8deg); }
-}
+/* ═══ Economics ═══ */
+.econ-section { background: var(--black); color: var(--bg); }
+.econ-section .tag { color: var(--gold-light); }
+.econ-section .sub { color: rgba(250,250,247,0.6); }
+.econ-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; max-width: 700px; margin: 3rem auto 0; }
+.econ-card { padding: 2.2rem; border-radius: 16px; text-align: center; }
+.econ-them { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); }
+.econ-us { background: var(--gold-bg); border: 1.5px solid rgba(184,134,11,0.3); }
+.econ-price { font-family: var(--serif); font-size: 2.5rem; margin-bottom: 0.2rem; }
+.econ-per { font-size: 0.85rem; color: rgba(250,250,247,0.5); margin-bottom: 1rem; }
+.econ-us .econ-per { color: var(--gold-light); }
+.econ-feat { font-size: 0.85rem; color: rgba(250,250,247,0.5); line-height: 1.8; }
+.econ-us .econ-feat { color: rgba(250,250,247,0.7); }
+.econ-label { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 1.2rem; color: rgba(250,250,247,0.4); }
+.econ-us .econ-label { color: var(--gold); }
 
-/* Talking animation */
-.figure-head.talking {
-  animation: head-talk 0.35s ease-in-out infinite alternate;
-}
-@keyframes head-talk {
-  from { transform: rotate(-1deg) translateY(0); }
-  to   { transform: rotate(1deg) translateY(-1px); }
-}
+/* ═══ API ═══ */
+.code-block { background: var(--black); color: #E0E0E0; border-radius: 14px; padding: 1.5rem; overflow-x: auto; margin-top: 2rem; max-width: 560px; }
+.code-block pre { font-family: 'SF Mono','Fira Code',monospace; font-size: 0.82rem; line-height: 1.7; }
+.c-kw { color: #C792EA; } .c-str { color: #C3E88D; } .c-fn { color: #82AAFF; } .c-cm { color: #546E7A; }
+.api-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: center; margin-top: 3rem; }
+.api-text p { color: var(--text-2); line-height: 1.65; font-weight: 300; margin-bottom: 0.8rem; }
+.compat { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 1rem; }
+.compat span { padding: 0.3rem 0.7rem; background: var(--bg-warm); border-radius: 100px; font-size: 0.75rem; color: var(--text-2); }
 
-/* Palette arm */
-.arm-palette {
-  transform-origin: 75px 140px;
-  animation: arm-idle 6s ease-in-out infinite;
-}
-@keyframes arm-idle {
-  0%,100% { transform: rotate(0deg); }
-  50%     { transform: rotate(2deg) translate(1px,-1px); }
-}
-.arm-palette.gesturing {
-  animation: arm-gesture 1.2s ease-in-out infinite alternate;
-}
-@keyframes arm-gesture {
-  from { transform: rotate(-5deg) translate(-3px, 0); }
-  to   { transform: rotate(5deg) translate(3px, -6px); }
-}
+/* ═══ CTA ═══ */
+.cta-section { padding: clamp(6rem,15vw,11rem) 0; text-align: center; }
+.cta-section h2 { margin-bottom: 1.2rem; }
+.cta-section .sub { max-width: 480px; margin: 0 auto 2.4rem; }
+.cta-btns { display: flex; gap: 0.8rem; justify-content: center; flex-wrap: wrap; }
 
-/* Brush arm */
-.arm-brush {
-  transform-origin: 125px 140px;
-  animation: brush-idle 7s ease-in-out infinite;
-}
-@keyframes brush-idle {
-  0%,100%{ transform: rotate(0deg); }
-  40%    { transform: rotate(-2deg); }
-  80%    { transform: rotate(1.5deg); }
-}
-.arm-brush.painting {
-  animation: brush-paint 0.8s ease-in-out infinite alternate;
-}
-@keyframes brush-paint {
-  from { transform: rotate(-8deg) translate(-2px, 2px); }
-  to   { transform: rotate(8deg) translate(4px, -4px); }
-}
+/* ═══ Footer ═══ */
+footer { border-top: 1px solid rgba(0,0,0,0.06); padding: 2.5rem 0; }
+.ft { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+.ft-c { font-size: 0.82rem; color: var(--text-3); }
+.ft-l { display: flex; gap: 1.8rem; list-style: none; }
+.ft-l a { color: var(--text-3); text-decoration: none; font-size: 0.82rem; transition: color 0.2s; }
+.ft-l a:hover { color: var(--text); }
 
-/* Shadow under figure */
-.figure-shadow {
-  position: absolute;
-  bottom: 0; left: 50%;
-  transform: translateX(-50%);
-  width: 100px; height: 16px;
-  background: radial-gradient(ellipse, rgba(61,46,32,0.2), transparent 70%);
-  border-radius: 50%;
-  animation: shadow-breathe 4s ease-in-out infinite;
-}
-@keyframes shadow-breathe {
-  0%,100% { transform: translateX(-50%) scaleX(1); opacity: 0.7; }
-  50%     { transform: translateX(-50%) scaleX(0.95); opacity: 0.5; }
-}
+/* ═══ Anim ═══ */
+@keyframes rise { from { opacity:0; transform:translateY(28px); } to { opacity:1; transform:translateY(0); } }
+.hero h1, .hero .sub, .hero-btns, .hero-note { opacity:0; animation: rise 0.9s cubic-bezier(0.22,1,0.36,1) forwards; }
+.hero .sub { animation-delay:.12s; } .hero-btns { animation-delay:.24s; } .hero-note { animation-delay:.34s; }
+.device-svg { opacity:0; animation: rise 1.1s .45s cubic-bezier(0.22,1,0.36,1) forwards; }
+.rv { opacity:0; transform:translateY(24px); transition: opacity .7s cubic-bezier(.22,1,.36,1), transform .7s cubic-bezier(.22,1,.36,1); }
+.rv.vis { opacity:1; transform:translateY(0); }
+.d1 { transition-delay:.06s; } .d2 { transition-delay:.12s; } .d3 { transition-delay:.18s; } .d4 { transition-delay:.24s; }
 
-/* ─── Subtitle strip ─── */
-.subtitle {
-  max-width: 560px;
-  min-height: 72px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 14px 28px;
-  margin-top: 4px;
-  opacity: 0;
-  transition: opacity 0.5s;
+/* ═══ Responsive ═══ */
+@media (max-width:900px) {
+  .steps, .feat-grid, .priv-grid, .api-grid { grid-template-columns: 1fr; }
+  .personas { grid-template-columns: 1fr 1fr; }
+  .econ-compare { grid-template-columns: 1fr; max-width: 360px; }
+  .sw-side { display: none; }
+  .nav-r a:not(.btn) { display: none; }
 }
-.subtitle.visible { opacity: 1; }
-.subtitle-inner {
-  font-family: var(--serif);
-  font-size: clamp(16px, 2.2vw, 20px);
-  font-style: italic;
-  color: var(--earth);
-  text-align: center;
-  line-height: 1.55;
-  background: var(--mist);
-  padding: 12px 24px;
-  border-radius: 12px;
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(155,120,88,0.12);
-  box-shadow: 0 4px 24px rgba(61,46,32,0.07);
-  min-height: 56px;
-  display: flex;
-  align-items: center;
-}
-.cursor {
-  display: inline-block;
-  width: 2px; height: 1.1em;
-  background: var(--lavender);
-  margin-left: 3px;
-  vertical-align: text-bottom;
-  animation: blink 1s step-end infinite;
-}
-@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
-
-/* ─── Nav buttons ─── */
-.nav-buttons {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  justify-content: center;
-  margin-top: 20px;
-  opacity: 0;
-  transform: translateY(16px);
-  transition: opacity 0.6s, transform 0.6s;
-  pointer-events: none;
-}
-.nav-buttons.visible {
-  opacity: 1;
-  transform: translateY(0);
-  pointer-events: all;
-}
-.nav-btn {
-  font-family: var(--serif);
-  font-size: 14px;
-  color: var(--earth);
-  background: rgba(253,249,243,0.85);
-  border: 1.5px solid rgba(155,120,88,0.22);
-  border-radius: 50px;
-  padding: 10px 22px;
-  cursor: pointer;
-  transition: all 0.2s;
-  backdrop-filter: blur(8px);
-  box-shadow: 0 2px 12px rgba(61,46,32,0.07);
-  white-space: nowrap;
-}
-.nav-btn:hover {
-  background: rgba(155,126,200,0.15);
-  border-color: var(--lavender);
-  color: #5B3A8E;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(155,126,200,0.2);
-}
-.nav-btn.active {
-  background: rgba(155,126,200,0.2);
-  border-color: var(--lavender);
-  color: #5B3A8E;
-}
-.nav-btn.download-btn {
-  background: var(--gold);
-  border-color: var(--gold);
-  color: white;
-  font-style: italic;
-}
-.nav-btn.download-btn:hover {
-  background: var(--gold-light);
-  border-color: var(--gold-light);
-  color: var(--earth);
-  transform: translateY(-2px);
-}
-
-/* ─── Chat panel ─── */
-.chat-panel {
-  margin-top: 16px;
-  width: clamp(280px, 50vw, 480px);
-  opacity: 0;
-  transform: translateY(10px);
-  transition: opacity 0.4s, transform 0.4s;
-  pointer-events: none;
-}
-.chat-panel.visible {
-  opacity: 1;
-  transform: translateY(0);
-  pointer-events: all;
-}
-.chat-input-row {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  background: rgba(253,249,243,0.9);
-  border: 1.5px solid rgba(155,120,88,0.2);
-  border-radius: 50px;
-  padding: 8px 8px 8px 20px;
-  backdrop-filter: blur(12px);
-  box-shadow: 0 4px 24px rgba(61,46,32,0.08);
-}
-.chat-input {
-  flex: 1;
-  border: none;
-  background: transparent;
-  font-family: var(--serif);
-  font-size: 15px;
-  font-style: italic;
-  color: var(--earth);
-  outline: none;
-}
-.chat-input::placeholder { color: var(--earth-light); }
-.chat-send {
-  width: 36px; height: 36px;
-  border-radius: 50%;
-  border: none;
-  background: var(--lavender);
-  color: white;
-  cursor: pointer;
-  font-size: 16px;
-  display: flex; align-items: center; justify-content: center;
-  transition: all 0.2s;
-  flex-shrink: 0;
-}
-.chat-send:hover { background: #7B5EA8; transform: scale(1.05); }
-.chat-send:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
-
-.mic-btn {
-  width: 36px; height: 36px;
-  border-radius: 50%;
-  border: 1.5px solid rgba(155,120,88,0.2);
-  background: transparent;
-  color: var(--earth-light);
-  cursor: pointer;
-  font-size: 15px;
-  display: flex; align-items: center; justify-content: center;
-  transition: all 0.2s;
-  flex-shrink: 0;
-}
-.mic-btn:hover { background: rgba(155,126,200,0.1); color: var(--lavender); }
-.mic-btn.listening {
-  background: rgba(192,88,136,0.15);
-  border-color: var(--rose);
-  color: var(--rose);
-  animation: pulse-mic 1s ease-in-out infinite;
-}
-@keyframes pulse-mic {
-  0%,100%{ box-shadow: 0 0 0 0 rgba(192,88,136,0.3); }
-  50%    { box-shadow: 0 0 0 8px rgba(192,88,136,0); }
-}
-
-/* ─── Branding corner ─── */
-.brand {
-  position: fixed;
-  top: 24px; left: 28px;
-  display: flex; align-items: center; gap: 10px;
-  opacity: 0;
-  animation: fade-in 1s ease 1.2s forwards;
-}
-@keyframes fade-in { to { opacity: 1; } }
-.brand-logo { width: 32px; height: 32px; }
-.brand-name {
-  font-family: var(--serif);
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--earth);
-  letter-spacing: 0.02em;
-}
-.brand-tagline {
-  font-size: 11px;
-  font-family: var(--sans);
-  color: var(--earth-light);
-  font-weight: 300;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  display: block;
-  margin-top: -2px;
-}
-
-/* ─── Volume toggle ─── */
-.volume-btn {
-  position: fixed;
-  top: 24px; right: 24px;
-  width: 40px; height: 40px;
-  border-radius: 50%;
-  border: 1.5px solid rgba(155,120,88,0.2);
-  background: rgba(253,249,243,0.8);
-  color: var(--earth-light);
-  cursor: pointer;
-  font-size: 16px;
-  display: flex; align-items: center; justify-content: center;
-  backdrop-filter: blur(8px);
-  transition: all 0.2s;
-  opacity: 0;
-  animation: fade-in 1s ease 1.5s forwards;
-}
-.volume-btn:hover { background: rgba(253,249,243,0.95); color: var(--earth); }
-
-/* ─── Download modal ─── */
-.modal-overlay {
-  position: fixed; inset: 0;
-  background: rgba(61,46,32,0.3);
-  backdrop-filter: blur(12px);
-  display: flex; align-items: center; justify-content: center;
-  opacity: 0; pointer-events: none;
-  transition: opacity 0.3s;
-  z-index: 100;
-}
-.modal-overlay.open { opacity: 1; pointer-events: all; }
-.modal {
-  background: var(--parchment);
-  border-radius: 24px;
-  padding: 48px 40px 40px;
-  max-width: 440px; width: 90%;
-  box-shadow: 0 32px 80px rgba(61,46,32,0.2);
-  border: 1px solid rgba(155,120,88,0.12);
-  transform: translateY(20px) scale(0.96);
-  transition: transform 0.3s;
-  text-align: center;
-}
-.modal-overlay.open .modal { transform: translateY(0) scale(1); }
-.modal-logo { font-size: 48px; margin-bottom: 8px; }
-.modal h2 {
-  font-family: var(--serif);
-  font-size: 28px;
-  font-weight: 600;
-  color: var(--earth);
-  margin-bottom: 8px;
-}
-.modal p {
-  font-size: 15px;
-  color: var(--earth-light);
-  margin-bottom: 28px;
-  line-height: 1.6;
-  font-weight: 300;
-}
-.modal-btns { display: flex; gap: 12px; justify-content: center; }
-.dl-btn {
-  font-family: var(--serif);
-  font-size: 15px;
-  font-style: italic;
-  padding: 12px 28px;
-  border-radius: 50px;
-  border: 1.5px solid rgba(155,120,88,0.2);
-  background: var(--cream);
-  color: var(--earth);
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex; align-items: center; gap: 8px;
-  text-decoration: none;
-}
-.dl-btn:hover { background: rgba(155,126,200,0.12); border-color: var(--lavender); }
-.dl-btn.primary { background: var(--lavender); color: white; border-color: var(--lavender); }
-.dl-btn.primary:hover { background: #7B5EA8; }
-.modal-close {
-  position: absolute; top: 16px; right: 20px;
-  background: none; border: none; cursor: pointer;
-  font-size: 20px; color: var(--earth-light);
-}
-
-/* ─── Responsive ─── */
-@media (max-width: 600px) {
-  .figure-wrap { width: 160px; height: 280px; }
-  .nav-buttons { gap: 8px; }
-  .nav-btn { padding: 8px 16px; font-size: 13px; }
-  .subtitle-inner { font-size: 15px; padding: 10px 18px; }
-}
-@media (max-height: 700px) {
-  .figure-wrap { height: 260px; }
-  .subtitle { min-height: 60px; margin-top: 0; }
+@media (max-width:600px) {
+  .hero-btns, .cta-btns { flex-direction: column; align-items: center; }
+  .personas { grid-template-columns: 1fr; }
+  .hero { padding-top: 7rem; }
 }
 </style>
-<script type="application/ld+json">
-{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Monet","applicationCategory":"DeveloperApplication","operatingSystem":"macOS, Windows","offers":[{"@type":"Offer","price":"0","priceCurrency":"USD","name":"Free","description":"Run AI locally forever free"}],"description":"Monet is a free AI that runs 100% on your computer. No subscription, no cloud, no data sharing. Works as a drop-in replacement for ChatGPT and Claude APIs.","url":"https://open-llm-ten.vercel.app","downloadUrl":"https://github.com/spideysense/OpenLLM/releases/latest","softwareVersion":"0.1.21","license":"https://opensource.org/licenses/MIT","featureList":["100% local AI","Free forever","No subscription","Private by design","Voice input","Image attachments","Public URL via Cloudflare","OpenAI-compatible API"]}
-</script>
-<script type="application/ld+json">
-{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What is Monet?","acceptedAnswer":{"@type":"Answer","text":"Monet is a free desktop app for Mac and Windows that runs AI models like Llama and Qwen 100% locally on your computer. No subscription, no cloud, no data sharing."}},{"@type":"Question","name":"Is Monet free?","acceptedAnswer":{"@type":"Answer","text":"Yes, completely free forever. No credit card, no trial, no subscription. You run AI on your own hardware at zero cost."}},{"@type":"Question","name":"Is my data private with Monet?","acceptedAnswer":{"@type":"Answer","text":"Yes, 100% private. Everything runs locally. Your conversations never leave your machine — no telemetry, no cloud logging, nothing sent to any server."}},{"@type":"Question","name":"Can I use Monet as a drop-in for ChatGPT?","acceptedAnswer":{"@type":"Answer","text":"Yes. Monet runs an OpenAI-compatible API. Change two lines of code — the base URL and API key — and your existing apps work instantly. Compatible with LangChain, Cursor, Continue.dev, n8n, Zapier."}},{"@type":"Question","name":"What AI models does Monet support?","acceptedAnswer":{"@type":"Answer","text":"Monet supports Llama 3.3 (Meta), Qwen 2.5 (Alibaba), DeepSeek R1, Gemma 2 (Google), and many more via Ollama. It auto-detects your hardware and recommends the best model."}}]}
-</script>
-<script type="application/ld+json">
-{"@context":"https://schema.org","@type":"HowTo","name":"How to run free private AI with Monet","description":"Get free AI running on your computer in 2 minutes.","totalTime":"PT2M","step":[{"@type":"HowToStep","position":1,"name":"Download Monet","text":"Download the free Monet app for Mac or Windows. One file, one click."},{"@type":"HowToStep","position":2,"name":"Pick your model","text":"Monet scans your hardware and recommends the best AI model. No terminal needed."},{"@type":"HowToStep","position":3,"name":"Start chatting","text":"Your AI runs 100% on your machine. Nothing is sent anywhere. Ever."}]}
-</script>
 </head>
 <body>
 
-<!-- Impressionist background -->
-<div class="scene">
-  <div class="blob b1"></div>
-  <div class="blob b2"></div>
-  <div class="blob b3"></div>
-  <div class="blob b4"></div>
-  <div class="blob b5"></div>
-  <div class="blob b6"></div>
-  <!-- Floating paint dabs -->
-  <div class="dab" style="width:12px;height:9px;background:#9B7EC8;opacity:.5;top:15%;left:12%;animation-duration:4.5s;animation-delay:0s"></div>
-  <div class="dab" style="width:8px;height:8px;background:#C05888;opacity:.45;top:22%;right:18%;animation-duration:5.5s;animation-delay:1s"></div>
-  <div class="dab" style="width:10px;height:7px;background:#3A72B8;opacity:.4;bottom:28%;left:22%;animation-duration:6s;animation-delay:2s"></div>
-  <div class="dab" style="width:7px;height:7px;background:#5A8C6A;opacity:.5;bottom:35%;right:15%;animation-duration:5s;animation-delay:0.5s"></div>
-  <div class="dab" style="width:14px;height:10px;background:#C8880A;opacity:.4;top:40%;left:8%;animation-duration:7s;animation-delay:1.5s"></div>
-  <div class="dab" style="width:9px;height:9px;background:#9B7EC8;opacity:.4;top:60%;right:10%;animation-duration:4s;animation-delay:3s"></div>
-  <div class="dab" style="width:11px;height:8px;background:#C05888;opacity:.35;top:8%;right:35%;animation-duration:6.5s;animation-delay:2.5s"></div>
+<!-- Nav -->
+<nav><div class="wrap">
+  <a href="#" class="logo">
+    <svg viewBox="0 0 28 28" fill="none"><path d="M14 2L14 25" stroke="#1D1D1F" stroke-width="2" stroke-linecap="round"/><path d="M14 7C10.5 3.5,5 4.5,4.5 8C4 11.5,7.5 12.5,11 10.5" stroke="#B8860B" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M14 7C17.5 3.5,23 4.5,23.5 8C24 11.5,20.5 12.5,17 10.5" stroke="#B8860B" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M14 14C10 10.5,3.5 12.5,3.5 16C3.5 19.5,8 19.5,12 17.5" stroke="#DAA520" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M14 14C18 10.5,24.5 12.5,24.5 16C24.5 19.5,20 19.5,16 17.5" stroke="#DAA520" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>
+    <span class="logo-t">ASPEN</span>
+  </a>
+  <div class="nav-r">
+    <a href="#hardware">Hardware</a>
+    <a href="#software">Software</a>
+    <a href="#privacy">Privacy</a>
+    <a href="#developers">Developers</a>
+    <a href="https://github.com/spideysense/OpenLLM">GitHub</a>
+    <a href="#order" class="btn btn-p">Order</a>
+  </div>
+</div></nav>
+
+<!-- ═══ Hero ═══ -->
+<section class="hero">
+<div class="wrap cen">
+  <h1>AI for your home.<br><em>Forever.</em></h1>
+  <p class="sub">One beautiful machine. Plug it in, set up in five minutes, and your whole family has private, powerful AI — with no monthly fees, no cloud, and no compromises. Ever.</p>
+  <div class="hero-btns">
+    <a href="#order" class="btn btn-gold btn-lg">Order Aspen</a>
+    <a href="#hardware" class="btn btn-s btn-lg">Learn more</a>
+  </div>
+  <p class="hero-note">$10,000 · Free shipping · 30-day returns · Save $20/month vs ChatGPT Plus — forever</p>
 </div>
+</section>
 
-<!-- Branding -->
-<div class="brand">
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" class="brand-logo" width="36" height="36">
-  <defs>
-    <radialGradient id="wood" cx="38%" cy="32%" r="72%">
-      <stop offset="0%"   stop-color="#D4883A"/>
-      <stop offset="45%"  stop-color="#B8702A"/>
-      <stop offset="100%" stop-color="#8B5018"/>
-    </radialGradient>
-    <radialGradient id="wood-edge" cx="50%" cy="50%" r="50%">
-      <stop offset="70%"  stop-color="transparent"/>
-      <stop offset="100%" stop-color="rgba(0,0,0,0.18)"/>
-    </radialGradient>
-    <filter id="blob-shadow" x="-30%" y="-30%" width="160%" height="160%">
-      <feDropShadow dx="0" dy="1.5" stdDeviation="1.5" flood-color="rgba(0,0,0,0.25)"/>
-    </filter>
-    <filter id="palette-shadow" x="-8%" y="-6%" width="120%" height="120%">
-      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="rgba(100,60,10,0.35)"/>
-    </filter>
-  </defs>
+<!-- ═══ Device ═══ -->
+<section class="device-section" id="hardware">
+<div class="wrap-w cen">
+  <svg class="device-svg" viewBox="0 0 800 420" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Device body — sleek rounded tower -->
+    <defs>
+      <linearGradient id="body" x1="300" y1="40" x2="500" y2="400"><stop offset="0%" stop-color="#2C2C2E"/><stop offset="100%" stop-color="#1D1D1F"/></linearGradient>
+      <linearGradient id="face" x1="310" y1="50" x2="490" y2="380"><stop offset="0%" stop-color="#3A3A3C"/><stop offset="50%" stop-color="#2C2C2E"/><stop offset="100%" stop-color="#1D1D1F"/></linearGradient>
+      <linearGradient id="glow" x1="400" y1="100" x2="400" y2="300"><stop offset="0%" stop-color="#DAA520" stop-opacity="0.6"/><stop offset="100%" stop-color="#B8860B" stop-opacity="0"/></linearGradient>
+      <filter id="shadow"><feDropShadow dx="0" dy="8" stdDeviation="20" flood-color="#000" flood-opacity="0.15"/></filter>
+    </defs>
+    <!-- Shadow/base -->
+    <ellipse cx="400" cy="395" rx="140" ry="12" fill="#1D1D1F" opacity="0.08"/>
+    <!-- Main body -->
+    <rect x="300" y="40" width="200" height="350" rx="24" fill="url(#body)" filter="url(#shadow)"/>
+    <!-- Front face with subtle gradient -->
+    <rect x="308" y="48" width="184" height="334" rx="18" fill="url(#face)"/>
+    <!-- Gold accent light strip -->
+    <rect x="380" y="70" width="40" height="3" rx="1.5" fill="#B8860B" opacity="0.8"/>
+    <!-- Ventilation pattern -->
+    <g opacity="0.15">
+      <line x1="340" y1="320" x2="460" y2="320" stroke="#fff" stroke-width="0.5"/>
+      <line x1="340" y1="326" x2="460" y2="326" stroke="#fff" stroke-width="0.5"/>
+      <line x1="340" y1="332" x2="460" y2="332" stroke="#fff" stroke-width="0.5"/>
+      <line x1="340" y1="338" x2="460" y2="338" stroke="#fff" stroke-width="0.5"/>
+      <line x1="340" y1="344" x2="460" y2="344" stroke="#fff" stroke-width="0.5"/>
+      <line x1="340" y1="350" x2="460" y2="350" stroke="#fff" stroke-width="0.5"/>
+      <line x1="340" y1="356" x2="460" y2="356" stroke="#fff" stroke-width="0.5"/>
+    </g>
+    <!-- Aspen logo on device -->
+    <g transform="translate(382, 180) scale(0.9)" opacity="0.6">
+      <path d="M18 10C15 6.5,9 7.5,8.5 11C8 14.5,11 15.5,14.5 13.5" stroke="#B8860B" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+      <path d="M18 10C21 6.5,27 7.5,27.5 11C28 14.5,25 15.5,21.5 13.5" stroke="#B8860B" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+      <path d="M18 2L18 28" stroke="#aaa" stroke-width="1.4" stroke-linecap="round"/>
+    </g>
+    <!-- Status LED -->
+    <circle cx="400" cy="370" r="3" fill="#28C840" opacity="0.9"/>
+    <!-- Subtle reflection -->
+    <rect x="316" y="55" width="80" height="120" rx="10" fill="white" opacity="0.02"/>
+    <!-- Labels -->
+    <text x="130" y="140" font-family="Outfit, sans-serif" font-size="13" fill="#86868B" text-anchor="end">State-of-the-art GPU</text>
+    <line x1="140" y1="137" x2="298" y2="137" stroke="#E5E5E5" stroke-width="0.5" stroke-dasharray="3,3"/>
+    <text x="130" y="240" font-family="Outfit, sans-serif" font-size="13" fill="#86868B" text-anchor="end">Silent operation</text>
+    <line x1="140" y1="237" x2="298" y2="237" stroke="#E5E5E5" stroke-width="0.5" stroke-dasharray="3,3"/>
+    <text x="670" y="140" font-family="Outfit, sans-serif" font-size="13" fill="#86868B">Always-on AI</text>
+    <line x1="502" y1="137" x2="600" y2="137" stroke="#E5E5E5" stroke-width="0.5" stroke-dasharray="3,3"/>
+    <text x="670" y="240" font-family="Outfit, sans-serif" font-size="13" fill="#86868B">Latest open models</text>
+    <line x1="502" y1="237" x2="600" y2="237" stroke="#E5E5E5" stroke-width="0.5" stroke-dasharray="3,3"/>
+    <text x="670" y="340" font-family="Outfit, sans-serif" font-size="13" fill="#86868B">Your data stays inside</text>
+    <line x1="502" y1="337" x2="460" y2="337" stroke="#E5E5E5" stroke-width="0.5" stroke-dasharray="3,3"/>
+  </svg>
+</div>
+</section>
 
-  <!-- Palette board — irregular oval, slightly rotated -->
-  <g transform="rotate(-12, 100, 100)" filter="url(#palette-shadow)">
-    <!-- Main board shape -->
-    <path d="M30 88 Q22 50 55 28 Q88 8 130 14 Q172 20 178 58 Q184 96 168 128 Q152 160 118 168 Q84 176 58 158 Q32 140 30 88 Z"
-          fill="url(#wood)"/>
-    <!-- Wood grain highlights -->
-    <path d="M40 80 Q36 55 62 36 Q88 17 122 22" stroke="rgba(255,220,150,0.25)" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-    <path d="M48 100 Q44 75 68 55 Q92 35 128 38" stroke="rgba(255,220,150,0.18)" stroke-width="2" fill="none" stroke-linecap="round"/>
-    <!-- Edge shadow -->
-    <path d="M30 88 Q22 50 55 28 Q88 8 130 14 Q172 20 178 58 Q184 96 168 128 Q152 160 118 168 Q84 176 58 158 Q32 140 30 88 Z"
-          fill="url(#wood-edge)"/>
-    <!-- Thumb hole -->
-    <ellipse cx="76" cy="138" rx="17" ry="22" fill="#6B3A10"/>
-    <ellipse cx="76" cy="138" rx="13" ry="18" fill="#4A2508"/>
-    <!-- Hole highlight -->
-    <ellipse cx="72" cy="133" rx="5" ry="7" fill="rgba(255,180,80,0.15)"/>
-
-    <!-- Paint blobs — 6 colors from the Monet palette -->
-    <!-- Purple -->
-    <ellipse cx="80" cy="38" rx="17" ry="13" fill="#8B4AC8" filter="url(#blob-shadow)"/>
-    <ellipse cx="77" cy="35" rx="9" ry="6" fill="#B070E8" opacity=".7"/>
-
-    <!-- Blue -->
-    <ellipse cx="126" cy="32" rx="16" ry="12" fill="#2A68C0" filter="url(#blob-shadow)"/>
-    <ellipse cx="123" cy="29" rx="8" ry="5.5" fill="#5090E0" opacity=".7"/>
-
-    <!-- Red-Pink -->
-    <ellipse cx="160" cy="68" rx="15" ry="13" fill="#D03050" filter="url(#blob-shadow)"/>
-    <ellipse cx="157" cy="65" rx="8" ry="6" fill="#F05878" opacity=".7"/>
-
-    <!-- Green -->
-    <ellipse cx="160" cy="112" rx="14" ry="12" fill="#38A050" filter="url(#blob-shadow)"/>
-    <ellipse cx="157" cy="109" rx="7" ry="5.5" fill="#60C870" opacity=".7"/>
-
-    <!-- Yellow-Gold -->
-    <ellipse cx="128" cy="150" rx="16" ry="12" fill="#D0920A" filter="url(#blob-shadow)"/>
-    <ellipse cx="125" cy="147" rx="8.5" ry="5.5" fill="#F0B830" opacity=".7"/>
-
-    <!-- White/Cream -->
-    <ellipse cx="80" cy="62" rx="14" ry="11" fill="#E8E0D0" filter="url(#blob-shadow)"/>
-    <ellipse cx="77" cy="59" rx="7" ry="5" fill="#FAFAF5" opacity=".8"/>
-  </g>
-</svg>
-
-  <div>
-    <span class="brand-name">Monet</span>
-    <span class="brand-tagline">The Free LLM</span>
+<!-- ═══ Setup ═══ -->
+<section>
+<div class="wrap cen">
+  <div class="tag rv">Setup</div>
+  <h2 class="rv">Five minutes. Done forever.</h2>
+  <p class="sub rv" style="max-width:520px;margin:1rem auto 0;">No IT department. No terminal. No configuration files. If you can plug in a lamp, you can set up Aspen.</p>
+  <div class="steps">
+    <div class="step rv d1"><div class="step-num">1</div><h3>Plug in</h3><p>Place Aspen on your desk, shelf, or anywhere. Plug in power and ethernet. That's the hardware part.</p></div>
+    <div class="step rv d2"><div class="step-num">2</div><h3>Download the app</h3><p>Open the Aspen app on your Mac, PC, phone, or tablet. It finds your device automatically.</p></div>
+    <div class="step rv d3"><div class="step-num">3</div><h3>Start using AI</h3><p>Chat, ask questions, write code, use voice. From any device, anywhere — at home or across the world.</p></div>
   </div>
 </div>
+</section>
 
-<!-- Volume toggle -->
-<button class="volume-btn" id="volume-btn" title="Toggle voice" onclick="toggleVoice()">🔊</button>
-
-<!-- Stage -->
-<div class="stage">
-  <!-- Character -->
-  <div class="figure-wrap">
-    <div class="figure-shadow"></div>
-    <svg class="monet-figure" viewBox="0 0 200 400" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <filter id="soft-skin" x="-10%" y="-10%" width="120%" height="120%">
-          <feGaussianBlur stdDeviation="0.8" result="blur"/>
-          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>
-        <filter id="soft-beard" x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation="1.2" result="blur"/>
-          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>
-        <radialGradient id="body-grad" cx="50%" cy="30%" r="60%">
-          <stop offset="0%" stop-color="#4A3828" stop-opacity="0.9"/>
-          <stop offset="100%" stop-color="#2A1E18" stop-opacity="1"/>
-        </radialGradient>
-        <radialGradient id="coat-grad" cx="40%" cy="20%" r="70%">
-          <stop offset="0%" stop-color="#3D2E24"/>
-          <stop offset="100%" stop-color="#1E1410"/>
-        </radialGradient>
-      </defs>
-
-      <!-- Body group — breathing animation -->
-      <g class="figure-body">
-
-        <!-- Feet -->
-        <ellipse cx="84" cy="388" rx="16" ry="7" fill="#1A1210"/>
-        <ellipse cx="116" cy="388" rx="14" ry="7" fill="#1A1210"/>
-        <!-- Trouser legs visible below coat -->
-        <rect x="74" y="295" width="22" height="98" rx="5" fill="#2A2238"/>
-        <rect x="104" y="295" width="22" height="98" rx="5" fill="#252035"/>
-
-        <!-- Long coat — lower flare -->
-        <path d="M48 195 Q45 295 50 390 L90 390 L100 270 L110 390 L152 390 Q156 295 152 195 Z" fill="url(#coat-grad)"/>
-        <!-- Coat hem highlight line -->
-        <path d="M50 390 Q100 396 150 390" stroke="#3D2E24" stroke-width="1.5" fill="none" opacity=".5"/>
-
-        <!-- Coat body -->
-        <path d="M44 118 Q48 210 52 285 L148 285 Q152 210 156 118 Q128 130 100 128 Q72 130 44 118 Z" fill="url(#coat-grad)"/>
-
-        <!-- Coat lapels -->
-        <path d="M88 118 L80 175 L100 190 L120 175 L112 118 Q100 128 88 118 Z" fill="#3D3028" opacity=".9"/>
-
-        <!-- Waistcoat vest -->
-        <path d="M84 122 L88 230 L100 235 L112 230 L116 122 Q100 134 84 122 Z" fill="#5A4030"/>
-
-        <!-- Shirt bib -->
-        <path d="M90 122 L93 175 L100 178 L107 175 L110 122 Q100 130 90 122 Z" fill="#F5F0E8"/>
-
-        <!-- Cravat/bow-tie area -->
-        <ellipse cx="100" cy="118" rx="8" ry="5" fill="#8B3030" opacity=".8"/>
-
-        <!-- Palette arm — LEFT (extended forward holding palette) -->
-        <g class="arm-palette">
-          <!-- Upper arm -->
-          <path d="M54 130 Q32 150 28 190 Q26 218 34 235" stroke="#2A1E18" stroke-width="22" fill="none" stroke-linecap="round"/>
-          <path d="M54 130 Q32 150 28 190 Q26 218 34 235" stroke="#3D2E24" stroke-width="18" fill="none" stroke-linecap="round"/>
-          <!-- Sleeve cuff -->
-          <ellipse cx="35" cy="237" rx="10" ry="6" fill="#C0B090" transform="rotate(-10 35 237)"/>
-          <!-- Hand -->
-          <ellipse cx="34" cy="248" rx="9" ry="7" fill="#C8986A" filter="url(#soft-skin)" transform="rotate(-15 34 248)"/>
-          <!-- Thumb -->
-          <ellipse cx="26" cy="250" rx="5" ry="3.5" fill="#C8986A" transform="rotate(-30 26 250)"/>
-          <!-- Palette -->
-          <g transform="translate(0, 255) rotate(-20)">
-            <path d="M10 0 Q15 -22 36 -18 Q55 -14 52 6 Q50 22 30 22 Q12 20 10 0 Z" fill="#B87830" opacity=".95"/>
-            <path d="M10 0 Q15 -22 36 -18 Q55 -14 52 6 Q50 22 30 22 Q12 20 10 0 Z" fill="none" stroke="#8B6020" stroke-width="1" opacity=".6"/>
-            <!-- Paint colors on palette -->
-            <circle cx="22" cy="12" r="5.5" fill="#9B5EC8" opacity=".9"/>
-            <circle cx="34" cy="16" r="4.5" fill="#3A72B8" opacity=".9"/>
-            <circle cx="44" cy="8" r="4.5" fill="#C04060" opacity=".9"/>
-            <circle cx="42" cy="-2" r="4" fill="#40A050" opacity=".9"/>
-            <circle cx="30" cy="-4" r="3.5" fill="#D0A020" opacity=".9"/>
-            <circle cx="20" cy="2" r="3" fill="#F0F0E8" opacity=".8"/>
-            <!-- Thumb hole -->
-            <circle cx="14" cy="6" r="5" fill="#9A6828"/>
-          </g>
-        </g>
-
-        <!-- Brush arm — RIGHT (slightly raised, painting gesture) -->
-        <g class="arm-brush">
-          <!-- Upper arm -->
-          <path d="M146 130 Q162 148 165 185 Q167 215 160 232" stroke="#2A1E18" stroke-width="22" fill="none" stroke-linecap="round"/>
-          <path d="M146 130 Q162 148 165 185 Q167 215 160 232" stroke="#3D2E24" stroke-width="18" fill="none" stroke-linecap="round"/>
-          <!-- Sleeve cuff -->
-          <ellipse cx="159" cy="234" rx="10" ry="6" fill="#C0B090" transform="rotate(10 159 234)"/>
-          <!-- Hand -->
-          <ellipse cx="160" cy="245" rx="9" ry="7" fill="#C8986A" filter="url(#soft-skin)" transform="rotate(15 160 245)"/>
-          <!-- Fingers suggestion -->
-          <ellipse cx="168" cy="247" rx="5" ry="3" fill="#C8986A" transform="rotate(20 168 247)"/>
-          <!-- Paintbrush -->
-          <g transform="translate(152, 255) rotate(20)">
-            <!-- Handle -->
-            <rect x="-3" y="-32" width="6" height="52" rx="3" fill="#8B6030"/>
-            <rect x="-2" y="-32" width="3" height="52" rx="2" fill="#A87840" opacity=".5"/>
-            <!-- Ferrule (metal band) -->
-            <rect x="-4" y="18" width="8" height="9" rx="1.5" fill="#B0B8C0"/>
-            <rect x="-4" y="20" width="8" height="2" fill="#D0D8E0" opacity=".7"/>
-            <!-- Bristles -->
-            <path d="M-4 27 Q0 48 -1 56 Q1 60 2 56 Q5 48 4 27 Z" fill="#3A2818"/>
-            <path d="M-2 29 Q1 46 0 54" stroke="#6A4828" stroke-width="0.8" fill="none" opacity=".5"/>
-            <path d="M1 29 Q2 46 2 54" stroke="#5A3818" stroke-width="0.8" fill="none" opacity=".4"/>
-            <!-- Fresh paint on brush tip -->
-            <ellipse cx="1" cy="56" rx="4" ry="2.5" fill="#9B5EC8" opacity=".9"/>
-            <ellipse cx="1" cy="56" rx="2" ry="1.5" fill="#C08AE8" opacity=".7"/>
-          </g>
-        </g>
-
-        <!-- Shoulders (coat shoulder seams) -->
-        <path d="M44 118 Q60 112 100 110 Q140 112 156 118" stroke="#4A3828" stroke-width="3" fill="none" opacity=".5"/>
-
-        <!-- Neck -->
-        <rect x="91" y="94" width="18" height="28" rx="6" fill="#B88058"/>
-
-        <!-- HEAD GROUP -->
-        <g class="figure-head">
-          <!-- Head -->
-          <ellipse cx="100" cy="70" rx="31" ry="37" fill="#C8906A" filter="url(#soft-skin)"/>
-          <!-- Slight forehead highlight -->
-          <ellipse cx="97" cy="54" rx="16" ry="10" fill="#D8A878" opacity=".6"/>
-          <!-- Cheek warmth -->
-          <ellipse cx="80" cy="74" rx="10" ry="8" fill="#D89068" opacity=".35"/>
-          <ellipse cx="120" cy="74" rx="10" ry="8" fill="#D89068" opacity=".35"/>
-
-          <!-- Beret -->
-          <ellipse cx="100" cy="45" rx="36" ry="13" fill="#28244A"/>
-          <path d="M68 42 Q75 18 100 14 Q125 18 132 42" fill="#28244A"/>
-          <ellipse cx="100" cy="14" rx="5" ry="4" fill="#28244A"/>
-          <!-- Beret highlight -->
-          <path d="M78 30 Q86 22 100 20" stroke="#3D3870" stroke-width="2" fill="none" opacity=".5"/>
-
-          <!-- White hair at temples -->
-          <path d="M70 55 Q64 65 66 82" stroke="#E8E4DC" stroke-width="5" fill="none" stroke-linecap="round" opacity=".75"/>
-          <path d="M130 55 Q136 65 134 82" stroke="#E8E4DC" stroke-width="5" fill="none" stroke-linecap="round" opacity=".75"/>
-
-          <!-- BEARD (Monet's iconic flowing white beard) -->
-          <g filter="url(#soft-beard)">
-            <!-- Main beard shape -->
-            <path d="M72 82 Q68 98 70 122 Q76 150 100 158 Q124 150 130 122 Q132 98 128 82 Q118 76 100 74 Q82 76 72 82 Z" fill="#EEE8DC" opacity=".95"/>
-            <!-- Beard shadow/depth -->
-            <path d="M72 82 Q70 100 72 122 Q78 148 100 156" stroke="#C8C0B0" stroke-width="2" fill="none" opacity=".4"/>
-            <path d="M100 76 Q100 112 100 156" stroke="#C8C0B0" stroke-width="1.5" fill="none" opacity=".3"/>
-            <path d="M128 82 Q130 100 128 122 Q122 148 100 156" stroke="#C8C0B0" stroke-width="2" fill="none" opacity=".4"/>
-            <!-- Beard edge softness -->
-            <path d="M73 84 Q68 100 70 124" stroke="#D8D0C0" stroke-width="3" fill="none" opacity=".3"/>
-            <path d="M127 84 Q132 100 130 124" stroke="#D8D0C0" stroke-width="3" fill="none" opacity=".3"/>
-          </g>
-
-          <!-- Mustache -->
-          <path d="M82 80 Q91 84 100 82 Q109 84 118 80 Q112 90 100 88 Q88 90 82 80 Z" fill="#E8E2D4" opacity=".9"/>
-
-          <!-- Eyes -->
-          <ellipse cx="87" cy="64" rx="4.5" ry="5.5" fill="#2A2018"/>
-          <ellipse cx="113" cy="64" rx="4.5" ry="5.5" fill="#2A2018"/>
-          <!-- Eye whites -->
-          <ellipse cx="87" cy="63" rx="3.5" ry="4.5" fill="#2A2018"/>
-          <!-- Eye shine -->
-          <circle cx="89" cy="62" r="1.8" fill="white" opacity=".85"/>
-          <circle cx="115" cy="62" r="1.8" fill="white" opacity=".85"/>
-          <!-- Eyebrows (bushy) -->
-          <path d="M78 56 Q87 52 97 54" stroke="#5A4830" stroke-width="3" fill="none" stroke-linecap="round" opacity=".8"/>
-          <path d="M103 54 Q113 52 122 56" stroke="#5A4830" stroke-width="3" fill="none" stroke-linecap="round" opacity=".8"/>
-
-          <!-- Round wire glasses -->
-          <circle cx="87" cy="64" r="10" fill="none" stroke="#8B7040" stroke-width="1.5" opacity=".65"/>
-          <circle cx="113" cy="64" r="10" fill="none" stroke="#8B7040" stroke-width="1.5" opacity=".65"/>
-          <line x1="97" y1="64" x2="103" y2="64" stroke="#8B7040" stroke-width="1.5" opacity=".65"/>
-          <line x1="65" y1="60" x2="77" y2="63" stroke="#8B7040" stroke-width="1.5" opacity=".65"/>
-          <line x1="123" y1="63" x2="135" y2="60" stroke="#8B7040" stroke-width="1.5" opacity=".65"/>
-
-          <!-- Nose -->
-          <ellipse cx="100" cy="75" rx="5" ry="6" fill="#B87850" opacity=".6"/>
-          <path d="M95 79 Q100 82 105 79" stroke="#A06840" stroke-width="1" fill="none" opacity=".5"/>
-
-          <!-- Lips (small, mostly hidden by mustache) -->
-          <path d="M95 88 Q100 91 105 88" stroke="#A06848" stroke-width="1.5" fill="none" opacity=".5"/>
-        </g>
-        <!-- End head group -->
-
-      </g>
-      <!-- End body group -->
-    </svg>
+<!-- ═══ Software ═══ -->
+<section class="sw-section" id="software">
+<div class="wrap">
+  <div class="cen">
+    <div class="tag rv">Software</div>
+    <h2 class="rv">Beautiful on every device.</h2>
+    <p class="sub rv" style="max-width:560px;margin:1rem auto 0;">The Aspen app is designed to feel effortless. One interface for chat, voice, coding, and more — on Mac, Windows, iOS, Android, and the web.</p>
   </div>
-
-  <!-- Subtitle -->
-  <div class="subtitle" id="subtitle">
-    <div class="subtitle-inner">
-      <span id="subtitle-text"></span>
-      <span class="cursor" id="cursor"></span>
-    </div>
-
-  </div>
-
-  <!-- Navigation buttons -->
-  <div class="nav-buttons" id="nav-buttons">
-    <button class="nav-btn" onclick="respond('how')" id="btn-how">How does it work?</button>
-    <button class="nav-btn" onclick="respond('private')" id="btn-private">Is my data private?</button>
-    <button class="nav-btn" onclick="respond('free')" id="btn-free">Is it really free?</button>
-    <button class="nav-btn download-btn" onclick="openDownload()" id="btn-download">Download Monet ↓</button>
-    <button class="nav-btn" onclick="respond('chat')" id="btn-chat">Ask me anything</button>
-  </div>
-
-  <!-- Value props strip (always visible, no interaction needed) -->
-  <div id="value-strip" style="display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:14px;z-index:5;opacity:0;transform:translateY(10px);transition:opacity 0.7s 0.3s,transform 0.7s 0.3s;">
-    <div style="font-family:var(--serif);font-size:13px;color:var(--earth);background:rgba(253,249,243,.82);border:1.5px solid rgba(90,140,106,.3);border-radius:50px;padding:7px 16px;backdrop-filter:blur(6px);display:flex;align-items:center;gap:6px;">
-      <span style="color:#5A8C6A;font-size:15px">✓</span> Replaces ChatGPT &amp; Claude
-    </div>
-    <div style="font-family:var(--serif);font-size:13px;color:var(--earth);background:rgba(253,249,243,.82);border:1.5px solid rgba(200,136,10,.3);border-radius:50px;padding:7px 16px;backdrop-filter:blur(6px);display:flex;align-items:center;gap:6px;">
-      <span style="color:#C8880A;font-size:15px">✓</span> Keep your $20/month
-    </div>
-    <div style="font-family:var(--serif);font-size:13px;color:var(--earth);background:rgba(253,249,243,.82);border:1.5px solid rgba(155,126,200,.3);border-radius:50px;padding:7px 16px;backdrop-filter:blur(6px);display:flex;align-items:center;gap:6px;">
-      <span style="color:#9B7EC8;font-size:15px">✓</span> Your data never leaves
-    </div>
-    <div style="font-family:var(--serif);font-size:13px;color:var(--earth);background:rgba(253,249,243,.82);border:1.5px solid rgba(58,114,184,.3);border-radius:50px;padding:7px 16px;backdrop-filter:blur(6px);display:flex;align-items:center;gap:6px;">
-      <span style="color:#3A72B8;font-size:15px">✓</span> Runs on your Mac or PC
-    </div>
-  </div>
-
-  <!-- Chat panel -->
-  <div class="chat-panel" id="chat-panel">
-    <div class="chat-input-row">
-      <input
-        class="chat-input"
-        id="chat-input"
-        type="text"
-        placeholder="Ask Monet anything..."
-        maxlength="300"
-        onkeydown="if(event.key==='Enter')sendChat()"
-        autocomplete="off"
-      >
-      <button class="mic-btn" id="mic-btn" onclick="toggleMic()" title="Voice input">🎙</button>
-      <button class="chat-send" id="chat-send" onclick="sendChat()">→</button>
+  <div class="sw-app rv">
+    <div class="sw-bar"><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div></div>
+    <div class="sw-body">
+      <div class="sw-side">
+        <div class="sw-item act"><div class="sw-dot-s"></div>Qwen 2.5</div>
+        <div class="sw-item"><div class="sw-dot-s"></div>Llama 3.2</div>
+        <div class="sw-item"><div class="sw-dot-s"></div>DeepSeek R1</div>
+        <div class="sw-item"><div class="sw-dot-s"></div>Mistral</div>
+      </div>
+      <div class="sw-chat">
+        <div class="sw-msg sw-u">Help me plan a birthday party for a 7 year old who loves dinosaurs</div>
+        <div><div class="sw-label">Qwen 2.5 · Running on your Aspen</div>
+        <div class="sw-msg sw-a">Here's a plan your little paleontologist will love! Start with a "dig site" in the backyard — bury small toy dinosaurs in a sandbox and give kids brushes to excavate them. For food, make "fossil cookies" using dinosaur-shaped cutters, and serve "lava punch" (red fruit punch with dry ice fog). A dino egg hunt with plastic eggs works perfectly too. Want me to make you a shopping list and timeline?</div></div>
+        <div class="sw-input"><span>Ask anything…</span><div class="sw-send"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div></div>
+      </div>
     </div>
   </div>
 </div>
+</section>
 
-<!-- Download modal -->
-<div class="modal-overlay" id="modal" onclick="if(event.target===this)closeModal()">
-  <div class="modal" style="position:relative">
-    <button class="modal-close" onclick="closeModal()">✕</button>
-    <div class="modal-logo" style="font-size:52px;margin-bottom:4px">🎨</div>
-    <h2>Download Monet</h2>
-    <p>Free, private AI — running entirely on your machine.<br>No subscriptions. No data sharing. Just art.</p>
-    <div class="modal-btns">
-      <a class="dl-btn primary" id="dl-mac" href="#" onclick="downloadMac(event)">
-        <span>⌘</span> Mac (.dmg)
-      </a>
-      <a class="dl-btn" id="dl-win" href="#" onclick="downloadWin(event)">
-        <span>⊞</span> Windows (.exe)
-      </a>
+<!-- ═══ Features ═══ -->
+<section id="features">
+<div class="wrap">
+  <div class="cen">
+    <div class="tag rv">Features</div>
+    <h2 class="rv">Everything you need.<br>Nothing you don't.</h2>
+  </div>
+  <div class="feat-grid">
+    <div class="feat rv d1">
+      <svg class="feat-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+      <h3>Chat</h3>
+      <p>Natural conversations that feel like talking to a brilliant friend. Ask anything — homework, recipes, business strategy, code.</p>
     </div>
-    <p style="margin-top:20px;margin-bottom:0;font-size:13px;color:#B09878">
-      v0.1.20 · MIT License ·
-      <a href="https://github.com/spideysense/OpenLLM" target="_blank" style="color:var(--lavender);text-decoration:none">View source</a>
-    </p>
+    <div class="feat rv d2">
+      <svg class="feat-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+      <h3>Voice</h3>
+      <p>Speak naturally and hear responses back. Hands-free AI for cooking, driving, or when you just don't want to type.</p>
+    </div>
+    <div class="feat rv d3">
+      <svg class="feat-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      <h3>Coding</h3>
+      <p>Drop into Cursor, VS Code, or any tool. Your Aspen is an OpenAI-compatible API — swap your keys and code with full privacy.</p>
+    </div>
+    <div class="feat rv d1">
+      <svg class="feat-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+      <h3>Connect from anywhere</h3>
+      <p>Your Aspen gets a permanent URL. Use it from your phone at a coffee shop, your laptop at work, or while traveling abroad.</p>
+    </div>
+    <div class="feat rv d2">
+      <svg class="feat-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      <h3>Always up to date</h3>
+      <p>Aspen automatically updates to the latest open models — Llama, Qwen, DeepSeek, Mistral. You always have the best AI available.</p>
+    </div>
+    <div class="feat rv d3">
+      <svg class="feat-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <h3>Your profile, your context</h3>
+      <p>Aspen learns your preferences, your writing style, your work context. It stays on your device — private, personal, and always improving.</p>
+    </div>
   </div>
 </div>
+</section>
 
-<script>
-// ── Config ──
-const REPO = 'https://github.com/spideysense/OpenLLM';
-const MAC_URL = REPO + '/releases/latest/download/Monet-mac.dmg';
-const WIN_URL = REPO + '/releases/latest/download/Monet-win.exe';
+<!-- ═══ For Everyone ═══ -->
+<section class="everyone-section">
+<div class="wrap cen">
+  <div class="tag rv">For everyone</div>
+  <h2 class="rv">One device. The whole family.</h2>
+  <p class="sub rv" style="max-width:540px;margin:1rem auto 0;">Everyone in your household gets their own profile. Kids, parents, professionals — Aspen adapts to each person while keeping everyone's data separate and private.</p>
+  <div class="personas">
+    <div class="persona rv d1"><div class="persona-emoji">🎒</div><h3>Your kids</h3><p>Homework help, science projects, creative writing — safe, private AI with no ads or data harvesting.</p></div>
+    <div class="persona rv d2"><div class="persona-emoji">💼</div><h3>You</h3><p>Draft emails, analyze documents, brainstorm strategy, write code — with full confidentiality.</p></div>
+    <div class="persona rv d3"><div class="persona-emoji">🏠</div><h3>Your parents</h3><p>Recipes, travel planning, health questions, everyday help — no subscriptions to manage or passwords to remember.</p></div>
+    <div class="persona rv d4"><div class="persona-emoji">🏢</div><h3>Your business</h3><p>Private AI for your team. Sensitive documents, proprietary data, client work — nothing leaves your office.</p></div>
+  </div>
+</div>
+</section>
 
-// ── State ──
-let voiceEnabled  = true;
-let hasGesture    = false;   // Chrome blocks autoplay — gate speech on first user interaction
-let isListening   = false;
-let isSpeaking    = false;
-let chatHistory   = [];
-let recognition   = null;
+<!-- ═══ Privacy ═══ -->
+<section id="privacy">
+<div class="wrap cen">
+  <div class="tag rv">Privacy</div>
+  <h2 class="rv">Private by architecture,<br>not by promise.</h2>
+  <p class="sub rv" style="max-width:600px;margin:1rem auto 0;">Your data doesn't leave your home because there's nowhere for it to go. There is no cloud. There is no server. There is only your Aspen, in your home, on your network.</p>
+  <div class="priv-grid">
+    <div class="priv rv d1">
+      <svg class="priv-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+      <h3>Zero data collection</h3><p>No telemetry. No analytics. No usage tracking. We don't know who you are, what you ask, or when you use it.</p>
+    </div>
+    <div class="priv rv d2">
+      <svg class="priv-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      <h3>Your data never leaves your home</h3><p>Conversations, documents, preferences — everything lives on your Aspen device. In your home. Under your control.</p>
+    </div>
+    <div class="priv rv d3">
+      <svg class="priv-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12.55a11 11 0 0114.08 0"/><path d="M8.53 16.11a6 6 0 016.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/><line x1="2" y1="2" x2="22" y2="22" stroke-width="2"/></svg>
+      <h3>Works offline</h3><p>No internet? No problem. Your Aspen runs completely independently. AI that works even when the world doesn't.</p>
+    </div>
+  </div>
+</div>
+</section>
 
-// ── Elements ──
-const subtitle = document.getElementById('subtitle');
-const subtitleText = document.getElementById('subtitle-text');
-const cursor = document.getElementById('cursor');
-const navButtons = document.getElementById('nav-buttons');
-const chatPanel = document.getElementById('chat-panel');
-const chatInput = document.getElementById('chat-input');
-const chatSend = document.getElementById('chat-send');
-const micBtn = document.getElementById('mic-btn');
-const volumeBtn = document.getElementById('volume-btn');
+<!-- ═══ Economics ═══ -->
+<section class="econ-section">
+<div class="wrap cen">
+  <div class="tag rv">The math</div>
+  <h2 class="rv" style="color:var(--bg)">Pay once. Use forever.</h2>
+  <p class="sub rv">ChatGPT Plus costs $20 per person, per month. For a family of four, that's $960 a year — and your data goes to their servers. With Aspen, you pay once.</p>
+  <div class="econ-compare">
+    <div class="econ-card econ-them rv d1">
+      <div class="econ-label">Cloud AI</div>
+      <div class="econ-price" style="color:rgba(250,250,247,0.7)">$20</div>
+      <div class="econ-per">/person /month</div>
+      <div class="econ-feat">Per person pricing<br>Data on their servers<br>Usage limits<br>Increases every year<br>Cancel = lose everything</div>
+    </div>
+    <div class="econ-card econ-us rv d2">
+      <div class="econ-label">Aspen</div>
+      <div class="econ-price" style="color:var(--gold-light)">$10,000</div>
+      <div class="econ-per">once, forever</div>
+      <div class="econ-feat">Unlimited users<br>Your data never leaves your home<br>No usage limits<br>No price increases<br>You own it forever</div>
+    </div>
+  </div>
+</div>
+</section>
 
-// Figure elements for animation
-const figHead = document.querySelector('.figure-head');
-const armPalette = document.querySelector('.arm-palette');
-const armBrush = document.querySelector('.arm-brush');
+<!-- ═══ Developers ═══ -->
+<section id="developers">
+<div class="wrap">
+  <div class="cen">
+    <div class="tag rv">For developers</div>
+    <h2 class="rv">Swap your API keys.<br>Keep your privacy.</h2>
+  </div>
+  <div class="api-grid">
+    <div class="rv">
+      <h3 style="font-family:var(--serif);font-size:1.5rem;font-weight:400;margin-bottom:.8rem;">Drop-in replacement</h3>
+      <p class="api-text">Your Aspen exposes a standard OpenAI-compatible API with base_url and api_key. Swap your Anthropic or OpenAI keys for Aspen — same code, same interface, zero cost, complete privacy.</p>
+      <p class="api-text">Works with ChatGPT or Claude SDKs. Two lines of code and your entire stack runs on your own hardware, powered by localhost.</p>
+      <div class="compat"><span>Cursor</span><span>LangChain</span><span>Continue.dev</span><span>n8n</span><span>Zapier</span><span>Replit</span><span>Any OpenAI SDK</span></div>
+    </div>
+    <div class="code-block rv d1">
+<pre><span class="c-cm">// Swap two lines. That's it.</span>
+<span class="c-kw">import</span> OpenAI <span class="c-kw">from</span> <span class="c-str">'openai'</span>;
 
-// ── Speech Synthesis ──
-// Browser priority list — these are neural/enhanced voices (not the robotic defaults)
-const BROWSER_VOICES = [
-  'Google UK English Male', 'Google UK English Female', 'Google US English',
-  'Daniel (Enhanced)', 'Daniel',
-  'Arthur (Enhanced)', 'Arthur',
-  'Ava (Enhanced)', 'Ava',
-  'Karen (Enhanced)', 'Karen',
-  'Gordon (Enhanced)', 'Gordon',
-  'Moira (Enhanced)', 'Moira',
-  'Microsoft DavisNeural', 'Microsoft GuyNeural', 'Microsoft BrianNeural',
-  'Microsoft RyanNeural', 'Microsoft AnaNeural',
-  'Alex', 'Tom', 'Samantha', 'Rishi',
-];
-
-let _bestVoice = null;
-
-// Call synchronously — no await, no Promise. Returns immediately with best available voice.
-function pickVoice() {
-  if (_bestVoice) return _bestVoice;
-  const voices = window.speechSynthesis?.getVoices() || [];
-  for (const name of BROWSER_VOICES) {
-    const v = voices.find(v => v.name === name || v.name.startsWith(name));
-    if (v) { _bestVoice = v; return v; }
-  }
-  const fallback = voices.find(v => v.lang?.startsWith('en')) || voices[0] || null;
-  _bestVoice = fallback;
-  return fallback;
-}
-
-// speak() is SYNCHRONOUS — critical for Chrome's user gesture policy.
-// Chrome blocks speechSynthesis.speak() if called after an await/async operation.
-// We never fetch the TTS API before speaking; browser speech fires immediately.
-// API TTS (Azure/Google) is checked in the background and used for future lines.
-let _apiChecked = false;
-let _apiWorks   = false;
-let _pendingApi = null; // { resolve, text } for async upgrade
-
-function speak(text, onEnd) {
-  if (!voiceEnabled) { if (onEnd) onEnd(); return; }
-
-  const synth = window.speechSynthesis;
-  if (!synth) { if (onEnd) onEnd(); return; }
-
-  synth.cancel();
-
-  const utt = new SpeechSynthesisUtterance(text);
-  utt.rate   = 0.85;
-  utt.pitch  = 0.90;
-  utt.volume = 0.95;
-
-  const voice = pickVoice();
-  if (voice) utt.voice = voice;
-
-  utt.onstart = () => setTalking(true);
-  utt.onend   = () => { setTalking(false); if (onEnd) onEnd(); };
-  utt.onerror = () => { setTalking(false); if (onEnd) onEnd(); };
-
-  synth.speak(utt);
-  setTalking(true);
-
-  // Background: check once if TTS API is available for future lines
-  if (!_apiChecked) {
-    _apiChecked = true;
-    checkTTSApi();
-  }
-}
-
-async function checkTTSApi() {
-  try {
-    const r = await fetch('/api/tts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: 'test' }),
-    });
-    if (r.ok && r.headers.get('content-type')?.includes('audio')) {
-      _apiWorks = true;
-      console.log('[TTS] API available, future speech will use server TTS');
-    }
-  } catch {}
-}
-
-// For API TTS (Azure/Google): called for nav button responses after first check
-async function speakViaApi(text, onEnd) {
-  if (!_apiWorks) { speak(text, onEnd); return; }
-  try {
-    const r = await fetch('/api/tts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text }),
-    });
-    if (r.ok && r.headers.get('content-type')?.includes('audio')) {
-      const blob = await r.blob();
-      const url  = URL.createObjectURL(blob);
-      const audio = new Audio(url);
-      audio.playbackRate = 0.93;
-      setTalking(true);
-      audio.onended = () => { URL.revokeObjectURL(url); setTalking(false); if (onEnd) onEnd(); };
-      audio.onerror = () => { URL.revokeObjectURL(url); setTalking(false); speak(text, onEnd); };
-      audio.play().catch(() => { setTalking(false); speak(text, onEnd); });
-      return;
-    }
-  } catch {}
-  speak(text, onEnd);
-}
-
-// ── Text display (instant text, animated character) ──
-
-let typeTimer = null;
-let animTimer = null;
-
-function startCharacterAnim() {
-  document.querySelector('.figure-head')?.classList.add('talking');
-  document.querySelector('.arm-palette')?.classList.add('gesturing');
-  document.querySelector('.arm-brush')?.classList.add('painting');
-}
-
-function stopCharacterAnim() {
-  document.querySelector('.figure-head')?.classList.remove('talking');
-  document.querySelector('.arm-palette')?.classList.remove('gesturing');
-  document.querySelector('.arm-brush')?.classList.remove('painting');
-}
-
-function typeText(text, speed = 28, onDone) {
-  clearTimeout(typeTimer);
-  clearTimeout(animTimer);
-
-  // Animate the character while "speaking"
-  startCharacterAnim();
-
-  subtitleText.textContent = text;
-  cursor.style.display = 'none';
-  subtitle.classList.add('visible');
-
-  // Stop animation after a duration proportional to text length (min 1s, max 4s)
-  const animDuration = Math.min(4000, Math.max(1000, text.length * 30));
-  animTimer = setTimeout(() => {
-    stopCharacterAnim();
-  }, animDuration);
-
-  if (onDone) onDone();
-}
-
-// once() ensures callback fires exactly once even if both typewriter and speech call it
-function once(fn) {
-  let fired = false;
-  return (...args) => { if (!fired) { fired = true; fn?.(...args); } };
-}
-
-function showText(text, callback) {
-  const done = once(callback);
-  typeText(text, 24, done);
-  if (voiceEnabled && hasGesture) {
-    // Use API if available and verified, otherwise browser TTS (synchronous)
-    if (_apiWorks) {
-      speakViaApi(text, done);
-    } else {
-      speak(text, done);
-    }
-  }
-}
-
-// ── Scripted responses ──
-const LINES = {
-  greeting: "Bonjour. I am Monet. Not the painter... well, a little the painter. I run entirely on your machine. Free. Private. No subscription, no cloud, no middleman. Your words stay with you, always. Shall I show you around?",
-  how: "Simple as mixing paint. You download me. I scan your hardware and find the best AI model that fits. One click. And you are chatting with AI — running entirely on your own computer. No server. No cloud. Your words never leave. Just you, your machine, and the art of conversation.",
-  private: "A beautiful question. Your data is like a private sketchbook. Seen only by you. No telemetry. No cloud logging. Not even I know what you ask. Everything stays on your hardware. Always. You can inspect every line of my code on GitHub if you like.",
-  free: "Completely free. No credit card. No trial that expires. No subscription to cancel. You run the finest open-source models — Llama, Qwen, DeepSeek — on your own hardware. Keep your twenty dollars a month. Spend it on something beautiful.",
-  chat: "Ah — you wish to converse. Wonderful. Ask me anything. About how I work, how to set me up, how to use me in your code. Or simply say bonjour. I am here.",
-};
-
-// ── Greeting sequence ──
-let greeted = false;
-function startGreeting() {
-  if (greeted) return;
-  greeted = true;
-  subtitle.classList.add('visible');
-  typeText(LINES.greeting, 0, () => showNavButtons());
-}
-
-// Hear prompt removed — character animates instead
-function showHearPrompt() {}
-function enableVoiceAndSpeak() {}
-function grantGesture() { hasGesture = true; }
-
-function showNavButtons() {
-  navButtons.classList.add('visible');
-  // Animate value strip in after buttons
-  setTimeout(() => {
-    const strip = document.getElementById('value-strip');
-    if (strip) { strip.style.opacity = '1'; strip.style.transform = 'translateY(0)'; }
-  }, 200);
-}
-
-// ── Button responses ──
-function respond(key) {
-  grantGesture();
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-  const btn = document.getElementById('btn-' + key);
-  if (btn) btn.classList.add('active');
-
-  if (key === 'chat') {
-    showText(LINES.chat, () => {
-      chatPanel.classList.add('visible');
-      setTimeout(() => chatInput.focus(), 100);
-    });
-    return;
-  }
-
-  const line = LINES[key] || "I do not know that one, mon ami. Perhaps ask me something else?";
-  showText(line);
-}
-
-// ── AI Chat ──
-async function sendChat() {
-  grantGesture();
-  const msg = chatInput.value.trim();
-  if (!msg || isSpeaking) return;
-  chatInput.value = '';
-  chatSend.disabled = true;
-
-  // Show thinking
-  typeText('...', 100);
-  subtitleText.textContent = '...';
-  subtitle.classList.add('visible');
-  cursor.style.display = 'inline-block';
-
-  chatHistory.push({ role: 'user', content: msg });
-
-  try {
-    const res = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userMessage: msg, messages: chatHistory.slice(-8) }),
-    });
-    const data = await res.json();
-    const reply = data.reply || "Pardonnez-moi, I seem to have lost my words. Try again?";
-    chatHistory.push({ role: 'assistant', content: reply });
-    showText(reply);
-  } catch {
-    showText("The connection faltered, like mist on the Seine. Please try again.");
-  } finally {
-    chatSend.disabled = false;
-  }
-}
-
-// ── Voice input ──
-function toggleMic() {
-  if (!window.SpeechRecognition && !window.webkitSpeechRecognition) {
-    showText("Voice input is not supported in this browser. Please type your question.");
-    return;
-  }
-  if (isListening) {
-    recognition?.stop();
-    micBtn.classList.remove('listening');
-    isListening = false;
-    return;
-  }
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  recognition = new SR();
-  recognition.continuous = false;
-  recognition.interimResults = true;
-  recognition.lang = 'en-US';
-  recognition.onresult = (e) => {
-    const transcript = Array.from(e.results).map(r => r[0].transcript).join('');
-    chatInput.value = transcript;
-    chatPanel.classList.add('visible');
-  };
-  recognition.onend = () => {
-    isListening = false;
-    micBtn.classList.remove('listening');
-    if (chatInput.value.trim()) sendChat();
-  };
-  recognition.onerror = () => {
-    isListening = false;
-    micBtn.classList.remove('listening');
-  };
-  recognition.start();
-  isListening = true;
-  micBtn.classList.add('listening');
-  chatPanel.classList.add('visible');
-  chatInput.focus();
-  chatInput.placeholder = 'Listening...';
-  setTimeout(() => { chatInput.placeholder = 'Ask Monet anything...'; }, 8000);
-}
-
-// ── Volume toggle ──
-function toggleVoice() {
-  voiceEnabled = !voiceEnabled;
-  volumeBtn.textContent = voiceEnabled ? '🔊' : '🔇';
-  if (!voiceEnabled) {
-    window.speechSynthesis?.cancel();
-    setTalking(false);
-  }
-}
-
-// ── Download ──
-function openDownload() {
-  document.getElementById('modal').classList.add('open');
-}
-function closeModal() {
-  document.getElementById('modal').classList.remove('open');
-}
-function downloadMac(e) {
-  e.preventDefault();
-  window.location.href = MAC_URL;
-  setTimeout(closeModal, 800);
-}
-function downloadWin(e) {
-  e.preventDefault();
-  window.location.href = WIN_URL;
-  setTimeout(closeModal, 800);
-}
-
-// ── Keyboard ──
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') closeModal();
+<span class="c-kw">const</span> ai = <span class="c-kw">new</span> <span class="c-fn">OpenAI</span>({
+  <span class="c-fn">baseURL</span>: <span class="c-str">'https://my.runonaspen.com/v1'</span>,
+  <span class="c-fn">apiKey</span>:  <span class="c-str">'sk-aspen-...'</span>,
 });
 
-// ── Visitor counter ──
-(async () => {
-  try {
-    const r = await fetch('/api/visits', { method: 'POST' });
-    if (r.ok) {
-      const { count } = await r.json();
-      const el = document.getElementById('visit-counter');
-      if (el && count) {
-        el.textContent = count.toLocaleString() + ' visitors';
-        setTimeout(() => { el.style.opacity = '1'; }, 1800);
-        setTimeout(() => { el.style.opacity = '0'; }, 6000);
-      }
-    }
-  } catch {}
-})();
-
-// ── Init ──
-// Trigger voice list loading by calling getVoices() — some browsers need this call
-// to start async loading before the user interacts.
-if (window.speechSynthesis) {
-  window.speechSynthesis.getVoices(); // kick off loading
-  window.speechSynthesis.addEventListener('voiceschanged', () => {
-    _bestVoice = null; // reset so pickVoice() re-selects with full list
-    pickVoice();
-  });
-}
-setTimeout(startGreeting, 600);
-</script>
-
-<!-- Visitor counter -->
-<div class="visit-counter" id="visit-counter"></div>
-
-<!-- SEO content — screen-reader accessible, not visible in character UI -->
-<div aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden">
-  <h1>Monet — The Free LLM. Free AI for Mac and Windows.</h1>
-  <h2>Replace ChatGPT, Claude, and Gemini — keep your $20/month</h2>
-  <p>Zero Setup. Download, open, chat. No terminal. No configuration.</p>
-  <p>Totally Private. 100% private. Zero data collection. No telemetry. No cloud required. Your conversations never leave your machine.</p>
-  <p>Drop-In replacement. Change two lines of code. OpenAI-compatible API. Works with LangChain, Cursor, Continue.dev, n8n, Zapier.</p>
-  <p>Open source models from Meta AI (Llama), Alibaba (Qwen), Google (Gemma), DeepSeek. Free forever. No subscription. Save $240/year.</p>
-  <p>Public URL via Cloudflare. Use from phone, tablet, any device. API key authentication. sk-monet prefix.</p>
-  <code>base_url="https://your-id.trycloudflare.com/v1"
-api_key="sk-monet-..."
-from openai import OpenAI
-client = OpenAI(base_url=..., api_key=...)
-</code>
-  <p>How it works: 1. Download Monet. 2. Pick your model. 3. Start chatting — from anywhere.</p>
-  <a href="https://github.com/spideysense/OpenLLM">Fork on GitHub</a>
-  <p>MIT License. Open source. Free forever.</p>
+<span class="c-kw">const</span> r = <span class="c-kw">await</span> ai.chat.completions.<span class="c-fn">create</span>({
+  <span class="c-fn">model</span>: <span class="c-str">'qwen2.5:7b'</span>,
+  <span class="c-fn">messages</span>: [{ <span class="c-fn">role</span>: <span class="c-str">'user'</span>,
+    <span class="c-fn">content</span>: <span class="c-str">'Hello'</span> }],
+});
+<span class="c-cm">// $0.00 per token. Your hardware.</span></pre>
+    </div>
+  </div>
 </div>
+</section>
+
+<!-- ═══ CTA ═══ -->
+<section class="cta-section" id="order">
+<div class="wrap cen">
+  <div class="tag rv">Order now</div>
+  <h2 class="rv">The last AI purchase<br>you'll ever make.</h2>
+  <p class="sub rv">One machine. One price. Your whole family. Your whole business. Private, powerful AI — running on your machine in your home, forever.</p>
+  <div class="cta-btns rv">
+    <a href="#" class="btn btn-gold btn-lg" id="download-mac">Order Aspen — $10,000</a>
+    <a href="#" class="btn btn-s btn-lg" id="download-win">Talk to us</a>
+  </div>
+  <p style="margin-top:1rem;font-size:.78rem;color:var(--text-3);">Free shipping · 30-day returns · MIT License · <a href="https://github.com/spideysense/OpenLLM/releases/latest/download/Aspen-mac.dmg" style="color:inherit">Aspen-mac.dmg</a> &amp; <a href="https://github.com/spideysense/OpenLLM/releases/latest/download/Aspen-win.exe" style="color:inherit">Aspen-win.exe</a> app included</p>
+</div>
+</section>
+
+<!-- Footer -->
+<footer><div class="wrap"><div class="ft">
+  <span class="ft-c">&copy; 2025 Aspen. Open source. MIT License.</span>
+  <ul class="ft-l">
+    <li><a href="https://github.com/spideysense/OpenLLM">GitHub</a></li>
+    <li><a href="#privacy">Privacy</a></li>
+    <li><a href="#developers">API</a></li>
+    <li><a href="#order">Order</a></li>
+  </ul>
+</div></div></footer>
+
+<script>
+const o=new IntersectionObserver(e=>{e.forEach(x=>{if(x.isIntersecting){x.target.classList.add('vis');o.unobserve(x.target);}});},{threshold:.1,rootMargin:'0px 0px -30px 0px'});
+document.querySelectorAll('.rv').forEach(el=>o.observe(el));
+(function(){const u=navigator.userAgent;const m=/Mac/.test(u);const w=/Win/.test(u);if(m)document.querySelectorAll('#download-win').forEach(b=>b.style.opacity='0.6');if(w)document.querySelectorAll('#download-mac').forEach(b=>b.style.opacity='0.6');})();
+</script>
 </body>
 </html>

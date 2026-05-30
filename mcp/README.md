@@ -1,4 +1,4 @@
-# LLM Bear MCP Server
+# Aspen MCP Server
 
 Use your local AI models from any MCP-compatible agent — Claude Desktop, Cursor, Continue.dev, Cline, and more.
 
@@ -16,7 +16,7 @@ This MCP server exposes 7 tools that let external agents interact with your loca
 | `model_info` | Get detailed info about a specific model |
 | `system_info` | Check hardware, RAM, and service status |
 
-Plus 3 resources: `llmbear://models`, `llmbear://system`, `llmbear://catalog`
+Plus 3 resources: `aspen://models`, `aspen://system`, `aspen://catalog`
 
 ## Quick Setup
 
@@ -27,7 +27,7 @@ Add to `~/.claude/claude_desktop_config.json`:
 ```json
 {
   "mcpServers": {
-    "llmbear": {
+    "aspen": {
       "command": "node",
       "args": ["/path/to/OpenLLM/mcp/index.js"]
     }
@@ -42,7 +42,7 @@ Add to `.cursor/mcp.json` in your project:
 ```json
 {
   "mcpServers": {
-    "llmbear": {
+    "aspen": {
       "command": "node",
       "args": ["/path/to/OpenLLM/mcp/index.js"]
     }
@@ -53,7 +53,7 @@ Add to `.cursor/mcp.json` in your project:
 ### Claude Code
 
 ```bash
-claude mcp add llmbear node /path/to/OpenLLM/mcp/index.js
+claude mcp add aspen node /path/to/OpenLLM/mcp/index.js
 ```
 
 ### Any MCP client
@@ -69,14 +69,14 @@ The server communicates over stdio using the Model Context Protocol.
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `OLLAMA_HOST` | `http://127.0.0.1:11434` | Ollama API endpoint |
-| `LLMBEAR_GATEWAY` | `http://127.0.0.1:4000` | LLM Bear gateway endpoint |
+| `LLMBEAR_GATEWAY` | `http://127.0.0.1:4000` | Aspen gateway endpoint |
 | `LLMBEAR_API_KEY` | (empty) | API key for gateway auth |
 | `LLMBEAR_MODEL` | (empty) | Default model for chat tool |
 
 ## Prerequisites
 
 - Node.js 18+
-- Ollama installed and running (or LLM Bear app open)
+- Ollama installed and running (or Aspen app open)
 - At least one model installed (`ollama pull qwen2.5:7b`)
 
 ## Example Usage

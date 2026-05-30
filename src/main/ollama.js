@@ -7,7 +7,7 @@ const http = require('http');
 const os = require('os');
 
 const OLLAMA_HOST = 'http://127.0.0.1:11434';
-const MONET_DIR = path.join(os.homedir(), '.monet');
+const MONET_DIR = path.join(os.homedir(), '.aspen');
 const BIN_DIR = path.join(MONET_DIR, 'bin');
 let chatController = null;
 let ollamaProcess = null;
@@ -106,7 +106,7 @@ async function downloadOllama(notify) {
     // Find the ollama binary in what we extracted
     // Could be at: bin/ollama, ollama, or nested
     const searchPaths = [
-      destPath, // ~/.monet/bin/ollama (ideal)
+      destPath, // ~/.aspen/bin/ollama (ideal)
       path.join(BIN_DIR, 'bin', 'ollama'), // Some tgz nest in bin/
       path.join(BIN_DIR, `ollama-darwin`), // Raw name from archive
       path.join(BIN_DIR, `ollama-linux-amd64`),
@@ -160,7 +160,7 @@ function downloadFileWithProgress(url, dest, notify) {
     const follow = (url, redirects = 0) => {
       if (redirects > 10) return reject(new Error('Too many redirects'));
       const mod = url.startsWith('https') ? https : http;
-      mod.get(url, { headers: { 'User-Agent': 'Monet/1.0' } }, (res) => {
+      mod.get(url, { headers: { 'User-Agent': 'Aspen/1.0' } }, (res) => {
         if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
           return follow(res.headers.location, redirects + 1);
         }
@@ -241,7 +241,7 @@ async function ensureRunning(onProgress) {
       return {
         success: false,
         error: 'download_failed',
-        message: 'Could not download AI engine. Check your internet connection and restart Monet.',
+        message: 'Could not download AI engine. Check your internet connection and restart Aspen.',
       };
     }
   }
@@ -250,7 +250,7 @@ async function ensureRunning(onProgress) {
     return {
       success: false,
       error: 'not_found',
-      message: 'Could not set up AI engine. Please restart Monet.',
+      message: 'Could not set up AI engine. Please restart Aspen.',
     };
   }
 
@@ -282,7 +282,7 @@ async function ensureRunning(onProgress) {
         resolve({
           success: false,
           error: 'start_failed',
-          message: 'Could not start AI engine. Please restart Monet.',
+          message: 'Could not start AI engine. Please restart Aspen.',
         });
       });
 
@@ -299,7 +299,7 @@ async function ensureRunning(onProgress) {
           resolve({
             success: false,
             error: 'timeout',
-            message: 'AI engine took too long to start. Please restart Monet.',
+            message: 'AI engine took too long to start. Please restart Aspen.',
           });
         }
       }, 500);

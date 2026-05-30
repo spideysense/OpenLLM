@@ -34,17 +34,17 @@ OpenLLM/
 │   │   └── index.js   # IPC bridge (contextBridge) — runs in isolated context
 │   └── renderer/      # React UI (browser context, no Node.js)
 │       ├── App.jsx    # Router, state management, layout
-│       ├── styles.css # LLM Bear global theme
+│       ├── styles.css # Aspen global theme
 │       ├── components/
 │       └── pages/
 ├── registry/
 │   └── models.json    # Curated model registry + alias defaults
 ├── cloud/             # Cloud proxy + billing backend (Vercel)
 ├── mcp/               # MCP server for AI tool access
-├── site/              # Landing page (llmbear.com)
+├── site/              # Landing page (aspen.com)
 ├── tests/             # Test suite (Vitest)
 ├── PLAN.md            # Full project plan
-└── DESIGN.md          # LLM Bear design spec
+└── DESIGN.md          # Aspen design spec
 ```
 
 ---

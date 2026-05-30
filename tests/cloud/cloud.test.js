@@ -58,11 +58,11 @@ describe('Cloud: Database layer', () => {
 
   it('should hash API keys with SHA-256', () => {
     expect(dbSrc).toContain('sha256');
-    expect(dbSrc).toContain("'sk-monet-'");
+    expect(dbSrc).toContain("'sk-aspen-'");
   });
 
   it('should generate API keys with sk-bear- prefix', () => {
-    expect(dbSrc).toContain("'sk-monet-'");
+    expect(dbSrc).toContain("'sk-aspen-'");
     expect(dbSrc).toContain('randomBytes');
     expect(dbSrc).toContain('base64url');
   });
@@ -312,7 +312,7 @@ describe('Cloud: Server routes', () => {
 
   it('should have health check', () => {
     expect(serverSrc).toContain("'/health'");
-    expect(serverSrc).toContain('monet');
+    expect(serverSrc).toContain('aspen');
   });
 
   it('should export app for Vercel serverless', () => {

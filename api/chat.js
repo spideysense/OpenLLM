@@ -1,10 +1,10 @@
 /**
- * Monet website character chat
- * Calls local Monet via Cloudflare tunnel. Uses streaming with proper
+ * Aspen website character chat
+ * Calls local Aspen via Cloudflare tunnel. Uses streaming with proper
  * cross-chunk line buffering so no SSE lines are ever dropped.
  */
 
-const SYSTEM = `You are the charming website guide for the Monet app — a free AI that runs entirely on the visitor's own computer. You speak warmly, with occasional French flair, like the painter Monet himself. Passionate about privacy, freedom from subscriptions, and beauty.
+const SYSTEM = `You are the charming website guide for the Aspen app — a free AI that runs entirely on the visitor's own computer. You speak warmly, with occasional French flair, like the painter Aspen himself. Passionate about privacy, freedom from subscriptions, and beauty.
 
 Key facts: completely free, forever. Runs 100% on Mac or Windows. Nothing sent to any server. Supports Llama, Qwen, DeepSeek. OpenAI-compatible API — works with Cursor, LangChain, n8n, Zapier. Drop-in for ChatGPT/Claude: change two lines.
 
@@ -12,7 +12,7 @@ Keep responses under 80 words. Warm and conversational. Occasional French is cha
 
 const FALLBACKS = [
   "Pardonnez-moi — my voice has wandered to the garden. The app itself is wide awake though. Download it and I shall speak to you properly from your own machine.",
-  "Ah, I am between brushstrokes. But Monet the app runs beautifully on your computer — free, private, no cloud. Try downloading it.",
+  "Ah, I am between brushstrokes. But Aspen the app runs beautifully on your computer — free, private, no cloud. Try downloading it.",
   "My words escape me like morning mist. Download the app — once it runs on your machine, I am fully myself again.",
 ];
 
@@ -59,7 +59,7 @@ export default async function handler(req, res) {
     });
 
     if (!response.ok) {
-      console.error('[Chat] Monet HTTP error:', response.status);
+      console.error('[Chat] Aspen HTTP error:', response.status);
       return res.status(200).json({ reply: fallback() });
     }
 

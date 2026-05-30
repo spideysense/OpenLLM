@@ -1,8 +1,8 @@
-# 🐻 LLM Bear
+# 🐻 Aspen
 
 **Run the best open source AI locally. No API keys. No subscriptions. No terminal.**
 
-LLM Bear is a desktop app for Mac and Windows that gives anyone one-click access to the world's best open source language models. Friendly coding bear mascot, warm playful aesthetic, zero-jargon approach.
+Aspen is a desktop app for Mac and Windows that gives anyone one-click access to the world's best open source language models. Friendly coding bear mascot, warm playful aesthetic, zero-jargon approach.
 
 ## Quick Start
 
@@ -31,7 +31,7 @@ npm run build:win
 - **One-click install** — Download, open, chat. The bear handles everything.
 - **Smart model selection** — Detects your hardware and recommends the best model automatically.
 - **Auto-upgrade** — When a better model drops, the bear tells you and offers a one-click switch.
-- **Replace OpenAI / Claude** — Generate API keys (`sk-llmbear-...`), alias `gpt-4` to your local model, drop into existing code by changing two lines.
+- **Replace OpenAI / Claude** — Generate API keys (`sk-aspen-...`), alias `gpt-4` to your local model, drop into existing code by changing two lines.
 - **OpenAI-compatible API** — Gateway on `localhost:4000` works with LangChain, Cursor, n8n, and anything OpenAI-compatible.
 - **100% local** — Your data never leaves your machine. The bear keeps it in the cave.
 
@@ -43,7 +43,7 @@ npm run build:win
                     port 4000
                          │
               ┌──────────┴──────────┐
-              │   LLM Bear Gateway  │
+              │   Aspen Gateway  │
               │  Auth · Aliasing    │
               │  gpt-4 → qwen2.5   │
               └──────────┬──────────┘
@@ -81,7 +81,7 @@ OpenLLM/
 │       ├── index.html            # HTML entry
 │       ├── main.jsx              # React root
 │       ├── App.jsx               # Router, state management, layout
-│       ├── styles.css             # LLM Bear global theme — warm, playful, rounded
+│       ├── styles.css             # Aspen global theme — warm, playful, rounded
 │       ├── components/
 │       │   └── Sidebar.jsx       # Navigation sidebar
 │       └── pages/
@@ -92,9 +92,9 @@ OpenLLM/
 │           ├── APIKeys.jsx       # Generate + manage API keys
 │           └── Settings.jsx      # Aliases, system info, preferences
 ├── site/
-│   └── index.html                # Landing page (llmbear.com)
+│   └── index.html                # Landing page (aspen.com)
 ├── PLAN.md                       # Full project plan
-├── DESIGN.md                     # LLM Bear design spec
+├── DESIGN.md                     # Aspen design spec
 └── .github/workflows/
     └── build.yml                 # CI/CD for Mac .dmg + Windows .exe
 ```

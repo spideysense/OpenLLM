@@ -1,8 +1,8 @@
 /**
- * Tunnel Tests — Cloudflare Quick Tunnel
+ * Tunnel Tests — Cloudflare Named Tunnel
  *
- * STORY: User opens Monet → app downloads cloudflared → starts tunnel
- *        → gets free public URL → AI accessible from anywhere
+ * STORY: User opens Aspen → app downloads cloudflared → provisions permanent tunnel
+ *        → gets stable URL forever → AI accessible from anywhere
  * STORY: Auto-reconnect on disconnect, auto-download binary
  * STORY: IPC bridge exposes tunnel status to the renderer UI
  */
@@ -20,8 +20,8 @@ const preloadSrc = fs.readFileSync(path.resolve('src/preload/index.js'), 'utf8')
 // ═══════════════════════════════════════════════════
 
 describe('Tunnel: Cloudflared binary', () => {
-  it('should store binary in ~/.monet/bin/', () => {
-    expect(clientSrc).toContain('.monet');
+  it('should store binary in ~/.aspen/bin/', () => {
+    expect(clientSrc).toContain('.aspen');
     expect(clientSrc).toContain('BIN_DIR');
   });
 
@@ -49,7 +49,6 @@ describe('Tunnel: Cloudflared binary', () => {
   });
 
   it('should download arch-specific tgz for macOS', () => {
-    // cloudflared now ships as .tgz archives, not raw binaries
     expect(clientSrc).toContain('cloudflared-darwin-arm64.tgz');
     expect(clientSrc).toContain('cloudflared-darwin-amd64.tgz');
   });
@@ -75,15 +74,91 @@ describe('Tunnel: Cloudflared binary', () => {
 });
 
 // ═══════════════════════════════════════════════════
-// Tunnel Process
+// Named Tunnel Provisioning
 // ═══════════════════════════════════════════════════
 
-describe('Tunnel: Cloudflare process', () => {
-  it('should spawn cloudflared with correct args', () => {
+describe('Tunnel: Named tunnel provisioning', () => {
+  it('should provision via Aspen API on first launch', () => {
+    expect(clientSrc).toContain('ensureProvisioned');
+    expect(clientSrc).toContain('PROVISION_URL');
+  });
+
+  it('should store tunnel token in electron-store', () => {
+    expect(clientSrc).toContain("store.set('tunnelToken'");
+    expect(clientSrc).toContain("store.set('tunnelUrl'");
+  });
+
+  it('should skip provisioning if already provisioned', () => {
+    expect(clientSrc).toContain("store.get('tunnelToken')");
+    expect(clientSrc).toContain("store.get('tunnelUrl')");
+    expect(clientSrc).toContain('Already provisioned');
+  });
+
+  it('should send provision secret in request', () => {
+    expect(clientSrc).toContain('X-Aspen-Secret');
+    expect(clientSrc).toContain('PROVISION_SECRET');
+  });
+
+  it('should report provisioning status to UI', () => {
+    expect(clientSrc).toContain("'provisioning'");
+  });
+
+  it('should handle auth errors by clearing stored credentials', () => {
+    expect(clientSrc).toContain("store.delete('tunnelToken')");
+    expect(clientSrc).toContain("store.delete('tunnelUrl')");
+  });
+});
+
+describe('Tunnel: Provisioning API', () => {
+  const provisionSrc = fs.readFileSync(path.resolve('site/api/tunnel-provision.js'), 'utf8');
+
+  it('should create tunnel via Cloudflare API', () => {
+    expect(provisionSrc).toContain('cfd_tunnel');
+    expect(provisionSrc).toContain('config_src');
+  });
+
+  it('should configure ingress for localhost:4000', () => {
+    expect(provisionSrc).toContain('localhost:4000');
+    expect(provisionSrc).toContain('ingress');
+    expect(provisionSrc).toContain('http_status:404');
+  });
+
+  it('should create DNS CNAME record', () => {
+    expect(provisionSrc).toContain('CNAME');
+    expect(provisionSrc).toContain('cfargotunnel.com');
+    expect(provisionSrc).toContain('dns_records');
+  });
+
+  it('should return tunnel token and stable URL', () => {
+    expect(provisionSrc).toContain('tunnelToken');
+    expect(provisionSrc).toContain('url');
+    expect(provisionSrc).toContain('hostname');
+  });
+
+  it('should verify provision secret', () => {
+    expect(provisionSrc).toContain('PROVISION_SECRET');
+    expect(provisionSrc).toContain('Invalid provision secret');
+  });
+
+  it('should clean up tunnel on failure', () => {
+    expect(provisionSrc).toContain("method: 'DELETE'");
+  });
+
+  it('should generate unique subdomains', () => {
+    expect(provisionSrc).toContain('generateSubdomain');
+  });
+});
+
+// ═══════════════════════════════════════════════════
+// Tunnel Process — Named Tunnel
+// ═══════════════════════════════════════════════════
+
+describe('Tunnel: Cloudflare named tunnel process', () => {
+  it('should spawn cloudflared with tunnel run --token', () => {
     expect(clientSrc).toContain('spawn');
     expect(clientSrc).toContain("'tunnel'");
-    expect(clientSrc).toContain("'--url'");
-    expect(clientSrc).toContain('LOCAL_API');
+    expect(clientSrc).toContain("'run'");
+    expect(clientSrc).toContain("'--token'");
     expect(clientSrc).toContain("'--no-autoupdate'");
   });
 
@@ -91,12 +166,11 @@ describe('Tunnel: Cloudflare process', () => {
     expect(clientSrc).toContain('http://localhost:4000');
   });
 
-  it('should parse trycloudflare.com URL from output', () => {
-    expect(clientSrc).toContain('trycloudflare.com');
-    expect(clientSrc).toContain('.match(');
+  it('should detect connection via "Registered tunnel connection"', () => {
+    expect(clientSrc).toContain('Registered tunnel connection');
   });
 
-  it('should parse URL from both stdout and stderr', () => {
+  it('should parse output from both stdout and stderr', () => {
     expect(clientSrc).toContain("proc.stderr.on('data'");
     expect(clientSrc).toContain("proc.stdout.on('data'");
   });
@@ -122,7 +196,7 @@ describe('Tunnel: Cloudflare process', () => {
     expect(clientSrc).toContain("proc.on('close'");
   });
 
-  it('should expose start/stop/getPublicUrl/isConnected (simplified tunnel)', () => {
+  it('should expose start/stop/getPublicUrl/isConnected', () => {
     expect(clientSrc).toContain('module.exports');
     expect(clientSrc).toContain('start,');
     expect(clientSrc).toContain('stop,');
@@ -130,131 +204,47 @@ describe('Tunnel: Cloudflare process', () => {
     expect(clientSrc).toContain('isConnected');
   });
 
-  it('should report status: connecting, connected, disconnected, reconnecting, error', () => {
+  it('should report status: connecting, connected, disconnected, reconnecting, error, provisioning', () => {
     expect(clientSrc).toContain("'connecting'");
     expect(clientSrc).toContain("'connected'");
     expect(clientSrc).toContain("'disconnected'");
     expect(clientSrc).toContain("'reconnecting'");
     expect(clientSrc).toContain("'error'");
+    expect(clientSrc).toContain("'provisioning'");
+  });
+
+  it('should timeout and restart if not connected in 30s', () => {
+    expect(clientSrc).toContain('30000');
+    expect(clientSrc).toContain('Connection timeout');
   });
 });
 
 // ═══════════════════════════════════════════════════
-// Stable URL — registry + heartbeat
+// Legacy Relay (still in codebase, not used by named tunnels)
 // ═══════════════════════════════════════════════════
 
-describe('Tunnel: Stable URL registry (cloud)', () => {
+describe('Tunnel: Legacy relay (cloud)', () => {
   const registrySrc = fs.readFileSync(path.resolve('cloud/tunnel-registry.js'), 'utf8');
   const serverSrc = fs.readFileSync(path.resolve('cloud/server.js'), 'utf8');
 
   it('should create tunnels table in SQLite', () => {
     expect(registrySrc).toContain('CREATE TABLE IF NOT EXISTS tunnels');
-    expect(registrySrc).toContain('tunnel_id');
-    expect(registrySrc).toContain('cloudflare_url');
-    expect(registrySrc).toContain('tunnel_secret_hash');
-  });
-
-  it('should generate short tunnel IDs (6 chars)', () => {
-    expect(registrySrc).toContain('generateTunnelId');
-    expect(registrySrc).toContain('6');
-  });
-
-  it('should hash tunnel secrets with SHA-256', () => {
-    expect(registrySrc).toContain('sha256');
-    expect(registrySrc).toContain('hashSecret');
-  });
-
-  it('should verify secrets on heartbeat', () => {
-    expect(registrySrc).toContain('verifySecret');
-    expect(registrySrc).toContain('invalid_secret');
-  });
-
-  it('should validate Cloudflare URL format', () => {
-    expect(registrySrc).toContain('https://');
-    expect(registrySrc).toContain('invalid_url');
-  });
-
-  it('should track last heartbeat timestamp', () => {
-    expect(registrySrc).toContain('last_heartbeat');
-    expect(registrySrc).toContain("datetime('now')");
-  });
-
-  it('should cleanup stale tunnels after 30 days', () => {
-    expect(registrySrc).toContain('cleanup');
-    expect(registrySrc).toContain('-30 days');
   });
 
   it('should have POST /tunnel/register route', () => {
     expect(serverSrc).toContain("'/tunnel/register'");
-    expect(serverSrc).toContain('tunnelRegistry.register');
-  });
-
-  it('should have POST /tunnel/heartbeat route', () => {
-    expect(serverSrc).toContain("'/tunnel/heartbeat'");
-    expect(serverSrc).toContain('tunnelRegistry.heartbeat');
   });
 
   it('should have proxy route at /t/:tunnelId/*', () => {
     expect(serverSrc).toContain("'/t/:tunnelId/*'");
-    expect(serverSrc).toContain('tunnelRegistry.resolve');
-  });
-
-  it('should detect stale tunnels (no heartbeat in 5 min)', () => {
-    expect(serverSrc).toContain('staleMinutes');
-    expect(serverSrc).toContain('tunnel_offline');
-  });
-
-  it('should proxy requests to current Cloudflare URL', () => {
-    expect(serverSrc).toContain('proxyModule.request');
-    expect(serverSrc).toContain('cloudflareUrl');
-  });
-
-  it('should handle CORS preflight for tunnel proxy', () => {
-    expect(serverSrc).toContain("app.options('/t/:tunnelId/*'");
-  });
-});
-
-describe('Tunnel: Client stable URL', () => {
-  it.skip('should register with cloud server on first run — stable URL backend removed, cloudflare URL used directly', () => {
-    expect(clientSrc).toContain('ensureRegistered');
-    expect(clientSrc).toContain('/tunnel/register');
-    expect(clientSrc).toContain("store.set('tunnelId'");
-    expect(clientSrc).toContain("store.set('tunnelSecret'");
-  });
-
-  it.skip('should send heartbeat with Cloudflare URL — stable URL backend removed, cloudflare URL used directly', () => {
-    expect(clientSrc).toContain('sendHeartbeat');
-    expect(clientSrc).toContain('/tunnel/heartbeat');
-    expect(clientSrc).toContain('tunnelId');
-    expect(clientSrc).toContain('tunnelSecret');
-    expect(clientSrc).toContain('cloudflareUrl');
-  });
-
-  it.skip('should send heartbeat every 60 seconds — stable URL backend removed, cloudflare URL used directly', () => {
-    expect(clientSrc).toContain('HEARTBEAT_INTERVAL');
-    expect(clientSrc).toContain('60000');
-    expect(clientSrc).toContain('startHeartbeatLoop');
-  });
-
-  it.skip('should save stable URL to store — stable URL backend removed, cloudflare URL used directly', () => {
-    expect(clientSrc).toContain("store.set('stableUrl'");
-  });
-
-  it.skip('should fall back to Cloudflare URL if heartbeat fails — stable URL backend removed, cloudflare URL used directly', () => {
-    expect(clientSrc).toContain('publicUrl = cfUrl');
-  });
-
-  it.skip('should configure registry URL via env var — stable URL backend removed, cloudflare URL used directly', () => {
-    expect(clientSrc).toContain('LLMBEAR_REGISTRY');
-    expect(clientSrc).toContain('api.getmonet.com');
   });
 });
 
 // ═══════════════════════════════════════════════════
-// No Custom Relay Server
+// Zero Infrastructure for Users
 // ═══════════════════════════════════════════════════
 
-describe('Tunnel: Zero infrastructure', () => {
+describe('Tunnel: Zero infrastructure for users', () => {
   it('should not use WebSocket relay', () => {
     expect(clientSrc).not.toContain('WebSocketServer');
     expect(clientSrc).not.toContain('wss://');
@@ -269,9 +259,8 @@ describe('Tunnel: Zero infrastructure', () => {
     expect(fs.existsSync(path.resolve('tunnel/relay/server.js'))).toBe(false);
   });
 
-  it('should use Cloudflare — zero cost to developer', () => {
+  it('should use cloudflared', () => {
     expect(clientSrc).toContain('cloudflared');
-    expect(clientSrc).toContain('trycloudflare.com');
   });
 });
 
@@ -286,7 +275,6 @@ describe('Tunnel: Electron integration', () => {
 
   it('should start tunnel for ALL users (no plan gating)', () => {
     expect(mainSrc).toContain('tunnel.start');
-    // Should NOT have plan gating
     expect(mainSrc).not.toContain("plan !== 'free'");
     expect(mainSrc).not.toContain('gated: true');
   });
@@ -330,24 +318,6 @@ describe('Tunnel: Preload bridge', () => {
 
 describe('Tunnel: Landing page', () => {
   const html = fs.readFileSync(path.resolve('site/index.html'), 'utf8');
-
-  it.skip('should show stable URL in code examples — site redesigned with character UI', () => {
-    expect(html).toContain('api.getmonet.com/t/');
-  });
-
-  it.skip('should list public URL as a Cave Bear feature — plan names changed', () => {
-    // Find the pricing section by looking for the pricing features list near "Cave Bear"
-    const pricingSection = html.slice(html.indexOf('id="pricing"'));
-    const caveBearStart = pricingSection.indexOf('Cave Bear');
-    const cloudBearStart = pricingSection.indexOf('Cloud Bear');
-    const caveBearSection = pricingSection.slice(caveBearStart, cloudBearStart);
-    expect(caveBearSection).toContain('Public URL');
-    expect(caveBearSection).not.toContain('No public URL');
-  });
-
-  it.skip('should describe permanent URL in privacy note — site redesigned', () => {
-    expect(html).toContain('permanent URL');
-  });
 
   it('should not mention Fly.io', () => {
     expect(html.toLowerCase()).not.toContain('fly.io');

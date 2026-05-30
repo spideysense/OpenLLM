@@ -1,17 +1,17 @@
 /**
- * Monet website character chat
+ * Aspen website character chat
  *
- * Calls the user's local Monet instance via its Cloudflare public URL.
- * Uses the OpenAI-compatible API that Monet already exposes.
+ * Calls the user's local Aspen instance via its Cloudflare public URL.
+ * Uses the OpenAI-compatible API that Aspen already exposes.
  *
  * Vercel env vars needed:
  *   MONET_BASE_URL  — your Cloudflare tunnel URL, e.g. https://abc-xyz.trycloudflare.com
- *   MONET_API_KEY   — your Monet API key from the app's API Keys page
+ *   MONET_API_KEY   — your Aspen API key from the app's API Keys page
  *
- * The Monet app auto-updates MONET_BASE_URL in Vercel on startup (see src/main/tunnel.js).
+ * The Aspen app auto-updates MONET_BASE_URL in Vercel on startup (see src/main/tunnel.js).
  */
 
-const SYSTEM = `You are the charming website guide for the Monet app — a free AI that runs entirely on the visitor's own computer. You speak warmly, with occasional French flair, like the painter Monet himself. You are enthusiastic about privacy, freedom from subscriptions, and the beauty of local AI.
+const SYSTEM = `You are the charming website guide for the Aspen app — a free AI that runs entirely on the visitor's own computer. You speak warmly, with occasional French flair, like the painter Aspen himself. You are enthusiastic about privacy, freedom from subscriptions, and the beauty of local AI.
 
 Key facts about the app:
 - Completely free, forever. No subscription, no credit card.
@@ -23,10 +23,10 @@ Key facts about the app:
 
 Keep responses under 80 words. Be warm and conversational, not salesy. Occasional French is charming.`;
 
-// In-character fallbacks when local Monet isn't reachable
+// In-character fallbacks when local Aspen isn't reachable
 const FALLBACKS = [
   "Pardonnez-moi — it seems my voice has wandered off to the garden. But the app itself is wide awake. Download it, and I shall speak to you properly from your own machine.",
-  "Ah, I am between brushstrokes just now. But Monet the app runs beautifully on your computer — free, private, no cloud needed. Try downloading it.",
+  "Ah, I am between brushstrokes just now. But Aspen the app runs beautifully on your computer — free, private, no cloud needed. Try downloading it.",
   "My words escape me at this moment, like morning mist. Do download the app — once it runs on your machine, I am fully myself again.",
 ];
 
@@ -74,7 +74,7 @@ export default async function handler(req, res) {
     });
 
     if (!response.ok) {
-      console.error('[Chat] Monet instance error:', response.status);
+      console.error('[Chat] Aspen instance error:', response.status);
       return res.status(200).json({ reply: fallback() });
     }
 
@@ -84,7 +84,7 @@ export default async function handler(req, res) {
     res.setHeader('Cache-Control', 'no-store');
     return res.status(200).json({ reply });
   } catch (err) {
-    console.error('[Chat] Could not reach Monet instance:', err.message);
+    console.error('[Chat] Could not reach Aspen instance:', err.message);
     return res.status(200).json({ reply: fallback() });
   }
 }

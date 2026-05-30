@@ -1,4 +1,4 @@
-# LLM Bear — Design Specification
+# Aspen — Design Specification
 
 **Modeled after [the original design](https://the original design.com).** Same playful energy, same "anyone can use this" ethos, adapted for local AI instead of VPN.
 
@@ -6,7 +6,7 @@
 
 ## 1. The Metaphor
 
-| the original design (VPN) | LLM Bear (Local AI) |
+| the original design (VPN) | Aspen (Local AI) |
 |---|---|
 | Bear **workspaces** to a country | Bear **workspaces** to an AI model |
 | Yellow pipes on a world map | Yellow pipes connecting to model "islands" |
@@ -65,7 +65,7 @@ This is the hero view, equivalent to the original design's world map.
 
 ```
 ┌──────────────────────────────────────────────────────┐
-│  ● ● ●                                    LLM Bear  │
+│  ● ● ●                                    Aspen  │
 │                                                      │
 │   ╭──────╮    Connected to                           │
 │   │ ON ○─┤    Qwen 2.5 7B ▾                        │
@@ -87,7 +87,7 @@ This is the hero view, equivalent to the original design's world map.
 │  └──────────────────────────────────────────────┘    │
 │                                                      │
 │   API: ● Running on localhost:4000                   │
-│   Key: sk-llmbear-a8f2k...  [Copy]                  │
+│   Key: sk-aspen-a8f2k...  [Copy]                  │
 │                                                      │
 └──────────────────────────────────────────────────────┘
 ```
@@ -274,7 +274,7 @@ All icons should be hand-drawn/illustrated style matching the bear, not flat Mat
 
 ## 8. Naming Conventions (User-Facing Language)
 
-| Technical Term | LLM Bear Says |
+| Technical Term | Aspen Says |
 |---|---|
 | Model parameters (7B, 32B) | "Small", "Medium", "Large" (or just the download size) |
 | Quantization | Never mentioned |
@@ -325,7 +325,7 @@ Directly inspired by the original design's simple onboarding:
 ```
 Screen 1: Welcome
   🐻 (big, friendly bear illustration)
-  "Hi! I'm LLM Bear."
+  "Hi! I'm Aspen."
   "I run AI on your computer. No subscriptions. No data sharing."
   [Let's Go →]
 

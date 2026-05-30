@@ -1,10 +1,10 @@
 {
-  "name": "@llmbear/mcp-server",
+  "name": "@aspen/mcp-server",
   "version": "0.1.0",
-  "description": "MCP server for LLM Bear — lets AI agents use your local models",
+  "description": "MCP server for Aspen — lets AI agents use your local models",
   "main": "index.js",
   "bin": {
-    "llmbear-mcp": "./index.js"
+    "aspen-mcp": "./index.js"
   },
   "scripts": {
     "start": "node index.js"

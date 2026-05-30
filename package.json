@@ -1,5 +1,5 @@
 {
-  "name": "monet",
+  "name": "aspen",
   "version": "0.1.25",
   "description": "Run the best open source AI locally. No API keys. No subscriptions. No terminal.",
   "main": "src/main/index.js",
@@ -15,8 +15,8 @@
     "test:coverage": "vitest run --coverage"
   },
   "build": {
-    "appId": "com.monet.app",
-    "productName": "Monet",
+    "appId": "com.aspen.app",
+    "productName": "Aspen",
     "directories": {
       "output": "dist",
       "buildResources": "assets"
@@ -31,7 +31,7 @@
     ],
     "mac": {
       "category": "public.app-category.developer-tools",
-      "artifactName": "Monet-mac.${ext}",
+      "artifactName": "Aspen-mac.${ext}",
       "icon": "assets/icon.png",
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
@@ -62,7 +62,7 @@
           ]
         }
       ],
-      "artifactName": "Monet-win.${ext}"
+      "artifactName": "Aspen-win.${ext}"
     },
     "afterSign": "scripts/notarize.js",
     "publish": [
@@ -97,7 +97,7 @@
     "wait-on": "^7.2.0"
   },
   "author": {
-    "name": "Monet",
-    "email": "hello@getmonet.com"
+    "name": "Aspen",
+    "email": "hello@runonaspen.com"
   }
 }

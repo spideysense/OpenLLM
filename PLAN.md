@@ -1,4 +1,4 @@
-# LLM Bear — Project Plan
+# Aspen — Project Plan
 
 **Mission:** Give anyone a one-click way to run the best open source LLMs locally. No API keys, no subscriptions, no terminal. Replace the need to pay $20/mo for ChatGPT/Claude.
 
@@ -25,7 +25,7 @@ The user experience is install, open, done. Friendly coding bear mascot, warm co
 
 ```
 ┌──────────────────────────────────────────────┐
-│              LLM Bear (Electron)               │
+│              Aspen (Electron)               │
 │                                               │
 │  ┌────────────┐  ┌─────────────────────────┐ │
 │  │  Renderer   │  │     Main Process        │ │
@@ -67,7 +67,7 @@ Download .dmg / .exe  →  Install (one click)  →  App opens
        │
        ▼
   ┌─────────────────────────────────────────┐
-  │  🐻 "Hi! I'm LLM Bear."               │
+  │  🐻 "Hi! I'm Aspen."               │
   │                                         │
   │  "I run AI on your computer.            │
   │   No subscriptions. No data sharing."   │
@@ -109,7 +109,7 @@ Download .dmg / .exe  →  Install (one click)  →  App opens
 | **Model Hub** | Curated list of best-in-class models, organized by use case (not by parameter count). Categories: "General", "Coding", "Reasoning", "Creative Writing". Each card shows plain-English description, download size, and whether it'll run well on their machine. |
 | **One-Click Download** | Download models with a progress bar and estimated time. Handle resume on failure. |
 | **Upgrade Detector** | Background check (daily or on app open): compare installed model digests against Ollama registry. If a newer/better model is available in the same category, show a non-intrusive banner: "A faster model is available! Switch with one click." |
-| **Local API Gateway** | A thin proxy (runs in the Electron main process on port 4000) that sits in front of Ollama and adds: **(a)** API key generation/validation — user generates `sk-llmbear-...` keys in the app, gateway checks them on every request, **(b)** Model aliasing — user can call `model: "gpt-4"` or `model: "claude-3"` and it routes to their local model, **(c)** Full OpenAI `/v1/chat/completions`, `/v1/models`, `/v1/embeddings` compatibility. This means existing code that uses `openai.ChatCompletion.create()` works by changing only `base_url` and `api_key`. |
+| **Local API Gateway** | A thin proxy (runs in the Electron main process on port 4000) that sits in front of Ollama and adds: **(a)** API key generation/validation — user generates `sk-aspen-...` keys in the app, gateway checks them on every request, **(b)** Model aliasing — user can call `model: "gpt-4"` or `model: "claude-3"` and it routes to their local model, **(c)** Full OpenAI `/v1/chat/completions`, `/v1/models`, `/v1/embeddings` compatibility. This means existing code that uses `openai.ChatCompletion.create()` works by changing only `base_url` and `api_key`. |
 | **"Replace OpenAI" Wizard** | In-app page that walks users through: pick which service you're replacing (OpenAI / Anthropic / etc.) → select which local model maps to which role → generates API key → shows exact copy-paste code with their key and base URL pre-filled. Zero guesswork. |
 | **Cross-Platform Builds** | Mac (.dmg, universal binary for Intel + Apple Silicon) and Windows (.exe NSIS installer). GitHub Actions CI/CD. |
 
@@ -276,7 +276,7 @@ This is the "always have the latest and greatest" feature. Two layers:
 
 ## 9. API Gateway — "Just Change Two Lines"
 
-This is what makes LLM Bear a true replacement, not just a toy. The goal: any app, script, or tool that calls OpenAI or Anthropic should work by changing **only** the base URL and API key. Nothing else.
+This is what makes Aspen a true replacement, not just a toy. The goal: any app, script, or tool that calls OpenAI or Anthropic should work by changing **only** the base URL and API key. Nothing else.
 
 ### Architecture
 
@@ -284,11 +284,11 @@ This is what makes LLM Bear a true replacement, not just a toy. The goal: any ap
 Your App / Script / Tool
     │
     │  base_url = "http://localhost:4000/v1"
-    │  api_key  = "sk-llmbear-abc123..."
+    │  api_key  = "sk-aspen-abc123..."
     │
     ▼
 ┌─────────────────────────────────────┐
-│     LLM Bear API Gateway (:4000)     │
+│     Aspen API Gateway (:4000)     │
 │                                     │
 │  1. Validate API key                │
 │  2. Resolve model alias             │
@@ -306,10 +306,10 @@ The gateway runs as a lightweight HTTP server inside the Electron main process. 
 
 ### API Key Management
 
-- User clicks "Generate API Key" in the app → gets `sk-llmbear-xxxxxxxxxxxx`
+- User clicks "Generate API Key" in the app → gets `sk-aspen-xxxxxxxxxxxx`
 - Keys are stored locally (encrypted in electron-store)
 - User can create multiple keys (one per project/app), revoke them, see last-used timestamp
-- Gateway validates `Authorization: Bearer sk-llmbear-...` on every request
+- Gateway validates `Authorization: Bearer sk-aspen-...` on every request
 - If no keys are configured yet, gateway runs in "open mode" (accepts anything) for easy first-time setup
 - Keys are local-only. They never leave the machine. They exist so users have something to paste into the `api_key` field that their tools require.
 
@@ -369,7 +369,7 @@ Step 2: Pick your local models
 Step 3: Your API credentials
   ┌──────────────────────────────────────────────┐
   │  Base URL:  http://localhost:4000/v1    [Copy]│
-  │  API Key:   sk-llmbear-a8f2k...        [Copy]│
+  │  API Key:   sk-aspen-a8f2k...        [Copy]│
   └──────────────────────────────────────────────┘
 
 Step 4: Try it — paste this into your code:
@@ -436,7 +436,7 @@ Step 4: Try it — paste this into your code:
 
 1. **Bundle Ollama or require separate install?** Bundling makes UX simpler but increases app size (~100MB) and we need to handle updates. Separate install means one extra step but we always get the latest Ollama. **Recommendation: Auto-download Ollama on first run, don't bundle.**
 
-2. **App name: "LLM Bear".** The coding bear mascot is central to the UX. The name is friendly, memorable. See [DESIGN.md](DESIGN.md).
+2. **App name: "Aspen".** The coding bear mascot is central to the UX. The name is friendly, memorable. See [DESIGN.md](DESIGN.md).
 
 3. **How opinionated should the default be?** Very. The app should work with zero decisions on first run. Pick the best model for their hardware and go. Expert mode is there but hidden.
 

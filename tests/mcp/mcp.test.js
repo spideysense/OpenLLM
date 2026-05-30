@@ -1,7 +1,7 @@
 /**
  * MCP Server Tests
  *
- * STORY: An agent connects to LLM Bear MCP and can discover tools
+ * STORY: An agent connects to Aspen MCP and can discover tools
  * STORY: An agent can browse the model catalog
  * STORY: The MCP server has valid configuration
  * STORY: Tool schemas are valid for MCP protocol
@@ -20,11 +20,11 @@ const mcpPackage = JSON.parse(fs.readFileSync(path.resolve('mcp/package.json'), 
 
 describe('MCP: Package configuration', () => {
   it('should have correct package name', () => {
-    expect(mcpPackage.name).toBe('@llmbear/mcp-server');
+    expect(mcpPackage.name).toBe('@aspen/mcp-server');
   });
 
   it('should have a bin entry for CLI usage', () => {
-    expect(mcpPackage.bin).toHaveProperty('llmbear-mcp');
+    expect(mcpPackage.bin).toHaveProperty('aspen-mcp');
   });
 
   it('should depend on @modelcontextprotocol/sdk', () => {
@@ -88,16 +88,16 @@ describe('MCP: Tool definitions', () => {
 // ═══════════════════════════════════════════════════
 
 describe('MCP: Resource definitions', () => {
-  it('should expose llmbear://models resource', () => {
-    expect(mcpSource).toContain('llmbear://models');
+  it('should expose aspen://models resource', () => {
+    expect(mcpSource).toContain('aspen://models');
   });
 
-  it('should expose llmbear://system resource', () => {
-    expect(mcpSource).toContain('llmbear://system');
+  it('should expose aspen://system resource', () => {
+    expect(mcpSource).toContain('aspen://system');
   });
 
-  it('should expose llmbear://catalog resource', () => {
-    expect(mcpSource).toContain('llmbear://catalog');
+  it('should expose aspen://catalog resource', () => {
+    expect(mcpSource).toContain('aspen://catalog');
   });
 
   it('should return JSON mime type for resources', () => {

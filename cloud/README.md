@@ -1,4 +1,4 @@
-# Monet Cloud
+# Aspen Cloud
 
 Multi-tenant AI gateway with Stripe billing. Gives every paying user their own API key to a shared GPU pool running open source models.
 
@@ -51,7 +51,7 @@ Then in **Vercel Dashboard → Settings → Environment Variables**, add:
 
 ### Custom Domain
 
-Point `api.getmonet.com` at your Vercel deployment in **Settings → Domains**.
+Point `api.runonaspen.com` at your Vercel deployment in **Settings → Domains**.
 
 ### Stripe Setup
 
