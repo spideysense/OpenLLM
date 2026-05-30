@@ -70,7 +70,7 @@ export default function Onboarding() {
   }
 
   const aspenStates = {
-    welcome: '🎨',
+    welcome: '🌿',
     detect: '🔍',
     recommend: '⭐',
     download: '📦',
@@ -89,7 +89,7 @@ export default function Onboarding() {
       {/* ── Welcome ── */}
       {currentStep === 'welcome' && (
         <>
-          <div className="onboarding-bear">{aspenStates.welcome}</div>
+          <div className="onboarding-icon">{aspenStates.welcome}</div>
           <h1>Hi! I'm Aspen.</h1>
           <p>
             I run AI right on your computer. No subscriptions, no data sharing, no nonsense.
@@ -104,7 +104,7 @@ export default function Onboarding() {
       {/* ── Detect Hardware ── */}
       {currentStep === 'detect' && (
         <>
-          <div className="onboarding-bear">🔍</div>
+          <div className="onboarding-icon">🔍</div>
           <h1>Checking Your Machine</h1>
           <p>Let me see what you're working with...</p>
 
@@ -132,7 +132,7 @@ export default function Onboarding() {
       {/* ── Recommend Model ── */}
       {currentStep === 'recommend' && (
         <>
-          <div className="onboarding-bear">⭐</div>
+          <div className="onboarding-icon">⭐</div>
           <h1>I Recommend This One</h1>
           <p>Based on your machine, this is the best model for you:</p>
 
@@ -160,7 +160,7 @@ export default function Onboarding() {
       {/* ── Downloading ── */}
       {currentStep === 'download' && (
         <>
-          <div className="onboarding-bear" style={{ animation: 'none', fontSize: 60 }}>
+          <div className="onboarding-icon" style={{ animation: 'none', fontSize: 60 }}>
             {downloadProgress < 100 ? '⏳' : '📦'}
           </div>
           <h1>Getting Your Model Ready</h1>
@@ -190,7 +190,7 @@ export default function Onboarding() {
       {/* ── Ready ── */}
       {currentStep === 'ready' && (
         <>
-          <div className="onboarding-bear">🎉</div>
+          <div className="onboarding-icon">🎉</div>
           <h1>Your AI is Running!</h1>
           <p>
             Everything is 100% local. Your data never leaves this machine.
@@ -199,7 +199,7 @@ export default function Onboarding() {
 
           <div className="flex gap-3">
             <button className="btn btn-primary" onClick={completeOnboarding}>
-              Start Chatting 🎨
+              Start Chatting 🌿
             </button>
           </div>
         </>

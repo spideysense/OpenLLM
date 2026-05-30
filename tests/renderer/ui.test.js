@@ -20,7 +20,7 @@ import React from 'react';
 // ═══════════════════════════════════════════════════
 
 describe('Story: First-time user sees onboarding', () => {
-  it('should show welcome screen with bear mascot', async () => {
+  it('should show welcome screen with Aspen icon', async () => {
     const Onboarding = (await import('../../src/renderer/pages/Onboarding.jsx')).default;
 
     // Mock the useApp hook
@@ -140,11 +140,11 @@ describe('Story: User chats with a local model', () => {
     expect(source).toContain('chat.stop');
   });
 
-  it('should show empty state with bear when no messages', async () => {
+  it('should show empty state with Aspen icon when no messages', async () => {
     const fs = await import('fs');
     const source = fs.readFileSync('src/renderer/pages/Chat.jsx', 'utf8');
     expect(source).toContain('Ask me anything');
-    expect(source).toContain('🎨');
+    expect(source).toContain('🌿');
   });
 });
 

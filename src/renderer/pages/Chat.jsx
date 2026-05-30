@@ -278,7 +278,7 @@ export default function Chat() {
       <div className="chat-container" style={{ flex: 1, minWidth: 0 }}>
       {/* Header */}
       <div className="chat-header">
-        <span style={{ fontSize: 24 }}>🎨</span>
+        <span style={{ fontSize: 24 }}>🌿</span>
         <h2>Chat</h2>
 
         {/* Savings counter */}
@@ -313,17 +313,17 @@ export default function Chat() {
       <div className="chat-messages">
         {messages.length === 0 && !streamBuffer && (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', opacity: 0.6 }}>
-            <div style={{ fontSize: 64, marginBottom: 12 }}>🎨</div>
+            <div style={{ fontSize: 64, marginBottom: 12 }}>🌿</div>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, color: 'var(--earth)', marginBottom: 6 }}>Ask me anything</div>
             <div style={{ fontSize: 14, color: 'var(--text-light)', maxWidth: 300, textAlign: 'center', lineHeight: 1.5 }}>
-              Everything stays on your machine. Your data, always private. 🎨
+              Everything stays on your machine. Your data, always private. 🌿
             </div>
           </div>
         )}
 
         {messages.map((msg, i) => (
           <div key={i} className={`chat-message ${msg.role}`}>
-            <div className="chat-avatar">{msg.role === 'assistant' ? '🎨' : '👤'}</div>
+            <div className="chat-avatar">{msg.role === 'assistant' ? '🌿' : '👤'}</div>
             <div className="chat-bubble">
               {msg.attachmentPreviews?.map((a, j) => (
                 a.type === 'image'
@@ -337,7 +337,7 @@ export default function Chat() {
 
         {(isStreaming || streamBuffer) && (
           <div className="chat-message assistant">
-            <div className="chat-avatar">🎨</div>
+            <div className="chat-avatar">🌿</div>
             <div className="chat-bubble">
               <MessageContent content={streamBuffer || ''} />
               {isStreaming && (

@@ -509,7 +509,7 @@ html, body, #root {
   background: var(--bg);
 }
 
-.onboarding-bear {
+.onboarding-icon {
   font-size: 64px;
   margin-bottom: 14px;
   animation: gentleFloat 4s ease-in-out infinite;

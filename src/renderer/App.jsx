@@ -124,7 +124,7 @@ export default function App() {
   if (loading) {
     return (
       <div className="onboarding">
-        <div className="onboarding-aspen">🎨</div>
+        <div className="onboarding-icon">🌿</div>
         <p style={{ color: 'var(--text-light)' }}>Waking up Aspen...</p>
       </div>
     );
