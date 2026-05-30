@@ -29,8 +29,20 @@ export default function AppSetup() {
     setTimeout(() => setCopied(null), 2000);
   }
 
+  function getMagicLink() {
+    if (!tunnelUrl) return 'https://runonaspen.com/app';
+    const base = tunnelUrl.replace(/\/v1$/, '');
+    const params = new URLSearchParams({ tunnel: base });
+    if (defaultKey?.secret) params.set('key', defaultKey.secret);
+    return `https://runonaspen.com/app#${params.toString()}`;
+  }
+
   function openWebApp() {
-    bridge?.app.openExternal('https://runonaspen.com/app');
+    bridge?.app.openExternal(getMagicLink());
+  }
+
+  function copyMagicLink() {
+    copy(getMagicLink(), 'magic');
   }
 
   // Use the first key or prompt to create one
@@ -133,13 +145,25 @@ export default function AppSetup() {
         <p style={{ fontSize: 13, color: 'var(--text-light)', marginBottom: 14, lineHeight: 1.5 }}>
           Paste your tunnel URL and API key when prompted. That browser is now connected to your Aspen.
         </p>
-        <button
-          className="btn"
-          onClick={openWebApp}
-          style={{ background: 'var(--earth)', color: '#fff', display: 'inline-flex', alignItems: 'center', gap: 6 }}
-        >
-          Open runonaspen.com/app →
-        </button>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+          <button
+            className="btn"
+            onClick={openWebApp}
+            style={{ background: 'var(--earth)', color: '#fff', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          >
+            Open runonaspen.com/app →
+          </button>
+          <button
+            className="btn btn-sm"
+            onClick={copyMagicLink}
+            style={{ background: copied === 'magic' ? 'var(--grass-dark)' : undefined, color: copied === 'magic' ? '#fff' : undefined }}
+          >
+            {copied === 'magic' ? '✓ Magic link copied' : 'Copy magic link'}
+          </button>
+        </div>
+        <p style={{ fontSize: 12, color: 'var(--text-light)', marginTop: 10, lineHeight: 1.5 }}>
+          The magic link opens the web app already connected — no manual paste needed. Safe to share only with yourself.
+        </p>
       </div>
     </div>
   );

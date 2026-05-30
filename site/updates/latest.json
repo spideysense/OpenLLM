@@ -1,6 +1,6 @@
 {
-  "rendererVersion": "0.2.8",
-  "rendererUrl": "https://github.com/spideysense/OpenLLM/releases/download/v0.2.8/renderer.zip",
-  "releaseNotes": "See GitHub release for details",
+  "rendererVersion": "0.2.9",
+  "rendererUrl": "https://github.com/spideysense/OpenLLM/releases/download/v0.2.9/renderer.zip",
+  "releaseNotes": "Magic link auto-connect, deep link boot",
   "publishedAt": "2026-05-30"
 }

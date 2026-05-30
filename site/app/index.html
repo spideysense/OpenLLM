@@ -530,6 +530,24 @@ const settingsStatus= document.getElementById('settings-status');
 // BOOT
 // ══════════════════════════════════════════════════════
 function boot() {
+  // 1. Check URL hash for deep link: #tunnel=https://...&key=sk-aspen-...
+  const hash = window.location.hash.slice(1);
+  if (hash) {
+    const params = new URLSearchParams(hash);
+    const tunnelParam = params.get('tunnel');
+    const keyParam = params.get('key');
+    if (tunnelParam) {
+      // Auto-connect from deep link — save and go straight in
+      const url = tunnelParam.replace(/\/v1\/?$/, '').replace(/\/+$/, '');
+      config = { tunnelUrl: url, apiKey: keyParam || '' };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+      // Clean the hash so it's not visible or bookmarked with credentials
+      history.replaceState(null, '', window.location.pathname);
+      showApp();
+      return;
+    }
+  }
+  // 2. Fall back to localStorage
   try { config = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch {}
   if (config?.tunnelUrl) showApp();
   else showPair();
