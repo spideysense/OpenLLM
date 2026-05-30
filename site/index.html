@@ -60,7 +60,7 @@ h2{font-family:var(--ser);font-size:clamp(2.4rem,5.5vw,4rem);line-height:1.06;fo
 .hero-note{font-size:.74rem;color:var(--t4);position:relative;z-index:1}
 .hero-note a{color:var(--gd);text-decoration:none}
 
-.dev-section{padding:1rem 0 8rem}
+.dev-section{padding:0 0 4rem;overflow:hidden}
 .dev-blur{filter:blur(20px) saturate(.8) brightness(1.1);opacity:.7;max-width:400px;margin:0 auto;display:block}
 .dev-specs{display:flex;justify-content:center;gap:clamp(2rem,5vw,4rem);margin-top:3.5rem;flex-wrap:wrap}
 .dev-spec{text-align:center}
@@ -160,7 +160,7 @@ footer{border-top:1px solid var(--brd);padding:2rem 0}
 
 <section class="dev-section">
 <div class="w cn">
-<img src="/aspen-device.png" alt="Aspen device on a wooden desk with aspen trees visible through the window" style="width:100%;max-width:700px;border-radius:12px;display:block;margin:0 auto" />
+<img src="/aspen-device.png" alt="Aspen device on a wooden desk with aspen trees visible through the window" style="width:100vw;position:relative;left:50%;right:50%;margin-left:-50vw;margin-right:-50vw;display:block;max-height:70vh;object-fit:cover" />
 <p style="margin-top:1rem;font-size:.68rem;color:var(--t4);font-style:italic;text-align:center">Product rendering. Actual device may vary.</p>
 <div class="dev-specs rv">
 <div class="dev-spec"><div class="dev-spec-v">1 Petaflop</div><div class="dev-spec-l">AI performance</div></div>
