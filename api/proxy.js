@@ -1,33 +1,61 @@
 /**
- * /api/proxy — Chat proxy with web search tool-use loop
+ * /api/proxy — Chat proxy with proactive web search injection
  *
- * Flow:
- * 1. First call to local Ollama with web_search tool defined
- * 2. If model calls web_search → run /api/search → inject results as tool response
- * 3. Second call to Ollama with search results → stream final answer back
+ * Strategy: detect search-worthy queries by keyword BEFORE sending to model.
+ * Inject search results into the system prompt. Works with ALL models,
+ * no tool-call support required.
  *
- * Falls back gracefully if model doesn't support tools.
+ * Triggers search when the last user message contains signals like:
+ * stock price, weather, news, score, latest, current price, today, etc.
  */
 
 export const config = { runtime: 'edge' };
 
-const WEB_SEARCH_TOOL = {
-  type: 'function',
-  function: {
-    name: 'web_search',
-    description: 'Search the web for current information, news, facts, or anything that requires up-to-date data. Use this when asked about recent events, current prices, today\'s weather, live information, or anything you\'re not confident about.',
-    parameters: {
-      type: 'object',
-      properties: {
-        query: {
-          type: 'string',
-          description: 'The search query to look up',
-        },
-      },
-      required: ['query'],
-    },
-  },
-};
+// Keywords that reliably indicate real-time data is needed
+const SEARCH_TRIGGERS = [
+  /\b(stock|share)\s*(price|cost|value|ticker|quote)/i,
+  /\b(weather|forecast|temperature|rain|snow|wind)\b/i,
+  /\b(news|latest|recent|current|today'?s?|right now|live)\b/i,
+  /\b(score|result|match|game)\s*(today|tonight|yesterday|last night)/i,
+  /\b(price of|cost of|how much is|how much does)\b/i,
+  /\bwho (won|is winning|leads|is ahead)\b/i,
+  /\b(election|vote|poll)\s*(result|result|winner|outcome)/i,
+  /\b(crypto|bitcoin|ethereum|btc|eth)\s*(price|value|cost)/i,
+  /\bwhat'?s\s+(happening|going on|the (news|score|price|weather))/i,
+  /\b(released|launched|announced|dropped)\s*(today|this week|recently)/i,
+];
+
+function shouldSearch(messages) {
+  const last = [...messages].reverse().find(m => m.role === 'user');
+  if (!last?.content) return null;
+  const text = last.content;
+  for (const trigger of SEARCH_TRIGGERS) {
+    if (trigger.test(text)) {
+      // Extract a clean search query from the user message
+      return text.slice(0, 200);
+    }
+  }
+  return null;
+}
+
+async function runSearch(query, baseUrl) {
+  try {
+    const res = await fetch(`${baseUrl}/api/search`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data.results?.length) return null;
+    return data.results
+      .slice(0, 5)
+      .map((r, i) => `[${i + 1}] ${r.title}\n${r.snippet}${r.url ? `\nSource: ${r.url}` : ''}`)
+      .join('\n\n');
+  } catch {
+    return null;
+  }
+}
 
 export default async function handler(req) {
   if (req.method === 'OPTIONS') {
@@ -60,150 +88,61 @@ export default async function handler(req) {
     ...(apiKey ? { 'Authorization': `Bearer ${apiKey}` } : {}),
   };
 
-  // ── Step 1: call with tool definition (non-streaming first pass) ──
-  let firstRes;
+  // ── Detect if search is needed ──
+  const searchQuery = shouldSearch(messages || []);
+  let enrichedMessages = messages || [];
+
+  if (searchQuery) {
+    const baseUrl = new URL(req.url).origin;
+    const searchResults = await runSearch(searchQuery, baseUrl);
+    if (searchResults) {
+      // Inject search results by prepending/updating the system message
+      const hasSystem = enrichedMessages[0]?.role === 'system';
+      const searchBlock = `\n\n--- Live web search results for "${searchQuery}" ---\n${searchResults}\n--- End search results ---\nUse these results to answer the user's question accurately. Cite sources where relevant.`;
+
+      if (hasSystem) {
+        enrichedMessages = [
+          { ...enrichedMessages[0], content: enrichedMessages[0].content + searchBlock },
+          ...enrichedMessages.slice(1),
+        ];
+      } else {
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
+        enrichedMessages = [
+          { role: 'system', content: `You are a helpful private AI assistant. The current date is ${dateStr} and the time is ${timeStr}.${searchBlock}` },
+          ...enrichedMessages,
+        ];
+      }
+    }
+  }
+
+  // ── Call upstream ──
+  let upstreamRes;
   try {
-    firstRes = await fetch(upstream, {
+    upstreamRes = await fetch(upstream, {
       method: 'POST',
       headers: upHeaders,
-      body: JSON.stringify({
-        model: model || 'llama3',
-        messages: messages || [],
-        tools: [WEB_SEARCH_TOOL],
-        tool_choice: 'auto',
-        stream: false,
-      }),
+      body: JSON.stringify({ model: model || 'llama3', messages: enrichedMessages, stream }),
     });
   } catch (err) {
     return jsonError(`Could not reach tunnel: ${err.message}`, 502);
   }
 
-  // If tool_choice not supported by this model version, fall through to plain streaming
-  let firstData = null;
-  if (firstRes.ok) {
-    try { firstData = await firstRes.json(); } catch {}
-  }
-
-  // ── Step 2: check if model wants to call web_search ──
-  const toolCalls = firstData?.choices?.[0]?.message?.tool_calls;
-  const searchCall = toolCalls?.find(tc => tc.function?.name === 'web_search');
-
-  if (searchCall) {
-    // Parse query
-    let searchQuery = '';
-    try {
-      const args = JSON.parse(searchCall.function.arguments || '{}');
-      searchQuery = args.query || '';
-    } catch {}
-
-    // Run the search
-    let searchResults = [];
-    if (searchQuery) {
-      try {
-        const baseUrl = new URL(req.url).origin;
-        const sRes = await fetch(`${baseUrl}/api/search`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ query: searchQuery }),
-        });
-        if (sRes.ok) {
-          const sData = await sRes.json();
-          searchResults = sData.results || [];
-        }
-      } catch {}
-    }
-
-    // Format search results as tool response
-    const toolResultContent = searchResults.length > 0
-      ? searchResults.map((r, i) => `[${i + 1}] ${r.title}\n${r.snippet}${r.url ? `\nSource: ${r.url}` : ''}`).join('\n\n')
-      : 'No results found.';
-
-    // ── Step 3: second call with tool result → stream final answer ──
-    const messagesWithTool = [
-      ...(messages || []),
-      firstData.choices[0].message, // assistant message with tool_calls
-      {
-        role: 'tool',
-        tool_call_id: searchCall.id,
-        content: toolResultContent,
-      },
-    ];
-
-    let finalRes;
-    try {
-      finalRes = await fetch(upstream, {
-        method: 'POST',
-        headers: upHeaders,
-        body: JSON.stringify({
-          model: model || 'llama3',
-          messages: messagesWithTool,
-          stream: stream,
-        }),
-      });
-    } catch (err) {
-      return jsonError(`Could not reach tunnel on second call: ${err.message}`, 502);
-    }
-
-    if (!finalRes.ok) {
-      const text = await finalRes.text().catch(() => '');
-      return jsonError(`Upstream error: HTTP ${finalRes.status}: ${text}`, finalRes.status);
-    }
-
-    if (!stream) {
-      const json = await finalRes.json();
-      return new Response(JSON.stringify(json), {
-        status: 200,
-        headers: { ...corsHeaders(), 'Content-Type': 'application/json' },
-      });
-    }
-
-    return new Response(finalRes.body, {
-      status: 200,
-      headers: { ...corsHeaders(), 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no' },
-    });
-  }
-
-  // ── No tool call — if we got a valid response already, stream it or return it ──
-  // If the model returned a plain text response (no tool call), re-request with streaming
-  // OR stream the content we already have from firstData
-
-  if (firstData?.choices?.[0]?.message?.content && !stream) {
-    return new Response(JSON.stringify(firstData), {
-      status: 200,
-      headers: { ...corsHeaders(), 'Content-Type': 'application/json' },
-    });
-  }
-
-  // Re-call with streaming for the UI
-  let streamRes;
-  try {
-    streamRes = await fetch(upstream, {
-      method: 'POST',
-      headers: upHeaders,
-      body: JSON.stringify({
-        model: model || 'llama3',
-        messages: messages || [],
-        stream: stream,
-      }),
-    });
-  } catch (err) {
-    return jsonError(`Could not reach tunnel: ${err.message}`, 502);
-  }
-
-  if (!streamRes.ok) {
-    const text = await streamRes.text().catch(() => '');
-    return jsonError(`Upstream error: HTTP ${streamRes.status}: ${text}`, streamRes.status);
+  if (!upstreamRes.ok) {
+    const text = await upstreamRes.text().catch(() => '');
+    return jsonError(`Upstream error: HTTP ${upstreamRes.status}: ${text}`, upstreamRes.status);
   }
 
   if (!stream) {
-    const json = await streamRes.json();
+    const json = await upstreamRes.json();
     return new Response(JSON.stringify(json), {
       status: 200,
       headers: { ...corsHeaders(), 'Content-Type': 'application/json' },
     });
   }
 
-  return new Response(streamRes.body, {
+  return new Response(upstreamRes.body, {
     status: 200,
     headers: { ...corsHeaders(), 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no' },
   });

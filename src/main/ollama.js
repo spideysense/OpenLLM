@@ -317,6 +317,43 @@ async function install() {
 // Chat / Streaming
 // ═══════════════════════════════════════════════════
 
+// ── Keyword-based search trigger (works with all models) ──
+const SEARCH_TRIGGERS = [
+  /\b(stock|share)\s*(price|cost|value|ticker|quote)/i,
+  /\b(weather|forecast|temperature|rain|snow|wind)\b/i,
+  /\b(news|latest|recent|current|today'?s?|right now|live)\b/i,
+  /\b(score|result|match|game)\s*(today|tonight|yesterday|last night)/i,
+  /\b(price of|cost of|how much is|how much does)\b/i,
+  /\bwho (won|is winning|leads|is ahead)\b/i,
+  /\b(crypto|bitcoin|ethereum|btc|eth)\s*(price|value|cost)/i,
+  /\b(released|launched|announced|dropped)\s*(today|this week|recently)/i,
+];
+
+function getSearchQuery(messages) {
+  const last = [...messages].reverse().find(m => m.role === 'user');
+  if (!last?.content) return null;
+  for (const trigger of SEARCH_TRIGGERS) {
+    if (trigger.test(last.content)) return last.content.slice(0, 200);
+  }
+  return null;
+}
+
+async function fetchSearchResults(query) {
+  try {
+    const res = await fetch('https://runonaspen.com/api/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data.results?.length) return null;
+    return data.results.slice(0, 5)
+      .map((r, i) => `[${i+1}] ${r.title}\n${r.snippet}${r.url ? `\nSource: ${r.url}` : ''}`)
+      .join('\n\n');
+  } catch { return null; }
+}
+
 const WEB_SEARCH_TOOL = {
   type: 'function',
   function: {
