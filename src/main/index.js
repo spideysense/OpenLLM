@@ -86,6 +86,9 @@ function createTray() {
 // ═══════════════════════════════════════════════════
 
 app.whenReady().then(async () => {
+  // Check for hot renderer update BEFORE window — loads correct version immediately, no reload flicker
+  await hotUpdater.checkForUpdate();
+
   createWindow();
   createTray();
 

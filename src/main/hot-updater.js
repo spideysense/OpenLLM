@@ -51,8 +51,7 @@ function resolveRendererPath() {
 
 function init(win) {
   mainWindow = win;
-  // Check in the background after a short delay so app startup isn't blocked
-  setTimeout(() => checkForUpdate(), 10_000);
+  // Startup check already happened before window creation — just set the interval
   checkTimer = setInterval(() => checkForUpdate(), CHECK_INTERVAL);
 }
 
@@ -68,7 +67,15 @@ function getCurrentVersion() {
 // Core logic
 // ═══════════════════════════════════════════════════
 
-async function checkForUpdate() {
+async function checkForUpdate({ timeout = 8000 } = {}) {
+  // Wrap with a timeout so startup is never blocked indefinitely
+  return Promise.race([
+    _doCheckForUpdate(),
+    new Promise(resolve => setTimeout(resolve, timeout)),
+  ]);
+}
+
+async function _doCheckForUpdate() {
   try {
     const manifest = await fetchJson(MANIFEST_URL);
     if (!manifest?.rendererVersion || !manifest?.rendererUrl) {
