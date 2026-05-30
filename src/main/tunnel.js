@@ -224,8 +224,9 @@ async function ensureProvisioned() {
   }
 }
 
-function postJson(url, body) {
+function postJson(url, body, redirects = 0) {
   return new Promise((resolve, reject) => {
+    if (redirects > 5) return reject(new Error('Too many redirects'));
     const mod = url.startsWith('https') ? https : http;
     const parsed = new URL(url);
     const payload = JSON.stringify(body);
@@ -241,11 +242,15 @@ function postJson(url, body) {
         'User-Agent': 'Aspen/1.0',
       },
     }, (res) => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        console.log('[Tunnel] Following redirect to', res.headers.location);
+        return postJson(res.headers.location, body, redirects + 1).then(resolve).catch(reject);
+      }
       let data = '';
       res.on('data', (d) => data += d);
       res.on('end', () => {
         if (res.statusCode >= 400) return reject(new Error(`HTTP ${res.statusCode}: ${data}`));
-        try { resolve(JSON.parse(data)); } catch { reject(new Error('Invalid JSON')); }
+        try { resolve(JSON.parse(data)); } catch { reject(new Error('Invalid JSON: ' + data.slice(0, 200))); }
       });
     });
     req.on('error', reject);
