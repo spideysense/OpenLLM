@@ -10,6 +10,7 @@ const registry = require('./registry');
 const store = require('./store');
 const tunnel = require('./tunnel');
 const updater = require('./updater');
+const hotUpdater = require('./hot-updater');
 const conversations = require('./conversations');
 
 const isDev = !app.isPackaged;
@@ -42,7 +43,7 @@ function createWindow() {
     mainWindow.loadURL('http://localhost:5173');
     mainWindow.webContents.openDevTools({ mode: 'detach' });
   } else {
-    mainWindow.loadFile(path.join(__dirname, '..', '..', 'build', 'index.html'));
+    mainWindow.loadFile(hotUpdater.resolveRendererPath());
   }
 
   // Grant microphone permission for voice input (Web Speech API)
@@ -126,8 +127,11 @@ app.whenReady().then(async () => {
     }
   });
 
-  // Auto-updater — checks GitHub releases, downloads + installs silently
+  // Auto-updater — checks GitHub releases for native (Electron) updates
   updater.init(mainWindow);
+
+  // Hot updater — silently updates the renderer without a new DMG
+  hotUpdater.init(mainWindow);
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -404,4 +408,17 @@ ipcMain.handle('updater:install', async () => {
 
 ipcMain.handle('updater:status', async () => {
   return updater.getStatus();
+});
+
+// ═══════════════════════════════════════════════════
+// IPC Handlers — Hot Updater
+// ═══════════════════════════════════════════════════
+
+ipcMain.handle('hotUpdater:check', async () => {
+  hotUpdater.checkForUpdate();
+  return true;
+});
+
+ipcMain.handle('hotUpdater:version', async () => {
+  return hotUpdater.getCurrentVersion();
 });

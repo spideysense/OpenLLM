@@ -9,6 +9,36 @@ permissions:
   contents: write
 
 jobs:
+  build-renderer:
+    name: Build Renderer (hot update zip)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+
+      - name: Build renderer
+        run: npm run build:renderer
+
+      - name: Zip renderer
+        run: |
+          cd build
+          zip -r ../renderer.zip .
+          cd ..
+          echo "Renderer zip size: $(du -sh renderer.zip)"
+
+      - name: Upload renderer zip artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: renderer-zip
+          path: renderer.zip
+
   build-mac:
     name: Build macOS (DMG)
     runs-on: macos-latest
@@ -74,11 +104,13 @@ jobs:
             dist/latest.yml
 
   release:
-    name: Create GitHub Release
-    needs: [build-mac, build-windows]
+    name: Create GitHub Release + update hot manifest
+    needs: [build-renderer, build-mac, build-windows]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download Mac artifact
         uses: actions/download-artifact@v4
@@ -92,7 +124,14 @@ jobs:
           name: win-installer
           path: dist
 
+      - name: Download renderer zip
+        uses: actions/download-artifact@v4
+        with:
+          name: renderer-zip
+          path: dist
+
       - name: Create Release
+        id: create_release
         uses: softprops/action-gh-release@v2
         with:
           files: dist/*
@@ -100,3 +139,31 @@ jobs:
           draft: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update hot update manifest
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          TAG="${GITHUB_REF_NAME}"
+          RENDERER_URL="https://github.com/spideysense/OpenLLM/releases/download/${TAG}/renderer.zip"
+          DATE=$(date -u +%Y-%m-%d)
+
+          cat > site/updates/latest.json << EOF
+          {
+            "rendererVersion": "${VERSION}",
+            "rendererUrl": "${RENDERER_URL}",
+            "releaseNotes": "See GitHub release for details",
+            "publishedAt": "${DATE}"
+          }
+          EOF
+
+          echo "Manifest updated:"
+          cat site/updates/latest.json
+
+      - name: Commit updated manifest
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add site/updates/latest.json
+          git diff --cached --quiet || git commit -m "chore: update hot update manifest to ${GITHUB_REF_NAME}"
+          git push origin HEAD:main
+

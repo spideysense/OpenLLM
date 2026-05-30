@@ -119,4 +119,15 @@ contextBridge.exposeInMainWorld('aspen', {
       return () => ipcRenderer.removeListener('updater:status', handler);
     },
   },
+
+  // ── Hot Updater ──
+  hotUpdater: {
+    check: () => ipcRenderer.invoke('hotUpdater:check'),
+    getVersion: () => ipcRenderer.invoke('hotUpdater:version'),
+    onStatus: (cb) => {
+      const handler = (event, data) => cb(data);
+      ipcRenderer.on('hotUpdater:status', handler);
+      return () => ipcRenderer.removeListener('hotUpdater:status', handler);
+    },
+  },
 });
