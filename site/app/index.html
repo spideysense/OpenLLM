@@ -214,6 +214,15 @@ body{font-family:var(--san);background:var(--bg);color:var(--bk);-webkit-font-sm
   font-family:var(--san);font-size:.86rem;line-height:1.6;background:transparent;color:var(--bk);overflow-y:auto;
 }
 .input-box::placeholder{color:var(--t4)}
+.mic-btn{
+  width:32px;height:32px;border-radius:8px;border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  background:transparent;color:var(--t3);transition:all .2s;
+}
+.mic-btn:hover{background:rgba(0,0,0,.06);color:var(--bk)}
+.mic-btn.listening{background:rgba(220,38,38,.1);color:#DC2626;animation:micpulse 1s ease-in-out infinite}
+.mic-btn.unsupported{display:none}
+@keyframes micpulse{0%,100%{opacity:1}50%{opacity:.4}}
 .send-btn,.stop-btn{
   width:32px;height:32px;border-radius:8px;border:none;cursor:pointer;
   display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;
@@ -340,7 +349,7 @@ select.settings-select:focus{border-color:var(--gd)}
     </div>
     <div class="field">
       <label>API Key</label>
-      <input type="password" id="apikey-input" placeholder="sk-aspen-…" autocomplete="off" spellcheck="false">
+      <input type="text" id="apikey-input" placeholder="sk-aspen-…" autocomplete="new-password" spellcheck="false" style="-webkit-text-security:disc">
       <div class="hint">Aspen app → API Keys → copy any key. Leave blank if no keys set.</div>
     </div>
 
@@ -428,6 +437,9 @@ select.settings-select:focus{border-color:var(--gd)}
       <div class="input-area">
         <div class="input-wrap">
           <textarea class="input-box" id="input-box" placeholder="Message your Aspen…" rows="1"></textarea>
+          <button class="mic-btn" id="mic-btn" title="Voice input">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M19 10a7 7 0 0 1-14 0"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>
+          </button>
           <button class="stop-btn hidden" id="stop-btn" title="Stop">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
           </button>
@@ -518,6 +530,7 @@ const tunnelDisplay = document.getElementById('tunnel-display');
 const chatTitle     = document.getElementById('chat-title');
 const offlineBanner = document.getElementById('offline-banner');
 const disconnectBtn = document.getElementById('disconnect-btn');
+const micBtn        = document.getElementById('mic-btn');
 
 // ══════════════════════════════════════════════════════
 // BOOT
@@ -592,6 +605,43 @@ function switchToChat() {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.getElementById('panel-chat').classList.add('active');
 }
+
+// ══════════════════════════════════════════════════════
+// VOICE INPUT
+// ══════════════════════════════════════════════════════
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (!SR) micBtn.classList.add('unsupported');
+
+micBtn.addEventListener('click', () => {
+  if (!SR) return;
+  if (isListening) {
+    recognition?.stop();
+    return;
+  }
+  recognition = new SR();
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.lang = 'en-US';
+  recognition.onstart = () => { isListening = true; micBtn.classList.add('listening'); inputBox.placeholder = 'Listening…'; };
+  recognition.onresult = (e) => {
+    const transcript = Array.from(e.results).map(r => r[0].transcript).join('');
+    inputBox.value = transcript;
+    inputBox.dispatchEvent(new Event('input'));
+  };
+  recognition.onend = () => {
+    isListening = false;
+    micBtn.classList.remove('listening');
+    inputBox.placeholder = 'Message your Aspen…';
+    if (inputBox.value.trim()) sendMessage();
+  };
+  recognition.onerror = (e) => {
+    console.error('[Voice]', e.error);
+    isListening = false;
+    micBtn.classList.remove('listening');
+    inputBox.placeholder = 'Message your Aspen…';
+  };
+  recognition.start();
+});
 
 // ══════════════════════════════════════════════════════
 // COPY UTILITY
