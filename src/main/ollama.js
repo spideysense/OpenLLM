@@ -317,48 +317,133 @@ async function install() {
 // Chat / Streaming
 // ═══════════════════════════════════════════════════
 
+const WEB_SEARCH_TOOL = {
+  type: 'function',
+  function: {
+    name: 'web_search',
+    description: "Search the web for current information, news, facts, or anything requiring up-to-date data. Use when asked about recent events, current prices, today's news, live scores, weather, or anything you're not confident about.",
+    parameters: {
+      type: 'object',
+      properties: { query: { type: 'string', description: 'The search query' } },
+      required: ['query'],
+    },
+  },
+};
+
+async function runWebSearch(query) {
+  try {
+    const res = await fetch('https://runonaspen.com/api/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query }),
+    });
+    if (!res.ok) return 'No results found.';
+    const data = await res.json();
+    if (!data.results?.length) return 'No results found.';
+    return data.results
+      .map((r, i) => `[${i + 1}] ${r.title}\n${r.snippet}${r.url ? `\nSource: ${r.url}` : ''}`)
+      .join('\n\n');
+  } catch {
+    return 'Search failed.';
+  }
+}
+
 async function chat(model, messages, onChunk) {
   chatController = new AbortController();
 
   try {
-    const res = await fetch(`${OLLAMA_HOST}/api/chat`, {
+    // ── First call: with tool definition ──
+    const firstRes = await fetch(`${OLLAMA_HOST}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model, messages, tools: [WEB_SEARCH_TOOL], stream: false }),
+      signal: chatController.signal,
+    });
+
+    if (!firstRes.ok) throw new Error(`Ollama error: ${await firstRes.text()}`);
+    const firstData = await firstRes.json();
+
+    // ── Check for tool call ──
+    const toolCalls = firstData.message?.tool_calls;
+    const searchCall = toolCalls?.find(tc => tc.function?.name === 'web_search');
+
+    if (searchCall) {
+      const query = searchCall.function?.arguments?.query || '';
+      onChunk({ content: `🔍 Searching for "${query}"…`, done: false, searching: true });
+      const searchResult = await runWebSearch(query);
+
+      // ── Second call with tool result, streaming ──
+      const messagesWithTool = [
+        ...messages,
+        { role: 'assistant', content: '', tool_calls: toolCalls },
+        { role: 'tool', content: searchResult },
+      ];
+
+      const secondRes = await fetch(`${OLLAMA_HOST}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model, messages: messagesWithTool, stream: true }),
+        signal: chatController.signal,
+      });
+
+      if (!secondRes.ok) throw new Error(`Ollama error on second call: ${await secondRes.text()}`);
+
+      const reader = secondRes.body.getReader();
+      const decoder = new TextDecoder();
+      let fullResponse = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        for (const line of decoder.decode(value, { stream: true }).split('\n').filter(Boolean)) {
+          try {
+            const json = JSON.parse(line);
+            if (json.message?.content) {
+              fullResponse += json.message.content;
+              onChunk({ content: json.message.content, done: json.done || false });
+            }
+            if (json.done) onChunk({ content: '', done: true });
+          } catch {}
+        }
+      }
+      return { success: true, response: fullResponse };
+    }
+
+    // ── No tool call — if model returned content directly, stream it manually ──
+    if (firstData.message?.content) {
+      // Model answered directly — emit it as chunks then stream a fresh request
+      const content = firstData.message.content;
+      // Stream it character by character feels fake; just re-request with streaming
+    }
+
+    // ── Re-request with streaming (model didn't need tools) ──
+    const streamRes = await fetch(`${OLLAMA_HOST}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ model, messages, stream: true }),
       signal: chatController.signal,
     });
 
-    if (!res.ok) {
-      const err = await res.text();
-      throw new Error(`Ollama error: ${err}`);
-    }
+    if (!streamRes.ok) throw new Error(`Ollama error: ${await streamRes.text()}`);
 
-    const reader = res.body.getReader();
+    const reader = streamRes.body.getReader();
     const decoder = new TextDecoder();
     let fullResponse = '';
-
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
-
-      const text = decoder.decode(value, { stream: true });
-      const lines = text.split('\n').filter(Boolean);
-
-      for (const line of lines) {
+      for (const line of decoder.decode(value, { stream: true }).split('\n').filter(Boolean)) {
         try {
           const json = JSON.parse(line);
           if (json.message?.content) {
             fullResponse += json.message.content;
             onChunk({ content: json.message.content, done: json.done || false });
           }
-          if (json.done) {
-            onChunk({ content: '', done: true, total_duration: json.total_duration, eval_count: json.eval_count });
-          }
-        } catch (e) {}
+          if (json.done) onChunk({ content: '', done: true, total_duration: json.total_duration, eval_count: json.eval_count });
+        } catch {}
       }
     }
-
     return { success: true, response: fullResponse };
+
   } catch (err) {
     if (err.name === 'AbortError') return { success: true, aborted: true };
     return { success: false, error: err.message };

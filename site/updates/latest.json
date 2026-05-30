@@ -1,6 +1,6 @@
 {
-  "rendererVersion": "0.2.15",
-  "rendererUrl": "https://github.com/spideysense/OpenLLM/releases/download/v0.2.15/renderer.zip",
-  "releaseNotes": "See GitHub release for details",
+  "rendererVersion": "0.2.16",
+  "rendererUrl": "https://github.com/spideysense/OpenLLM/releases/download/v0.2.16/renderer.zip",
+  "releaseNotes": "feat: web search tool \u2014 local model can now search the web",
   "publishedAt": "2026-05-30"
 }
