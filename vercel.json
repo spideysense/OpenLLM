@@ -75,5 +75,17 @@
         }
       ]
     }
+  ],
+  "redirects": [
+    {
+      "source": "/download",
+      "destination": "https://github.com/spideysense/OpenLLM/releases/latest/download/Aspen-mac.dmg",
+      "permanent": false
+    },
+    {
+      "source": "/download/win",
+      "destination": "https://github.com/spideysense/OpenLLM/releases/latest/download/Aspen-win.exe",
+      "permanent": false
+    }
   ]
 }

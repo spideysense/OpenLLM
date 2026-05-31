@@ -33,6 +33,13 @@ body{font-family:var(--san);background:var(--bg);color:var(--bk);-webkit-font-sm
 
 /* PAIR */
 #pair-screen{background:var(--bg);justify-content:center;align-items:center;padding:1.5rem;overflow-y:auto}
+.pair-companion{margin-top:1.75rem;padding-top:.5rem}
+.pair-divider{display:flex;align-items:center;text-align:center;color:var(--t3);font-size:.75rem;margin:1rem 0}
+.pair-divider::before,.pair-divider::after{content:'';flex:1;border-bottom:1px solid var(--brd)}
+.pair-divider span{padding:0 .75rem}
+.pair-companion-text{font-size:.82rem;line-height:1.5;color:var(--t2);margin-bottom:1rem;text-align:center}
+.pair-companion-btn{display:block;text-align:center;padding:.7rem;border:1.5px solid var(--gd);border-radius:12px;color:var(--gd);font-weight:500;font-size:.9rem;text-decoration:none;transition:all .2s}
+.pair-companion-btn:active{background:var(--gd-light)}
 .pair-card{width:100%;max-width:420px;background:var(--wh);border:1px solid var(--brd);border-radius:20px;padding:2.4rem 2rem;box-shadow:0 2px 8px rgba(0,0,0,.04),0 20px 60px rgba(0,0,0,.06)}
 @media(max-width:480px){.pair-card{border-radius:0;padding:2rem 1.5rem;box-shadow:none;border:none;background:transparent}#pair-screen{background:var(--wh);padding:1rem}}
 .pair-logo{display:flex;align-items:center;gap:.5rem;margin-bottom:1.6rem}
@@ -248,6 +255,12 @@ select.settings-select{font-family:var(--san);font-size:.84rem;color:var(--bk);b
     <button class="pair-btn" id="connect-btn">Connect to my Aspen</button>
     <div class="pair-err" id="pair-err"></div>
     <p class="pair-privacy">🔒 We never see your messages or data. <a href="https://runonaspen.com">Learn how →</a></p>
+
+    <div class="pair-companion">
+      <div class="pair-divider"><span>New to Aspen?</span></div>
+      <p class="pair-companion-text">This app is a companion to <strong>Aspen for Mac</strong> — the AI runs on your own computer. Install the desktop app first, then pair this phone to it.</p>
+      <a class="pair-companion-btn" href="https://runonaspen.com/download">Get Aspen for Mac →</a>
+    </div>
   </div>
 </div>
 
