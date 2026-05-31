@@ -1,0 +1,29 @@
+{
+  "appId": "com.runonaspen.app",
+  "appName": "Aspen",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https",
+    "iosScheme": "https",
+    "allowNavigation": [
+      "runonaspen.com",
+      "*.runonaspen.com"
+    ]
+  },
+  "ios": {
+    "contentInset": "always",
+    "backgroundColor": "#FAFAF7"
+  },
+  "android": {
+    "backgroundColor": "#FAFAF7",
+    "allowMixedContent": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1200,
+      "backgroundColor": "#FAFAF7",
+      "showSpinner": false,
+      "androidScaleType": "CENTER_CROP"
+    }
+  }
+}

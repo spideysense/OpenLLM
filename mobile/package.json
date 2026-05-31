@@ -1,0 +1,26 @@
+{
+  "name": "aspen-mobile",
+  "version": "0.3.3",
+  "description": "Aspen \u2014 native iOS & Android wrapper",
+  "scripts": {
+    "sync": "cap sync",
+    "open:ios": "cap open ios",
+    "open:android": "cap open android",
+    "build:ios": "cap sync ios && cap open ios",
+    "build:android": "cap sync android && cap open android"
+  },
+  "dependencies": {
+    "@capacitor/core": "^6.2.0",
+    "@capacitor/ios": "^6.2.0",
+    "@capacitor/android": "^6.2.0",
+    "@capacitor/app": "^6.0.2",
+    "@capacitor/haptics": "^6.0.2",
+    "@capacitor/status-bar": "^6.0.2",
+    "@capacitor/splash-screen": "^6.0.3",
+    "@capacitor-community/speech-recognition": "^6.0.0",
+    "@capacitor-community/text-to-speech": "^5.0.1"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.2.0"
+  }
+}

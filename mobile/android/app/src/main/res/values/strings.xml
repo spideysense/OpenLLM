@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Aspen</string>
+    <string name="title_activity_main">Aspen</string>
+    <string name="package_name">com.runonaspen.app</string>
+    <string name="custom_url_scheme">com.runonaspen.app</string>
+</resources>
