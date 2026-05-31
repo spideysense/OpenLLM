@@ -356,6 +356,17 @@ select.settings-select{font-family:var(--san);font-size:.84rem;color:var(--bk);b
       </div>
     </div>
   </div>
+
+  <!-- Voice mode overlay -->
+  <div class="voice-overlay hidden" id="voice-overlay">
+    <div class="voice-orb idle" id="voice-orb">🍃</div>
+    <div class="voice-label" id="voice-label">Tap to speak</div>
+    <div class="voice-controls">
+      <button class="voice-btn primary" id="voice-listen-btn">🎙</button>
+      <button class="voice-btn exit" id="voice-exit-btn">✕</button>
+    </div>
+  </div>
+
 </div>
 
 <script>
