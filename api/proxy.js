@@ -42,54 +42,58 @@ async function classifierNeedsSearch(userMessage, tunnelUrl, apiKey, model) {
   } catch { clearTimeout(timeout); return false; }
 }
 
-// ── Search execution (inlined — no self-call) ────────────
+// ── Search execution (Brave HTML + Google News RSS) ─────
 async function fetchSearchResults(query) {
-  const results = [];
+  // Primary: Brave Search HTML (full web results, not blocked from servers)
+  try {
+    const res = await fetch(`https://search.brave.com/search?q=${encodeURIComponent(query)}`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9',
+        'Accept-Language': 'en-US,en;q=0.9',
+      },
+    });
+    if (res.ok) {
+      const html = await res.text();
+      const results = [];
+      const blocks = html.split('data-type="web"');
+      for (const b of blocks.slice(1, 9)) {
+        const urlM = b.match(/<a href="(https?:\/\/[^"]+)"/);
+        const titleM = b.match(/search-snippet-title[^>]*title="([^"]+)"/) || b.match(/search-snippet-title[^>]*>([^<]+)</);
+        const snipM = b.match(/line-clamp-dynamic[^>]*>(?:<!--[^>]*-->)*\s*(?:<!---->)?\s*([^<]+)</);
+        const url = urlM ? urlM[1] : '';
+        const title = titleM ? titleM[1].replace(/&amp;/g, '&').replace(/&#x27;/g, "'").trim() : '';
+        const snippet = snipM ? snipM[1].replace(/&amp;/g, '&').replace(/&#x27;/g, "'").replace(/\s+/g, ' ').trim() : '';
+        if (title && url) results.push({ title, url, snippet });
+      }
+      if (results.length > 0) return results.slice(0, 6);
+    }
+  } catch {}
 
-  // 1. DDG Instant Answer — great for stocks, facts, weather
+  // Fallback: Google News RSS (for news queries when Brave returns nothing)
   try {
     const res = await fetch(
-      `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_redirect=1&no_html=1&skip_disambig=1`,
+      `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-US&gl=US&ceid=US:en`,
       { headers: { 'User-Agent': 'Mozilla/5.0' } }
     );
     if (res.ok) {
-      const d = await res.json();
-      if (d.AbstractText) results.push({ title: d.Heading || query, snippet: d.AbstractText, url: d.AbstractURL || '' });
-      if (d.Answer) results.push({ title: 'Answer', snippet: d.Answer, url: '' });
-      for (const t of (d.RelatedTopics || []).slice(0, 3)) {
-        if (t.Text && t.FirstURL) results.push({ title: t.Text.split(' - ')[0] || '', snippet: t.Text, url: t.FirstURL });
+      const xml = await res.text();
+      const results = [];
+      const items = xml.split('<item>').slice(1, 7);
+      for (const item of items) {
+        const titleM = item.match(/<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/);
+        const linkM = item.match(/<link>([\s\S]*?)<\/link>/);
+        const descM = item.match(/<description>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/description>/);
+        const title = titleM ? titleM[1].replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').trim() : '';
+        const url = linkM ? linkM[1].trim() : '';
+        const snippet = descM ? descM[1].replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim().slice(0, 200) : '';
+        if (title) results.push({ title, url, snippet });
       }
+      if (results.length > 0) return results.slice(0, 6);
     }
   } catch {}
 
-  // 2. DDG HTML — catches news, current events, general queries
-  try {
-    const res = await fetch(
-      `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}&kl=us-en`,
-      {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml',
-          'Accept-Language': 'en-US,en;q=0.9',
-        },
-      }
-    );
-    if (res.ok) {
-      const html = await res.text();
-      const blocks = html.split('result__body');
-      for (const block of blocks.slice(1, 8)) {
-        const titleM = block.match(/result__a[^>]*>([^<]+)<\/a>/);
-        const snippetM = block.match(/result__snippet[^>]*>([\s\S]*?)<\/a>/);
-        const urlM = block.match(/result__url[^>]*>\s*([^<]+?)\s*<\/span>/);
-        const title = titleM ? titleM[1].replace(/&#x27;/g, "'").trim() : '';
-        const snippet = snippetM ? snippetM[1].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim() : '';
-        const url = urlM ? urlM[1].trim() : '';
-        if (snippet.length > 20) results.push({ title, snippet, url });
-      }
-    }
-  } catch {}
-
-  return results.slice(0, 6);
+  return [];
 }
 
 function injectSearch(messages, query, results) {
