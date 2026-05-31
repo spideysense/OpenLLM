@@ -159,6 +159,47 @@ body.is-mobile .chat-delete{opacity:.4!important}
 .mic-btn.listening{background:rgba(220,38,38,.1);color:var(--danger);animation:micpulse 1s ease-in-out infinite}
 .mic-btn.unsupported{display:none}
 @keyframes micpulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* Voice mode overlay */
+.voice-overlay{
+  position:fixed;inset:0;z-index:200;
+  background:rgba(8,8,8,0.97);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:32px;
+}
+.voice-orb{
+  width:130px;height:130px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:52px;transition:all .4s ease;
+  animation:orbpulse 2s ease-in-out infinite;
+}
+.voice-orb.listening{
+  background:radial-gradient(circle,rgba(220,38,38,0.9) 0%,rgba(220,38,38,0.2) 60%,transparent 100%);
+  box-shadow:0 0 60px rgba(220,38,38,0.5);
+  animation:orbpulse 1s ease-in-out infinite;
+}
+.voice-orb.speaking{
+  background:radial-gradient(circle,rgba(184,134,11,0.9) 0%,rgba(184,134,11,0.2) 60%,transparent 100%);
+  box-shadow:0 0 60px rgba(184,134,11,0.5);
+  animation:orbpulse 1.5s ease-in-out infinite;
+}
+.voice-orb.idle{
+  background:radial-gradient(circle,rgba(255,255,255,0.15) 0%,rgba(255,255,255,0.03) 60%,transparent 100%);
+  box-shadow:none;
+}
+@keyframes orbpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+.voice-label{font-size:17px;color:rgba(255,255,255,0.65);font-family:var(--ser);letter-spacing:.02em}
+.voice-controls{display:flex;align-items:center;gap:24px}
+.voice-btn{
+  width:60px;height:60px;border-radius:50%;border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:26px;
+  transition:all .2s;-webkit-appearance:none;
+}
+.voice-btn.primary{background:rgba(255,255,255,0.12)}
+.voice-btn.primary:active{background:rgba(255,255,255,0.25)}
+.voice-btn.exit{background:transparent;border:1.5px solid rgba(255,255,255,0.2);font-size:18px;color:rgba(255,255,255,0.5)}
+.voice-btn.exit:active{background:rgba(255,255,255,0.08)}
+.voice-mic-hint{font-size:11px;color:rgba(255,255,255,0.3);text-align:center;margin-top:-16px}
 .send-btn{background:var(--bk)}.send-btn svg{color:white}
 .send-btn:active:not(:disabled){background:#333}
 .send-btn:disabled{background:rgba(0,0,0,.12);cursor:not-allowed}
@@ -604,6 +645,124 @@ async function extractFacts(userMsg,assistantMsg){
     localStorage.setItem(WORLD_MODEL_KEY,JSON.stringify({...wm,facts:merged,updatedAt:new Date().toISOString()}));
   }catch{}
 }
+
+// VOICE MODE
+let voiceMode=false,isSpeaking=false,voiceRecognition=null;
+const voiceOverlay=$('voice-overlay'),voiceOrb=$('voice-orb'),voiceLabel=$('voice-label'),voiceListenBtn=$('voice-listen-btn'),voiceExitBtn=$('voice-exit-btn');
+
+function speak(text){return new Promise(resolve=>{
+  if(!text||!text.trim()||!window.speechSynthesis){resolve();return;}
+  window.speechSynthesis.cancel();
+  const utt=new SpeechSynthesisUtterance(text.trim());
+  utt.rate=1.05;utt.pitch=1.0;
+  const voices=window.speechSynthesis.getVoices();
+  const pref=voices.find(v=>v.name.includes('Samantha')||v.name.includes('Google US English')||(v.lang==='en-US'&&v.localService));
+  if(pref)utt.voice=pref;
+  utt.onend=resolve;utt.onerror=resolve;
+  window.speechSynthesis.speak(utt);
+});}
+
+function stopSpeaking(){window.speechSynthesis&&window.speechSynthesis.cancel();isSpeaking=false;}
+
+function setVoiceState(s){
+  voiceOrb.className='voice-orb';
+  if(s==='listening'){voiceOrb.classList.add('listening');voiceOrb.textContent='🎙';voiceLabel.textContent='Listening…';voiceListenBtn.textContent='⏹';}
+  else if(s==='thinking'){voiceOrb.classList.add('idle');voiceOrb.textContent='⋯';voiceLabel.textContent='Thinking…';voiceListenBtn.textContent='🎙';}
+  else if(s==='speaking'){voiceOrb.classList.add('speaking');voiceOrb.textContent='🍃';voiceLabel.textContent='Speaking…';voiceListenBtn.textContent='⏹';}
+  else{voiceOrb.classList.add('idle');voiceOrb.textContent='🍃';voiceLabel.textContent='Tap to speak';voiceListenBtn.textContent='🎙';}
+}
+
+function startVoiceListening(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR||!voiceMode)return;
+  stopSpeaking();setVoiceState('listening');
+  const rec=new SR();rec.continuous=false;rec.interimResults=false;rec.lang='en-US';
+  rec.onresult=async(e)=>{
+    const text=e.results[0]&&e.results[0][0]&&e.results[0][0].transcript&&e.results[0][0].transcript.trim();
+    if(!text||!voiceMode)return;
+    setVoiceState('thinking');await sendVoiceMessage(text);
+  };
+  rec.onend=()=>{if(voiceMode&&!isSpeaking&&!isStreaming)setVoiceState('idle');};
+  rec.onerror=()=>{if(voiceMode)setVoiceState('idle');};
+  voiceRecognition=rec;rec.start();
+}
+
+async function sendVoiceMessage(text){
+  const chat=chats[activeChatId];if(!chat||isStreaming)return;
+  const model=modelSelect.value||'llama3';
+  chat.messages.push({role:'user',content:text});
+  if(chat.messages.length===1){chat.title=text.slice(0,52)+(text.length>52?'…':'');chatTitle.textContent=chat.title;renderChatList();}
+  saveChats();appendMessage('user',text,false);
+  const bubble=appendMessage('assistant','',true);
+  isStreaming=true;streamController=new AbortController();
+  let fullText='';isSpeaking=false;let sentBuf='';
+
+  async function trySpeakSentence(){
+    if(!voiceMode||isSpeaking)return;
+    const idx=sentBuf.search(/[.!?]\s/);if(idx===-1)return;
+    const sentence=sentBuf.slice(0,idx+1).trim();sentBuf=sentBuf.slice(idx+2);
+    if(sentence.length>3){isSpeaking=true;setVoiceState('speaking');await speak(sentence);isSpeaking=false;if(voiceMode)trySpeakSentence();}
+  }
+
+  try{
+    const sys=worldModelSystemPrompt();
+    const history=chat.messages.slice(-20).map(m=>({role:m.role,content:m.content}));
+    const res=await fetch('/api/proxy',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({tunnelUrl:config.tunnelUrl,apiKey:config.apiKey||'',model,messages:sys?[{role:'system',content:sys},...history]:history}),
+      signal:streamController.signal});
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const reader=res.body.getReader(),decoder=new TextDecoder();let buf='';
+    while(true){
+      const{done,value}=await reader.read();if(done)break;
+      buf+=decoder.decode(value,{stream:true});
+      const lines=buf.split('\n');buf=lines.pop()||'';
+      for(const line of lines){
+        const t=line.trim();if(!t.startsWith('data: '))continue;
+        const d=t.slice(6);if(d==='[DONE]')continue;
+        try{
+          const j=JSON.parse(d);const delta=j.choices&&j.choices[0]&&j.choices[0].delta&&j.choices[0].delta.content;
+          if(delta){fullText+=delta;sentBuf+=delta;bubble.innerHTML=formatMessage(fullText)+'<span class="cursor"></span>';scrollToBottom();trySpeakSentence();}
+        }catch(e2){}
+      }
+    }
+  }catch(e){if(e.name!=='AbortError')bubble.innerHTML='<div style="color:var(--danger);font-size:.82rem">⚠️ '+escHtml(e.message||'Error')+'</div>';}
+
+  bubble.innerHTML=fullText?formatMessage(fullText):'<em style="color:var(--t3);font-size:.8rem">No response</em>';
+  isStreaming=false;streamController=null;
+  if(fullText){
+    const c=chats[activeChatId];
+    if(c){c.messages.push({role:'assistant',content:fullText});saveChats();}
+    if(voiceMode&&sentBuf.trim().length>3){isSpeaking=true;setVoiceState('speaking');await speak(sentBuf.trim());isSpeaking=false;}
+    if(voiceMode){setVoiceState('idle');setTimeout(startVoiceListening,600);}
+  }
+}
+
+function enterVoiceMode(){
+  if(!window.speechSynthesis){alert('Voice not supported in this browser');return;}
+  voiceMode=true;voiceOverlay.classList.remove('hidden');setVoiceState('idle');
+  window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
+  setTimeout(startVoiceListening,500);
+}
+
+function exitVoiceMode(){
+  voiceMode=false;voiceOverlay.classList.add('hidden');stopSpeaking();
+  if(voiceRecognition){voiceRecognition.stop();voiceRecognition=null;}
+  if(isStreaming){streamController&&streamController.abort();isStreaming=false;}
+  sendBtn.classList.remove('hidden');stopBtn.classList.add('hidden');sendBtn.disabled=false;
+}
+
+voiceListenBtn.addEventListener('click',()=>{
+  if(isSpeaking){stopSpeaking();setVoiceState('idle');}else startVoiceListening();
+});
+voiceExitBtn.addEventListener('click',exitVoiceMode);
+
+// Double-tap mic = voice mode
+let micTaps=0,micTapTimer=null;
+micBtn.addEventListener('click',()=>{
+  micTaps++;
+  if(micTaps===2){micTaps=0;clearTimeout(micTapTimer);enterVoiceMode();}
+  else{micTapTimer=setTimeout(()=>{micTaps=0;},500);}
+});
 
 boot();
 </script>
