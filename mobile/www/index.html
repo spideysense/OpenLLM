@@ -312,7 +312,7 @@ select.settings-select{font-family:var(--san);font-size:.84rem;color:var(--bk);b
         <div class="offline-banner" id="offline-banner">Your Aspen machine appears to be offline.</div>
         <div class="messages" id="messages">
           <div class="empty-state" id="empty-state">
-            <div class="empty-icon">🍃</div>
+            <div class="empty-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6"/></svg></div>
             <h3 class="empty-title">Your <em>private</em> AI</h3>
             <p class="empty-sub">Runs on your machine. Nothing leaves.</p>
             <div class="starters">
@@ -379,10 +379,10 @@ select.settings-select{font-family:var(--san);font-size:.84rem;color:var(--bk);b
 
   <!-- Voice mode overlay -->
   <div class="voice-overlay hidden" id="voice-overlay">
-    <div class="voice-orb idle" id="voice-orb">🍃</div>
+    <div class="voice-orb idle" id="voice-orb"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6"/></svg></div>
     <div class="voice-label" id="voice-label">Tap to speak</div>
     <div class="voice-controls">
-      <button class="voice-btn primary" id="voice-listen-btn">🎙</button>
+      <button class="voice-btn primary" id="voice-listen-btn"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M19 10a7 7 0 0 1-14 0"/><line x1="12" y1="19" x2="12" y2="22"/></svg></button>
       <button class="voice-btn exit" id="voice-exit-btn">✕</button>
     </div>
   </div>
@@ -750,10 +750,11 @@ function stopSpeaking(){if(window.AspenNative&&window.AspenNative.available){win
 
 function setVoiceState(s){
   voiceOrb.className='voice-orb';
-  if(s==='listening'){voiceOrb.classList.add('listening');voiceOrb.textContent='🎙';voiceLabel.textContent='Listening…';voiceListenBtn.textContent='⏹';}
-  else if(s==='thinking'){voiceOrb.classList.add('idle');voiceOrb.textContent='⋯';voiceLabel.textContent='Thinking…';voiceListenBtn.textContent='🎙';}
-  else if(s==='speaking'){voiceOrb.classList.add('speaking');voiceOrb.textContent='🍃';voiceLabel.textContent='Speaking…';voiceListenBtn.textContent='⏹';}
-  else{voiceOrb.classList.add('idle');voiceOrb.textContent='🍃';voiceLabel.textContent='Tap to speak';voiceListenBtn.textContent='🎙';}
+  const MIC_SVG=`<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M19 10a7 7 0 0 1-14 0"/><line x1="12" y1="19" x2="12" y2="22"/></svg>`,STOP_SVG=`<svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>`,LEAF_SVG=`<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6"/></svg>`,DOTS_SVG=`<svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>`;
+  if(s==='listening'){voiceOrb.classList.add('listening');voiceOrb.innerHTML=MIC_SVG;voiceLabel.textContent='Listening…';voiceListenBtn.innerHTML=STOP_SVG;}
+  else if(s==='thinking'){voiceOrb.classList.add('idle');voiceOrb.innerHTML=DOTS_SVG;voiceLabel.textContent='Thinking…';voiceListenBtn.innerHTML=MIC_SVG;}
+  else if(s==='speaking'){voiceOrb.classList.add('speaking');voiceOrb.innerHTML=LEAF_SVG;voiceLabel.textContent='Speaking…';voiceListenBtn.innerHTML=STOP_SVG;}
+  else{voiceOrb.classList.add('idle');voiceOrb.innerHTML=LEAF_SVG;voiceLabel.textContent='Tap to speak';voiceListenBtn.innerHTML=MIC_SVG;}
 }
 
 function startVoiceListening(){
