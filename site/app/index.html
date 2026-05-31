@@ -157,7 +157,7 @@ body.is-mobile .chat-delete{opacity:.4!important}
 .mic-btn{background:transparent;color:var(--t3)}
 .mic-btn:active{background:rgba(0,0,0,.06)}
 .mic-btn.listening{background:rgba(220,38,38,.1);color:var(--danger);animation:micpulse 1s ease-in-out infinite}
-.mic-btn.unsupported{display:none}
+.mic-btn.unsupported{opacity:0.4} /* still show, just dimmed */
 @keyframes micpulse{0%,100%{opacity:1}50%{opacity:.4}}
 
 /* Voice mode overlay */
@@ -473,7 +473,7 @@ disconnectBtn.addEventListener('click',()=>{
 
 // Voice
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-if(!SR)micBtn.classList.add('unsupported');
+// Mic always visible — voice mode shows error if STT unavailable
 
 
 // Chats
@@ -729,9 +729,17 @@ async function sendVoiceMessage(text){
 }
 
 function enterVoiceMode(){
-  if(!window.speechSynthesis){alert('Voice not supported in this browser');return;}
-  voiceMode=true;voiceOverlay.classList.remove('hidden');setVoiceState('idle');
-  window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
+  voiceMode=true;voiceOverlay.classList.remove('hidden');
+  if(window.speechSynthesis){
+    window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
+  }
+  setVoiceState('idle');
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){
+    voiceLabel.textContent='Voice not available in this browser';
+    voiceListenBtn.style.display='none';
+    return;
+  }
   setTimeout(startVoiceListening,500);
 }
 

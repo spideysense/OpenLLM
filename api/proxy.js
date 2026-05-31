@@ -9,7 +9,7 @@
  * which local model is active (Qwen, Llama, DeepSeek, Mistral, etc.)
  */
 
-export const config = { runtime: 'edge' };
+export const config = { runtime: 'edge' }; // v2 — keyword search + LLM classifier
 
 // Instant keyword check — catches obvious cases with zero latency
 const OBVIOUS_SEARCH = [
