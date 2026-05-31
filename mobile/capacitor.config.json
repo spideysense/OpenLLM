@@ -12,7 +12,10 @@
   },
   "ios": {
     "contentInset": "always",
-    "backgroundColor": "#FAFAF7"
+    "backgroundColor": "#FAFAF7",
+    "scrollEnabled": true,
+    "limitsNavigationsToAppBoundDomains": false,
+    "allowsLinkPreview": false
   },
   "android": {
     "backgroundColor": "#FAFAF7",
