@@ -9,11 +9,19 @@ export default async function handler(req) {
   });
   const html = await res.text();
 
-  const out = { query, status: res.status };
-
-  // Grab chunk around first data-type="web" — actual result markup
   const idx = html.indexOf('data-type="web"');
-  if (idx > -1) out.aroundWebResult = html.slice(idx, idx + 1400);
+  // Grab a full result block — from data-type=web to the next one
+  const next = html.indexOf('data-type="web"', idx + 10);
+  const block = html.slice(idx, next > -1 ? next : idx + 3000);
+
+  // Look for title and description classes
+  const out = {
+    query,
+    titleClasses: (block.match(/class="[^"]*title[^"]*"/gi) || []).slice(0, 5),
+    descMatch: (block.match(/class="[^"]*(snippet-description|desc|snippet-content)[^"]*"/gi) || []).slice(0, 5),
+    // Show second half of block (where title/desc usually are)
+    blockSecondHalf: block.slice(1000, 2800),
+  };
 
   return new Response(JSON.stringify(out, null, 2), {
     status: 200,
