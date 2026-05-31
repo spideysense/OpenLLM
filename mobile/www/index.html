@@ -632,22 +632,30 @@ async function sendMessage(){
   streamController=new AbortController();let fullText='';
   try{
     const sys=worldModelSystemPrompt();
+    const useStream=!IS_NATIVE; // CapacitorHttp can't stream; use full response natively
     const res=await fetch(API_BASE+'/api/proxy',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({tunnelUrl:config.tunnelUrl,apiKey:config.apiKey||'',model,messages:sys?[{role:'system',content:sys},...history]:history}),
+      body:JSON.stringify({tunnelUrl:config.tunnelUrl,apiKey:config.apiKey||'',model,messages:sys?[{role:'system',content:sys},...history]:history,stream:useStream}),
       signal:streamController.signal,
     });
     if(!res.ok){const e=await res.text().catch(()=>'');throw new Error(`HTTP ${res.status}: ${e.slice(0,200)}`)}
-    const reader=res.body.getReader(),decoder=new TextDecoder();let buf='';
-    while(true){
-      const{done,value}=await reader.read();if(done)break;
-      buf+=decoder.decode(value,{stream:true});
-      const lines=buf.split('\n');buf=lines.pop()??'';
-      for(const line of lines){
-        const t=line.trim();if(!t.startsWith('data: '))continue;
-        const d=t.slice(6);if(d==='[DONE]')continue;
-        try{const delta=JSON.parse(d).choices?.[0]?.delta?.content;if(delta){fullText+=delta;bubble.innerHTML=formatMessage(fullText)+'<span class="cursor"></span>';scrollToBottom()}}catch{}
+    if(useStream){
+      const reader=res.body.getReader(),decoder=new TextDecoder();let buf='';
+      while(true){
+        const{done,value}=await reader.read();if(done)break;
+        buf+=decoder.decode(value,{stream:true});
+        const lines=buf.split('\n');buf=lines.pop()??'';
+        for(const line of lines){
+          const t=line.trim();if(!t.startsWith('data: '))continue;
+          const d=t.slice(6);if(d==='[DONE]')continue;
+          try{const delta=JSON.parse(d).choices?.[0]?.delta?.content;if(delta){fullText+=delta;bubble.innerHTML=formatMessage(fullText)+'<span class="cursor"></span>';scrollToBottom()}}catch{}
+        }
       }
+    }else{
+      // Native: full JSON response (non-streamed)
+      const data=await res.json();
+      fullText=data.choices?.[0]?.message?.content||'';
+      bubble.innerHTML=formatMessage(fullText);scrollToBottom();
     }
   }catch(e){
     if(e.name!=='AbortError'){
@@ -799,25 +807,33 @@ async function sendVoiceMessage(text){
   try{
     const sys=worldModelSystemPrompt();
     const history=chat.messages.slice(-20).map(m=>({role:m.role,content:m.content}));
+    const useStream=!IS_NATIVE;
     const res=await fetch(API_BASE+'/api/proxy',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({tunnelUrl:config.tunnelUrl,apiKey:config.apiKey||'',model,messages:sys?[{role:'system',content:sys},...history]:history}),
+      body:JSON.stringify({tunnelUrl:config.tunnelUrl,apiKey:config.apiKey||'',model,messages:sys?[{role:'system',content:sys},...history]:history,stream:useStream}),
       signal:streamController.signal});
     if(!res.ok)throw new Error('HTTP '+res.status);
-    const reader=res.body.getReader(),decoder=new TextDecoder();let buf='';
-    while(true){
-      const{done,value}=await reader.read();if(done)break;
-      buf+=decoder.decode(value,{stream:true});
-      const lines=buf.split('\n');buf=lines.pop()||'';
-      for(const line of lines){
-        const t=line.trim();if(!t.startsWith('data: '))continue;
-        const d=t.slice(6);if(d==='[DONE]')continue;
-        try{
-          const j=JSON.parse(d);const delta=j.choices&&j.choices[0]&&j.choices[0].delta&&j.choices[0].delta.content;
-          if(delta){fullText+=delta;sentBuf+=delta;bubble.innerHTML=formatMessage(fullText)+'<span class="cursor"></span>';scrollToBottom();trySpeakSentence();}
-        }catch(e2){}
+    if(useStream){
+      const reader=res.body.getReader(),decoder=new TextDecoder();let buf='';
+      while(true){
+        const{done,value}=await reader.read();if(done)break;
+        buf+=decoder.decode(value,{stream:true});
+        const lines=buf.split('\n');buf=lines.pop()||'';
+        for(const line of lines){
+          const t=line.trim();if(!t.startsWith('data: '))continue;
+          const d=t.slice(6);if(d==='[DONE]')continue;
+          try{
+            const j=JSON.parse(d);const delta=j.choices&&j.choices[0]&&j.choices[0].delta&&j.choices[0].delta.content;
+            if(delta){fullText+=delta;sentBuf+=delta;bubble.innerHTML=formatMessage(fullText)+'<span class="cursor"></span>';scrollToBottom();trySpeakSentence();}
+          }catch(e2){}
+        }
       }
+    }else{
+      const data=await res.json();
+      fullText=data.choices?.[0]?.message?.content||'';
+      sentBuf=fullText;
+      bubble.innerHTML=formatMessage(fullText);scrollToBottom();
     }
-  }catch(e){if(e.name!=='AbortError')bubble.innerHTML='<div style="color:var(--danger);font-size:.82rem">⚠️ '+escHtml(e.message||'Error')+'</div>';}
+  }catch(e){if(e.name!=='AbortError')bubble.innerHTML='<div style="color:var(--danger);font-size:.78rem;line-height:1.4">⚠️ '+escHtml(e.message||'Error')+'<br><span style="opacity:.6">base: '+escHtml(API_BASE||'(relative)')+'</span></div>';}
 
   bubble.innerHTML=fullText?formatMessage(fullText):'<em style="color:var(--t3);font-size:.8rem">No response</em>';
   isStreaming=false;streamController=null;
