@@ -474,16 +474,7 @@ disconnectBtn.addEventListener('click',()=>{
 // Voice
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 if(!SR)micBtn.classList.add('unsupported');
-micBtn.addEventListener('click',()=>{
-  if(!SR)return;
-  if(isListening){recognition?.stop();return}
-  recognition=new SR();recognition.continuous=false;recognition.interimResults=true;recognition.lang='en-US';
-  recognition.onstart=()=>{isListening=true;micBtn.classList.add('listening');inputBox.placeholder='Listening…'};
-  recognition.onresult=e=>{inputBox.value=Array.from(e.results).map(r=>r[0].transcript).join('');inputBox.dispatchEvent(new Event('input'))};
-  recognition.onend=()=>{isListening=false;micBtn.classList.remove('listening');inputBox.placeholder='Message your Aspen…';if(inputBox.value.trim())sendMessage()};
-  recognition.onerror=()=>{isListening=false;micBtn.classList.remove('listening');inputBox.placeholder='Message your Aspen…'};
-  recognition.start();
-});
+
 
 // Chats
 newChatBtn.addEventListener('click',()=>{newChat();switchToChat()});
@@ -756,13 +747,8 @@ voiceListenBtn.addEventListener('click',()=>{
 });
 voiceExitBtn.addEventListener('click',exitVoiceMode);
 
-// Double-tap mic = voice mode
-let micTaps=0,micTapTimer=null;
-micBtn.addEventListener('click',()=>{
-  micTaps++;
-  if(micTaps===2){micTaps=0;clearTimeout(micTapTimer);enterVoiceMode();}
-  else{micTapTimer=setTimeout(()=>{micTaps=0;},500);}
-});
+// Mic button = voice mode always
+micBtn.addEventListener('click', enterVoiceMode);
 
 boot();
 </script>

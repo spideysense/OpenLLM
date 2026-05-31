@@ -11,42 +11,40 @@
 
 export const config = { runtime: 'edge' };
 
-const CLASSIFIER_PROMPT = `You are a search intent classifier. Your only job is to decide if this question requires real-time internet data to answer accurately.
+// Instant keyword check — catches obvious cases with zero latency
+const OBVIOUS_SEARCH = [
+  /(news|headline|headlines|what'?s happening|latest|today'?s|tonight|this week|right now|currently)/i,
+  /(stock|share price|market|crypto|bitcoin|ethereum|btc|eth)/i,
+  /(weather|temperature|forecast|rain|sunny|humidity)/i,
+  /(score|who won|winner|match result|game today|game tonight)/i,
+  /(who is (the|a|an)|who'?s (the|currently)|current (president|ceo|prime minister|chancellor))/i,
+  /(released|launched|announced|available now|just dropped)/i,
+  /(price of|cost of|how much (is|does|did))/i,
+];
 
-Real-time data means: current prices, today's news, live scores, recent events, current weather, who currently holds a position, anything that changes over time and you wouldn't know without checking.
-
-Answer with exactly one word: YES or NO.
+const CLASSIFIER_PROMPT = `You are a search intent classifier. Does this question require real-time internet data? Real-time = current prices, today's news, live scores, recent events, current weather, who holds a position now. Answer YES or NO only.
 
 Question: `;
 
 async function askModelIfSearchNeeded(userMessage, tunnelUrl, apiKey, model) {
+  // 1. Instant keyword check — zero latency
+  if (OBVIOUS_SEARCH.some(r => r.test(userMessage))) return true;
+
+  // 2. LLM classifier with tight 2s timeout (model already running, should be fast)
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 4000); // 4s — generous but capped
+  const timeout = setTimeout(() => controller.abort(), 2000);
   try {
     const res = await fetch(`${tunnelUrl}/v1/chat/completions`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(apiKey ? { 'Authorization': `Bearer ${apiKey}` } : {}),
-      },
-      body: JSON.stringify({
-        model,
-        messages: [{ role: 'user', content: CLASSIFIER_PROMPT + userMessage.slice(0, 400) }],
-        max_tokens: 5,
-        temperature: 0,
-        stream: false,
-      }),
+      headers: { 'Content-Type': 'application/json', ...(apiKey ? { 'Authorization': `Bearer ${apiKey}` } : {}) },
+      body: JSON.stringify({ model, messages: [{ role: 'user', content: CLASSIFIER_PROMPT + userMessage.slice(0, 300) }], max_tokens: 5, temperature: 0, stream: false }),
       signal: controller.signal,
     });
     clearTimeout(timeout);
     if (!res.ok) return false;
     const data = await res.json();
-    const answer = (data.choices?.[0]?.message?.content || '').trim().toUpperCase();
-    return answer.startsWith('YES');
-  } catch {
-    clearTimeout(timeout);
-    return false; // timed out or failed → don't search, just answer
-  }
+    return (data.choices?.[0]?.message?.content || '').trim().toUpperCase().startsWith('YES');
+  } catch { clearTimeout(timeout); return false; }
 }
 
 async function runSearch(query) {
