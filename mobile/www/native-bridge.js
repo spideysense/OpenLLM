@@ -129,18 +129,24 @@
   AspenNative.requestPermissions();
 
 
-  // Keyboard: keep the latest message visible when keyboard opens
+  // Keyboard: manually shrink the app to sit above the keyboard.
+  // Sets --kb (keyboard height) on <html>; CSS uses it to size the screen.
   const Keyboard = Cap.Plugins.Keyboard;
   if (Keyboard) {
-    Keyboard.addListener('keyboardWillShow', () => {
+    Keyboard.addListener('keyboardWillShow', (info) => {
+      const h = (info && info.keyboardHeight) ? info.keyboardHeight : 0;
+      document.documentElement.style.setProperty('--kb', h + 'px');
       setTimeout(() => {
         const m = document.getElementById('messages');
         if (m) m.scrollTop = m.scrollHeight;
-      }, 50);
+      }, 60);
     });
     Keyboard.addListener('keyboardDidShow', () => {
       const m = document.getElementById('messages');
       if (m) m.scrollTop = m.scrollHeight;
+    });
+    Keyboard.addListener('keyboardWillHide', () => {
+      document.documentElement.style.setProperty('--kb', '0px');
     });
   }
 
