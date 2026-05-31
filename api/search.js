@@ -1,45 +1,81 @@
+/**
+ * /api/search — Web search using DuckDuckGo HTML scraping
+ * No API key. No limits. Always works.
+ */
 export const config = { runtime: 'edge' };
 
 export default async function handler(req) {
-  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders() });
-  if (req.method !== 'POST') return new Response('POST only', { status: 405, headers: corsHeaders() });
+  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors() });
+  if (req.method !== 'POST') return new Response('POST only', { status: 405, headers: cors() });
 
   let body;
-  try { body = await req.json(); } catch { return new Response(JSON.stringify({ error: 'Invalid JSON' }), { status: 400, headers: { ...corsHeaders(), 'Content-Type': 'application/json' } }); }
+  try { body = await req.json(); } catch { return err('Invalid JSON', 400); }
 
   const { query } = body;
-  if (!query || typeof query !== 'string' || query.length > 500) return new Response(JSON.stringify({ error: 'query required' }), { status: 400, headers: { ...corsHeaders(), 'Content-Type': 'application/json' } });
+  if (!query || typeof query !== 'string') return err('query required', 400);
 
-  const SERPER_KEY = process.env.SERPER_API_KEY;
-  let results = [], source = 'none';
+  const results = await searchDDG(query.slice(0, 200));
 
-  if (SERPER_KEY) {
-    try {
-      const res = await fetch('https://google.serper.dev/search', { method: 'POST', headers: { 'X-API-KEY': SERPER_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ q: query, num: 5 }) });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.answerBox?.answer) results.push({ title: 'Direct answer', url: '', snippet: data.answerBox.answer });
-        else if (data.answerBox?.snippet) results.push({ title: data.answerBox.title || '', url: data.answerBox.link || '', snippet: data.answerBox.snippet });
-        if (data.knowledgeGraph?.description) results.push({ title: data.knowledgeGraph.title || '', url: data.knowledgeGraph.website || '', snippet: data.knowledgeGraph.description });
-        for (const r of (data.organic || []).slice(0, 5)) results.push({ title: r.title || '', url: r.link || '', snippet: r.snippet || '' });
-        source = 'serper';
-      }
-    } catch {}
-  }
-
-  if (results.length === 0) {
-    try {
-      const res = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_redirect=1&no_html=1&skip_disambig=1`, { headers: { 'User-Agent': 'Aspen/1.0' } });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.AbstractText) results.push({ title: data.Heading || query, url: data.AbstractURL || '', snippet: data.AbstractText });
-        for (const t of (data.RelatedTopics || []).slice(0, 4)) { if (t.Text && t.FirstURL) results.push({ title: t.Text.split(' - ')[0], url: t.FirstURL, snippet: t.Text }); }
-        source = 'ddg';
-      }
-    } catch {}
-  }
-
-  return new Response(JSON.stringify({ results: results.slice(0, 6), source, query }), { status: 200, headers: { ...corsHeaders(), 'Content-Type': 'application/json' } });
+  return new Response(JSON.stringify({ results, query }), {
+    status: 200,
+    headers: { ...cors(), 'Content-Type': 'application/json' },
+  });
 }
 
-function corsHeaders() { return { 'Access-Control-Allow-Origin': 'https://runonaspen.com', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' }; }
+async function searchDDG(query) {
+  try {
+    // DuckDuckGo HTML search — no key, no limits
+    const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}&kl=us-en`;
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml',
+        'Accept-Language': 'en-US,en;q=0.9',
+      },
+    });
+
+    if (!res.ok) return [];
+    const html = await res.text();
+
+    const results = [];
+
+    // Extract result snippets — DDG HTML format
+    // Results are in <div class="result"> blocks
+    const resultBlocks = html.split('<div class="result ');
+    
+    for (const block of resultBlocks.slice(1, 8)) {
+      // Title: inside <a class="result__a"
+      const titleMatch = block.match(/class="result__a"[^>]*>([^<]+)</);
+      // URL: in href of result__a
+      const urlMatch = block.match(/class="result__url"[^>]*>([^<]+)</);
+      // Snippet: in result__snippet
+      const snippetMatch = block.match(/class="result__snippet"[^>]*>([\s\S]*?)<\/a>/);
+
+      const title = titleMatch ? titleMatch[1].trim() : '';
+      const url = urlMatch ? urlMatch[1].trim() : '';
+      const snippet = snippetMatch
+        ? snippetMatch[1].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim()
+        : '';
+
+      if (snippet || title) {
+        results.push({ title, url, snippet });
+      }
+    }
+
+    return results.slice(0, 6);
+  } catch (e) {
+    console.error('DDG search error:', e.message);
+    return [];
+  }
+}
+
+function err(msg, status) {
+  return new Response(JSON.stringify({ error: msg }), { status, headers: { ...cors(), 'Content-Type': 'application/json' } });
+}
+function cors() {
+  return {
+    'Access-Control-Allow-Origin': 'https://runonaspen.com',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  };
+}
