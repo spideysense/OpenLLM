@@ -627,7 +627,7 @@ async function sendMessage(){
   const model=modelSelect.value||'llama3';
   chat.messages.push({role:'user',content:text});
   if(chat.messages.length===1){chat.title=text.slice(0,52)+(text.length>52?'…':'');chatTitle.textContent=chat.title;renderChatList()}
-  saveChats();appendMessage('user',text,false);inputBox.value='';inputBox.style.height='auto';
+  saveChats();appendMessage('user',text,false);inputBox.value='';inputBox.style.height='auto';inputBox.focus();
   const bubble=appendMessage('assistant','',true);
   isStreaming=true;sendBtn.classList.add('hidden');stopBtn.classList.remove('hidden');sendBtn.disabled=true;
   const history=chat.messages.slice(-20).map(m=>({role:m.role,content:m.content}));
