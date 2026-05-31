@@ -9,22 +9,11 @@ export default async function handler(req) {
   });
   const html = await res.text();
 
-  // Find the structure around snippets
-  const out = { query, status: res.status, len: html.length, samples: [] };
+  const out = { query, status: res.status };
 
-  // Look for common Brave result patterns
-  const patterns = {
-    'data-type=web': (html.match(/data-type="web"/g) || []).length,
-    'class snippet': (html.match(/class="snippet/g) || []).length,
-    'snippet-content': (html.match(/snippet-content/g) || []).length,
-    'result-header': (html.match(/result-header/g) || []).length,
-    '<a href href count': (html.match(/<a href="https?:\/\//g) || []).length,
-  };
-  out.patterns = patterns;
-
-  // Grab a chunk around the first "snippet" occurrence
-  const idx = html.indexOf('snippet');
-  if (idx > -1) out.aroundSnippet = html.slice(idx - 200, idx + 600);
+  // Grab chunk around first data-type="web" — actual result markup
+  const idx = html.indexOf('data-type="web"');
+  if (idx > -1) out.aroundWebResult = html.slice(idx, idx + 1400);
 
   return new Response(JSON.stringify(out, null, 2), {
     status: 200,
