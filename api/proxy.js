@@ -1,12 +1,12 @@
 /**
- * /api/proxy — Chat proxy with Aspen-level web search injection
+ * /api/proxy — Chat proxy with Aspen-level web search
  *
- * Regex detects obvious search queries instantly.
- * LLM classifier catches everything else (asks local model YES/NO).
- * If search needed → fetch results → inject into system prompt → stream answer.
+ * Search logic is INLINED here — no self-HTTP call to /api/search.
+ * That was causing "Host not in allowlist" 403s on Vercel.
  */
-export const config = { runtime: 'edge' }; // v3
+export const config = { runtime: 'edge' };
 
+// ── Search triggers (regex) ──────────────────────────────
 const SEARCH_TRIGGERS = [
   /\b(stock|share)\s*(price|cost|value|ticker|quote)/i,
   /\b(weather|forecast|temperature|rain|sunny|humidity)\b/i,
@@ -14,19 +14,14 @@ const SEARCH_TRIGGERS = [
   /\b(latest|breaking|current events|today'?s|tonight'?s|this week'?s)\b/i,
   /\b(score|result|match|game)\s*(today|tonight|yesterday|last night)\b/i,
   /\b(price of|cost of|how much is|how much does|how much did)\b/i,
-  /\bwho (won|is winning|leads|is (the )?(ceo|president|prime minister|director))\b/i,
+  /\bwho (won|is winning|leads|is (the )?(ceo|president|prime minister))\b/i,
   /\b(crypto|bitcoin|ethereum|btc|eth)\s*(price|value|cost|today)\b/i,
   /\b(released|launched|announced|dropped)\s*(today|this week|recently|just)\b/i,
-  /\b(who is|who'?s)\s+the\s+(current|new|latest)\b/i,
 ];
 
 const CLASSIFIER_PROMPT = `You are a search intent classifier. Does this question require real-time internet data to answer accurately? Real-time = current prices, today's news, live scores, recent events, current weather, who currently holds a position. Answer YES or NO only.\n\nQuestion: `;
 
-async function needsSearch(userMessage, tunnelUrl, apiKey, model) {
-  // Fast path: regex catches obvious cases instantly
-  if (SEARCH_TRIGGERS.some(r => r.test(userMessage))) return true;
-
-  // Classifier: ask the local model for ambiguous cases
+async function classifierNeedsSearch(userMessage, tunnelUrl, apiKey, model) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 2500);
   try {
@@ -47,24 +42,61 @@ async function needsSearch(userMessage, tunnelUrl, apiKey, model) {
   } catch { clearTimeout(timeout); return false; }
 }
 
-async function runSearch(query) {
+// ── Search execution (inlined — no self-call) ────────────
+async function fetchSearchResults(query) {
+  const results = [];
+
+  // 1. DDG Instant Answer — great for stocks, facts, weather
   try {
-    const res = await fetch('https://runonaspen.com/api/search', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query }),
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    if (!data.results?.length) return null;
-    return data.results.slice(0, 5)
-      .map((r, i) => `[${i+1}] ${r.title}\n${r.snippet}${r.url ? `\nSource: ${r.url}` : ''}`)
-      .join('\n\n');
-  } catch { return null; }
+    const res = await fetch(
+      `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_redirect=1&no_html=1&skip_disambig=1`,
+      { headers: { 'User-Agent': 'Mozilla/5.0' } }
+    );
+    if (res.ok) {
+      const d = await res.json();
+      if (d.AbstractText) results.push({ title: d.Heading || query, snippet: d.AbstractText, url: d.AbstractURL || '' });
+      if (d.Answer) results.push({ title: 'Answer', snippet: d.Answer, url: '' });
+      for (const t of (d.RelatedTopics || []).slice(0, 3)) {
+        if (t.Text && t.FirstURL) results.push({ title: t.Text.split(' - ')[0] || '', snippet: t.Text, url: t.FirstURL });
+      }
+    }
+  } catch {}
+
+  // 2. DDG HTML — catches news, current events, general queries
+  try {
+    const res = await fetch(
+      `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}&kl=us-en`,
+      {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml',
+          'Accept-Language': 'en-US,en;q=0.9',
+        },
+      }
+    );
+    if (res.ok) {
+      const html = await res.text();
+      const blocks = html.split('result__body');
+      for (const block of blocks.slice(1, 8)) {
+        const titleM = block.match(/result__a[^>]*>([^<]+)<\/a>/);
+        const snippetM = block.match(/result__snippet[^>]*>([\s\S]*?)<\/a>/);
+        const urlM = block.match(/result__url[^>]*>\s*([^<]+?)\s*<\/span>/);
+        const title = titleM ? titleM[1].replace(/&#x27;/g, "'").trim() : '';
+        const snippet = snippetM ? snippetM[1].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim() : '';
+        const url = urlM ? urlM[1].trim() : '';
+        if (snippet.length > 20) results.push({ title, snippet, url });
+      }
+    }
+  } catch {}
+
+  return results.slice(0, 6);
 }
 
 function injectSearch(messages, query, results) {
-  const block = `\n\n--- Web search results for "${query}" ---\n${results}\n--- End results. Answer using these results. Be direct and specific. Do NOT say you lack real-time access. ---`;
+  const formatted = results
+    .map((r, i) => `[${i+1}] ${r.title}\n${r.snippet}${r.url ? `\nSource: ${r.url}` : ''}`)
+    .join('\n\n');
+  const block = `\n\n--- Web search results for "${query}" ---\n${formatted}\n--- End results. Answer using these results directly. Do NOT say you lack internet access. ---`;
   const now = new Date();
   const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
@@ -73,6 +105,7 @@ function injectSearch(messages, query, results) {
   return [{ role: 'system', content: `You are a helpful private AI. Today is ${dateStr}, ${timeStr}.${block}` }, ...messages];
 }
 
+// ── Main handler ─────────────────────────────────────────
 export default async function handler(req) {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors() });
   if (req.method !== 'POST') return new Response('POST only', { status: 405, headers: cors() });
@@ -101,10 +134,15 @@ export default async function handler(req) {
   let enrichedMessages = messages || [];
 
   if (userText.length > 3) {
-    const shouldSearch = await needsSearch(userText, tunnelUrl.replace(/\/+$/, ''), apiKey, model || 'llama3');
+    // Regex first — instant, no network
+    const regexHit = SEARCH_TRIGGERS.some(r => r.test(userText));
+    // Classifier only if regex misses
+    const shouldSearch = regexHit || await classifierNeedsSearch(
+      userText, tunnelUrl.replace(/\/+$/, ''), apiKey, model || 'llama3'
+    );
     if (shouldSearch) {
-      const results = await runSearch(userText);
-      if (results) enrichedMessages = injectSearch(messages, userText.slice(0, 100), results);
+      const results = await fetchSearchResults(userText);
+      if (results.length > 0) enrichedMessages = injectSearch(messages, userText.slice(0, 100), results);
     }
   }
 
@@ -123,8 +161,9 @@ export default async function handler(req) {
   }
 
   if (!stream) {
-    const json = await upRes.json();
-    return new Response(JSON.stringify(json), { status: 200, headers: { ...cors(), 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify(await upRes.json()), {
+      status: 200, headers: { ...cors(), 'Content-Type': 'application/json' },
+    });
   }
 
   return new Response(upRes.body, {
