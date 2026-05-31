@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useApp } from '../App';
+import tts from '../lib/tts';
 
 // ── Savings counter ──
 // Based on Claude Opus 4 API pricing: $15/M input tokens, $75/M output tokens
@@ -29,11 +30,30 @@ export default function Chat() {
   const recognitionRef = useRef(null);
   const saveTimer = useRef(null);
 
+  // Voice conversation mode (like GPT voice)
+  const [voiceMode, setVoiceMode] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [ttsReady, setTtsReady] = useState(false);
+  const [ttsDownloading, setTtsDownloading] = useState(false);
+  const [ttsProgress, setTtsProgress] = useState(0);
+  const voiceModeRef = useRef(false);
+  const pendingSentences = useRef([]);
+  const speakingQueue = useRef(false);
+
   // Load saved exchange count
   useEffect(() => {
     if (!bridge) return;
     bridge.store.get('totalExchanges').then((n) => setTotalExchanges(n || 0)).catch(() => {});
   }, [bridge]);
+
+  // Setup TTS
+  useEffect(() => {
+    tts.setCallbacks({
+      onProgress: (pct) => { setTtsDownloading(true); setTtsProgress(pct); },
+      onReady: () => { setTtsReady(true); setTtsDownloading(false); },
+    });
+    tts.preload(); // start download in background
+  }, []);
 
   const convo = conversations.find((c) => c.id === activeConvo);
   const messages = convo?.messages || [];
@@ -97,6 +117,26 @@ export default function Chat() {
             )
           );
         }, 0);
+        // Speak response in voice mode
+        if (voiceModeRef.current && chunk.done) {
+          const fullText = buf + (chunk.content || '');
+          const sentences = tts.splitIntoSentences(fullText);
+          if (sentences.length > 0) {
+            setIsSpeaking(true);
+            (async () => {
+              for (const sentence of sentences) {
+                if (!voiceModeRef.current) break;
+                await tts.speak(sentence);
+              }
+              setIsSpeaking(false);
+              // Auto-listen again after speaking
+              if (voiceModeRef.current) {
+                setTimeout(() => startListening(), 500);
+              }
+            })();
+          }
+        }
+
         // Increment savings counter
         setTotalExchanges((prev) => {
           const next = prev + 1;
@@ -182,6 +222,53 @@ export default function Chat() {
     recognition.start();
     setIsListening(true);
   }, [isListening, voiceSupported]);
+
+  // ── Voice conversation mode ──
+  const startListening = useCallback(() => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR || !voiceModeRef.current) return;
+    const recognition = new SR();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+    recognition.onresult = (e) => {
+      const text = e.results[0]?.[0]?.transcript?.trim();
+      if (text && voiceModeRef.current) {
+        setInput(text);
+        // Auto-send
+        setTimeout(() => {
+          document.getElementById('chat-send-btn')?.click();
+        }, 100);
+      }
+    };
+    recognition.onend = () => setIsListening(false);
+    recognition.onerror = () => setIsListening(false);
+    recognitionRef.current = recognition;
+    setIsListening(true);
+    recognition.start();
+  }, []);
+
+  const enterVoiceMode = useCallback(() => {
+    if (!ttsReady && !ttsDownloading) {
+      // Trigger download if not started
+      tts.preload();
+      return;
+    }
+    if (!ttsReady) return; // still downloading
+    voiceModeRef.current = true;
+    setVoiceMode(true);
+    tts.stop();
+    startListening();
+  }, [ttsReady, ttsDownloading, startListening]);
+
+  const exitVoiceMode = useCallback(() => {
+    voiceModeRef.current = false;
+    setVoiceMode(false);
+    setIsListening(false);
+    setIsSpeaking(false);
+    recognitionRef.current?.stop();
+    tts.stop();
+  }, []);
 
   // ── File Attachments ──
   const handleFileSelect = useCallback(async (e) => {
@@ -373,6 +460,68 @@ export default function Chat() {
         </div>
       )}
 
+      {/* ── Voice Mode Overlay ── */}
+      {voiceMode && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 100,
+          background: 'rgba(10,10,10,0.96)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          gap: 32,
+        }}>
+          {/* Animated orb */}
+          <div style={{
+            width: 120, height: 120, borderRadius: '50%',
+            background: isSpeaking
+              ? 'radial-gradient(circle, #B8860B 0%, rgba(184,134,11,0.3) 60%, transparent 100%)'
+              : isListening
+              ? 'radial-gradient(circle, #DC2626 0%, rgba(220,38,38,0.3) 60%, transparent 100%)'
+              : 'radial-gradient(circle, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.05) 60%, transparent 100%)',
+            animation: (isSpeaking || isListening) ? 'voicePulse 1.5s ease-in-out infinite' : 'none',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 48,
+            boxShadow: isSpeaking ? '0 0 60px rgba(184,134,11,0.4)' : isListening ? '0 0 60px rgba(220,38,38,0.4)' : 'none',
+            transition: 'all 0.5s ease',
+          }}>
+            {isSpeaking ? '🍃' : isListening ? '🎙' : '◦'}
+          </div>
+
+          <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.7)', fontSize: 16, fontFamily: 'var(--font-display)' }}>
+            {isSpeaking ? 'Speaking…' : isListening ? 'Listening…' : 'Tap mic to speak'}
+          </div>
+
+          {/* Controls */}
+          <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
+            {!isSpeaking && (
+              <button
+                onClick={startListening}
+                disabled={isListening}
+                style={{
+                  width: 64, height: 64, borderRadius: '50%', border: 'none', cursor: 'pointer',
+                  background: isListening ? 'rgba(220,38,38,0.8)' : 'rgba(255,255,255,0.15)',
+                  fontSize: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  animation: isListening ? 'voicePulse 1s infinite' : 'none',
+                }}
+              >
+                🎙
+              </button>
+            )}
+            {isSpeaking && (
+              <button
+                onClick={() => { tts.stop(); setIsSpeaking(false); setTimeout(startListening, 300); }}
+                style={{ width: 64, height: 64, borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.15)', fontSize: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                ⏹
+              </button>
+            )}
+            <button
+              onClick={exitVoiceMode}
+              style={{ width: 48, height: 48, borderRadius: '50%', border: '1.5px solid rgba(255,255,255,0.2)', cursor: 'pointer', background: 'transparent', fontSize: 20, color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Input area */}
       <div className="chat-input-area">
         {/* Hidden file input */}
@@ -395,21 +544,25 @@ export default function Chat() {
           📎
         </button>
 
-        {/* Voice button */}
+        {/* Voice button — tap for STT, long press / hold for full voice mode */}
         {voiceSupported && (
           <button
-            onClick={toggleVoice}
+            onClick={ttsDownloading ? undefined : (ttsReady ? enterVoiceMode : toggleVoice)}
             disabled={!activeModel || isStreaming}
-            title={isListening ? 'Stop listening' : 'Voice input'}
+            title={ttsDownloading ? `Downloading voice model ${ttsProgress}%` : ttsReady ? 'Voice conversation mode' : 'Voice input'}
             style={{
               width: 40, height: 40, borderRadius: '50%', border: 'none', cursor: 'pointer', fontSize: 18,
               display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-              background: isListening ? 'rgba(231,76,60,.15)' : 'rgba(93,78,55,.08)',
+              background: isListening ? 'rgba(231,76,60,.15)' : ttsReady ? 'rgba(93,78,55,.15)' : 'rgba(93,78,55,.08)',
               animation: isListening ? 'pulse 1s infinite' : 'none',
               opacity: (activeModel && !isStreaming) ? 1 : 0.4,
+              position: 'relative',
             }}
           >
-            {isListening ? '🔴' : '🎙️'}
+            {ttsDownloading ? '⬇️' : ttsReady ? '🎙️' : '🎙️'}
+            {ttsDownloading && (
+              <span style={{ position: 'absolute', bottom: -16, left: '50%', transform: 'translateX(-50%)', fontSize: 9, color: 'var(--text-light)', whiteSpace: 'nowrap' }}>{ttsProgress}%</span>
+            )}
           </button>
         )}
 

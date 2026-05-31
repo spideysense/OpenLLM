@@ -46,6 +46,17 @@ function createWindow() {
     mainWindow.loadFile(hotUpdater.resolveRendererPath());
   }
 
+  // Set COOP/COEP headers so SharedArrayBuffer works for Piper WASM TTS
+  mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Cross-Origin-Opener-Policy': ['same-origin'],
+        'Cross-Origin-Embedder-Policy': ['require-corp'],
+      },
+    });
+  });
+
   // Grant microphone/audio permissions for voice input (Web Speech API)
   mainWindow.webContents.session.setPermissionRequestHandler((webContents, permission, callback) => {
     const allowed = ['media', 'microphone', 'audioCapture'];

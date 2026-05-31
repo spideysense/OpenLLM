@@ -1,6 +1,6 @@
 {
-  "rendererVersion": "0.3.0",
-  "rendererUrl": "https://github.com/spideysense/OpenLLM/releases/download/v0.3.0/renderer.zip",
-  "releaseNotes": "Full rebuild: hot updates, home, world model, web search, mobile web app",
+  "rendererVersion": "0.3.3",
+  "rendererUrl": "https://github.com/spideysense/OpenLLM/releases/download/v0.3.3/renderer.zip",
+  "releaseNotes": "feat: voice conversation mode with Piper TTS \u2014 talk and listen like GPT",
   "publishedAt": "2026-05-30"
 }
