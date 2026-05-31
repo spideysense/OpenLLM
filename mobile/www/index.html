@@ -115,7 +115,7 @@ body.is-mobile .chat-delete{opacity:.4!important}
 @keyframes dotpulse{0%,100%{opacity:.3}50%{opacity:1}}
 
 /* MAIN */
-.chat-main{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.chat-main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden}
 .chat-header{height:var(--header);flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:0 1rem;gap:.75rem;border-bottom:1px solid var(--brd);background:rgba(250,250,247,.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding-top:var(--safe-top);height:calc(var(--header) + var(--safe-top))}
 .header-hamburger{width:36px;height:36px;display:none;align-items:center;justify-content:center;background:transparent;border:none;cursor:pointer;border-radius:8px;flex-shrink:0;color:var(--bk);-webkit-appearance:none}
 .header-hamburger:active{background:rgba(0,0,0,.06)}
@@ -128,7 +128,7 @@ body.is-mobile .chat-delete{opacity:.4!important}
 .offline-banner.visible{display:block}
 
 /* MESSAGES */
-.messages{flex:1;overflow-y:auto;padding:1.5rem 0 1rem;-webkit-overflow-scrolling:touch}
+.messages{flex:1;min-height:0;overflow-y:auto;padding:1.5rem 0 1rem;-webkit-overflow-scrolling:touch}
 .messages::-webkit-scrollbar{width:3px}
 .messages::-webkit-scrollbar-thumb{background:rgba(0,0,0,.08);border-radius:2px}
 .msg-row{padding:.2rem 1rem;display:flex;max-width:720px;margin:0 auto;width:100%}
@@ -220,7 +220,7 @@ body.is-mobile .chat-delete{opacity:.4!important}
 .input-footer{max-width:720px;margin:.35rem auto 0;text-align:center;font-size:.66rem;color:var(--t4)}
 
 /* SETTINGS PANEL */
-.panel{flex:1;overflow-y:auto;display:none;flex-direction:column;-webkit-overflow-scrolling:touch}
+.panel{flex:1;overflow:hidden;display:none;flex-direction:column;min-height:0}
 .panel.active{display:flex}
 .panel-inner{max-width:580px;width:100%;margin:0 auto;padding:1.5rem 1rem 2rem}
 @media(min-width:600px){.panel-inner{padding:2rem 1.5rem 3rem}}
@@ -330,9 +330,8 @@ select.settings-select{font-family:var(--san);font-size:.84rem;color:var(--bk);b
           </div>
         </div>
         <div class="input-area">
-          <input type="password" style="display:none" aria-hidden="true" tabindex="-1" autocomplete="new-password">
           <div class="input-wrap">
-            <textarea class="input-box" id="input-box" placeholder="Message your Aspen…" rows="1" autocomplete="one-time-code"></textarea>
+            <textarea class="input-box" id="input-box" placeholder="Message your Aspen…" rows="1" autocomplete="off" autocorrect="on" autocapitalize="sentences" spellcheck="true" enterkeyhint="send"></textarea>
             <button class="mic-btn" id="mic-btn" title="Voice input">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M19 10a7 7 0 0 1-14 0"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>
             </button>
