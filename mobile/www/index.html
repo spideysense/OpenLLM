@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#FAFAF7">
 <title>Aspen — Your AI</title>
 <meta name="robots" content="noindex">
-<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" type="image/svg+xml" href="https://runonaspen.com/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@200;300;400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -241,7 +241,7 @@ select.settings-select{font-family:var(--san);font-size:.84rem;color:var(--bk);b
 <!-- PAIRING -->
 <div id="pair-screen" class="screen active">
   <div class="pair-card">
-    <div class="pair-logo"><img src="/favicon.svg" alt="Aspen"><span>ASPEN</span></div>
+    <div class="pair-logo"><img src="https://runonaspen.com/favicon.svg" alt="Aspen"><span>ASPEN</span></div>
     <h2 class="pair-tagline">Your AI,<br><em>anywhere.</em></h2>
     <p class="pair-sub">Connect to your local Aspen. Every message goes directly to your machine — nothing touches our servers.</p>
     <div class="field">
@@ -277,7 +277,7 @@ select.settings-select{font-family:var(--san);font-size:.84rem;color:var(--bk);b
   <div class="app-layout">
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
-        <div class="sb-logo"><img src="/favicon.svg" alt="Aspen"><span>ASPEN</span></div>
+        <div class="sb-logo"><img src="https://runonaspen.com/favicon.svg" alt="Aspen"><span>ASPEN</span></div>
         <button class="new-chat-btn" id="new-chat-btn">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>New chat
         </button>
@@ -391,9 +391,22 @@ select.settings-select{font-family:var(--san);font-size:.84rem;color:var(--bk);b
 
 <script>
 const STORAGE_KEY='aspen_config', CHATS_KEY='aspen_chats', WORLD_MODEL_KEY='aspen_world_model';
-// Capacitor native detection — use absolute API base when bundled
-const IS_NATIVE = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
-const API_BASE = IS_NATIVE ? 'https://runonaspen.com' : '';
+// Capacitor native detection. Use a function (not a const evaluated at load)
+// because window.Capacitor may be injected slightly after this script runs.
+function isNative() {
+  return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+}
+// When bundled natively the app is served from capacitor://localhost, so relative
+// /api paths fail. Detect that by protocol too, not just the Capacitor flag.
+function apiBase() {
+  const proto = window.location.protocol;
+  if (isNative() || proto === 'capacitor:' || proto === 'file:' || window.location.hostname === 'localhost') {
+    return 'https://runonaspen.com';
+  }
+  return '';
+}
+const IS_NATIVE = isNative();
+const API_BASE = apiBase();
 let config=null, chats={}, activeChatId=null, streamController=null, isStreaming=false, statusInterval=null, isListening=false, recognition=null;
 
 const $ = id => document.getElementById(id);
