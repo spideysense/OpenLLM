@@ -111,8 +111,9 @@ function injectSearch(messages, query, results) {
 
 // ── Main handler ─────────────────────────────────────────
 export default async function handler(req) {
-  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors() });
-  if (req.method !== 'POST') return new Response('POST only', { status: 405, headers: cors() });
+  const origin = req.headers.get('origin') || '';
+  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors(origin) });
+  if (req.method !== 'POST') return new Response('POST only', { status: 405, headers: cors(origin) });
 
   let body;
   try { body = await req.json(); } catch { return jsonErr('Invalid JSON', 400); }
@@ -166,23 +167,33 @@ export default async function handler(req) {
 
   if (!stream) {
     return new Response(JSON.stringify(await upRes.json()), {
-      status: 200, headers: { ...cors(), 'Content-Type': 'application/json' },
+      status: 200, headers: { ...cors(origin), 'Content-Type': 'application/json' },
     });
   }
 
   return new Response(upRes.body, {
     status: 200,
-    headers: { ...cors(), 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no' },
+    headers: { ...cors(origin), 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no' },
   });
 }
 
 function jsonErr(msg, status) {
-  return new Response(JSON.stringify({ error: msg }), { status, headers: { ...cors(), 'Content-Type': 'application/json' } });
+  return new Response(JSON.stringify({ error: msg }), { status, headers: { ...cors(origin), 'Content-Type': 'application/json' } });
 }
-function cors() {
+const ALLOWED_ORIGINS = [
+  'https://runonaspen.com',
+  'capacitor://localhost',
+  'ionic://localhost',
+  'http://localhost',
+  'https://localhost',
+];
+function cors(origin) {
+  // Echo back the origin if it's an allowed app origin; default to the site.
+  const allow = ALLOWED_ORIGINS.includes(origin) ? origin : 'https://runonaspen.com';
   return {
-    'Access-Control-Allow-Origin': 'https://runonaspen.com',
+    'Access-Control-Allow-Origin': allow,
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
+    'Vary': 'Origin',
   };
 }
