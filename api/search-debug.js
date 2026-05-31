@@ -1,6 +1,5 @@
 /**
- * /api/search-debug — visit this in your browser to see EXACTLY what search returns
- * https://runonaspen.com/api/search-debug?q=news+today
+ * /api/search-debug?q=... — tests multiple free search sources from Vercel's IP
  */
 export const config = { runtime: 'edge' };
 
@@ -9,51 +8,56 @@ export default async function handler(req) {
   const query = url.searchParams.get('q') || 'news today';
   const debug = { query, steps: [] };
 
-  // Step 1: DDG Instant Answer
+  // 1. Wikipedia API (always allows servers, free, no key)
   try {
     const res = await fetch(
-      `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_redirect=1&no_html=1&skip_disambig=1`,
-      { headers: { 'User-Agent': 'Mozilla/5.0' } }
+      `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&srlimit=3`,
+      { headers: { 'User-Agent': 'Aspen/1.0 (runonaspen.com)' } }
     );
     const text = await res.text();
-    debug.steps.push({
-      step: 'DDG Instant Answer API',
-      status: res.status,
-      ok: res.ok,
-      bodyLength: text.length,
-      bodyPreview: text.slice(0, 300),
-    });
-  } catch (e) {
-    debug.steps.push({ step: 'DDG Instant Answer API', error: e.message });
-  }
+    debug.steps.push({ step: 'Wikipedia API', status: res.status, len: text.length, preview: text.slice(0, 200) });
+  } catch (e) { debug.steps.push({ step: 'Wikipedia API', error: e.message }); }
 
-  // Step 2: DDG HTML scraping
+  // 2. Brave Search via lite HTML (search.brave.com)
   try {
-    const res = await fetch(
-      `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}&kl=us-en`,
-      {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml',
-          'Accept-Language': 'en-US,en;q=0.9',
-        },
-      }
-    );
-    const html = await res.text();
-    const blockCount = html.split('result__body').length - 1;
-    const snippetCount = (html.match(/result__snippet/g) || []).length;
-    debug.steps.push({
-      step: 'DDG HTML scraping',
-      status: res.status,
-      ok: res.ok,
-      htmlLength: html.length,
-      resultBlocks: blockCount,
-      snippetMatches: snippetCount,
-      htmlPreview: html.slice(0, 500),
+    const res = await fetch(`https://search.brave.com/search?q=${encodeURIComponent(query)}`, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36' },
     });
-  } catch (e) {
-    debug.steps.push({ step: 'DDG HTML scraping', error: e.message });
-  }
+    const text = await res.text();
+    debug.steps.push({ step: 'Brave HTML', status: res.status, len: text.length, hasResults: text.includes('snippet') });
+  } catch (e) { debug.steps.push({ step: 'Brave HTML', error: e.message }); }
+
+  // 3. Bing HTML scraping
+  try {
+    const res = await fetch(`https://www.bing.com/search?q=${encodeURIComponent(query)}`, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36' },
+    });
+    const text = await res.text();
+    debug.steps.push({ step: 'Bing HTML', status: res.status, len: text.length, hasResults: text.includes('<li class="b_algo"') });
+  } catch (e) { debug.steps.push({ step: 'Bing HTML', error: e.message }); }
+
+  // 4. DuckDuckGo Lite (different endpoint than html)
+  try {
+    const res = await fetch(`https://lite.duckduckgo.com/lite/?q=${encodeURIComponent(query)}`, {
+      method: 'POST',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: `q=${encodeURIComponent(query)}`,
+    });
+    const text = await res.text();
+    debug.steps.push({ step: 'DDG Lite', status: res.status, len: text.length, hasResults: text.includes('result-link') });
+  } catch (e) { debug.steps.push({ step: 'DDG Lite', error: e.message }); }
+
+  // 5. Google News RSS (free, no key, servers allowed)
+  try {
+    const res = await fetch(`https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-US&gl=US&ceid=US:en`, {
+      headers: { 'User-Agent': 'Mozilla/5.0' },
+    });
+    const text = await res.text();
+    debug.steps.push({ step: 'Google News RSS', status: res.status, len: text.length, itemCount: (text.match(/<item>/g) || []).length });
+  } catch (e) { debug.steps.push({ step: 'Google News RSS', error: e.message }); }
 
   return new Response(JSON.stringify(debug, null, 2), {
     status: 200,
