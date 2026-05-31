@@ -1,6 +1,8 @@
 /**
- * /api/search — Web search using DuckDuckGo HTML scraping
- * No API key. No limits. Always works.
+ * /api/search — Web search, no API key required
+ * 
+ * Strategy: try DDG instant answers first (great for stocks, facts, weather).
+ * Then DDG HTML scraping for general queries (news, current events, anything).
  */
 export const config = { runtime: 'edge' };
 
@@ -14,59 +16,57 @@ export default async function handler(req) {
   const { query } = body;
   if (!query || typeof query !== 'string') return err('query required', 400);
 
-  const results = await searchDDG(query.slice(0, 200));
+  const q = query.slice(0, 200);
+  let results = [];
 
-  return new Response(JSON.stringify({ results, query }), {
-    status: 200,
-    headers: { ...cors(), 'Content-Type': 'application/json' },
-  });
-}
-
-async function searchDDG(query) {
+  // 1. DDG Instant Answer API — works great for stocks, facts, definitions
   try {
-    // DuckDuckGo HTML search — no key, no limits
-    const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}&kl=us-en`;
-    const res = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml',
-        'Accept-Language': 'en-US,en;q=0.9',
-      },
-    });
-
-    if (!res.ok) return [];
-    const html = await res.text();
-
-    const results = [];
-
-    // Extract result snippets — DDG HTML format
-    // Results are in <div class="result"> blocks
-    const resultBlocks = html.split('<div class="result ');
-    
-    for (const block of resultBlocks.slice(1, 8)) {
-      // Title: inside <a class="result__a"
-      const titleMatch = block.match(/class="result__a"[^>]*>([^<]+)</);
-      // URL: in href of result__a
-      const urlMatch = block.match(/class="result__url"[^>]*>([^<]+)</);
-      // Snippet: in result__snippet
-      const snippetMatch = block.match(/class="result__snippet"[^>]*>([\s\S]*?)<\/a>/);
-
-      const title = titleMatch ? titleMatch[1].trim() : '';
-      const url = urlMatch ? urlMatch[1].trim() : '';
-      const snippet = snippetMatch
-        ? snippetMatch[1].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim()
-        : '';
-
-      if (snippet || title) {
-        results.push({ title, url, snippet });
+    const res = await fetch(
+      `https://api.duckduckgo.com/?q=${encodeURIComponent(q)}&format=json&no_redirect=1&no_html=1&skip_disambig=1`,
+      { headers: { 'User-Agent': 'Mozilla/5.0' } }
+    );
+    if (res.ok) {
+      const data = await res.json();
+      if (data.AbstractText) results.push({ title: data.Heading || q, url: data.AbstractURL || '', snippet: data.AbstractText });
+      if (data.Answer) results.push({ title: 'Answer', url: '', snippet: data.Answer });
+      for (const t of (data.RelatedTopics || []).slice(0, 3)) {
+        if (t.Text && t.FirstURL) results.push({ title: t.Text.split(' - ')[0] || '', url: t.FirstURL, snippet: t.Text });
       }
     }
+  } catch {}
 
-    return results.slice(0, 6);
-  } catch (e) {
-    console.error('DDG search error:', e.message);
-    return [];
-  }
+  // 2. DDG HTML scraping — works for news, current events, general queries
+  try {
+    const res = await fetch(
+      `https://html.duckduckgo.com/html/?q=${encodeURIComponent(q)}&kl=us-en`,
+      {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9',
+        },
+      }
+    );
+    if (res.ok) {
+      const html = await res.text();
+      // Parse result blocks
+      const blocks = html.split('result__body');
+      for (const block of blocks.slice(1, 7)) {
+        const titleM = block.match(/result__a[^>]*>([^<]+)<\/a>/);
+        const snippetM = block.match(/result__snippet[^>]*>([\s\S]*?)<\/a>/);
+        const urlM = block.match(/result__url[^>]*>([^<]+)<\/span>/);
+        const title = titleM ? titleM[1].replace(/&#x27;/g, "'").trim() : '';
+        const snippet = snippetM ? snippetM[1].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim() : '';
+        const url = urlM ? urlM[1].trim() : '';
+        if (snippet.length > 20) results.push({ title, url, snippet });
+      }
+    }
+  } catch {}
+
+  return new Response(
+    JSON.stringify({ results: results.slice(0, 6), query: q }),
+    { status: 200, headers: { ...cors(), 'Content-Type': 'application/json' } }
+  );
 }
 
 function err(msg, status) {

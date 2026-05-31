@@ -1,43 +1,43 @@
 /**
- * /api/proxy — Chat proxy with Aspen-level LLM search intent detection
+ * /api/proxy — Chat proxy with Aspen-level web search injection
  *
- * Aspen asks the local model: "Does this require real-time internet data? YES or NO"
- * If YES → search → inject results → stream answer. No regex, no hardcoding.
- * If the classifier times out or fails → skip search, answer directly.
- *
- * The search tool is at the ASPEN level: works identically regardless of
- * which local model is active (Qwen, Llama, DeepSeek, Mistral, etc.)
+ * Regex detects obvious search queries instantly.
+ * LLM classifier catches everything else (asks local model YES/NO).
+ * If search needed → fetch results → inject into system prompt → stream answer.
  */
+export const config = { runtime: 'edge' }; // v3
 
-export const config = { runtime: 'edge' }; // v2 — keyword search + LLM classifier
-
-// Instant keyword check — catches obvious cases with zero latency
-const OBVIOUS_SEARCH = [
-  /(news|headline|headlines|what'?s happening|latest|today'?s|tonight|this week|right now|currently)/i,
-  /(stock|share price|market|crypto|bitcoin|ethereum|btc|eth)/i,
-  /(weather|temperature|forecast|rain|sunny|humidity)/i,
-  /(score|who won|winner|match result|game today|game tonight)/i,
-  /(who is (the|a|an)|who'?s (the|currently)|current (president|ceo|prime minister|chancellor))/i,
-  /(released|launched|announced|available now|just dropped)/i,
-  /(price of|cost of|how much (is|does|did))/i,
+const SEARCH_TRIGGERS = [
+  /\b(stock|share)\s*(price|cost|value|ticker|quote)/i,
+  /\b(weather|forecast|temperature|rain|sunny|humidity)\b/i,
+  /\b(news|headlines?|what'?s happening|what'?s going on)\b/i,
+  /\b(latest|breaking|current events|today'?s|tonight'?s|this week'?s)\b/i,
+  /\b(score|result|match|game)\s*(today|tonight|yesterday|last night)\b/i,
+  /\b(price of|cost of|how much is|how much does|how much did)\b/i,
+  /\bwho (won|is winning|leads|is (the )?(ceo|president|prime minister|director))\b/i,
+  /\b(crypto|bitcoin|ethereum|btc|eth)\s*(price|value|cost|today)\b/i,
+  /\b(released|launched|announced|dropped)\s*(today|this week|recently|just)\b/i,
+  /\b(who is|who'?s)\s+the\s+(current|new|latest)\b/i,
 ];
 
-const CLASSIFIER_PROMPT = `You are a search intent classifier. Does this question require real-time internet data? Real-time = current prices, today's news, live scores, recent events, current weather, who holds a position now. Answer YES or NO only.
+const CLASSIFIER_PROMPT = `You are a search intent classifier. Does this question require real-time internet data to answer accurately? Real-time = current prices, today's news, live scores, recent events, current weather, who currently holds a position. Answer YES or NO only.\n\nQuestion: `;
 
-Question: `;
+async function needsSearch(userMessage, tunnelUrl, apiKey, model) {
+  // Fast path: regex catches obvious cases instantly
+  if (SEARCH_TRIGGERS.some(r => r.test(userMessage))) return true;
 
-async function askModelIfSearchNeeded(userMessage, tunnelUrl, apiKey, model) {
-  // 1. Instant keyword check — zero latency
-  if (OBVIOUS_SEARCH.some(r => r.test(userMessage))) return true;
-
-  // 2. LLM classifier with tight 2s timeout (model already running, should be fast)
+  // Classifier: ask the local model for ambiguous cases
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 2000);
+  const timeout = setTimeout(() => controller.abort(), 2500);
   try {
     const res = await fetch(`${tunnelUrl}/v1/chat/completions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...(apiKey ? { 'Authorization': `Bearer ${apiKey}` } : {}) },
-      body: JSON.stringify({ model, messages: [{ role: 'user', content: CLASSIFIER_PROMPT + userMessage.slice(0, 300) }], max_tokens: 5, temperature: 0, stream: false }),
+      body: JSON.stringify({
+        model,
+        messages: [{ role: 'user', content: CLASSIFIER_PROMPT + userMessage.slice(0, 300) }],
+        max_tokens: 5, temperature: 0, stream: false,
+      }),
       signal: controller.signal,
     });
     clearTimeout(timeout);
@@ -64,91 +64,79 @@ async function runSearch(query) {
 }
 
 function injectSearch(messages, query, results) {
-  const searchBlock = `\n\n--- Live web search results for "${query}" ---\n${results}\n--- End of search results ---\n\nIMPORTANT: Use the search results above to answer the user's question directly and concisely. Do NOT write code. Just answer the question in plain English using the data from the search results.`;
-  const hasSystem = messages[0]?.role === 'system';
-  if (hasSystem) {
-    return [{ ...messages[0], content: messages[0].content + searchBlock }, ...messages.slice(1)];
-  }
+  const block = `\n\n--- Web search results for "${query}" ---\n${results}\n--- End results. Answer using these results. Be direct and specific. Do NOT say you lack real-time access. ---`;
   const now = new Date();
   const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
-  return [
-    { role: 'system', content: `You are a helpful private AI assistant. Today is ${dateStr}, ${timeStr}.${searchBlock}` },
-    ...messages,
-  ];
+  const hasSystem = messages[0]?.role === 'system';
+  if (hasSystem) return [{ ...messages[0], content: messages[0].content + block }, ...messages.slice(1)];
+  return [{ role: 'system', content: `You are a helpful private AI. Today is ${dateStr}, ${timeStr}.${block}` }, ...messages];
 }
 
 export default async function handler(req) {
-  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders() });
-  if (req.method !== 'POST') return new Response('POST only', { status: 405, headers: corsHeaders() });
+  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors() });
+  if (req.method !== 'POST') return new Response('POST only', { status: 405, headers: cors() });
 
   let body;
-  try { body = await req.json(); } catch { return jsonError('Invalid JSON', 400); }
+  try { body = await req.json(); } catch { return jsonErr('Invalid JSON', 400); }
 
   const { tunnelUrl, apiKey, model, messages, stream = true } = body;
-  if (!tunnelUrl) return jsonError('tunnelUrl required', 400);
+  if (!tunnelUrl) return jsonErr('tunnelUrl required', 400);
 
   let parsed;
-  try { parsed = new URL(tunnelUrl); } catch { return jsonError('Invalid tunnelUrl', 400); }
+  try { parsed = new URL(tunnelUrl); } catch { return jsonErr('Invalid tunnelUrl', 400); }
   if (!parsed.hostname.endsWith('.runonaspen.com') && parsed.hostname !== 'runonaspen.com') {
-    return jsonError('tunnelUrl must be a runonaspen.com domain', 403);
+    return jsonErr('tunnelUrl must be runonaspen.com domain', 403);
   }
 
   const upstream = `${tunnelUrl.replace(/\/+$/, '')}/v1/chat/completions`;
   const upHeaders = {
     'Content-Type': 'application/json',
-    'User-Agent': 'Aspen-Web-Proxy/1.0',
+    'User-Agent': 'Aspen-Proxy/1.0',
     ...(apiKey ? { 'Authorization': `Bearer ${apiKey}` } : {}),
   };
 
-  // ── Aspen-level search intent detection ──
   const lastUser = [...(messages || [])].reverse().find(m => m.role === 'user');
   const userText = lastUser?.content || '';
   let enrichedMessages = messages || [];
 
-  if (userText.length > 3 && model) {
-    const needsSearch = await askModelIfSearchNeeded(
-      userText,
-      tunnelUrl.replace(/\/+$/, ''),
-      apiKey,
-      model
-    );
-    if (needsSearch) {
+  if (userText.length > 3) {
+    const shouldSearch = await needsSearch(userText, tunnelUrl.replace(/\/+$/, ''), apiKey, model || 'llama3');
+    if (shouldSearch) {
       const results = await runSearch(userText);
-      if (results) enrichedMessages = injectSearch(messages, userText.slice(0, 120), results);
+      if (results) enrichedMessages = injectSearch(messages, userText.slice(0, 100), results);
     }
   }
 
-  // ── Stream to local model ──
-  let upstreamRes;
+  let upRes;
   try {
-    upstreamRes = await fetch(upstream, {
+    upRes = await fetch(upstream, {
       method: 'POST',
       headers: upHeaders,
       body: JSON.stringify({ model: model || 'llama3', messages: enrichedMessages, stream }),
     });
-  } catch (err) { return jsonError(`Could not reach tunnel: ${err.message}`, 502); }
+  } catch (e) { return jsonErr(`Could not reach tunnel: ${e.message}`, 502); }
 
-  if (!upstreamRes.ok) {
-    const text = await upstreamRes.text().catch(() => '');
-    return jsonError(`HTTP ${upstreamRes.status}: ${text}`, upstreamRes.status);
+  if (!upRes.ok) {
+    const t = await upRes.text().catch(() => '');
+    return jsonErr(`Upstream HTTP ${upRes.status}: ${t.slice(0, 200)}`, upRes.status);
   }
 
   if (!stream) {
-    const json = await upstreamRes.json();
-    return new Response(JSON.stringify(json), { status: 200, headers: { ...corsHeaders(), 'Content-Type': 'application/json' } });
+    const json = await upRes.json();
+    return new Response(JSON.stringify(json), { status: 200, headers: { ...cors(), 'Content-Type': 'application/json' } });
   }
 
-  return new Response(upstreamRes.body, {
+  return new Response(upRes.body, {
     status: 200,
-    headers: { ...corsHeaders(), 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no' },
+    headers: { ...cors(), 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no' },
   });
 }
 
-function jsonError(msg, status) {
-  return new Response(JSON.stringify({ error: msg }), { status, headers: { ...corsHeaders(), 'Content-Type': 'application/json' } });
+function jsonErr(msg, status) {
+  return new Response(JSON.stringify({ error: msg }), { status, headers: { ...cors(), 'Content-Type': 'application/json' } });
 }
-function corsHeaders() {
+function cors() {
   return {
     'Access-Control-Allow-Origin': 'https://runonaspen.com',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
