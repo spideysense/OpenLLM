@@ -50,7 +50,10 @@
             "universal"
           ]
         }
-      ]
+      ],
+      "notarize": {
+        "teamId": "S6UBG93XBS"
+      }
     },
     "win": {
       "icon": "assets/icon.png",
@@ -64,7 +67,6 @@
       ],
       "artifactName": "Aspen-win.${ext}"
     },
-    "afterSign": "scripts/notarize.js",
     "publish": [
       {
         "provider": "github",
