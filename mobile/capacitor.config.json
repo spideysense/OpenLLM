@@ -11,7 +11,7 @@
     ]
   },
   "ios": {
-    "contentInset": "always",
+    "contentInset": "never",
     "backgroundColor": "#FAFAF7",
     "scrollEnabled": true,
     "limitsNavigationsToAppBoundDomains": false,
@@ -32,7 +32,8 @@
       "enabled": true
     },
     "Keyboard": {
-      "resize": "none"
+      "resize": "native",
+      "resizeOnFullScreen": true
     }
   }
 }
