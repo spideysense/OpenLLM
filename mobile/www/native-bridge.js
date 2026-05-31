@@ -29,22 +29,46 @@
       }
     },
 
-    // Native STT — returns final transcript via callback
+    // Native STT with silence auto-detect — auto-submits when you stop talking
     async startListening(onResult, onEnd) {
       if (listening) return;
       listening = true;
+      AspenNative._lastPartial = '';
+      AspenNative._onResult = onResult;
+      AspenNative._onEnd = onEnd;
+      AspenNative._silenceTimer = null;
+
+      const resetSilence = () => {
+        if (AspenNative._silenceTimer) clearTimeout(AspenNative._silenceTimer);
+        // Auto-stop after 1.5s of no new speech
+        AspenNative._silenceTimer = setTimeout(() => {
+          AspenNative.stopListening(AspenNative._onResult, AspenNative._onEnd);
+        }, 1500);
+      };
+
       try {
         const perm = await SpeechRecognition.checkPermissions();
         if (perm.speechRecognition !== 'granted') {
           await SpeechRecognition.requestPermissions();
         }
 
-        // Listen for partial results
         await SpeechRecognition.removeAllListeners();
         SpeechRecognition.addListener('partialResults', (data) => {
           if (data.matches && data.matches.length > 0) {
-            // store latest; final delivered on stop
             AspenNative._lastPartial = data.matches[0];
+            resetSilence(); // each new partial resets the silence countdown
+          }
+        });
+        SpeechRecognition.addListener('listeningState', (data) => {
+          if (data && data.status === 'stopped') {
+            // OS ended the session
+            const final = AspenNative._lastPartial || '';
+            if (listening) {
+              listening = false;
+              if (AspenNative._silenceTimer) clearTimeout(AspenNative._silenceTimer);
+              if (final && AspenNative._onResult) AspenNative._onResult(final);
+              AspenNative._onEnd && AspenNative._onEnd();
+            }
           }
         });
 
@@ -54,8 +78,7 @@
           partialResults: true,
           popup: false,
         });
-
-        // start() resolves with final matches on some platforms
+        resetSilence(); // start the initial countdown (in case nothing is said)
       } catch (e) {
         console.error('[Native] STT start error', e);
         listening = false;
@@ -65,18 +88,17 @@
 
     async stopListening(onResult, onEnd) {
       if (!listening) return;
+      if (AspenNative._silenceTimer) { clearTimeout(AspenNative._silenceTimer); AspenNative._silenceTimer = null; }
       try {
         await SpeechRecognition.stop();
-        const final = AspenNative._lastPartial || '';
-        AspenNative._lastPartial = '';
-        listening = false;
-        if (final && onResult) onResult(final);
-        onEnd && onEnd();
       } catch (e) {
         console.error('[Native] STT stop error', e);
-        listening = false;
-        onEnd && onEnd();
       }
+      const final = AspenNative._lastPartial || '';
+      AspenNative._lastPartial = '';
+      listening = false;
+      if (final && onResult) onResult(final);
+      onEnd && onEnd();
     },
 
     isListening() { return listening; },
@@ -105,6 +127,22 @@
 
   // Request permissions on load so the prompt appears early
   AspenNative.requestPermissions();
+
+
+  // Keyboard: keep the latest message visible when keyboard opens
+  const Keyboard = Cap.Plugins.Keyboard;
+  if (Keyboard) {
+    Keyboard.addListener('keyboardWillShow', () => {
+      setTimeout(() => {
+        const m = document.getElementById('messages');
+        if (m) m.scrollTop = m.scrollHeight;
+      }, 50);
+    });
+    Keyboard.addListener('keyboardDidShow', () => {
+      const m = document.getElementById('messages');
+      if (m) m.scrollTop = m.scrollHeight;
+    });
+  }
 
   window.AspenNative = AspenNative;
   console.log('[Native] Aspen native bridge ready');

@@ -27,8 +27,9 @@
   --safe-top:env(safe-area-inset-top,0px);
 }
 html{height:100%;-webkit-text-size-adjust:100%}
-body{font-family:var(--san);background:var(--bg);color:var(--bk);-webkit-font-smoothing:antialiased;height:100%;overflow:hidden;position:fixed;width:100%}
-.screen{position:fixed;inset:0;display:none;flex-direction:column}
+html,body{height:100%}
+body{font-family:var(--san);background:var(--bg);color:var(--bk);-webkit-font-smoothing:antialiased;overflow:hidden;width:100%;height:100dvh}
+.screen{position:absolute;top:0;left:0;right:0;bottom:0;height:100dvh;display:none;flex-direction:column}
 .screen.active{display:flex}
 
 /* PAIR */
@@ -761,10 +762,13 @@ function startVoiceListening(){
   if(!voiceMode)return;
   stopSpeaking();setVoiceState('listening');
 
-  // Native STT path (iOS/Android)
+  // Native STT path (iOS/Android) — auto-submits on silence
   if(window.AspenNative&&window.AspenNative.available){
-    window.AspenNative.startListening();
-    // Native uses tap-to-stop: listen button triggers stop+result
+    window.AspenNative.startListening(
+      async(text)=>{ if(text&&voiceMode){setVoiceState('thinking');await sendVoiceMessage(text);} },
+      ()=>{ if(voiceMode&&!isSpeaking&&!isStreaming)setVoiceState('idle'); }
+    );
+    // Tap the orb button to stop early (otherwise it auto-stops on silence)
     voiceListenBtn.onclick=async()=>{
       await window.AspenNative.stopListening(
         async(text)=>{ if(text&&voiceMode){setVoiceState('thinking');await sendVoiceMessage(text);} },
