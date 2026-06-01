@@ -20,10 +20,8 @@ export default function Sidebar() {
 
   useEffect(() => {
     if (!bridge?.hotUpdater) return;
-    bridge.hotUpdater.getVersion().then(v => setAppVersion(v || '?'));
     const unsub = bridge.hotUpdater.onStatus((data) => {
       setUpdateStatus(data);
-      if (data.status === 'ready') bridge.hotUpdater.getVersion().then(v => setAppVersion(v || '?'));
     });
     return unsub;
   }, [bridge]);
