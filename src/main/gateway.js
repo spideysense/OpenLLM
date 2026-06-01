@@ -1,6 +1,7 @@
 const http = require('http');
 const apikeys = require('./apikeys');
 const aliases = require('./aliases');
+const agent = require('./agent');
 
 const OLLAMA_HOST = '127.0.0.1';
 const OLLAMA_PORT = 11434;
@@ -70,6 +71,18 @@ function start() {
       if (req.url === '/v1/models' && req.method === 'GET') {
         handleListModels(res);
         return;
+      }
+
+      // ── Agent loop: chat completions go through local tool-calling ──
+      // The local LLM decides whether/which tool to use; tools run on THIS
+      // machine (tools.js). Nothing touches Aspen servers.
+      if (req.method === 'POST' && req.url.includes('/chat/completions') && agent.isEnabled()) {
+        let parsed;
+        try { parsed = JSON.parse(body); } catch { parsed = null; }
+        if (parsed && Array.isArray(parsed.messages)) {
+          handleAgentChat(parsed, res);
+          return;
+        }
       }
 
       // POST /v1/chat/completions → Ollama /v1/chat/completions (native support)
@@ -149,6 +162,53 @@ function stop() {
   if (server) {
     server.close();
     server = null;
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// Agent chat: run the local tool-loop, return OpenAI-shaped response
+// ═══════════════════════════════════════════════════
+async function handleAgentChat(parsed, res) {
+  const wantStream = parsed.stream !== false;
+  const model = parsed.model || 'llama3';
+  try {
+    const content = await agent.runAgent({ model, messages: parsed.messages });
+
+    if (wantStream) {
+      // Emit the final answer as a single SSE delta so streaming clients work.
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no',
+      });
+      const chunk = {
+        id: 'chatcmpl-aspen',
+        object: 'chat.completion.chunk',
+        created: Math.floor(Date.now() / 1000),
+        model,
+        choices: [{ index: 0, delta: { role: 'assistant', content }, finish_reason: null }],
+      };
+      res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+      const done = { ...chunk, choices: [{ index: 0, delta: {}, finish_reason: 'stop' }] };
+      res.write(`data: ${JSON.stringify(done)}\n\n`);
+      res.write('data: [DONE]\n\n');
+      res.end();
+    } else {
+      const payload = {
+        id: 'chatcmpl-aspen',
+        object: 'chat.completion',
+        created: Math.floor(Date.now() / 1000),
+        model,
+        choices: [{ index: 0, message: { role: 'assistant', content }, finish_reason: 'stop' }],
+      };
+      const buf = Buffer.from(JSON.stringify(payload));
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Content-Length': String(buf.length) });
+      res.end(buf);
+    }
+  } catch (e) {
+    res.writeHead(502, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: { message: `Agent error: ${e.message}`, type: 'agent_error' } }));
   }
 }
 

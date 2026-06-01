@@ -8,6 +8,7 @@ const apikeys = require('./apikeys');
 const aliases = require('./aliases');
 const registry = require('./registry');
 const store = require('./store');
+const toolSettings = require('./tool-settings');
 const tunnel = require('./tunnel');
 const updater = require('./updater');
 const hotUpdater = require('./hot-updater');
@@ -337,6 +338,15 @@ ipcMain.handle('store:set', async (event, key, value) => {
     return false;
   }
   return store.set(key, value);
+});
+
+// ── Tool settings (all tools ON by default) ──
+ipcMain.handle('tools:list', async () => {
+  return toolSettings.getToolStates();
+});
+
+ipcMain.handle('tools:setEnabled', async (event, { name, enabled }) => {
+  return toolSettings.setToolEnabled(name, enabled);
 });
 
 ipcMain.handle('app:openExternal', async (event, url) => {

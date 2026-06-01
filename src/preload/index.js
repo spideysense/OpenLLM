@@ -82,6 +82,12 @@ contextBridge.exposeInMainWorld('aspen', {
     set: (key, value) => ipcRenderer.invoke('store:set', key, value),
   },
 
+  // ── Tools (local, all on by default) ──
+  tools: {
+    list: () => ipcRenderer.invoke('tools:list'),
+    setEnabled: (name, enabled) => ipcRenderer.invoke('tools:setEnabled', { name, enabled }),
+  },
+
   // ── App ──
   app: {
     openExternal: (url) => ipcRenderer.invoke('app:openExternal', url),
