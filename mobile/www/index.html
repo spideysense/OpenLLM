@@ -181,26 +181,45 @@ body.is-mobile .chat-delete{opacity:.4!important}
   -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
 }
 .voice-orb{
-  width:130px;height:130px;border-radius:50%;
+  position:relative;
+  width:160px;height:160px;border-radius:50%;
   display:flex;align-items:center;justify-content:center;
-  font-size:52px;transition:all .4s ease;
-  animation:orbpulse 2s ease-in-out infinite;
+  font-size:0;transition:all .5s cubic-bezier(.4,0,.2,1);
+  /* OpenAI-style soft glowing blue sphere with layered gradients */
+  background:
+    radial-gradient(circle at 35% 30%, rgba(180,220,255,0.95) 0%, rgba(90,150,255,0.55) 35%, rgba(60,110,240,0.25) 60%, transparent 75%),
+    radial-gradient(circle at 65% 70%, rgba(120,180,255,0.6) 0%, transparent 55%);
+  box-shadow:0 0 70px rgba(90,150,255,0.45), inset 0 0 50px rgba(255,255,255,0.25);
+  animation:orbbreathe 4s ease-in-out infinite;
 }
+/* Soft animated highlight layer that drifts, giving the "alive" fluid look */
+.voice-orb::before{
+  content:'';position:absolute;inset:0;border-radius:50%;
+  background:radial-gradient(circle at 50% 40%, rgba(255,255,255,0.5) 0%, transparent 45%);
+  mix-blend-mode:screen;
+  animation:orbdrift 6s ease-in-out infinite;
+}
+.voice-orb svg{display:none}
 .voice-orb.listening{
-  background:radial-gradient(circle,rgba(220,38,38,0.9) 0%,rgba(220,38,38,0.2) 60%,transparent 100%);
-  box-shadow:0 0 60px rgba(220,38,38,0.5);
-  animation:orbpulse 1s ease-in-out infinite;
+  background:
+    radial-gradient(circle at 35% 30%, rgba(200,230,255,1) 0%, rgba(70,140,255,0.7) 35%, rgba(40,90,230,0.3) 60%, transparent 75%),
+    radial-gradient(circle at 65% 70%, rgba(110,170,255,0.7) 0%, transparent 55%);
+  box-shadow:0 0 90px rgba(80,150,255,0.7), inset 0 0 50px rgba(255,255,255,0.3);
+  animation:orbbreathe 1.6s ease-in-out infinite;
 }
 .voice-orb.speaking{
-  background:radial-gradient(circle,rgba(184,134,11,0.9) 0%,rgba(184,134,11,0.2) 60%,transparent 100%);
-  box-shadow:0 0 60px rgba(184,134,11,0.5);
-  animation:orbpulse 1.5s ease-in-out infinite;
+  background:
+    radial-gradient(circle at 35% 30%, rgba(210,235,255,1) 0%, rgba(100,160,255,0.75) 30%, rgba(60,120,240,0.3) 58%, transparent 74%),
+    radial-gradient(circle at 65% 70%, rgba(140,190,255,0.75) 0%, transparent 55%);
+  box-shadow:0 0 100px rgba(100,160,255,0.75), inset 0 0 60px rgba(255,255,255,0.35);
+  animation:orbspeak 0.9s ease-in-out infinite;
 }
 .voice-orb.idle{
-  background:radial-gradient(circle,rgba(255,255,255,0.15) 0%,rgba(255,255,255,0.03) 60%,transparent 100%);
-  box-shadow:none;
+  animation:orbbreathe 4s ease-in-out infinite;
 }
-@keyframes orbpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+@keyframes orbbreathe{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+@keyframes orbspeak{0%,100%{transform:scale(1.02)}25%{transform:scale(1.1)}50%{transform:scale(1.04)}75%{transform:scale(1.12)}}
+@keyframes orbdrift{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(8%,-6%) scale(1.08)}66%{transform:translate(-6%,8%) scale(0.96)}}
 .voice-label{font-size:17px;color:rgba(255,255,255,0.65);font-family:var(--ser);letter-spacing:.02em}
 .voice-controls{display:flex;align-items:center;gap:24px}
 .voice-btn{
@@ -443,6 +462,27 @@ drawerOverlay.addEventListener('click',closeDrawer);
 let touchStartX=0;
 sidebar.addEventListener('touchstart',e=>{touchStartX=e.touches[0].clientX},{passive:true});
 sidebar.addEventListener('touchend',e=>{if(touchStartX-e.changedTouches[0].clientX>60)closeDrawer()},{passive:true});
+
+// Swipe right from the left edge of the screen to open the menu (like native apps).
+let edgeSwipeX=0, edgeSwipeY=0, edgeSwipeActive=false;
+document.addEventListener('touchstart',e=>{
+  // Only arm if the touch begins within 24px of the left edge and drawer is closed.
+  if(!document.body.classList.contains('is-mobile'))return;
+  if(sidebar.classList.contains('open'))return;
+  // Don't hijack swipes inside the voice overlay.
+  if(!voiceOverlay.classList.contains('hidden'))return;
+  const t=e.touches[0];
+  if(t.clientX<=24){edgeSwipeActive=true;edgeSwipeX=t.clientX;edgeSwipeY=t.clientY;}
+  else edgeSwipeActive=false;
+},{passive:true});
+document.addEventListener('touchend',e=>{
+  if(!edgeSwipeActive)return;
+  edgeSwipeActive=false;
+  const t=e.changedTouches[0];
+  const dx=t.clientX-edgeSwipeX, dy=Math.abs(t.clientY-edgeSwipeY);
+  // Mostly-horizontal rightward swipe of at least 50px opens the drawer.
+  if(dx>50 && dy<60)openDrawer();
+},{passive:true});
 
 // Nav
 document.querySelectorAll('.sb-nav-item').forEach(btn=>{
