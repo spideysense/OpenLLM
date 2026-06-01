@@ -175,62 +175,73 @@ body.is-mobile .chat-delete{opacity:.4!important}
 /* Voice mode overlay */
 .voice-overlay{
   position:fixed;inset:0;z-index:200;
-  background:rgba(8,8,8,0.97);
+  /* Solid, clean backdrop — no chat bleed-through. Subtle radial lift behind the orb. */
+  background:
+    radial-gradient(circle at 50% 42%, #1a1d24 0%, #0d0e12 55%, #08090c 100%);
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:32px;
+  gap:44px;
   -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
 }
 .voice-orb{
   position:relative;
-  width:160px;height:160px;border-radius:50%;
+  width:190px;height:190px;border-radius:50%;
   display:flex;align-items:center;justify-content:center;
-  font-size:0;transition:all .5s cubic-bezier(.4,0,.2,1);
-  /* OpenAI-style soft glowing blue sphere with layered gradients */
+  font-size:0;transition:all .6s cubic-bezier(.4,0,.2,1);
+  /* Soft, wispy cloud-sphere (OpenAI-style) — layered offset gradients, no hard edge */
   background:
-    radial-gradient(circle at 35% 30%, rgba(180,220,255,0.95) 0%, rgba(90,150,255,0.55) 35%, rgba(60,110,240,0.25) 60%, transparent 75%),
-    radial-gradient(circle at 65% 70%, rgba(120,180,255,0.6) 0%, transparent 55%);
-  box-shadow:0 0 70px rgba(90,150,255,0.45), inset 0 0 50px rgba(255,255,255,0.25);
-  animation:orbbreathe 4s ease-in-out infinite;
+    radial-gradient(circle at 38% 32%, rgba(225,240,255,0.95) 0%, rgba(150,200,255,0.7) 28%, transparent 62%),
+    radial-gradient(circle at 68% 72%, rgba(70,130,245,0.9) 0%, rgba(50,100,230,0.5) 35%, transparent 70%),
+    radial-gradient(circle at 50% 50%, rgba(120,170,255,0.85) 0%, rgba(80,140,250,0.6) 50%, rgba(60,110,235,0.4) 75%, transparent 100%);
+  box-shadow:0 0 90px rgba(90,150,255,0.55), 0 0 140px rgba(70,120,240,0.3);
+  filter:blur(0.5px);
+  animation:orbbreathe 5s ease-in-out infinite;
 }
-/* Soft animated highlight layer that drifts, giving the "alive" fluid look */
+/* Drifting soft-light highlight gives the living, cloudy motion */
 .voice-orb::before{
-  content:'';position:absolute;inset:0;border-radius:50%;
-  background:radial-gradient(circle at 50% 40%, rgba(255,255,255,0.5) 0%, transparent 45%);
+  content:'';position:absolute;inset:-8%;border-radius:50%;
+  background:
+    radial-gradient(circle at 45% 38%, rgba(255,255,255,0.7) 0%, transparent 40%),
+    radial-gradient(circle at 62% 68%, rgba(180,215,255,0.5) 0%, transparent 50%);
   mix-blend-mode:screen;
-  animation:orbdrift 6s ease-in-out infinite;
+  animation:orbdrift 7s ease-in-out infinite;
+}
+/* Soft outer aura that pulses with state */
+.voice-orb::after{
+  content:'';position:absolute;inset:-40%;border-radius:50%;z-index:-1;
+  background:radial-gradient(circle, rgba(90,150,255,0.25) 0%, transparent 60%);
+  animation:orbbreathe 5s ease-in-out infinite;
 }
 .voice-orb svg{display:none}
 .voice-orb.listening{
-  background:
-    radial-gradient(circle at 35% 30%, rgba(200,230,255,1) 0%, rgba(70,140,255,0.7) 35%, rgba(40,90,230,0.3) 60%, transparent 75%),
-    radial-gradient(circle at 65% 70%, rgba(110,170,255,0.7) 0%, transparent 55%);
-  box-shadow:0 0 90px rgba(80,150,255,0.7), inset 0 0 50px rgba(255,255,255,0.3);
-  animation:orbbreathe 1.6s ease-in-out infinite;
+  box-shadow:0 0 120px rgba(90,160,255,0.75), 0 0 180px rgba(70,120,240,0.4);
+  animation:orbbreathe 2.2s ease-in-out infinite;
 }
 .voice-orb.speaking{
-  background:
-    radial-gradient(circle at 35% 30%, rgba(210,235,255,1) 0%, rgba(100,160,255,0.75) 30%, rgba(60,120,240,0.3) 58%, transparent 74%),
-    radial-gradient(circle at 65% 70%, rgba(140,190,255,0.75) 0%, transparent 55%);
-  box-shadow:0 0 100px rgba(100,160,255,0.75), inset 0 0 60px rgba(255,255,255,0.35);
-  animation:orbspeak 0.9s ease-in-out infinite;
+  box-shadow:0 0 130px rgba(110,170,255,0.85), 0 0 200px rgba(80,130,245,0.45);
+  animation:orbspeak 1.1s ease-in-out infinite;
 }
 .voice-orb.idle{
-  animation:orbbreathe 4s ease-in-out infinite;
+  animation:orbbreathe 5s ease-in-out infinite;
 }
-@keyframes orbbreathe{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
-@keyframes orbspeak{0%,100%{transform:scale(1.02)}25%{transform:scale(1.1)}50%{transform:scale(1.04)}75%{transform:scale(1.12)}}
-@keyframes orbdrift{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(8%,-6%) scale(1.08)}66%{transform:translate(-6%,8%) scale(0.96)}}
-.voice-label{font-size:17px;color:rgba(255,255,255,0.65);font-family:var(--ser);letter-spacing:.02em}
-.voice-controls{display:flex;align-items:center;gap:24px}
+@keyframes orbbreathe{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+@keyframes orbspeak{0%,100%{transform:scale(1.02)}25%{transform:scale(1.09)}50%{transform:scale(1.03)}75%{transform:scale(1.11)}}
+@keyframes orbdrift{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(6%,-5%) scale(1.06)}66%{transform:translate(-5%,6%) scale(0.97)}}
+.voice-label{
+  font-size:16px;color:rgba(255,255,255,0.55);
+  font-family:var(--sans,-apple-system,system-ui,sans-serif);
+  letter-spacing:.04em;font-weight:500;
+}
+.voice-controls{display:flex;align-items:center;gap:28px}
 .voice-btn{
-  width:60px;height:60px;border-radius:50%;border:none;cursor:pointer;
+  width:64px;height:64px;border-radius:50%;border:none;cursor:pointer;
   display:flex;align-items:center;justify-content:center;font-size:26px;
-  transition:all .2s;-webkit-appearance:none;
+  transition:all .25s cubic-bezier(.4,0,.2,1);-webkit-appearance:none;
+  color:rgba(255,255,255,0.85);
 }
-.voice-btn.primary{background:rgba(255,255,255,0.12)}
-.voice-btn.primary:active{background:rgba(255,255,255,0.25)}
-.voice-btn.exit{background:transparent;border:1.5px solid rgba(255,255,255,0.2);font-size:18px;color:rgba(255,255,255,0.5)}
-.voice-btn.exit:active{background:rgba(255,255,255,0.08)}
+.voice-btn.primary{background:rgba(255,255,255,0.1);backdrop-filter:blur(10px)}
+.voice-btn.primary:active{background:rgba(255,255,255,0.22);transform:scale(0.94)}
+.voice-btn.exit{background:rgba(255,255,255,0.06);border:none;font-size:20px;color:rgba(255,255,255,0.6)}
+.voice-btn.exit:active{background:rgba(255,255,255,0.14);transform:scale(0.94)}
 .voice-mic-hint{font-size:11px;color:rgba(255,255,255,0.3);text-align:center;margin-top:-16px}
 .send-btn{background:var(--bk)}.send-btn svg{color:white}
 .send-btn:active:not(:disabled){background:#333}
