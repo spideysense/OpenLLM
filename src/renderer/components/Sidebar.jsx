@@ -7,6 +7,12 @@ export default function Sidebar() {
   const [appVersion, setAppVersion] = useState('...');
 
   useEffect(() => {
+    if (bridge?.app?.getVersion) {
+      bridge.app.getVersion().then(setAppVersion).catch(() => {});
+    }
+  }, [bridge]);
+
+  useEffect(() => {
     if (!bridge?.updater) return;
     const unsub = bridge.updater.onStatus((data) => { setUpdateStatus(data); });
     return unsub;
@@ -98,7 +104,7 @@ export default function Sidebar() {
           <span>AI engine offline</span>
         )}
       </div>
-      <div style={{ padding: '6px 14px', fontSize: 10, color: 'var(--t4, #AEAEB2)', letterSpacing: '.02em' }}>v0.2.6</div>
+      <div style={{ padding: '6px 14px', fontSize: 10, color: 'var(--t4, #AEAEB2)', letterSpacing: '.02em' }}>v{appVersion}</div>
     </aside>
   );
 }
