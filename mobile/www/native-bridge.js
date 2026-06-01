@@ -12,6 +12,9 @@
   }
 
   const SpeechRecognition = Cap.Plugins.SpeechRecognition;
+  // AspenTTS: custom native plugin (AVSpeechSynthesizer, premium/enhanced voice).
+  // Falls back to the community TextToSpeech plugin if for some reason it's absent.
+  const AspenTTS = Cap.Plugins.AspenTTS;
   const TextToSpeech = Cap.Plugins.TextToSpeech;
 
   let listening = false;
@@ -103,25 +106,29 @@
 
     isListening() { return listening; },
 
-    // Native TTS — far better voice quality than browser speechSynthesis
+    // Native TTS — AspenTTS (AVSpeechSynthesizer, premium/enhanced voice).
     async speak(text) {
       if (!text || !text.trim()) return;
       try {
-        await TextToSpeech.speak({
-          text: text.trim(),
-          lang: 'en-US',
-          rate: 1.0,
-          pitch: 1.0,
-          volume: 1.0,
-          category: 'playback',
-        });
+        if (AspenTTS) {
+          // rate omitted → native uses Apple's natural default rate.
+          await AspenTTS.speak({ text: text.trim() });
+        } else {
+          // Fallback: community plugin (lower quality, but better than nothing).
+          await TextToSpeech.speak({
+            text: text.trim(), lang: 'en-US', rate: 1.0, pitch: 1.0, volume: 1.0, category: 'playback',
+          });
+        }
       } catch (e) {
         console.error('[Native] TTS error', e);
       }
     },
 
     async stopSpeaking() {
-      try { await TextToSpeech.stop(); } catch {}
+      try {
+        if (AspenTTS) { await AspenTTS.stop(); }
+        else { await TextToSpeech.stop(); }
+      } catch {}
     },
   };
 
