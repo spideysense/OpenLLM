@@ -9,6 +9,7 @@ const aliases = require('./aliases');
 const registry = require('./registry');
 const store = require('./store');
 const toolSettings = require('./tool-settings');
+const agent = require('./agent');
 const tunnel = require('./tunnel');
 const updater = require('./updater');
 const hotUpdater = require('./hot-updater');
@@ -250,6 +251,22 @@ ipcMain.handle('chat:send', async (event, { model, messages }) => {
   // Only prepend if there's no existing system message
   const hasSystem = messages.some((m) => m.role === 'system');
   const fullMessages = hasSystem ? messages : [SYSTEM_PROMPT, ...messages];
+
+  // If tools are enabled, route through the local agent loop so the model can
+  // use them. The agent is non-streaming, so we deliver the final answer as a
+  // single chunk. (Token-by-token streaming of the final answer is a future
+  // refinement.) Everything runs locally.
+  if (agent.isEnabled()) {
+    try {
+      const content = await agent.runAgent({ model, messages: fullMessages });
+      mainWindow?.webContents.send('chat:stream', content);
+      return { content };
+    } catch (e) {
+      const msg = `⚠️ ${e.message}`;
+      mainWindow?.webContents.send('chat:stream', msg);
+      return { content: msg };
+    }
+  }
 
   return ollama.chat(model, fullMessages, (chunk) => {
     mainWindow?.webContents.send('chat:stream', chunk);

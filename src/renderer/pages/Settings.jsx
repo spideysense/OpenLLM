@@ -10,6 +10,29 @@ export default function Settings() {
   const [editingAlias, setEditingAlias] = useState(null);
   const [saved, setSaved] = useState(false);
   const [appVersion, setAppVersion] = useState('...');
+  const [toolStates, setToolStates] = useState([]);
+
+  useEffect(() => {
+    if (bridge?.tools?.list) {
+      bridge.tools.list().then(setToolStates).catch(() => {});
+    }
+  }, [bridge]);
+
+  async function toggleTool(name, enabled) {
+    if (!bridge?.tools?.setEnabled) return;
+    // optimistic update
+    setToolStates((prev) => prev.map((t) => (t.name === name ? { ...t, enabled } : t)));
+    await bridge.tools.setEnabled(name, enabled);
+    const updated = await bridge.tools.list();
+    setToolStates(updated);
+  }
+
+  const TOOL_LABELS = {
+    web_search: { icon: '🔍', title: 'Web Search', desc: 'Search the web for current info — runs from your machine, your IP. Nothing routed through Aspen.' },
+    calculate: { icon: '🧮', title: 'Calculator', desc: 'Evaluate math expressions.' },
+    get_datetime: { icon: '🕐', title: 'Date & Time', desc: 'Tell the assistant the current date, time, and timezone.' },
+    fetch_url: { icon: '🌐', title: 'Read Web Page', desc: 'Fetch and read the text of a specific URL — from your machine.' },
+  };
 
   useEffect(() => {
     if (bridge?.app?.getVersion) {
@@ -35,7 +58,7 @@ export default function Settings() {
 
   const installedModels = models.map((m) => m.name);
 
-  const tabs = [{ id: 'system', label: 'System' }, { id: 'models', label: 'Models' }, { id: 'replace', label: 'Replace AI' }];
+  const tabs = [{ id: 'system', label: 'System' }, { id: 'models', label: 'Models' }, { id: 'tools', label: 'Tools' }, { id: 'replace', label: 'Replace AI' }];
 
   return (
     <div className="page">
@@ -48,6 +71,58 @@ export default function Settings() {
       </div>
       {section === 'models' && <ModelHub />}
       {section === 'replace' && <ReplaceWizard />}
+      {section === 'tools' && <div>
+        <div className="card mb-6">
+          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 700, color: 'var(--earth)', marginBottom: 6 }}>
+            🛠️ Tools
+          </h3>
+          <p style={{ fontSize: 13, color: 'var(--text-light)', marginBottom: 16, lineHeight: 1.5 }}>
+            Tools let your local model do things — search the web, do math, read pages.
+            Everything runs on this machine; nothing is sent to Aspen's servers.
+            All tools are on by default.
+          </p>
+
+          {/* Model-quality warning */}
+          <div style={{ background: 'rgba(212,160,23,0.12)', border: '1px solid rgba(212,160,23,0.35)', borderRadius: 8, padding: '10px 14px', marginBottom: 18, fontSize: 12.5, color: 'var(--earth)', lineHeight: 1.5 }}>
+            ⚠️ Tool use works best with larger models. On smaller models (≈7B and under),
+            the assistant may occasionally skip a tool or pick the wrong one. If results feel
+            unreliable, try a bigger model in the Models tab.
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {toolStates.map((t) => {
+              const meta = TOOL_LABELS[t.name] || { icon: '🔧', title: t.name, desc: '' };
+              return (
+                <div key={t.name} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, padding: '12px 14px', background: 'rgba(93,78,55,0.04)', borderRadius: 8 }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--earth)', marginBottom: 2 }}>
+                      {meta.icon} {meta.title}
+                    </div>
+                    <div style={{ fontSize: 12.5, color: 'var(--text-light)', lineHeight: 1.4 }}>{meta.desc}</div>
+                  </div>
+                  <button
+                    onClick={() => toggleTool(t.name, !t.enabled)}
+                    aria-label={`Toggle ${meta.title}`}
+                    style={{
+                      flexShrink: 0, width: 44, height: 26, borderRadius: 13, border: 'none', cursor: 'pointer',
+                      background: t.enabled ? 'var(--pipe-yellow)' : 'rgba(93,78,55,0.25)',
+                      position: 'relative', transition: 'background 0.15s',
+                    }}
+                  >
+                    <span style={{
+                      position: 'absolute', top: 3, left: t.enabled ? 21 : 3, width: 20, height: 20,
+                      borderRadius: '50%', background: '#fff', transition: 'left 0.15s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                    }} />
+                  </button>
+                </div>
+              );
+            })}
+            {toolStates.length === 0 && (
+              <div style={{ fontSize: 13, color: 'var(--text-light)' }}>Loading tools…</div>
+            )}
+          </div>
+        </div>
+      </div>}
       {section === 'system' && <div>
 
       {/* System Info */}
