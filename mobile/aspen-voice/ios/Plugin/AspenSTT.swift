@@ -20,8 +20,8 @@ public class AspenSTT: CAPPlugin, CAPBridgedPlugin, SFSpeechRecognizerDelegate {
     public let identifier = "AspenSTT"
     public let jsName = "AspenSTT"
     public let pluginMethods: [CAPPluginMethod] = [
-        CAPPluginMethod(name: "checkPermissions", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "requestPermissions", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "checkPerms", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "requestPerms", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "start", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "stop", returnType: CAPPluginReturnPromise)
     ]
@@ -34,7 +34,7 @@ public class AspenSTT: CAPPlugin, CAPBridgedPlugin, SFSpeechRecognizerDelegate {
 
     // MARK: - Permissions
 
-    @objc func checkPermissions(_ call: CAPPluginCall) {
+    @objc func checkPerms(_ call: CAPPluginCall) {
         let speechState = AspenSTT.authString(SFSpeechRecognizer.authorizationStatus())
         let micState: String
         if #available(iOS 17.0, *) {
@@ -45,7 +45,7 @@ public class AspenSTT: CAPPlugin, CAPBridgedPlugin, SFSpeechRecognizerDelegate {
         call.resolve(["speechRecognition": speechState, "microphone": micState])
     }
 
-    @objc func requestPermissions(_ call: CAPPluginCall) {
+    @objc func requestPerms(_ call: CAPPluginCall) {
         SFSpeechRecognizer.requestAuthorization { speechStatus in
             let requestMic: (@escaping (Bool) -> Void) -> Void = { completion in
                 if #available(iOS 17.0, *) {

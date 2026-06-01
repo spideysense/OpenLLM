@@ -19,6 +19,14 @@
   const AspenTTS = Cap.Plugins.AspenTTS;
   const TextToSpeech = Cap.Plugins.TextToSpeech;
 
+  // Permission methods differ: AspenSTT uses checkPerms/requestPerms (renamed to
+  // avoid colliding with CAPPlugin's built-ins); community plugin uses the
+  // checkPermissions/requestPermissions names. Pick the right one.
+  const sttCheckPerms = () =>
+    AspenSTT ? SpeechRecognition.checkPerms() : SpeechRecognition.checkPermissions();
+  const sttRequestPerms = () =>
+    AspenSTT ? SpeechRecognition.requestPerms() : SpeechRecognition.requestPermissions();
+
   let listening = false;
 
   const AspenNative = {
@@ -26,7 +34,7 @@
 
     async requestPermissions() {
       try {
-        await SpeechRecognition.requestPermissions();
+        await sttRequestPerms();
         return true;
       } catch (e) {
         console.error('[Native] permission error', e);
@@ -52,9 +60,9 @@
       };
 
       try {
-        const perm = await SpeechRecognition.checkPermissions();
+        const perm = await sttCheckPerms();
         if (perm.speechRecognition !== 'granted') {
-          await SpeechRecognition.requestPermissions();
+          await sttRequestPerms();
         }
 
         await SpeechRecognition.removeAllListeners();
