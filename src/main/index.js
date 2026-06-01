@@ -259,11 +259,15 @@ ipcMain.handle('chat:send', async (event, { model, messages }) => {
   if (agent.isEnabled()) {
     try {
       const content = await agent.runAgent({ model, messages: fullMessages });
-      mainWindow?.webContents.send('chat:stream', content);
-      return { content };
+      // Renderer expects chunk objects: { content, done }. Send the full answer
+      // as one content chunk, then a done chunk to finalize.
+      mainWindow?.webContents.send('chat:stream', { content: content || '', done: false });
+      mainWindow?.webContents.send('chat:stream', { content: '', done: true });
+      return { content: content || '' };
     } catch (e) {
       const msg = `⚠️ ${e.message}`;
-      mainWindow?.webContents.send('chat:stream', msg);
+      mainWindow?.webContents.send('chat:stream', { content: msg, done: false });
+      mainWindow?.webContents.send('chat:stream', { content: '', done: true });
       return { content: msg };
     }
   }

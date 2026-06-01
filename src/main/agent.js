@@ -54,7 +54,7 @@ async function runAgent({ model, messages }) {
   // No tools enabled → behave exactly like a plain chat call.
   if (toolDefs.length === 0) {
     const r = await ollamaChat({ model, messages });
-    return r.choices?.[0]?.message?.content || '';
+    return r.choices?.[0]?.message?.content || 'Sorry, I could not generate a response.';
   }
 
   const convo = [...messages];
@@ -62,12 +62,12 @@ async function runAgent({ model, messages }) {
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
     const resp = await ollamaChat({ model, messages: convo, tools: toolDefs });
     const msg = resp.choices?.[0]?.message;
-    if (!msg) return '';
+    if (!msg) return 'Sorry, I could not generate a response.';
 
     const toolCalls = msg.tool_calls || [];
     if (toolCalls.length === 0) {
       // Model answered with plain text — done.
-      return msg.content || '';
+      return msg.content || 'Sorry, I could not generate a response.';
     }
 
     // Record the assistant's tool-call turn, then execute each call locally.
@@ -89,7 +89,7 @@ async function runAgent({ model, messages }) {
 
   // Hit the round cap — make one final plain call so the user still gets an answer.
   const final = await ollamaChat({ model, messages: convo });
-  return final.choices?.[0]?.message?.content || '';
+  return final.choices?.[0]?.message?.content || 'Sorry, I could not complete that request.';
 }
 
 // Whether the agent loop should handle this request (any tools on).
