@@ -15,7 +15,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "build": {
-    "appId": "com.aspen.app",
+    "appId": "com.runonaspen.app",
     "productName": "Aspen",
     "directories": {
       "output": "dist",
@@ -41,19 +41,20 @@
         {
           "target": "dmg",
           "arch": [
-            "universal"
+            "arm64"
           ]
         },
         {
           "target": "zip",
           "arch": [
-            "universal"
+            "arm64"
           ]
         }
       ],
       "notarize": {
         "teamId": "S6UBG93XBS"
-      }
+      },
+      "identity": "Developer ID Application: Mayank Mehta (S6UBG93XBS)"
     },
     "win": {
       "icon": "assets/icon.png",
