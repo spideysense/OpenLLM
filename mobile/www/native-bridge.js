@@ -53,10 +53,10 @@
 
       const resetSilence = () => {
         if (AspenNative._silenceTimer) clearTimeout(AspenNative._silenceTimer);
-        // Auto-stop after 1.5s of no new speech
+        // Auto-stop after 2.5s of no new speech (allows natural pauses)
         AspenNative._silenceTimer = setTimeout(() => {
           AspenNative.stopListening(AspenNative._onResult, AspenNative._onEnd);
-        }, 1500);
+        }, 2500);
       };
 
       try {
@@ -91,7 +91,13 @@
           partialResults: true,
           popup: false,
         });
-        resetSilence(); // start the initial countdown (in case nothing is said)
+        // Grace period: give the user up to 6s to START talking. The 2.5s
+        // silence timer only takes over once the first words are detected
+        // (resetSilence is called from the partialResults listener).
+        if (AspenNative._silenceTimer) clearTimeout(AspenNative._silenceTimer);
+        AspenNative._silenceTimer = setTimeout(() => {
+          AspenNative.stopListening(AspenNative._onResult, AspenNative._onEnd);
+        }, 6000);
       } catch (e) {
         console.error('[Native] STT start error', e);
         listening = false;
