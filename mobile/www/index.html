@@ -177,39 +177,43 @@ body.is-mobile .chat-delete{opacity:.4!important}
   position:fixed;inset:0;z-index:200;
   /* Aspen's warm cream backdrop with a soft golden lift behind the orb */
   background:
-    radial-gradient(circle at 50% 42%, #FFFFFF 0%, #FAFAF7 55%, #F3F1EA 100%);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:44px;
+    radial-gradient(circle at 50% 38%, #FFFFFF 0%, #FAFAF7 55%, #F3F1EA 100%);
+  display:flex;flex-direction:column;align-items:center;
   -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
 }
+/* Orb sits in the upper-middle; controls pin to the bottom thumb zone */
+.voice-orb-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:40px;padding-top:8vh}
+.voice-controls{display:flex;align-items:center;gap:32px;padding-bottom:calc(48px + env(safe-area-inset-bottom,0px))}
 .voice-orb{
   position:relative;
-  width:190px;height:190px;border-radius:50%;
+  width:200px;height:200px;border-radius:50%;
   display:flex;align-items:center;justify-content:center;
   font-size:0;transition:all .6s cubic-bezier(.4,0,.2,1);
-  /* Soft, wispy gold cloud-sphere matching Aspen's gold-leaf brand */
+  /* Translucent wispy gold base — soft, see-through, no hard sphere edge */
   background:
-    radial-gradient(circle at 38% 32%, rgba(255,250,235,0.98) 0%, rgba(232,200,120,0.75) 28%, transparent 62%),
-    radial-gradient(circle at 68% 72%, rgba(184,134,11,0.9) 0%, rgba(160,115,10,0.5) 35%, transparent 70%),
-    radial-gradient(circle at 50% 50%, rgba(214,176,90,0.9) 0%, rgba(196,150,40,0.65) 50%, rgba(184,134,11,0.45) 75%, transparent 100%);
-  box-shadow:0 0 90px rgba(184,134,11,0.35), 0 0 140px rgba(184,134,11,0.18);
-  filter:blur(0.5px);
-  animation:orbbreathe 5s ease-in-out infinite;
+    radial-gradient(circle at 42% 38%, rgba(255,248,228,0.55) 0%, rgba(224,188,108,0.32) 35%, transparent 68%),
+    radial-gradient(circle at 62% 66%, rgba(184,134,11,0.4) 0%, rgba(184,134,11,0.12) 45%, transparent 72%);
+  box-shadow:0 0 70px rgba(184,134,11,0.22), 0 0 120px rgba(184,134,11,0.12);
+  filter:blur(2px);
+  animation:orbbreathe 6s ease-in-out infinite, orbhue 12s ease-in-out infinite;
 }
-/* Drifting soft-light highlight gives the living, cloudy motion */
+/* Layer 1: a bright wispy cloud that drifts one direction */
 .voice-orb::before{
-  content:'';position:absolute;inset:-8%;border-radius:50%;
+  content:'';position:absolute;inset:-12%;border-radius:50%;
   background:
-    radial-gradient(circle at 45% 38%, rgba(255,255,255,0.85) 0%, transparent 40%),
-    radial-gradient(circle at 62% 68%, rgba(245,225,165,0.55) 0%, transparent 50%);
-  mix-blend-mode:screen;
-  animation:orbdrift 7s ease-in-out infinite;
+    radial-gradient(ellipse 60% 50% at 40% 35%, rgba(255,252,240,0.7) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 60% at 65% 60%, rgba(232,200,120,0.5) 0%, transparent 60%);
+  mix-blend-mode:screen;filter:blur(8px);
+  animation:orbdrift 9s ease-in-out infinite;
 }
-/* Soft outer aura */
+/* Layer 2: a deeper gold wisp drifting the opposite way for living motion */
 .voice-orb::after{
-  content:'';position:absolute;inset:-40%;border-radius:50%;z-index:-1;
-  background:radial-gradient(circle, rgba(184,134,11,0.18) 0%, transparent 60%);
-  animation:orbbreathe 5s ease-in-out infinite;
+  content:'';position:absolute;inset:-12%;border-radius:50%;
+  background:
+    radial-gradient(ellipse 55% 45% at 60% 45%, rgba(184,134,11,0.45) 0%, transparent 58%),
+    radial-gradient(ellipse 45% 55% at 35% 65%, rgba(214,176,90,0.4) 0%, transparent 55%);
+  mix-blend-mode:screen;filter:blur(10px);
+  animation:orbdrift2 11s ease-in-out infinite;
 }
 .voice-orb svg{display:none}
 .voice-orb.listening{
@@ -223,15 +227,16 @@ body.is-mobile .chat-delete{opacity:.4!important}
 .voice-orb.idle{
   animation:orbbreathe 5s ease-in-out infinite;
 }
-@keyframes orbbreathe{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
-@keyframes orbspeak{0%,100%{transform:scale(1.02)}25%{transform:scale(1.09)}50%{transform:scale(1.03)}75%{transform:scale(1.11)}}
-@keyframes orbdrift{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(6%,-5%) scale(1.06)}66%{transform:translate(-5%,6%) scale(0.97)}}
+@keyframes orbbreathe{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+@keyframes orbspeak{0%,100%{transform:scale(1.02)}25%{transform:scale(1.1)}50%{transform:scale(1.04)}75%{transform:scale(1.12)}}
+@keyframes orbdrift{0%,100%{transform:translate(0,0) rotate(0deg) scale(1)}33%{transform:translate(8%,-6%) rotate(8deg) scale(1.1)}66%{transform:translate(-7%,7%) rotate(-6deg) scale(0.94)}}
+@keyframes orbdrift2{0%,100%{transform:translate(0,0) rotate(0deg) scale(1)}40%{transform:translate(-9%,5%) rotate(-10deg) scale(1.08)}70%{transform:translate(7%,-7%) rotate(7deg) scale(0.95)}}
+@keyframes orbhue{0%,100%{filter:blur(2px) hue-rotate(0deg)}50%{filter:blur(3px) hue-rotate(-8deg)}}
 .voice-label{
   font-size:16px;color:var(--t2,#6E6E73);
   font-family:var(--san,'Outfit',-apple-system,sans-serif);
   letter-spacing:.04em;font-weight:500;
 }
-.voice-controls{display:flex;align-items:center;gap:28px}
 .voice-upgrade{position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;background:rgba(250,250,247,0.6);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:1.5rem}
 .voice-upgrade-card{width:100%;max-width:380px;background:var(--wh,#fff);border:1px solid var(--brd,rgba(0,0,0,0.07));border-radius:22px;padding:1.6rem 1.5rem;box-shadow:0 8px 40px rgba(0,0,0,0.12);margin-bottom:1rem}
 .voice-upgrade-title{font-family:var(--ser,'DM Serif Display',serif);font-size:1.4rem;color:var(--bk,#1D1D1F);margin-bottom:.5rem}
@@ -427,8 +432,10 @@ select.settings-select{font-family:var(--san);font-size:.84rem;color:var(--bk);b
 
   <!-- Voice mode overlay -->
   <div class="voice-overlay hidden" id="voice-overlay">
-    <div class="voice-orb idle" id="voice-orb"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6"/></svg></div>
-    <div class="voice-label" id="voice-label">Tap to speak</div>
+    <div class="voice-orb-wrap">
+      <div class="voice-orb idle" id="voice-orb"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6"/></svg></div>
+      <div class="voice-label" id="voice-label">Tap to speak</div>
+    </div>
     <div class="voice-controls">
       <button class="voice-btn primary" id="voice-listen-btn"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M19 10a7 7 0 0 1-14 0"/><line x1="12" y1="19" x2="12" y2="22"/></svg></button>
       <button class="voice-btn exit" id="voice-exit-btn">✕</button>
@@ -981,9 +988,21 @@ function startVoiceDownload(){
       if(pct)pct.textContent='Ready! Natural voice enabled.';
       setTimeout(()=>{if(up)up.classList.add('hidden');},900);
     }else{
-      if(pct)pct.textContent='Download failed — using standard voice.';
-      setTimeout(()=>{if(up)up.classList.add('hidden');},1500);
+      // Failed — let the user try again: restore buttons, allow re-offer.
+      if(pct)pct.textContent='Download failed. Check your connection and try again.';
+      voiceUpgradeAsked=false;
+      setTimeout(()=>{
+        if(progress)progress.classList.add('hidden');
+        if(actions)actions.classList.remove('hidden');
+      },1600);
     }
+  }).catch(()=>{
+    if(pct)pct.textContent='Download failed. Try again.';
+    voiceUpgradeAsked=false;
+    setTimeout(()=>{
+      if(progress)progress.classList.add('hidden');
+      if(actions)actions.classList.remove('hidden');
+    },1600);
   });
 }
 
