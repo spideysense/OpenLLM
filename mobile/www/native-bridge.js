@@ -146,6 +146,27 @@
         else { await TextToSpeech.stop(); }
       } catch {}
     },
+
+    // Kokoro neural voice: check status, trigger the on-demand model download.
+    async voiceStatus() {
+      try {
+        if (AspenTTS && AspenTTS.voiceStatus) return await AspenTTS.voiceStatus();
+      } catch (e) { console.error('[Native] voiceStatus error', e); }
+      return { available: false, downloaded: false, ready: false };
+    },
+    async prepareVoice() {
+      try {
+        if (AspenTTS && AspenTTS.prepareVoice) return await AspenTTS.prepareVoice();
+      } catch (e) { console.error('[Native] prepareVoice error', e); }
+      return { ready: false };
+    },
+    onVoiceProgress(cb) {
+      try {
+        if (AspenTTS && AspenTTS.addListener) {
+          AspenTTS.addListener('kokoroProgress', (data) => cb(data));
+        }
+      } catch (e) { console.error('[Native] onVoiceProgress error', e); }
+    },
   };
 
   // Request permissions on load so the prompt appears early
