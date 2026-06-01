@@ -42,9 +42,57 @@ async function classifierNeedsSearch(userMessage, tunnelUrl, apiKey, model) {
   } catch { clearTimeout(timeout); return false; }
 }
 
-// ── Search execution (Brave HTML + Google News RSS) ─────
+// ── SearXNG: open-source metasearch, stable JSON API, no key ─────
+// Public instances vary in uptime and whether format=json is enabled,
+// so we try several in order and use the first that returns results.
+// Verify which instances work from your Mac (curl) and reorder accordingly.
+const SEARXNG_INSTANCES = [
+  'https://searx.be',
+  'https://search.inetol.net',
+  'https://baresearch.org',
+  'https://searx.tiekoetter.com',
+];
+
+async function fetchSearXNG(query) {
+  for (const base of SEARXNG_INSTANCES) {
+    try {
+      const url = `${base}/search?q=${encodeURIComponent(query)}&format=json&categories=general,news&language=en`;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 4000);
+      const res = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+          'Accept': 'application/json',
+        },
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      if (!res.ok) continue;
+      // Some instances return HTML (json disabled) even on success — guard the parse.
+      const ct = res.headers.get('content-type') || '';
+      if (!ct.includes('json')) continue;
+      const data = await res.json();
+      const results = (data.results || [])
+        .filter(r => r.title && r.url)
+        .slice(0, 6)
+        .map(r => ({
+          title: String(r.title).trim(),
+          url: r.url,
+          snippet: (r.content || '').replace(/\s+/g, ' ').trim().slice(0, 220),
+        }));
+      if (results.length > 0) return results;
+    } catch { /* try next instance */ }
+  }
+  return [];
+}
+
+// ── Search execution: SearXNG (primary) → Brave scrape → Google News ─────
 async function fetchSearchResults(query) {
-  // Primary: Brave Search HTML (full web results, not blocked from servers)
+  // Primary: SearXNG — broad web results via stable JSON, multi-instance fallback.
+  const searx = await fetchSearXNG(query);
+  if (searx.length > 0) return searx;
+
+  // Fallback 1: Brave Search HTML (full web results, not blocked from servers)
   try {
     const res = await fetch(`https://search.brave.com/search?q=${encodeURIComponent(query)}`, {
       headers: {
@@ -70,7 +118,7 @@ async function fetchSearchResults(query) {
     }
   } catch {}
 
-  // Fallback: Google News RSS (for news queries when Brave returns nothing)
+  // Fallback 2: Google News RSS (for news queries when others return nothing)
   try {
     const res = await fetch(
       `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-US&gl=US&ceid=US:en`,
