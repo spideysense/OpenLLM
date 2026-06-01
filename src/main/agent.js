@@ -57,7 +57,25 @@ async function runAgent({ model, messages }) {
     return r.choices?.[0]?.message?.content || 'Sorry, I could not generate a response.';
   }
 
-  const convo = [...messages];
+  // Strong tool-use directive. Small models tend to answer from memory instead
+  // of calling tools; this nudges them to actually use the tools (esp. for math,
+  // where the model must NOT compute in its head — that's what calculate is for).
+  const TOOL_DIRECTIVE = `You have access to tools. Use them whenever they apply — do not answer from memory when a tool can give the correct answer.
+- For ANY arithmetic or math, you MUST call the "calculate" tool. Never compute numbers yourself; you will get them wrong.
+- For current events, news, prices, or anything recent, call "web_search".
+- For the current date or time, call "get_datetime".
+- To read a specific web page, call "fetch_url".
+Call exactly the tool that fits, wait for its result, then answer using that result.`;
+
+  // Prepend/merge the directive into the system message.
+  const convoBase = [...messages];
+  if (convoBase[0]?.role === 'system') {
+    convoBase[0] = { ...convoBase[0], content: `${convoBase[0].content}\n\n${TOOL_DIRECTIVE}` };
+  } else {
+    convoBase.unshift({ role: 'system', content: TOOL_DIRECTIVE });
+  }
+
+  const convo = convoBase;
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
     const resp = await ollamaChat({ model, messages: convo, tools: toolDefs });
