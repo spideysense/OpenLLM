@@ -139,8 +139,15 @@
       const m = document.getElementById('messages');
       if (m) m.scrollTop = m.scrollHeight;
     };
+    Keyboard.addListener('keyboardWillShow', () => {
+      // Keyboard covers the home-indicator area, so remove the safe-area bottom padding
+      document.documentElement.style.setProperty('--input-pb', '0.6rem');
+      setTimeout(scrollDown, 100);
+    });
     Keyboard.addListener('keyboardDidShow', scrollDown);
-    Keyboard.addListener('keyboardWillShow', () => setTimeout(scrollDown, 100));
+    Keyboard.addListener('keyboardWillHide', () => {
+      document.documentElement.style.removeProperty('--input-pb');
+    });
   }
 
   window.AspenNative = AspenNative;
