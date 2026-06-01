@@ -63,11 +63,11 @@ export default function Sidebar() {
 
       {/* Update notification — quiet, no countdowns */}
       {updateStatus?.status === 'ready' && (
-        <button onClick={() => bridge?.hotUpdater?.reload ? bridge.hotUpdater.reload() : window.location.reload()} className="update-banner">
+        <button onClick={handleInstallUpdate} className="update-banner">
           <span>🎉</span>
           <div>
             <div style={{ fontWeight: 700, fontSize: 12 }}>Update ready</div>
-            <div style={{ fontSize: 11, opacity: 0.8 }}>v{updateStatus.version} — click to apply</div>
+            <div style={{ fontSize: 11, opacity: 0.8 }}>v{updateStatus.version} — click to restart &amp; update</div>
           </div>
         </button>
       )}
