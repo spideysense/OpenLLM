@@ -74,7 +74,8 @@
         "owner": "spideysense",
         "repo": "OpenLLM"
       }
-    ]
+    ],
+    "afterAllArtifactBuild": "scripts/staple-dmg.js"
   },
   "dependencies": {
     "electron-store": "^8.1.0",
