@@ -4,7 +4,7 @@ import AVFoundation
 
 /// Bridge so the AspenVoice pod can use Kokoro (which lives in the App target,
 /// where the MLX/KokoroSwift SPM packages are available) without importing MLX itself.
-@objc public protocol AspenKokoroProvider: AnyObject {
+public protocol AspenKokoroProvider: AnyObject {
     var isReady: Bool { get }
     var filesDownloaded: Bool { get }
     func ensureDownloaded(progress: @escaping (Double) -> Void, completion: @escaping (Bool) -> Void)

@@ -1,14 +1,13 @@
 import Foundation
+import AspenVoice
 import MLX
 import KokoroSwift
-import MLXUtilsLibrary
 
 final class KokoroEngine: NSObject, AspenKokoroProvider {
 
     static let shared = KokoroEngine()
 
     private let modelRemote = URL(string: "https://huggingface.co/prince-canuma/Kokoro-82M/resolve/main/kokoro-v1_0.safetensors")!
-    private let voicesRemote = URL(string: "https://huggingface.co/hexgrad/Kokoro-82M/resolve/main/voices.npz")!
 
     private var engine: KokoroTTS?
     private var voices: [String: MLXArray] = [:]
@@ -27,21 +26,17 @@ final class KokoroEngine: NSObject, AspenKokoroProvider {
         return dir
     }
     private var modelPath: URL { cacheDir.appendingPathComponent("kokoro-v1_0.safetensors") }
-    private var voicesPath: URL { cacheDir.appendingPathComponent("voices.npz") }
+    private var voicesPath: URL { Bundle.main.url(forResource: "voices", withExtension: "npz")! }
 
     var filesDownloaded: Bool {
-        FileManager.default.fileExists(atPath: modelPath.path) &&
-        FileManager.default.fileExists(atPath: voicesPath.path)
+        FileManager.default.fileExists(atPath: modelPath.path)
     }
 
     func ensureDownloaded(progress: @escaping (Double) -> Void,
                           completion: @escaping (Bool) -> Void) {
         if filesDownloaded { completion(true); return }
-        downloadFile(from: voicesRemote, to: voicesPath, range: (0.0, 0.05), progress: progress) { ok in
-            guard ok else { completion(false); return }
-            self.downloadFile(from: self.modelRemote, to: self.modelPath, range: (0.05, 1.0), progress: progress) { ok2 in
-                completion(ok2)
-            }
+        downloadFile(from: modelRemote, to: modelPath, range: (0.0, 1.0), progress: progress) { ok in
+            completion(ok)
         }
     }
 
@@ -73,7 +68,7 @@ final class KokoroEngine: NSObject, AspenKokoroProvider {
         isLoading = true
         defer { isLoading = false }
         let tts = KokoroTTS(modelPath: modelPath)
-        let loaded = NpyzReader.read(fileFromPath: voicesPath) ?? [:]
+        let loaded = (try? loadArrays(url: voicesPath)) ?? [:]
         guard !loaded.isEmpty else { NSLog("[KokoroEngine] no voices loaded"); return false }
         engine = tts
         voices = loaded
@@ -86,10 +81,10 @@ final class KokoroEngine: NSObject, AspenKokoroProvider {
         guard isReady, let engine = engine else { return nil }
         let name = voiceName ?? defaultVoice
         guard let voice = voices[name + ".npy"] else { NSLog("[KokoroEngine] missing voice \(name)"); return nil }
-        let language: KokoroTTS.Language = (name.first == "a") ? .enUS : .enGB
+        let language: Language = (name.first == "a") ? .enUS : .enGB
         do {
             let (audio, _) = try engine.generateAudio(voice: voice, language: language, text: text)
-            return (audio.asArray(Float.self), KokoroTTS.Constants.samplingRate)
+            return (audio, KokoroTTS.Constants.samplingRate)
         } catch {
             NSLog("[KokoroEngine] generateAudio failed: \(error)")
             return nil
