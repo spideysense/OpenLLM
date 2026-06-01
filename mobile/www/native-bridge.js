@@ -11,7 +11,9 @@
     return;
   }
 
-  const SpeechRecognition = Cap.Plugins.SpeechRecognition;
+  // STT: prefer our crash-safe native plugin; fall back to community plugin.
+  const AspenSTT = Cap.Plugins.AspenSTT;
+  const SpeechRecognition = AspenSTT || Cap.Plugins.SpeechRecognition;
   // AspenTTS: custom native plugin (AVSpeechSynthesizer, premium/enhanced voice).
   // Falls back to the community TextToSpeech plugin if for some reason it's absent.
   const AspenTTS = Cap.Plugins.AspenTTS;
