@@ -39,7 +39,11 @@ public class AspenTTS: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDelegate 
         let lang = "en-US"
         let voices = AVSpeechSynthesisVoice.speechVoices().filter { $0.language == lang }
 
-        let premium = voices.first { $0.quality == .premium }
+        // .premium is iOS 16+; .enhanced works on iOS 13+. Pick the best available.
+        var premium: AVSpeechSynthesisVoice? = nil
+        if #available(iOS 16.0, *) {
+            premium = voices.first { $0.quality == .premium }
+        }
         let enhanced = voices.first { $0.quality == .enhanced }
         let chosen = premium ?? enhanced ?? AVSpeechSynthesisVoice(language: lang)
 
