@@ -628,14 +628,31 @@ async function attemptConnect(){
   if(!raw.startsWith('http'))raw='https://'+raw;
   raw=raw.replace(/\/v1\/?$/,'').replace(/\/+$/,'');
   connectBtn.disabled=true;connectBtn.textContent='Connecting…';
-  try{
-    const res=await fetch(`${raw}/v1/models`,{headers:key?{'Authorization':`Bearer ${key}`}:{},signal:AbortSignal.timeout(8000)});
-    if(res.status===401){showPairErr('API key rejected.');return}
+  const tryConnect=async(timeoutMs)=>{
+    const res=await fetch(`${raw}/v1/models`,{headers:key?{'Authorization':`Bearer ${key}`}:{},signal:AbortSignal.timeout(timeoutMs)});
+    if(res.status===401){const e=new Error('unauth');e.unauth=true;throw e}
     if(!res.ok)throw new Error(`HTTP ${res.status}`);
+    return res;
+  };
+  try{
+    let res;
+    try{
+      res=await tryConnect(15000);
+    }catch(e1){
+      if(e1.unauth)throw e1;
+      // Aspen may still be starting up or downloading the model — wait and retry once.
+      connectBtn.textContent='Still starting… retrying';
+      await new Promise(r=>setTimeout(r,3000));
+      res=await tryConnect(20000);
+    }
     config={tunnelUrl:raw,apiKey:key};
     localStorage.setItem(STORAGE_KEY,JSON.stringify(config));
     showApp();
-  }catch(e){showPairErr(e.name==='TimeoutError'?'Timed out. Is Aspen running?':'Could not reach that URL.');}
+  }catch(e){
+    if(e.unauth)showPairErr('API key rejected.');
+    else if(e.name==='TimeoutError')showPairErr('Aspen is taking a while — if it is still downloading a model, wait for that to finish, then try again.');
+    else showPairErr('Could not reach that URL. Check the tunnel URL and that Aspen is running.');
+  }
   finally{connectBtn.disabled=false;connectBtn.textContent='Connect to my Aspen'}
 }
 function showPairErr(msg){pairErr.textContent=msg;pairErr.classList.add('visible')}
