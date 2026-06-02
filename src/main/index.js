@@ -137,6 +137,36 @@ app.whenReady().then(async () => {
   // Start API gateway
   gateway.start();
 
+  // ── Weekly best-model check ──
+  // Once a week, compare installed models against the recommended registry
+  // (hosted at registry/models.json on GitHub — update it when a new model
+  // becomes best-in-class). If a better model is available for the user's
+  // hardware, notify the UI so it can prompt them. Never auto-downloads or
+  // switches silently — the user decides.
+  async function runWeeklyModelCheck() {
+    try {
+      const last = store.get('lastModelCheck') || 0;
+      const WEEK = 7 * 24 * 60 * 60 * 1000;
+      if (Date.now() - last < WEEK) return;
+      const installed = await models.listModels();
+      const reg = await registry.getRegistry();
+      const tier = system.getHardwareTier();
+      const upgrades = registry.checkUpgrades(installed, reg, tier);
+      store.set('lastModelCheck', Date.now());
+      if (upgrades.length === 0) return;
+      // Don't re-nag about an upgrade the user already dismissed.
+      const dismissed = store.get('dismissedUpgrades') || [];
+      const fresh = upgrades.filter(u => !dismissed.includes(u.recommended.model));
+      if (fresh.length === 0) return;
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('models:upgradeAvailable', fresh);
+      }
+    } catch { /* best-effort; never block startup */ }
+  }
+  // Run shortly after launch, then every 24h (the WEEK throttle gates actual checks).
+  setTimeout(runWeeklyModelCheck, 30000);
+  setInterval(runWeeklyModelCheck, 24 * 60 * 60 * 1000);
+
   // Start tunnel — gives every user a free public URL via Cloudflare
   tunnel.start((status) => {
     if (mainWindow && !mainWindow.isDestroyed()) {
@@ -338,6 +368,12 @@ ipcMain.handle('registry:checkUpgrades', async () => {
   const reg = await registry.getRegistry();
   const tier = system.getHardwareTier();
   return registry.checkUpgrades(installed, reg, tier);
+});
+
+ipcMain.handle('registry:dismissUpgrade', async (event, modelId) => {
+  const dismissed = store.get('dismissedUpgrades') || [];
+  if (!dismissed.includes(modelId)) { dismissed.push(modelId); store.set('dismissedUpgrades', dismissed); }
+  return true;
 });
 
 // ═══════════════════════════════════════════════════

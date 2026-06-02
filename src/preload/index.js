@@ -74,6 +74,12 @@ contextBridge.exposeInMainWorld('aspen', {
   registry: {
     get: () => ipcRenderer.invoke('registry:get'),
     checkUpgrades: () => ipcRenderer.invoke('registry:checkUpgrades'),
+    dismissUpgrade: (modelId) => ipcRenderer.invoke('registry:dismissUpgrade', modelId),
+    onUpgradeAvailable: (cb) => {
+      const handler = (_e, upgrades) => cb(upgrades);
+      ipcRenderer.on('models:upgradeAvailable', handler);
+      return () => ipcRenderer.removeListener('models:upgradeAvailable', handler);
+    },
   },
 
   // ── Store ──

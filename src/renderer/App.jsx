@@ -30,6 +30,15 @@ export default function App() {
   const [gatewayStatus, setGatewayStatus] = useState({ running: false, port: 4000, url: 'http://localhost:4000/v1' });
   const [isOnboarded, setIsOnboarded] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [modelUpgrade, setModelUpgrade] = useState(null);
+
+  useEffect(() => {
+    if (!bridge?.registry?.onUpgradeAvailable) return;
+    const unsub = bridge.registry.onUpgradeAvailable((upgrades) => {
+      if (upgrades && upgrades.length > 0) setModelUpgrade(upgrades[0]);
+    });
+    return unsub;
+  }, []);
 
   // ─── Initial load ───
   useEffect(() => {
@@ -150,6 +159,27 @@ export default function App() {
       <div className="app-layout">
         <Sidebar />
         <main className="main-content">
+          {modelUpgrade && (
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+              padding: '10px 16px', margin: '12px 16px 0', borderRadius: 10,
+              background: 'rgba(184,134,11,0.08)', border: '1px solid rgba(184,134,11,0.25)',
+              fontSize: 13, color: 'var(--bk, #1D1D1F)',
+            }}>
+              <span>🌿 {modelUpgrade.message} — better for your machine.</span>
+              <span style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                <button className="btn btn-sm btn-primary" onClick={() => { setPage('settings'); setModelUpgrade(null); }}>
+                  View
+                </button>
+                <button className="btn btn-sm" onClick={() => {
+                  bridge?.registry?.dismissUpgrade?.(modelUpgrade.recommended.model);
+                  setModelUpgrade(null);
+                }} style={{ background: 'transparent', color: 'var(--text-light)' }}>
+                  Dismiss
+                </button>
+              </span>
+            </div>
+          )}
           {page === 'home' && <Home />}
           {page === 'chat' && <Chat />}
           {page === 'worldmodel' && <WorldModel />}
