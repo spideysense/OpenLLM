@@ -317,15 +317,22 @@ ipcMain.handle('chat:send', async (event, { model, messages }) => {
   const hasSystem = messages.some((m) => m.role === 'system');
   const fullMessages = hasSystem ? messages : [SYSTEM_PROMPT, ...messages];
 
-  // If tools are enabled, route through the local agent loop so the model can
-  // use them. The agent is non-streaming, so we deliver the final answer as a
-  // single chunk. (Token-by-token streaming of the final answer is a future
-  // refinement.) Everything runs locally.
-  if (agent.isEnabled()) {
+  // Route per-message: only use the (non-streaming) agent when the message
+  // actually needs a tool. Normal chat streams directly from Ollama token-by-
+  // token, so it feels instant instead of hanging until the full answer is ready.
+  const lastUser = [...fullMessages].reverse().find((m) => m.role === 'user');
+  const userText = (lastUser?.content || '').toLowerCase();
+  const TOOL_TRIGGERS = [
+    /\b(stock|share)\s*(price|cost|value|quote)/, /\b(weather|forecast|temperature|rain)\b/,
+    /\b(news|headlines?|what'?s happening)\b/, /\b(latest|breaking|today'?s|tonight'?s)\b/,
+    /\b(price of|cost of|how much is|how much does)\b/, /\b(who (won|is winning|is the (ceo|president|prime minister)))\b/,
+    /\b(calculate|compute|what'?s|whats)\b.*[\d+\-*/^%]/, /\b(current|right now)\b.*\b(time|date|day)\b/,
+  ];
+  const needsTools = userText.length > 2 && TOOL_TRIGGERS.some((r) => r.test(userText));
+
+  if (agent.isEnabled() && needsTools) {
     try {
       const content = await agent.runAgent({ model, messages: fullMessages });
-      // Renderer expects chunk objects: { content, done }. Send the full answer
-      // as one content chunk, then a done chunk to finalize.
       mainWindow?.webContents.send('chat:stream', { content: content || '', done: false });
       mainWindow?.webContents.send('chat:stream', { content: '', done: true });
       return { content: content || '' };
