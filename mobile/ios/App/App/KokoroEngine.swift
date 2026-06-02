@@ -16,6 +16,9 @@ final class KokoroEngine: NSObject, AspenKokoroProvider {
     private let defaultVoice = "af_heart"
 
     static func register() {
+        // Cap MLX's GPU buffer cache so it doesn't balloon and get the app killed.
+        // 64MB cache is plenty for TTS inference; default grows unbounded.
+        MLX.GPU.set(cacheLimit: 64 * 1024 * 1024)
         AspenTTS.kokoroProvider = KokoroEngine.shared
     }
 
@@ -84,10 +87,13 @@ final class KokoroEngine: NSObject, AspenKokoroProvider {
             return false
         }
         guard !loaded.isEmpty else { NSLog("[KokoroEngine] voices empty"); return false }
+        // Keep only the default voice in memory; drop the other 27 to save RAM.
+        if let v = loaded[defaultVoice] { self.voices = [defaultVoice: v] }
+        else { self.voices = loaded }
         let tts = KokoroTTS(modelPath: modelPath)
         NSLog("[KokoroEngine] KokoroTTS init OK")
         engine = tts
-        voices = loaded
+        if voices.isEmpty { voices = loaded }
         isReady = true
         NSLog("[KokoroEngine] ready, \(loaded.count) voices")
         return true
@@ -100,6 +106,7 @@ final class KokoroEngine: NSObject, AspenKokoroProvider {
         let language: Language = (name.first == "a") ? .enUS : .enGB
         do {
             let (audio, _) = try engine.generateAudio(voice: voice, language: language, text: text)
+            MLX.GPU.clearCache()
             return (audio, KokoroTTS.Constants.samplingRate)
         } catch {
             NSLog("[KokoroEngine] generateAudio failed: \(error)")
