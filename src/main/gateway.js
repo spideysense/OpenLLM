@@ -7,6 +7,30 @@ const OLLAMA_HOST = '127.0.0.1';
 const OLLAMA_PORT = 11434;
 const DEFAULT_PORT = 4000;
 
+// Per-message tool detection. Only queries that need real-time data or tools
+// go through the agent (which can't stream — it must think first). Everything
+// else streams straight from Ollama, token-by-token, for an instant smooth feel.
+const TOOL_TRIGGERS = [
+  /\b(stock|share)\s*(price|cost|value|ticker|quote)/i,
+  /\b(weather|forecast|temperature|rain|sunny|humidity)\b/i,
+  /\b(news|headlines?|what'?s happening|what'?s going on)\b/i,
+  /\b(latest|breaking|current events|today'?s|tonight'?s|this week'?s)\b/i,
+  /\b(score|result|match|game)\s*(today|tonight|yesterday|last night)\b/i,
+  /\b(price of|cost of|how much is|how much does|how much did)\b/i,
+  /\bwho (won|is winning|leads|is (the )?(ceo|president|prime minister))\b/i,
+  /\b(crypto|bitcoin|ethereum|btc|eth)\s*(price|value|cost|today)\b/i,
+  /\b(released|launched|announced|dropped)\s*(today|this week|recently|just)\b/i,
+  /\b(calculate|compute|what'?s|whats)\b.*[\d+\-*/^%]/i,
+];
+function messageNeedsTools(messages) {
+  try {
+    const lastUser = [...messages].reverse().find(m => m.role === 'user');
+    const text = lastUser?.content || '';
+    if (text.length < 3) return false;
+    return TOOL_TRIGGERS.some(r => r.test(text));
+  } catch { return false; }
+}
+
 let server = null;
 let currentPort = DEFAULT_PORT;
 
@@ -73,13 +97,14 @@ function start() {
         return;
       }
 
-      // ── Agent loop: chat completions go through local tool-calling ──
-      // The local LLM decides whether/which tool to use; tools run on THIS
-      // machine (tools.js). Nothing touches Aspen servers.
+      // ── Agent loop: ONLY for messages that need tools/real-time data ──
+      // Tool-needing queries go through the agent (which must think first, so it
+      // can't stream). Everything else falls through to the direct Ollama path
+      // below, which pipes tokens through in real time.
       if (req.method === 'POST' && req.url.includes('/chat/completions') && agent.isEnabled()) {
         let parsed;
         try { parsed = JSON.parse(body); } catch { parsed = null; }
-        if (parsed && Array.isArray(parsed.messages)) {
+        if (parsed && Array.isArray(parsed.messages) && messageNeedsTools(parsed.messages)) {
           handleAgentChat(parsed, res);
           return;
         }
@@ -171,39 +196,41 @@ function stop() {
 async function handleAgentChat(parsed, res) {
   const wantStream = parsed.stream !== false;
   const model = parsed.model || 'llama3';
+  const baseChunk = {
+    id: 'chatcmpl-aspen',
+    object: 'chat.completion.chunk',
+    created: Math.floor(Date.now() / 1000),
+    model,
+  };
   try {
-    const content = await agent.runAgent({ model, messages: parsed.messages });
-
     if (wantStream) {
-      // Stream the agent's final answer in small chunks so the client renders it
-      // typing out, instead of one blob appearing after a blank wait. The agent
-      // still computes the whole answer first (its latency is unchanged), but the
-      // text now flows in smoothly once it starts.
+      // Open the stream and show a live status IMMEDIATELY, before the agent
+      // runs — so a tool query is never a dead blank screen during the wait.
       res.writeHead(200, {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
         'X-Accel-Buffering': 'no',
       });
-      const baseChunk = {
-        id: 'chatcmpl-aspen',
-        object: 'chat.completion.chunk',
-        created: Math.floor(Date.now() / 1000),
-        model,
-      };
-      // First delta carries the role.
       res.write(`data: ${JSON.stringify({ ...baseChunk, choices: [{ index: 0, delta: { role: 'assistant' }, finish_reason: null }] })}\n\n`);
-      // Split into word-ish pieces (keep the whitespace with each piece).
+      // Status line shown while the agent thinks; the client can render this as
+      // a transient indicator. We send it as a content delta prefixed so the UI
+      // can detect+replace it. Kept minimal to avoid polluting the answer.
+      res.write(`data: ${JSON.stringify({ ...baseChunk, choices: [{ index: 0, delta: { content: '' }, finish_reason: null }], aspen_status: 'searching' })}\n\n`);
+
+      const content = await agent.runAgent({ model, messages: parsed.messages });
+
+      // Stream the computed answer in word-sized pieces so it types out smoothly.
       const pieces = String(content).match(/\S+\s*/g) || [content];
       for (const piece of pieces) {
         res.write(`data: ${JSON.stringify({ ...baseChunk, choices: [{ index: 0, delta: { content: piece }, finish_reason: null }] })}\n\n`);
-        // Small delay so it visibly types out rather than flushing all at once.
         await new Promise(r => setTimeout(r, 12));
       }
       res.write(`data: ${JSON.stringify({ ...baseChunk, choices: [{ index: 0, delta: {}, finish_reason: 'stop' }] })}\n\n`);
       res.write('data: [DONE]\n\n');
       res.end();
     } else {
+      const content = await agent.runAgent({ model, messages: parsed.messages });
       const payload = {
         id: 'chatcmpl-aspen',
         object: 'chat.completion',
