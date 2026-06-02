@@ -184,6 +184,9 @@ body.is-mobile .chat-delete{opacity:.4!important}
 /* Orb sits in the upper-middle; controls pin to the bottom thumb zone */
 .voice-orb-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:40px;padding-top:8vh}
 .voice-controls{display:flex;align-items:center;gap:32px;padding-bottom:calc(48px + env(safe-area-inset-bottom,0px))}
+.voice-engine-toggle{position:absolute;top:calc(16px + env(safe-area-inset-top,0px));right:16px;padding:.5rem .9rem;border-radius:99px;border:1.5px solid rgba(184,134,11,0.3);background:var(--gd-light,rgba(184,134,11,0.08));color:var(--gd,#B8860B);font-family:var(--san,'Outfit',sans-serif);font-size:.78rem;font-weight:600;cursor:pointer;-webkit-appearance:none;transition:all .2s;z-index:5}
+.voice-engine-toggle:active{transform:scale(.96)}
+.voice-engine-toggle.fast{border-color:rgba(0,0,0,0.12);background:rgba(0,0,0,0.04);color:var(--t2,#6E6E73)}
 .voice-orb{
   position:relative;
   width:200px;height:200px;border-radius:50%;
@@ -432,6 +435,7 @@ select.settings-select{font-family:var(--san);font-size:.84rem;color:var(--bk);b
 
   <!-- Voice mode overlay -->
   <div class="voice-overlay hidden" id="voice-overlay">
+    <button class="voice-engine-toggle" id="voice-engine-toggle">Natural voice</button>
     <div class="voice-orb-wrap">
       <div class="voice-orb idle" id="voice-orb"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6"/></svg></div>
       <div class="voice-label" id="voice-label">Tap to speak</div>
@@ -818,7 +822,8 @@ async function extractFacts(userMsg,assistantMsg){
 
 // VOICE MODE
 let voiceMode=false,isSpeaking=false,voiceRecognition=null;
-const voiceOverlay=$('voice-overlay'),voiceOrb=$('voice-orb'),voiceLabel=$('voice-label'),voiceListenBtn=$('voice-listen-btn'),voiceExitBtn=$('voice-exit-btn');
+const voiceOverlay=$('voice-overlay'),voiceOrb=$('voice-orb'),voiceLabel=$('voice-label'),voiceListenBtn=$('voice-listen-btn'),voiceExitBtn=$('voice-exit-btn'),voiceEngineToggle=$('voice-engine-toggle');
+let voiceEngine='natural';
 
 function speak(text){
   // Native TTS path (iOS/Android) — much better quality
@@ -1025,6 +1030,22 @@ voiceListenBtn.addEventListener('click',async()=>{
   startVoiceListening();
 });
 voiceExitBtn.addEventListener('click',exitVoiceMode);
+
+if(voiceEngineToggle){
+  voiceEngineToggle.addEventListener('click',async()=>{
+    voiceEngine = voiceEngine==='natural' ? 'fast' : 'natural';
+    if(voiceEngine==='fast'){
+      voiceEngineToggle.textContent='Fast voice';
+      voiceEngineToggle.classList.add('fast');
+    }else{
+      voiceEngineToggle.textContent='Natural voice';
+      voiceEngineToggle.classList.remove('fast');
+    }
+    if(window.AspenNative&&window.AspenNative.setVoiceEngine){
+      await window.AspenNative.setVoiceEngine(voiceEngine);
+    }
+  });
+}
 
 // Kokoro upgrade prompt buttons
 const voiceUpgradeGo=$('voice-upgrade-go'),voiceUpgradeSkip=$('voice-upgrade-skip');

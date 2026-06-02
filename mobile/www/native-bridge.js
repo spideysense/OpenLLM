@@ -167,6 +167,13 @@
         }
       } catch (e) { console.error('[Native] onVoiceProgress error', e); }
     },
+    async setVoiceEngine(engine) {
+      // engine: 'natural' (Kokoro) or 'fast' (Apple AVSpeechSynthesizer)
+      try {
+        if (AspenTTS && AspenTTS.setEngine) return await AspenTTS.setEngine({ engine });
+      } catch (e) { console.error('[Native] setVoiceEngine error', e); }
+      return null;
+    },
   };
 
   // Request permissions on load so the prompt appears early
