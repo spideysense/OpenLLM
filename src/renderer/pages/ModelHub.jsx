@@ -71,8 +71,14 @@ export default function ModelHub() {
     const result = await bridge.models.pull(modelId);
 
     if (result.success) {
-      await refreshModels();
-      selectModel(modelId);
+      const list = await refreshModels();
+      // Only switch to it if it's genuinely installed now.
+      const installed = Array.isArray(list)
+        ? list.some((m) => m.name === modelId || m.name.startsWith(modelId.split(':')[0]))
+        : true;
+      if (installed) selectModel(modelId);
+    } else {
+      alert(`Couldn't download ${modelId}.\n\n${result.error || 'The model may be unavailable. Try another model.'}`);
     }
 
     // Clear this model's download state (leave any other in-flight downloads alone).

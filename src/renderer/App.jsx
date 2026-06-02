@@ -104,11 +104,25 @@ export default function App() {
 
   // ─── Select model ───
   const selectModel = useCallback(async (modelName) => {
+    if (!modelName) return;
     setActiveModel(modelName);
     if (bridge) {
       await bridge.store.set('activeModel', modelName);
     }
   }, []);
+
+  // Keep activeModel honest: if it ever points at a model that isn't actually
+  // installed (e.g. a download that failed, or a stale stored value), fall back
+  // to the first installed model so the UI never shows a phantom active model.
+  useEffect(() => {
+    if (!activeModel || models.length === 0) return;
+    const installed = models.some((m) => m.name === activeModel);
+    if (!installed) {
+      const fallback = models[0].name;
+      setActiveModel(fallback);
+      bridge?.store?.set('activeModel', fallback);
+    }
+  }, [activeModel, models]);
 
   // ─── Complete onboarding ───
   const completeOnboarding = useCallback(async () => {
