@@ -141,8 +141,10 @@ export default async function handler(req) {
     await kvIncrWithTTL(`trial:ip:${ip}`, IP_TTL_SEC);
   } catch { /* best effort */ }
 
-  // Proxy to the host machine's tunnel. Model is whatever the host runs (not set here).
-  const upstream = `${TRIAL_TUNNEL_URL.replace(/\/+$/, '')}/v1/chat/completions`;
+  // Proxy to the host machine's tunnel. Tolerate a TRIAL_TUNNEL_URL that already
+  // ends in /v1 (otherwise we'd hit /v1/v1/chat/completions -> 404).
+  const base = TRIAL_TUNNEL_URL.replace(/\/+$/, '').replace(/\/v1$/, '');
+  const upstream = `${base}/v1/chat/completions`;
   const messagesLeft = Math.max(0, MSGS_PER_SESSION - sessionCount);
 
   // Streaming with an immediate keep-alive (beats Vercel's 25s init deadline) +
