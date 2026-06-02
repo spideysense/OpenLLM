@@ -113,7 +113,7 @@ function contentTypeFor(name) {
   // 3. Create a fresh, published release.
   console.log(`▶ Creating release ${TAG}...`);
   const release = await ghRequest('POST', `/repos/${OWNER}/${REPO}/releases`, {
-    body: { tag_name: TAG, name: TAG, draft: false, prerelease: false, target_commitish: 'main' },
+    body: { tag_name: TAG, name: TAG, draft: false, prerelease: false, make_latest: 'true', target_commitish: 'main' },
   });
 
   // 4. Upload the already-stapled artifacts.
