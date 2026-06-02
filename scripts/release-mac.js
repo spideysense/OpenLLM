@@ -124,6 +124,28 @@ function contentTypeFor(name) {
     await uploadAsset(release.id, fp, name, contentTypeFor(name));
   }
 
-  console.log(`\n✅ Released ${TAG} — DMG stapled BEFORE upload. Users get a clean download.`);
+  // 5. VERIFY the release is actually the one users will get. This is the check
+  //    that was missing when v0.4.5 shipped as a draft and the site kept serving
+  //    v0.4.4. Confirm /releases/latest now reports OUR tag — fail loudly if not.
+  console.log(`▶ Verifying ${TAG} is the served 'latest' release...`);
+  const latest = await ghRequest('GET', `/repos/${OWNER}/${REPO}/releases/latest`);
+  if (!latest || latest.tag_name !== TAG) {
+    console.error(`\n❌ RELEASE NOT SERVED: GitHub 'latest' is ${latest ? latest.tag_name : 'unknown'}, not ${TAG}.`);
+    console.error(`   The website would still serve the OLD version. Marking ${TAG} as latest...`);
+    // Auto-correct: publish + force latest on the release we just made.
+    await ghRequest('PATCH', `/repos/${OWNER}/${REPO}/releases/${release.id}`, {
+      body: { draft: false, make_latest: 'true' },
+    });
+    const recheck = await ghRequest('GET', `/repos/${OWNER}/${REPO}/releases/latest`);
+    if (!recheck || recheck.tag_name !== TAG) {
+      console.error(`❌ STILL not latest after correction. Fix manually before announcing.`);
+      process.exit(1);
+    }
+    console.log(`   ✅ Corrected — ${TAG} is now the served latest.`);
+  } else {
+    console.log(`   ✅ Confirmed — users downloading now get ${TAG}.`);
+  }
+
+  console.log(`\n✅ Released ${TAG} — DMG stapled BEFORE upload AND verified as served 'latest'.`);
   console.log(`   ${release.html_url}`);
 })().catch((e) => { console.error('Release failed:', e.message); process.exit(1); });
