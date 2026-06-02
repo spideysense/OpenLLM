@@ -45,46 +45,48 @@ const CATALOG = [
 
 export default function ModelHub() {
   const { bridge, models, refreshModels, hardwareTier, selectModel, setPage } = useApp();
-  const [pulling, setPulling] = useState(null);
-  const [pullProgress, setPullProgress] = useState(0);
-  const [pullStatus, setPullStatus] = useState('');
-  const [pullEta, setPullEta] = useState(null);
-  const pullStartRef = React.useRef(null);
-  const lastBytesRef = React.useRef(0);
+  // Per-model download state, keyed by model id, so multiple models can download
+  // at once without clobbering each other. Each entry: { progress, status, eta }.
+  const [pulls, setPulls] = useState({});
+  const pullMetaRef = React.useRef({}); // per-model { startTime, lastPct } for ETA + monotonic smoothing
 
   const installedNames = models.map((m) => m.name);
 
   useEffect(() => {
     if (!bridge) return;
     const unsub = bridge.models.onPullProgress((data) => {
-      setPullStatus(data.status);
-      if (data.total > 0) {
-        const pct = data.percent;
-        setPullProgress(pct);
-
-        // ETA calculation
-        const now = Date.now();
-        if (!pullStartRef.current) pullStartRef.current = now;
-        const elapsed = (now - pullStartRef.current) / 1000; // seconds
+      const id = data.model;
+      if (!id) return;
+      setPulls((prev) => {
+        const cur = prev[id] || { progress: 0, status: '', eta: null };
+        let pct = cur.progress;
+        if (data.total > 0 && typeof data.percent === 'number') {
+          // Only ever move forward — Ollama reports per-layer progress that can
+          // jump backward between layers, which is what made the bar flicker.
+          pct = Math.max(cur.progress, data.percent);
+        }
+        // ETA per model
+        const meta = pullMetaRef.current[id] || (pullMetaRef.current[id] = { startTime: Date.now() });
+        let eta = cur.eta;
+        const elapsed = (Date.now() - meta.startTime) / 1000;
         if (elapsed > 2 && pct > 1) {
           const totalEstSec = elapsed / (pct / 100);
           const remaining = Math.max(0, totalEstSec - elapsed);
           const speed = data.completed ? (data.completed / 1e6 / elapsed).toFixed(1) : null;
-          setPullEta({ remaining: Math.round(remaining), speed });
+          eta = { remaining: Math.round(remaining), speed };
         }
-      }
+        return { ...prev, [id]: { progress: pct, status: data.status || cur.status, eta } };
+      });
     });
     return unsub;
   }, [bridge]);
 
   async function handlePull(modelId) {
     if (!bridge) return;
-    setPulling(modelId);
-    setPullProgress(0);
-    setPullStatus('Starting...');
-    setPullEta(null);
-    pullStartRef.current = null;
-    lastBytesRef.current = 0;
+    // Already downloading this one? Ignore the re-click.
+    if (pulls[modelId]) return;
+    pullMetaRef.current[modelId] = { startTime: Date.now() };
+    setPulls((prev) => ({ ...prev, [modelId]: { progress: 0, status: 'Starting…', eta: null } }));
 
     await bridge.ollama.ensureRunning();
     const result = await bridge.models.pull(modelId);
@@ -94,8 +96,9 @@ export default function ModelHub() {
       selectModel(modelId);
     }
 
-    setPulling(null);
-    setPullProgress(0);
+    // Clear this model's download state (leave any other in-flight downloads alone).
+    setPulls((prev) => { const n = { ...prev }; delete n[modelId]; return n; });
+    delete pullMetaRef.current[modelId];
   }
 
   async function handleDelete(modelId) {
@@ -138,7 +141,8 @@ export default function ModelHub() {
           <div className="model-grid">
             {cat.models.map((model) => {
               const installed = isInstalled(model.id);
-              const isPulling = pulling === model.id;
+              const pullState = pulls[model.id];
+              const isPulling = !!pullState;
               const fitsHardware = canRun(model.tier);
 
               return (
@@ -170,16 +174,16 @@ export default function ModelHub() {
                   {isPulling ? (
                     <div>
                       <div className="progress-bar">
-                        <div className="progress-fill" style={{ width: `${pullProgress}%` }} />
+                        <div className="progress-fill" style={{ width: `${pullState.progress}%` }} />
                       </div>
                       <div style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 4, display: 'flex', justifyContent: 'space-between' }}>
-                        <span>{pullStatus} · {pullProgress}%</span>
-                        {pullEta && pullEta.remaining > 0 && (
+                        <span>{pullState.status} · {pullState.progress}%</span>
+                        {pullState.eta && pullState.eta.remaining > 0 && (
                           <span>
-                            {pullEta.remaining >= 60
-                              ? `~${Math.ceil(pullEta.remaining / 60)} min left`
-                              : `~${pullEta.remaining}s left`}
-                            {pullEta.speed && ` · ${pullEta.speed} MB/s`}
+                            {pullState.eta.remaining >= 60
+                              ? `~${Math.ceil(pullState.eta.remaining / 60)} min left`
+                              : `~${pullState.eta.remaining}s left`}
+                            {pullState.eta.speed && ` · ${pullState.eta.speed} MB/s`}
                           </span>
                         )}
                       </div>
