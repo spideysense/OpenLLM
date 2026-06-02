@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Aspen — Admin</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<style>
+:root{--bg:#FAFAF7;--wh:#FFF;--bk:#1D1D1F;--t2:#6E6E73;--t3:#86868B;--gd:#B8860B;--gd-light:rgba(184,134,11,.08);--brd:rgba(0,0,0,.07);--ser:'DM Serif Display',Georgia,serif;--san:'Outfit',-apple-system,sans-serif}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--san);background:var(--bg);color:var(--bk);-webkit-font-smoothing:antialiased;min-height:100vh;padding:2rem 1rem}
+.wrap{max-width:760px;margin:0 auto}
+.logo{display:flex;align-items:center;gap:.5rem;margin-bottom:2rem}
+.logo img{height:26px}.logo span{font-weight:600;letter-spacing:.06em}
+h1{font-family:var(--ser);font-size:2rem;margin-bottom:.3rem}
+.sub{color:var(--t2);font-size:.9rem;margin-bottom:2rem}
+.gate{max-width:340px;margin:4rem auto;text-align:center}
+.gate input{width:100%;padding:.8rem 1rem;font-family:var(--san);font-size:1rem;background:var(--wh);border:1.5px solid var(--brd);border-radius:12px;outline:none;margin-bottom:.8rem}
+.gate input:focus{border-color:var(--gd)}
+.btn{width:100%;padding:.8rem;background:var(--gd);color:#fff;border:none;border-radius:12px;font-family:var(--san);font-size:.95rem;font-weight:600;cursor:pointer}
+.btn:disabled{opacity:.6}
+.err{color:#C0392B;font-size:.82rem;margin-top:.6rem;min-height:1rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;margin-bottom:2rem}
+.card{background:var(--wh);border:1px solid var(--brd);border-radius:16px;padding:1.3rem}
+.card-label{font-size:.72rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--t3);margin-bottom:.5rem}
+.card-value{font-size:2rem;font-weight:600;font-family:var(--ser)}
+.card-sub{font-size:.78rem;color:var(--t2);margin-top:.3rem}
+.section-title{font-weight:600;font-size:1rem;margin:1.5rem 0 .8rem}
+.rel-row{display:flex;justify-content:space-between;padding:.6rem .9rem;background:var(--wh);border:1px solid var(--brd);border-radius:10px;margin-bottom:.4rem;font-size:.88rem}
+.rel-tag{font-weight:600}
+.notes{background:var(--gd-light);border-radius:12px;padding:1rem 1.2rem;margin-top:1.5rem}
+.notes li{font-size:.8rem;color:var(--t2);line-height:1.6;list-style:none;padding-left:1.2rem;position:relative}
+.notes li:before{content:'·';position:absolute;left:.4rem;color:var(--gd);font-weight:700}
+.hidden{display:none}
+.refresh{background:transparent;border:1.5px solid var(--brd);color:var(--t2);padding:.5rem 1rem;border-radius:10px;font-family:var(--san);font-size:.82rem;cursor:pointer;margin-bottom:1.5rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo"><img src="/favicon.svg" alt="Aspen"><span>ASPEN</span></div>
+
+  <div id="gate" class="gate">
+    <h1>Admin</h1>
+    <p class="sub">Enter password to view metrics.</p>
+    <input type="password" id="pw" placeholder="Password" autocomplete="current-password">
+    <button class="btn" id="enter">Enter</button>
+    <div class="err" id="err"></div>
+  </div>
+
+  <div id="dash" class="hidden">
+    <h1>Metrics</h1>
+    <p class="sub">Real numbers, live from GitHub and Aspen's counters.</p>
+    <button class="refresh" id="refresh">↻ Refresh</button>
+
+    <div class="grid" id="cards"></div>
+
+    <div id="releases-wrap" class="hidden">
+      <div class="section-title">Downloads by release</div>
+      <div id="releases"></div>
+    </div>
+
+    <ul class="notes" id="notes"></ul>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+let pw='';
+
+async function load(){
+  $('err').textContent='';
+  try{
+    const res=await fetch('/api/admin-stats',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw})});
+    const data=await res.json();
+    if(!res.ok){$('err').textContent=data.error||'Error';return false;}
+    render(data);
+    return true;
+  }catch(e){$('err').textContent='Network error.';return false;}
+}
+
+function card(label,value,sub){
+  return `<div class="card"><div class="card-label">${label}</div><div class="card-value">${value}</div>${sub?`<div class="card-sub">${sub}</div>`:''}</div>`;
+}
+
+function render(d){
+  const cards=[];
+  cards.push(card('Total downloads', (d.downloads?.total??0).toLocaleString()));
+  if(d.visits!=null) cards.push(card('Site visits', d.visits.toLocaleString()));
+  if(d.trial){
+    cards.push(card('Trial messages', d.trial.messagesUsed.toLocaleString()));
+    cards.push(card('Active trials', d.trial.activeSessions.toLocaleString()));
+    cards.push(card('Est. trial cost', '$'+d.trial.estCostUsd.toLocaleString(), 'estimate'));
+  }
+  $('cards').innerHTML=cards.join('');
+
+  if(d.downloads?.byRelease?.length){
+    $('releases-wrap').classList.remove('hidden');
+    $('releases').innerHTML=d.downloads.byRelease
+      .map(r=>`<div class="rel-row"><span class="rel-tag">${r.tag}</span><span>${r.downloads.toLocaleString()} downloads</span></div>`).join('');
+  }
+
+  $('notes').innerHTML=(d.notes||[]).map(n=>`<li>${n}</li>`).join('');
+}
+
+$('enter').addEventListener('click',async()=>{
+  pw=$('pw').value;
+  $('enter').disabled=true;$('enter').textContent='Checking…';
+  const ok=await load();
+  $('enter').disabled=false;$('enter').textContent='Enter';
+  if(ok){$('gate').classList.add('hidden');$('dash').classList.remove('hidden');}
+});
+$('pw').addEventListener('keydown',e=>{if(e.key==='Enter')$('enter').click();});
+$('refresh').addEventListener('click',load);
+</script>
+</body>
+</html>

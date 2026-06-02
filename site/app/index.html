@@ -239,7 +239,19 @@ select.settings-select{font-family:var(--san);font-size:.84rem;color:var(--bk);b
 .exp-you{background:rgba(29,158,117,.1);color:#0F6E56}
 .exp-far{background:rgba(216,90,48,.1);color:#993C1D}
 .exp-home{background:var(--gd-light);color:var(--gd);display:none}
-.exp-arrow{flex:0 0 auto;padding:0 .6rem;font-size:.68rem;color:#993C1D;font-weight:600;white-space:nowrap;transition:opacity .4s}
+.exp-channel{flex:0 0 auto;width:90px;height:50px;position:relative;display:flex;align-items:center;justify-content:center}
+.exp-track{position:absolute;left:0;right:0;top:50%;height:2px;background:repeating-linear-gradient(90deg,var(--brd) 0 4px,transparent 4px 8px);transform:translateY(-50%)}
+.exp-packet{position:absolute;top:50%;width:9px;height:9px;border-radius:3px;background:#D85A30;transform:translateY(-50%);opacity:0}
+@media(prefers-reduced-motion:no-preference){
+  .exp-flow.today .exp-packet{animation:pktflow 2.2s linear infinite}
+  .exp-flow.today .p1{animation-delay:0s}
+  .exp-flow.today .p2{animation-delay:.7s}
+  .exp-flow.today .p3{animation-delay:1.4s}
+}
+@keyframes pktflow{0%{left:0;opacity:0}10%{opacity:1}90%{opacity:1}100%{left:calc(100% - 9px);opacity:0}}
+.exp-lock{position:absolute;font-size:1.3rem;opacity:0;transition:opacity .4s;transform:scale(.6)}
+.exp-flow.aspen .exp-lock{opacity:1;transform:scale(1)}
+.exp-flow.aspen .exp-track{opacity:.25}
 .exp-caption{text-align:center;font-size:.8rem;color:var(--t2);margin-top:1.1rem;line-height:1.5;transition:color .3s}
 .exp-pillars{display:grid;grid-template-columns:1fr 1fr;gap:.7rem}
 .exp-pillar{display:flex;gap:.7rem;align-items:flex-start;background:var(--wh);border:1px solid var(--brd);border-radius:13px;padding:.85rem .8rem}
@@ -301,9 +313,12 @@ select.settings-select{font-family:var(--san);font-size:.84rem;color:var(--bk);b
     <div class="exp-stage">
       <div class="exp-flow" id="exp-flow">
         <div class="exp-node exp-you"><span class="exp-node-t">You</span><span class="exp-node-s">your questions, files, secrets</span></div>
-        <div class="exp-arrow" id="exp-arrow"><span id="exp-arrow-label">data leaves →</span></div>
+        <div class="exp-channel" id="exp-channel">
+          <div class="exp-track"><span class="exp-packet p1"></span><span class="exp-packet p2"></span><span class="exp-packet p3"></span></div>
+          <span class="exp-lock" id="exp-lock">🔒</span>
+        </div>
         <div class="exp-node exp-far" id="exp-far"><span class="exp-node-t">Big Tech</span><span class="exp-node-s">their servers, their rules</span></div>
-        <div class="exp-node exp-home" id="exp-home"><span class="exp-node-t">🔒 Aspen</span><span class="exp-node-s">runs on your machine — nothing leaves</span></div>
+        <div class="exp-node exp-home" id="exp-home"><span class="exp-node-t">Aspen</span><span class="exp-node-s">runs on your machine</span></div>
       </div>
       <p class="exp-caption" id="exp-caption">Every word you type travels to a company far away.</p>
     </div>
@@ -548,9 +563,10 @@ function setExp(mode){
   const today=mode==='today';
   $('exp-today').classList.toggle('active',today);
   $('exp-aspen').classList.toggle('active',!today);
+  const flow=$('exp-flow');
+  flow.classList.toggle('today',today);
+  flow.classList.toggle('aspen',!today);
   $('exp-far').style.display=today?'block':'none';
-  $('exp-arrow').style.opacity=today?'1':'0';
-  $('exp-arrow').style.display=today?'block':'none';
   $('exp-home').style.display=today?'none':'block';
   $('exp-caption').textContent=today
     ?'Every word you type travels to a company far away.'
@@ -558,7 +574,7 @@ function setExp(mode){
   $('exp-caption').style.color=today?'var(--t2)':'#0F6E56';
   renderPillars(mode);
 }
-renderPillars('today');
+setExp('today');
 trialBtn.addEventListener('click',async()=>{
   trialBtn.disabled=true;trialBtn.textContent='Starting…';
   try{
