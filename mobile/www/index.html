@@ -854,17 +854,11 @@ function startVoiceListening(){
 
   // Native STT path (iOS/Android) — auto-submits on silence
   if(window.AspenNative&&window.AspenNative.available){
+    isListening=true;
     window.AspenNative.startListening(
-      async(text)=>{ if(text&&voiceMode){setVoiceState('thinking');await sendVoiceMessage(text);} },
-      ()=>{ if(voiceMode&&!isSpeaking&&!isStreaming)setVoiceState('idle'); }
+      async(text)=>{ isListening=false; if(text&&voiceMode){setVoiceState('thinking');await sendVoiceMessage(text);} },
+      ()=>{ isListening=false; if(voiceMode&&!isSpeaking&&!isStreaming)setVoiceState('idle'); }
     );
-    // Tap the orb button to stop early (otherwise it auto-stops on silence)
-    voiceListenBtn.onclick=async()=>{
-      await window.AspenNative.stopListening(
-        async(text)=>{ if(text&&voiceMode){setVoiceState('thinking');await sendVoiceMessage(text);} },
-        ()=>{ if(voiceMode&&!isSpeaking&&!isStreaming)setVoiceState('idle'); }
-      );
-    };
     return;
   }
 
@@ -1017,8 +1011,18 @@ function exitVoiceMode(){
   sendBtn.classList.remove('hidden');stopBtn.classList.add('hidden');sendBtn.disabled=false;
 }
 
-voiceListenBtn.addEventListener('click',()=>{
-  if(isSpeaking){stopSpeaking();setVoiceState('idle');}else startVoiceListening();
+voiceListenBtn.addEventListener('click',async()=>{
+  if(isSpeaking){ stopSpeaking(); setVoiceState('idle'); return; }
+  if(isListening && window.AspenNative && window.AspenNative.stopListening){
+    // Stop early; native returns whatever was heard so far.
+    isListening=false;
+    await window.AspenNative.stopListening(
+      async(text)=>{ if(text&&voiceMode){setVoiceState('thinking');await sendVoiceMessage(text);} },
+      ()=>{ if(voiceMode&&!isSpeaking&&!isStreaming)setVoiceState('idle'); }
+    );
+    return;
+  }
+  startVoiceListening();
 });
 voiceExitBtn.addEventListener('click',exitVoiceMode);
 
