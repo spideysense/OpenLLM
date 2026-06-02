@@ -253,6 +253,17 @@ ipcMain.handle('models:pull', async (event, modelName) => {
   if (!(await ollama.isCurrentEnough())) {
     status('Updating AI engine…');
     await ollama.ensureCurrent((m) => status(typeof m === 'string' ? m : 'Updating AI engine…'));
+    // After a restart the new server needs a moment before it can serve pulls.
+    // Poll /api/tags until it actually responds, so the pull doesn't fire early
+    // (which left it stalled and forced a manual app restart).
+    status('Connecting to AI engine…');
+    for (let i = 0; i < 30; i++) {
+      try {
+        const r = await fetch('http://127.0.0.1:11434/api/tags');
+        if (r.ok) break;
+      } catch {}
+      await new Promise((res) => setTimeout(res, 500));
+    }
   }
 
   let result = await models.pullModel(modelName, notify);
@@ -263,6 +274,11 @@ ipcMain.handle('models:pull', async (event, modelName) => {
     status('Updating AI engine…');
     const up = await ollama.ensureCurrent((m) => status(typeof m === 'string' ? m : 'Updating AI engine…'));
     if (up.success) {
+      status('Connecting to AI engine…');
+      for (let i = 0; i < 30; i++) {
+        try { const r = await fetch('http://127.0.0.1:11434/api/tags'); if (r.ok) break; } catch {}
+        await new Promise((res) => setTimeout(res, 500));
+      }
       result = await models.pullModel(modelName, notify);
     }
   }
