@@ -34,6 +34,17 @@ jobs:
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
+      - name: Verify DMG is stapled (HARD GATE — fails build if not)
+        run: |
+          set -e
+          DMG=$(ls dist/*.dmg | head -1)
+          echo "Validating staple on: $DMG"
+          if ! xcrun stapler validate "$DMG"; then
+            echo "::error::DMG is NOT stapled. Refusing to release — users would see 'Aspen is damaged'."
+            exit 1
+          fi
+          echo "✅ DMG staple verified — safe to release."
+
       - name: Upload Mac artifact
         uses: actions/upload-artifact@v4
         with:
@@ -100,3 +111,23 @@ jobs:
           draft: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  verify-published:
+    name: Verify LIVE download is stapled
+    needs: [release]
+    runs-on: macos-latest
+    steps:
+      - name: Download the actual served DMG and validate its staple
+        run: |
+          set -e
+          echo "Waiting for release asset to be available..."
+          sleep 15
+          URL="https://github.com/${{ github.repository }}/releases/latest/download/Aspen-mac.dmg"
+          echo "Downloading served file: $URL"
+          curl -sL -o served.dmg "$URL"
+          echo "Validating staple on the LIVE served file..."
+          if ! xcrun stapler validate served.dmg; then
+            echo "::error::The PUBLISHED DMG is not stapled — users will see 'Aspen is damaged'. The released file is broken even though the build was fine (upload-ordering bug)."
+            exit 1
+          fi
+          echo "✅ LIVE served DMG is stapled — users get a clean download."
