@@ -20,7 +20,8 @@ public class AspenTTS: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDelegate 
         CAPPluginMethod(name: "speak", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "stop", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "prepareVoice", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "voiceStatus", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "voiceStatus", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setEngine", returnType: CAPPluginReturnPromise)
     ]
 
     private let synthesizer = AVSpeechSynthesizer()
@@ -32,6 +33,8 @@ public class AspenTTS: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDelegate 
     private var kokoroAttached = false
 
     public static weak var kokoroProvider: AspenKokoroProvider?
+    // When true, always use Apple AVSpeechSynthesizer even if Kokoro is ready.
+    private var forceAppleVoice = false
 
     override public func load() {
         synthesizer.delegate = self
@@ -66,7 +69,7 @@ public class AspenTTS: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDelegate 
             call.resolve()
             return
         }
-        if let kokoro = AspenTTS.kokoroProvider, kokoro.isReady {
+        if let kokoro = AspenTTS.kokoroProvider, kokoro.isReady, !forceAppleVoice {
             self.pendingCall?.resolve()
             self.pendingCall = call
             DispatchQueue.global(qos: .userInitiated).async {
@@ -163,6 +166,12 @@ public class AspenTTS: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDelegate 
             self?.notifyListeners("kokoroProgress", data: ["progress": 1.0, "ready": loaded])
             call.resolve(["ready": loaded])
         })
+    }
+
+    @objc func setEngine(_ call: CAPPluginCall) {
+        let engine = call.getString("engine") ?? "natural"
+        forceAppleVoice = (engine == "fast")
+        call.resolve(["engine": engine])
     }
 
     @objc func voiceStatus(_ call: CAPPluginCall) {
