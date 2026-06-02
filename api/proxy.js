@@ -215,27 +215,71 @@ export default async function handler(req) {
     }
   }
 
-  let upRes;
-  try {
-    upRes = await fetch(upstream, {
-      method: 'POST',
-      headers: upHeaders,
-      body: JSON.stringify({ model: model || 'llama3', messages: enrichedMessages, stream }),
-    });
-  } catch (e) { return jsonErr(`Could not reach tunnel: ${e.message}`, 502); }
-
-  if (!upRes.ok) {
-    const t = await upRes.text().catch(() => '');
-    return jsonErr(`Upstream HTTP ${upRes.status}: ${t.slice(0, 200)}`, upRes.status);
-  }
-
+  // NON-STREAMING: fetch fully, then return. (Subject to the 25s init limit, but
+  // non-stream callers opt out of streaming deliberately.)
   if (!stream) {
+    let upRes;
+    try {
+      upRes = await fetch(upstream, {
+        method: 'POST', headers: upHeaders,
+        body: JSON.stringify({ model: model || 'llama3', messages: enrichedMessages, stream: false }),
+      });
+    } catch (e) { return jsonErr(`Could not reach tunnel: ${e.message}`, 502); }
+    if (!upRes.ok) {
+      const t = await upRes.text().catch(() => '');
+      return jsonErr(`Upstream HTTP ${upRes.status}: ${t.slice(0, 200)}`, upRes.status);
+    }
     return new Response(JSON.stringify(await upRes.json()), {
       status: 200, headers: { ...cors(origin), 'Content-Type': 'application/json' },
     });
   }
 
-  return new Response(upRes.body, {
+  // STREAMING: open the response stream IMMEDIATELY and flush a keep-alive comment
+  // before contacting the (possibly slow) local model. Vercel's edge runtime kills
+  // a function that doesn't return an initial response within 25s — but a streaming
+  // response counts as "returned" the instant the first byte goes out. So we send a
+  // byte now, then fetch upstream and pump its tokens whenever they arrive. This is
+  // why a slow model no longer produces FUNCTION_INVOCATION_TIMEOUT / HTTP 504.
+  const encoder = new TextEncoder();
+  const streamBody = new ReadableStream({
+    async start(controller) {
+      // Immediate keep-alive (SSE comment line — ignored by clients) beats the 25s clock.
+      controller.enqueue(encoder.encode(': connected\n\n'));
+      // Heartbeat every 10s while we wait for the model's first token, so neither
+      // Vercel nor any intermediary considers the connection idle.
+      let alive = true;
+      const heartbeat = setInterval(() => {
+        if (alive) { try { controller.enqueue(encoder.encode(': keep-alive\n\n')); } catch {} }
+      }, 10000);
+      try {
+        const upRes = await fetch(upstream, {
+          method: 'POST', headers: upHeaders,
+          body: JSON.stringify({ model: model || 'llama3', messages: enrichedMessages, stream: true }),
+        });
+        if (!upRes.ok || !upRes.body) {
+          const t = await upRes.text().catch(() => '');
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: `Upstream HTTP ${upRes.status}: ${t.slice(0,200)}` })}\n\n`));
+          controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+          return;
+        }
+        const reader = upRes.body.getReader();
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          controller.enqueue(value); // pass model tokens straight through
+        }
+      } catch (e) {
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: `Could not reach tunnel: ${e.message}` })}\n\n`));
+        controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+      } finally {
+        alive = false;
+        clearInterval(heartbeat);
+        try { controller.close(); } catch {}
+      }
+    },
+  });
+
+  return new Response(streamBody, {
     status: 200,
     headers: { ...cors(origin), 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no' },
   });
