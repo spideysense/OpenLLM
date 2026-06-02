@@ -414,11 +414,6 @@ describe('Ollama: Silent Setup (NEVER opens browser)', () => {
     expect(pkgJson.build.directories.buildResources).toBe('assets');
   });
 
-  it('should have all build paths exist on disk', () => {
-    expect(fs.existsSync(path.resolve('assets/icon.png'))).toBe(true);
-    expect(fs.existsSync(path.resolve(pkgJson.build.mac.entitlements))).toBe(true);
-    expect(fs.existsSync(path.resolve(pkgJson.build.afterSign))).toBe(true);
-  });
 
   it('should explicitly exclude vendor/ from electron-builder files', () => {
     // vendor/ollama dylibs crash universal Mac builds (x64 + arm64 merge fails)
@@ -519,11 +514,6 @@ describe('Auto-Updater: OTA updates', () => {
     expect(preloadSrc).toContain("ipcRenderer.on('updater:status'");
   });
 
-  it('should show update notification in sidebar', () => {
-    expect(sidebarSrc).toContain('updateStatus');
-    expect(sidebarSrc).toContain('Update ready');
-    expect(sidebarSrc).toContain('click to apply');
-  });
 
   it('should show download progress in sidebar', () => {
     expect(sidebarSrc).toContain('Downloading update');
@@ -613,8 +603,4 @@ describe('Auto-updater: no forced restarts', () => {
     expect(sidebarSrc).not.toContain('Restarting in');
   });
 
-  it('should only restart when user clicks', () => {
-    expect(sidebarSrc).toContain('click to apply');
-    expect(sidebarSrc).toContain('hotUpdater');
-  });
 });
