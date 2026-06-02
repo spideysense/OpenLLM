@@ -238,7 +238,7 @@ async function handleAgentChat(parsed, res) {
       const pieces = String(content).match(/\S+\s*/g) || [content];
       for (const piece of pieces) {
         res.write(`data: ${JSON.stringify({ ...baseChunk, choices: [{ index: 0, delta: { content: piece }, finish_reason: null }] })}\n\n`);
-        await new Promise(r => setTimeout(r, 24));
+        await new Promise(r => setTimeout(r, 32));
       }
       res.write(`data: ${JSON.stringify({ ...baseChunk, choices: [{ index: 0, delta: {}, finish_reason: 'stop' }] })}\n\n`);
       res.write('data: [DONE]\n\n');
