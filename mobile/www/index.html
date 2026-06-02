@@ -9,8 +9,6 @@
 <title>Aspen — Your AI</title>
 <meta name="robots" content="noindex">
 <link rel="icon" type="image/svg+xml" href="https://runonaspen.com/favicon.svg">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@200;300;400;500;600&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -19,8 +17,8 @@
   --gd:#B8860B;--gd-light:rgba(184,134,11,0.08);
   --brd:rgba(0,0,0,0.07);--brd2:rgba(0,0,0,0.12);
   --danger:#DC2626;
-  --ser:'DM Serif Display',Georgia,serif;
-  --san:'Outfit',-apple-system,sans-serif;
+  --ser:-apple-system,BlinkMacSystemFont,'SF Pro Display','SF Pro Text','Helvetica Neue',sans-serif;
+  --san:-apple-system,BlinkMacSystemFont,'SF Pro Text','SF Pro Display','Helvetica Neue',sans-serif;
   --mono:'SF Mono','JetBrains Mono',monospace;
   --sidebar:260px;--header:52px;
   --safe-bottom:env(safe-area-inset-bottom,0px);
@@ -184,7 +182,7 @@ body.is-mobile .chat-delete{opacity:.4!important}
 /* Orb sits in the upper-middle; controls pin to the bottom thumb zone */
 .voice-orb-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:40px;padding-top:8vh}
 .voice-controls{display:flex;align-items:center;gap:32px;padding-bottom:calc(48px + env(safe-area-inset-bottom,0px))}
-.voice-engine-toggle{position:absolute;top:calc(16px + env(safe-area-inset-top,0px));right:16px;padding:.5rem .9rem;border-radius:99px;border:1.5px solid rgba(184,134,11,0.3);background:var(--gd-light,rgba(184,134,11,0.08));color:var(--gd,#B8860B);font-family:var(--san,'Outfit',sans-serif);font-size:.78rem;font-weight:600;cursor:pointer;-webkit-appearance:none;transition:all .2s;z-index:5}
+.voice-engine-toggle{position:absolute;top:calc(16px + env(safe-area-inset-top,0px));right:16px;padding:.5rem .9rem;border-radius:99px;border:1.5px solid rgba(184,134,11,0.3);background:var(--gd-light,rgba(184,134,11,0.08));color:var(--gd,#B8860B);font-family:var(--san);font-size:.78rem;font-weight:600;cursor:pointer;-webkit-appearance:none;transition:all .2s;z-index:5}
 .voice-engine-toggle:active{transform:scale(.96)}
 .voice-engine-toggle.fast{border-color:rgba(0,0,0,0.12);background:rgba(0,0,0,0.04);color:var(--t2,#6E6E73)}
 .voice-orb{
@@ -237,16 +235,16 @@ body.is-mobile .chat-delete{opacity:.4!important}
 @keyframes orbhue{0%,100%{filter:blur(2px) hue-rotate(0deg)}50%{filter:blur(3px) hue-rotate(-8deg)}}
 .voice-label{
   font-size:16px;color:var(--t2,#6E6E73);
-  font-family:var(--san,'Outfit',-apple-system,sans-serif);
+  font-family:var(--san);
   letter-spacing:.04em;font-weight:500;
 }
 .voice-upgrade{position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;background:rgba(250,250,247,0.6);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:1.5rem}
 .voice-upgrade-card{width:100%;max-width:380px;background:var(--wh,#fff);border:1px solid var(--brd,rgba(0,0,0,0.07));border-radius:22px;padding:1.6rem 1.5rem;box-shadow:0 8px 40px rgba(0,0,0,0.12);margin-bottom:1rem}
-.voice-upgrade-title{font-family:var(--ser,'DM Serif Display',serif);font-size:1.4rem;color:var(--bk,#1D1D1F);margin-bottom:.5rem}
+.voice-upgrade-title{font-family:var(--ser);font-size:1.4rem;color:var(--bk,#1D1D1F);margin-bottom:.5rem}
 .voice-upgrade-body{font-size:.9rem;line-height:1.55;color:var(--t2,#6E6E73);margin-bottom:1.2rem}
 .voice-upgrade-body b{color:var(--bk,#1D1D1F);font-weight:600}
 .voice-upgrade-actions{display:flex;gap:.6rem}
-.voice-upgrade-btn{flex:1;padding:.8rem;border-radius:12px;font-family:var(--san,'Outfit',sans-serif);font-size:.9rem;font-weight:500;cursor:pointer;border:none;-webkit-appearance:none;transition:all .2s}
+.voice-upgrade-btn{flex:1;padding:.8rem;border-radius:12px;font-family:var(--san);font-size:.9rem;font-weight:500;cursor:pointer;border:none;-webkit-appearance:none;transition:all .2s}
 .voice-upgrade-btn.primary{background:var(--gd,#B8860B);color:#fff}
 .voice-upgrade-btn.primary:active{background:#9a7009;transform:scale(.98)}
 .voice-upgrade-btn.secondary{background:var(--bg,#FAFAF7);color:var(--t2,#6E6E73);border:1.5px solid var(--brd2,rgba(0,0,0,0.12))}
