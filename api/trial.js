@@ -147,6 +147,26 @@ export default async function handler(req) {
   const upstream = `${base}/v1/chat/completions`;
   const messagesLeft = Math.max(0, MSGS_PER_SESSION - sessionCount);
 
+  // The host's Ollama requires an explicit model. We don't hardcode one — we ask
+  // the host what it currently has and use the first (the host decides what's
+  // loaded/best, so the model still "floats" with whatever the host runs).
+  let trialModel = (typeof process !== 'undefined' && process.env.TRIAL_MODEL) || '';
+  if (!trialModel) {
+    try {
+      const mRes = await fetch(`${base}/v1/models`, {
+        headers: { ...(TRIAL_API_KEY ? { Authorization: `Bearer ${TRIAL_API_KEY}` } : {}) },
+      });
+      if (mRes.ok) {
+        const list = (await mRes.json()).data || [];
+        const pick = list.find((m) => !String(m.id).includes('embed'));
+        if (pick) trialModel = pick.id;
+      }
+    } catch { /* fall through to graceful fail below */ }
+  }
+  if (!trialModel) {
+    return jsonErr(origin, 'The cloud trial is unavailable right now. Download Aspen to run locally.', 503, { unavailable: true });
+  }
+
   // Streaming with an immediate keep-alive (beats Vercel's 25s init deadline) +
   // graceful fail if the host machine is unreachable.
   const encoder = new TextEncoder();
@@ -161,7 +181,7 @@ export default async function handler(req) {
         const upRes = await fetch(upstream, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'User-Agent': 'Aspen-Trial/1.0', ...(TRIAL_API_KEY ? { Authorization: `Bearer ${TRIAL_API_KEY}` } : {}) },
-          body: JSON.stringify({ messages, stream: true }),
+          body: JSON.stringify({ model: trialModel, messages, stream: true }),
         });
         if (!upRes.ok || !upRes.body) {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: 'The cloud trial is unavailable right now. Download Aspen to run locally.', unavailable: true })}\n\n`));
