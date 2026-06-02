@@ -960,15 +960,22 @@ function enterVoiceMode(){
 let voiceUpgradeAsked=false;
 async function maybeOfferVoiceUpgrade(){
   if(voiceUpgradeAsked)return;
-  if(!window.AspenNative||!window.AspenNative.voiceStatus)return;
+  if(!window.AspenNative||!window.AspenNative.voiceStatus){
+    voiceLabel.textContent='[debug] no voiceStatus bridge';
+    return;
+  }
   try{
     const st=await window.AspenNative.voiceStatus();
-    // Only offer if the engine is available but the model isn't downloaded/ready yet.
-    if(st&&st.available&&!st.ready&&!st.downloaded){
+    // TEMP debug: show exactly what the native side reports.
+    voiceLabel.textContent='[debug] '+JSON.stringify(st);
+    // Show the card unless Kokoro is already fully ready.
+    if(st && !st.ready){
       voiceUpgradeAsked=true;
       const up=$('voice-upgrade');if(up)up.classList.remove('hidden');
     }
-  }catch{}
+  }catch(e){
+    voiceLabel.textContent='[debug] err '+(e&&e.message||e);
+  }
 }
 
 function startVoiceDownload(){
