@@ -1,0 +1,37 @@
+name: Verify Live DMG (daily safety net)
+
+# Catches a broken (un-stapled) DMG on the live download URL no matter HOW it
+# got there — including manual hand-uploads that bypass the release pipeline.
+# Runs daily and on-demand. Fails red (and can notify) if the served file that
+# real users would download is not properly stapled/notarized.
+
+on:
+  schedule:
+    - cron: '0 15 * * *'   # daily at 15:00 UTC
+  workflow_dispatch: {}      # allow manual runs
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Validate the live served DMG
+    runs-on: macos-latest
+    steps:
+      - name: Download the live DMG users would get and validate its staple
+        run: |
+          set -e
+          URL="https://github.com/${{ github.repository }}/releases/latest/download/Aspen-mac.dmg"
+          echo "Fetching the live served file: $URL"
+          curl -fsSL -o live.dmg "$URL"
+          echo "Validating Gatekeeper acceptance + stapled ticket..."
+          # 1. Stapled notarization ticket must be present.
+          if ! xcrun stapler validate live.dmg; then
+            echo "::error::LIVE DMG is NOT stapled — new users will see 'Aspen is damaged'. Re-publish via 'npm run release:mac' or a tag push."
+            exit 1
+          fi
+          # 2. Gatekeeper must accept it (defense in depth).
+          if ! spctl --assess --type open --context context:primary-signature -v live.dmg 2>&1 | grep -q "accepted"; then
+            echo "::warning::stapler passed but spctl did not report 'accepted' — inspect manually."
+          fi
+          echo "✅ Live served DMG is stapled and valid — new users get a clean download."
