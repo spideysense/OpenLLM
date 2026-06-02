@@ -1,7 +1,7 @@
 {
   "schema_version": 3,
   "updated": "2026-06-01",
-  "changelog": "v3.1: Corrected Gemma 4 tags to real Ollama tags (gemma4:e4b, gemma4:26b \u2014 gemma4:9b/27b did not exist and failed to pull). All tags now verified against ollama.com/library.",
+  "changelog": "v3.2: All tags verified against official ollama.com/library tag pages. Sizes corrected to match.",
   "hardware_tiers": {
     "light": {
       "label": "Light",
@@ -98,7 +98,7 @@
       "model": "qwen3:14b",
       "name": "Qwen 3 14B",
       "provider": "Alibaba",
-      "download_gb": 10,
+      "download_gb": 9.3,
       "min_tier": "medium",
       "tool_support": true,
       "why": "Production-grade tool reliability that fits a 16 GB machine. The sweet spot for most users."
@@ -125,7 +125,7 @@
       "model": "llama3.1:8b",
       "name": "Llama 3.1 8B",
       "provider": "Meta",
-      "download_gb": 5,
+      "download_gb": 4.9,
       "min_tier": "light",
       "tool_support": true,
       "why": "The reliable lightweight pick. Fast, English-first, dependable tool calling."
