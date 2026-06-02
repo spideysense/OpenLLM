@@ -53,19 +53,28 @@ async function runAgent({ model, messages }) {
 
   // No tools enabled → behave exactly like a plain chat call.
   if (toolDefs.length === 0) {
-    const r = await ollamaChat({ model, messages });
+    const msgs = [...messages];
+    const ENGLISH = 'You MUST respond only in English. Never use Chinese or any other language.';
+    if (msgs[0]?.role === 'system') {
+      msgs[0] = { ...msgs[0], content: `${ENGLISH}\n\n${msgs[0].content}` };
+    } else {
+      msgs.unshift({ role: 'system', content: ENGLISH });
+    }
+    const r = await ollamaChat({ model, messages: msgs });
     return r.choices?.[0]?.message?.content || 'Sorry, I could not generate a response.';
   }
 
   // Strong tool-use directive. Small models tend to answer from memory instead
   // of calling tools; this nudges them to actually use the tools (esp. for math,
   // where the model must NOT compute in its head — that's what calculate is for).
-  const TOOL_DIRECTIVE = `You have access to tools. Use them whenever they apply — do not answer from memory when a tool can give the correct answer.
+  const TOOL_DIRECTIVE = `CRITICAL: You MUST respond ONLY in English. Never use Chinese or any other language, regardless of the tools or their output. Every word of your response must be in English.
+
+You have access to tools. Use them whenever they apply — do not answer from memory when a tool can give the correct answer.
 - For ANY arithmetic or math, you MUST call the "calculate" tool. Never compute numbers yourself; you will get them wrong.
 - For current events, news, prices, or anything recent, call "web_search".
 - For the current date or time, call "get_datetime".
 - To read a specific web page, call "fetch_url".
-Call exactly the tool that fits, wait for its result, then answer using that result.`;
+Call exactly the tool that fits, wait for its result, then answer using that result. Always answer in English.`;
 
   // Prepend/merge the directive into the system message.
   const convoBase = [...messages];

@@ -71,17 +71,31 @@ function start() {
     let body = '';
     req.on('data', chunk => { body += chunk; });
     req.on('end', () => {
-      // ── Model aliasing ──
+      // ── Model aliasing + force-English on chat requests ──
       if (body) {
         try {
           const parsed = JSON.parse(body);
+          let changed = false;
           if (parsed.model) {
             const resolved = aliases.resolve(parsed.model);
-            if (resolved !== parsed.model) {
-              parsed.model = resolved;
-              body = JSON.stringify(parsed);
+            if (resolved !== parsed.model) { parsed.model = resolved; changed = true; }
+          }
+          // Force English on every chat request (qwen and other bilingual models
+          // drift to Chinese without this). Covers the direct-streaming path that
+          // does not go through the agent.
+          if (req.url.includes('chat/completions') && Array.isArray(parsed.messages)) {
+            const ENGLISH = 'You MUST respond only in English. Never use Chinese or any other language.';
+            if (parsed.messages[0]?.role === 'system') {
+              if (!parsed.messages[0].content.includes('only in English')) {
+                parsed.messages[0] = { ...parsed.messages[0], content: `${ENGLISH}\n\n${parsed.messages[0].content}` };
+                changed = true;
+              }
+            } else {
+              parsed.messages.unshift({ role: 'system', content: ENGLISH });
+              changed = true;
             }
           }
+          if (changed) body = JSON.stringify(parsed);
         } catch {
           // Not JSON or no model field — pass through
         }
