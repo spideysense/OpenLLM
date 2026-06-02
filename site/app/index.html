@@ -233,24 +233,38 @@ select.settings-select{font-family:var(--san);font-size:.84rem;color:var(--bk);b
 <div id="pair-screen" class="screen active">
   <div class="pair-card">
     <div class="pair-logo"><img src="/favicon.svg" alt="Aspen"><span>ASPEN</span></div>
-    <h2 class="pair-tagline">Your AI,<br><em>anywhere.</em></h2>
-    <p class="pair-sub">Connect to your local Aspen. Every message goes directly to your machine — nothing touches our servers.</p>
-    <div class="field">
-      <label>Tunnel URL</label>
-      <input type="url" id="tunnel-input" placeholder="https://xxxxxxxx.runonaspen.com" autocomplete="off" spellcheck="false">
-      <div class="hint">Aspen app → API Keys → "From anywhere" URL</div>
-    </div>
-    <div class="field">
-      <label>API Key</label>
-      <input type="text" id="apikey-input" placeholder="sk-aspen-…" autocomplete="new-password" spellcheck="false" style="-webkit-text-security:disc">
-      <div class="hint">Aspen app → API Keys → copy any key.</div>
-    </div>
-    <button class="pair-btn" id="connect-btn">Connect to my Aspen</button>
-    <div class="pair-err" id="pair-err"></div>
-    <div style="display:flex;align-items:center;gap:.6rem;margin:1rem 0 .6rem;color:var(--t3);font-size:.75rem"><div style="flex:1;height:1px;background:var(--brd2)"></div>or<div style="flex:1;height:1px;background:var(--brd2)"></div></div>
-    <button class="pair-btn" id="trial-btn" style="background:var(--gd);color:#fff">Try free — no download</button>
-    <p style="font-size:.7rem;color:var(--t3);text-align:center;margin-top:.5rem;line-height:1.45">20 free messages on a powerful cloud model. Heads up: trial chats route through Aspen's servers (unlike the local app, which stays on your machine).</p>
-    <p class="pair-privacy">🔒 The local app never sends your data anywhere. <a href="https://runonaspen.com">Learn how →</a></p>
+    <h2 class="pair-tagline">Your own AI.<br><em>Free. Private. Yours.</em></h2>
+    <p class="pair-sub">Aspen runs powerful AI that belongs entirely to you. Try it free, right now — no download, no account.</p>
+
+    <ul style="list-style:none;padding:0;margin:1.1rem 0 1.3rem;display:flex;flex-direction:column;gap:.7rem">
+      <li style="display:flex;gap:.7rem;align-items:flex-start;font-size:.85rem;line-height:1.4"><span style="font-size:1rem">🔒</span><span><strong>Your data, your privacy.</strong> The app you download keeps everything on your machine — nothing ever leaves.</span></li>
+      <li style="display:flex;gap:.7rem;align-items:flex-start;font-size:.85rem;line-height:1.4"><span style="font-size:1rem">💸</span><span><strong>No cost, ever.</strong> No subscription, no per-message fees, no account.</span></li>
+      <li style="display:flex;gap:.7rem;align-items:flex-start;font-size:.85rem;line-height:1.4"><span style="font-size:1rem">⚡</span><span><strong>Real local performance.</strong> Once installed, the AI runs on your own hardware — fast, offline, private.</span></li>
+      <li style="display:flex;gap:.7rem;align-items:flex-start;font-size:.85rem;line-height:1.4"><span style="font-size:1rem">🌿</span><span><strong>Powers all the AI in your life.</strong> One private brain you own, connected to everything you use.</span></li>
+    </ul>
+
+    <button class="pair-btn" id="trial-btn" style="background:var(--gd);color:#fff">Try Free — 20 messages, no download</button>
+    <p style="font-size:.7rem;color:var(--t3);text-align:center;margin-top:.6rem;line-height:1.45">A free taste on a powerful cloud model so you can feel what Aspen does. <strong>Trial chats route through our servers</strong> — the app you download does not. That's the whole point: install it and it's <em>all</em> yours.</p>
+
+    <div class="pair-err" id="pair-err" style="margin-top:.6rem"></div>
+
+    <details style="margin-top:1.4rem;border-top:1px solid var(--brd);padding-top:1rem">
+      <summary style="cursor:pointer;font-size:.8rem;color:var(--t2);font-weight:600;list-style:none">Already have Aspen installed? Connect to it →</summary>
+      <div style="margin-top:1rem">
+        <p class="pair-sub" style="margin-bottom:1rem">Every message goes directly to your machine — nothing touches our servers.</p>
+        <div class="field">
+          <label>Tunnel URL</label>
+          <input type="url" id="tunnel-input" placeholder="https://xxxxxxxx.runonaspen.com" autocomplete="off" spellcheck="false">
+          <div class="hint">Aspen app → API Keys → "From anywhere" URL</div>
+        </div>
+        <div class="field">
+          <label>API Key</label>
+          <input type="text" id="apikey-input" placeholder="sk-aspen-…" autocomplete="new-password" spellcheck="false" style="-webkit-text-security:disc">
+          <div class="hint">Aspen app → API Keys → copy any key.</div>
+        </div>
+        <button class="pair-btn" id="connect-btn">Connect to my Aspen</button>
+      </div>
+    </details>
   </div>
 </div>
 
