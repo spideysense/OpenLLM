@@ -51,8 +51,23 @@ async function runAgent({ model, messages }) {
   const enabled = toolSettings.getEnabledToolNames();
   const toolDefs = tools.getToolDefinitions(enabled);
 
-  // No tools enabled → behave exactly like a plain chat call.
-  if (toolDefs.length === 0) {
+  // Some models do NOT support OpenAI-style tool-calling. Sending them a `tools`
+  // param makes Ollama return empty/garbled content → "Sorry, I could not generate
+  // a response." Detect those and treat them as plain chat. deepseek-r1 is a
+  // reasoning model (no tools); add others here as needed.
+  const modelLower = String(model).toLowerCase();
+  const TOOL_INCOMPATIBLE = ['deepseek-r1', 'deepseek-coder', 'phi'];
+  const supportsTools = !TOOL_INCOMPATIBLE.some(m => modelLower.includes(m));
+
+  // Strips <think>...</think> reasoning blocks (deepseek-r1) and falls back to a
+  // trimmed string. Never returns empty.
+  const clean = (raw) => {
+    let t = (raw || '').replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+    return t;
+  };
+
+  // No tools enabled, or model can't use tools → plain chat call.
+  if (toolDefs.length === 0 || !supportsTools) {
     const msgs = [...messages];
     const ENGLISH = 'You MUST respond only in English. Never use Chinese or any other language.';
     if (msgs[0]?.role === 'system') {
@@ -61,7 +76,8 @@ async function runAgent({ model, messages }) {
       msgs.unshift({ role: 'system', content: ENGLISH });
     }
     const r = await ollamaChat({ model, messages: msgs });
-    return r.choices?.[0]?.message?.content || 'Sorry, I could not generate a response.';
+    const out = clean(r.choices?.[0]?.message?.content);
+    return out || 'Sorry, I could not generate a response.';
   }
 
   // Strong tool-use directive. Small models tend to answer from memory instead
@@ -94,7 +110,11 @@ Call exactly the tool that fits, wait for its result, then answer using that res
     const toolCalls = msg.tool_calls || [];
     if (toolCalls.length === 0) {
       // Model answered with plain text — done.
-      return msg.content || 'Sorry, I could not generate a response.';
+      const out = clean(msg.content);
+      if (out) return out;
+      // Empty content despite claiming tool support — retry once as plain chat.
+      const r = await ollamaChat({ model, messages });
+      return clean(r.choices?.[0]?.message?.content) || 'Sorry, I could not generate a response.';
     }
 
     // Record the assistant's tool-call turn, then execute each call locally.
@@ -116,7 +136,7 @@ Call exactly the tool that fits, wait for its result, then answer using that res
 
   // Hit the round cap — make one final plain call so the user still gets an answer.
   const final = await ollamaChat({ model, messages: convo });
-  return final.choices?.[0]?.message?.content || 'Sorry, I could not complete that request.';
+  return clean(final.choices?.[0]?.message?.content) || 'Sorry, I could not complete that request.';
 }
 
 // Whether the agent loop should handle this request (any tools on).
