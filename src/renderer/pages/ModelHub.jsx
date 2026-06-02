@@ -38,8 +38,8 @@ export default function ModelHub() {
       if (!id) return;
       setPulls((prev) => {
         const cur = prev[id] || { progress: 0, status: '', eta: null };
-        let pct = cur.progress;
-        if (data.total > 0 && typeof data.percent === 'number') {
+        let pct = Number.isFinite(cur.progress) ? cur.progress : 0;
+        if (data.total > 0 && typeof data.percent === 'number' && Number.isFinite(data.percent)) {
           // Only ever move forward — Ollama reports per-layer progress that can
           // jump backward between layers, which is what made the bar flicker.
           pct = Math.max(cur.progress, data.percent);
@@ -157,7 +157,7 @@ export default function ModelHub() {
                         <div className="progress-fill" style={{ width: `${pullState.progress}%` }} />
                       </div>
                       <div style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 4, display: 'flex', justifyContent: 'space-between' }}>
-                        <span>{pullState.status} · {pullState.progress}%</span>
+                        <span>{pullState.status}{Number.isFinite(pullState.progress) && pullState.progress > 0 ? ` · ${pullState.progress}%` : ''}</span>
                         {pullState.eta && pullState.eta.remaining > 0 && (
                           <span>
                             {pullState.eta.remaining >= 60
