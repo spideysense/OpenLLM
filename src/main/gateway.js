@@ -175,23 +175,32 @@ async function handleAgentChat(parsed, res) {
     const content = await agent.runAgent({ model, messages: parsed.messages });
 
     if (wantStream) {
-      // Emit the final answer as a single SSE delta so streaming clients work.
+      // Stream the agent's final answer in small chunks so the client renders it
+      // typing out, instead of one blob appearing after a blank wait. The agent
+      // still computes the whole answer first (its latency is unchanged), but the
+      // text now flows in smoothly once it starts.
       res.writeHead(200, {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
         'X-Accel-Buffering': 'no',
       });
-      const chunk = {
+      const baseChunk = {
         id: 'chatcmpl-aspen',
         object: 'chat.completion.chunk',
         created: Math.floor(Date.now() / 1000),
         model,
-        choices: [{ index: 0, delta: { role: 'assistant', content }, finish_reason: null }],
       };
-      res.write(`data: ${JSON.stringify(chunk)}\n\n`);
-      const done = { ...chunk, choices: [{ index: 0, delta: {}, finish_reason: 'stop' }] };
-      res.write(`data: ${JSON.stringify(done)}\n\n`);
+      // First delta carries the role.
+      res.write(`data: ${JSON.stringify({ ...baseChunk, choices: [{ index: 0, delta: { role: 'assistant' }, finish_reason: null }] })}\n\n`);
+      // Split into word-ish pieces (keep the whitespace with each piece).
+      const pieces = String(content).match(/\S+\s*/g) || [content];
+      for (const piece of pieces) {
+        res.write(`data: ${JSON.stringify({ ...baseChunk, choices: [{ index: 0, delta: { content: piece }, finish_reason: null }] })}\n\n`);
+        // Small delay so it visibly types out rather than flushing all at once.
+        await new Promise(r => setTimeout(r, 12));
+      }
+      res.write(`data: ${JSON.stringify({ ...baseChunk, choices: [{ index: 0, delta: {}, finish_reason: 'stop' }] })}\n\n`);
       res.write('data: [DONE]\n\n');
       res.end();
     } else {
