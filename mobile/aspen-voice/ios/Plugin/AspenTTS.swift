@@ -107,6 +107,12 @@ public class AspenTTS: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDelegate 
     }
 
     private func playSamples(_ samples: [Float], sampleRate: Int, for call: CAPPluginCall) throws {
+        // Guard against empty audio (empty text or interrupted synth) — an empty
+        // buffer makes AVAudioEngine abort with mDataByteSize(0) and crash.
+        guard !samples.isEmpty else {
+            DispatchQueue.main.async { call.resolve(); if self.pendingCall === call { self.pendingCall = nil } }
+            return
+        }
         let format = AVAudioFormat(commonFormat: .pcmFormatFloat32,
                                    sampleRate: Double(sampleRate),
                                    channels: 1,

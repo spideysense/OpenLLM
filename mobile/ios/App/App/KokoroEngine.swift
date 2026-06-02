@@ -26,7 +26,7 @@ final class KokoroEngine: NSObject, AspenKokoroProvider {
         return dir
     }
     private var modelPath: URL { cacheDir.appendingPathComponent("kokoro-v1_0.safetensors") }
-    private var voicesPath: URL { Bundle.main.url(forResource: "voices", withExtension: "npz")! }
+    private var voicesPath: URL { Bundle.main.url(forResource: "voices", withExtension: "safetensors")! }
 
     // Expected exact size of kokoro-v1_0.safetensors. A partial/corrupt file
     // (e.g. from an interrupted download) fails this check and re-downloads.
@@ -73,9 +73,19 @@ final class KokoroEngine: NSObject, AspenKokoroProvider {
         guard filesDownloaded, !isLoading else { return false }
         isLoading = true
         defer { isLoading = false }
+        NSLog("[KokoroEngine] modelPath=\(modelPath.path) exists=\(FileManager.default.fileExists(atPath: modelPath.path))")
+        NSLog("[KokoroEngine] voicesPath=\(voicesPath.path) exists=\(FileManager.default.fileExists(atPath: voicesPath.path))")
+        let loaded: [String: MLXArray]
+        do {
+            loaded = try loadArrays(url: voicesPath)
+            NSLog("[KokoroEngine] loadArrays OK, \(loaded.count) voices, keys sample: \(Array(loaded.keys.prefix(3)))")
+        } catch {
+            NSLog("[KokoroEngine] loadArrays FAILED: \(error)")
+            return false
+        }
+        guard !loaded.isEmpty else { NSLog("[KokoroEngine] voices empty"); return false }
         let tts = KokoroTTS(modelPath: modelPath)
-        let loaded = (try? loadArrays(url: voicesPath)) ?? [:]
-        guard !loaded.isEmpty else { NSLog("[KokoroEngine] no voices loaded"); return false }
+        NSLog("[KokoroEngine] KokoroTTS init OK")
         engine = tts
         voices = loaded
         isReady = true
@@ -86,7 +96,7 @@ final class KokoroEngine: NSObject, AspenKokoroProvider {
     func synthesize(text: String, voiceName: String?) -> (samples: [Float], sampleRate: Int)? {
         guard isReady, let engine = engine else { return nil }
         let name = voiceName ?? defaultVoice
-        guard let voice = voices[name + ".npy"] else { NSLog("[KokoroEngine] missing voice \(name)"); return nil }
+        guard let voice = voices[name] else { NSLog("[KokoroEngine] missing voice \(name)"); return nil }
         let language: Language = (name.first == "a") ? .enUS : .enGB
         do {
             let (audio, _) = try engine.generateAudio(voice: voice, language: language, text: text)

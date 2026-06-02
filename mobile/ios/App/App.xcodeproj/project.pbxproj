@@ -21,6 +21,7 @@
 		A8B02D872FCE4DDF00F182DD /* Pods_App.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AF277DCFFFF123FFC6DF26C7 /* Pods_App.framework */; };
 		A8B02D882FCE4DDF00F182DD /* Pods_App.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = AF277DCFFFF123FFC6DF26C7 /* Pods_App.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		A8B02D8A2FCE536900F182DD /* voices.npz in Resources */ = {isa = PBXBuildFile; fileRef = A8B02D892FCE536900F182DD /* voices.npz */; };
+		A8B02D8C2FCE580000F182DD /* voices.safetensors in Resources */ = {isa = PBXBuildFile; fileRef = A8B02D8B2FCE580000F182DD /* voices.safetensors */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -51,6 +52,7 @@
 		A8B02D7D2FCE45AB00F182DD /* App-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "App-Bridging-Header.h"; sourceTree = "<group>"; };
 		A8B02D832FCE490300F182DD /* KokoroEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KokoroEngine.swift; sourceTree = "<group>"; };
 		A8B02D892FCE536900F182DD /* voices.npz */ = {isa = PBXFileReference; lastKnownFileType = file; path = voices.npz; sourceTree = "<group>"; };
+		A8B02D8B2FCE580000F182DD /* voices.safetensors */ = {isa = PBXFileReference; lastKnownFileType = file; path = voices.safetensors; sourceTree = "<group>"; };
 		AF277DCFFFF123FFC6DF26C7 /* Pods_App.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_App.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		AF51FD2D460BCFE21FA515B2 /* Pods-App.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-App.release.xcconfig"; path = "Pods/Target Support Files/Pods-App/Pods-App.release.xcconfig"; sourceTree = "<group>"; };
 		FC68EB0AF532CFC21C3344DD /* Pods-App.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-App.debug.xcconfig"; path = "Pods/Target Support Files/Pods-App/Pods-App.debug.xcconfig"; sourceTree = "<group>"; };
@@ -99,6 +101,7 @@
 		504EC3061FED79650016851F /* App */ = {
 			isa = PBXGroup;
 			children = (
+				A8B02D8B2FCE580000F182DD /* voices.safetensors */,
 				A8B02D892FCE536900F182DD /* voices.npz */,
 				A8B02D832FCE490300F182DD /* KokoroEngine.swift */,
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
@@ -194,6 +197,7 @@
 				A8B02D8A2FCE536900F182DD /* voices.npz in Resources */,
 				50379B232058CBB4000EE86E /* capacitor.config.json in Resources */,
 				504EC30D1FED79650016851F /* Main.storyboard in Resources */,
+				A8B02D8C2FCE580000F182DD /* voices.safetensors in Resources */,
 				2FAD9763203C412B000D30F8 /* config.xml in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
