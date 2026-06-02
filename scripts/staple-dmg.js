@@ -19,8 +19,11 @@ exports.default = async function afterAllArtifactBuild(context) {
   const teamId = process.env.APPLE_TEAM_ID;
 
   if (!appleId || !password || !teamId) {
-    console.warn('[staple-dmg] Missing APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID — skipping DMG notarization');
-    return [];
+    throw new Error(
+      '[staple-dmg] FATAL: Missing APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID. ' +
+      'The DMG would ship UN-STAPLED and users get "Aspen is damaged". ' +
+      'Set these env vars before building (see scripts/release-mac.js). Refusing to ship a broken DMG.'
+    );
   }
 
   for (const dmg of dmgs) {
@@ -31,7 +34,10 @@ exports.default = async function afterAllArtifactBuild(context) {
     );
     console.log(`[staple-dmg] Stapling: ${dmg}`);
     execSync(`xcrun stapler staple "${dmg}"`, { stdio: 'inherit' });
-    console.log(`[staple-dmg] Done: ${dmg}`);
+    // Verify the ticket actually attached — fail loudly if not.
+    console.log(`[staple-dmg] Validating staple: ${dmg}`);
+    execSync(`xcrun stapler validate "${dmg}"`, { stdio: 'inherit' });
+    console.log(`[staple-dmg] Done (validated): ${dmg}`);
   }
 
   return [];
