@@ -247,7 +247,10 @@ select.settings-select{font-family:var(--san);font-size:.84rem;color:var(--bk);b
     </div>
     <button class="pair-btn" id="connect-btn">Connect to my Aspen</button>
     <div class="pair-err" id="pair-err"></div>
-    <p class="pair-privacy">🔒 We never see your messages or data. <a href="https://runonaspen.com">Learn how →</a></p>
+    <div style="display:flex;align-items:center;gap:.6rem;margin:1rem 0 .6rem;color:var(--t3);font-size:.75rem"><div style="flex:1;height:1px;background:var(--brd2)"></div>or<div style="flex:1;height:1px;background:var(--brd2)"></div></div>
+    <button class="pair-btn" id="trial-btn" style="background:var(--gd);color:#fff">Try free — no download</button>
+    <p style="font-size:.7rem;color:var(--t3);text-align:center;margin-top:.5rem;line-height:1.45">20 free messages on a powerful cloud model. Heads up: trial chats route through Aspen's servers (unlike the local app, which stays on your machine).</p>
+    <p class="pair-privacy">🔒 The local app never sends your data anywhere. <a href="https://runonaspen.com">Learn how →</a></p>
   </div>
 </div>
 
@@ -457,6 +460,27 @@ function showApp(){
 
 // Pairing
 connectBtn.addEventListener('click',attemptConnect);
+
+// ── Free cloud trial ──
+let trialMode=false, trialToken=null, trialMsgsLeft=20;
+const trialBtn=$('trial-btn');
+trialBtn.addEventListener('click',async()=>{
+  trialBtn.disabled=true;trialBtn.textContent='Starting…';
+  try{
+    const res=await fetch('/api/trial',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'start'})});
+    const data=await res.json();
+    if(!res.ok||!data.token){
+      pairErr.textContent=data.error||'Trial unavailable right now. Try downloading Aspen.';
+      trialBtn.disabled=false;trialBtn.textContent='Try free — no download';return;
+    }
+    trialMode=true;trialToken=data.token;trialMsgsLeft=data.messagesLeft??20;
+    config={tunnelUrl:'__TRIAL__',apiKey:''}; // sentinel; trial routes via /api/trial
+    showApp();
+  }catch{
+    pairErr.textContent='Trial unavailable right now. Try downloading Aspen.';
+    trialBtn.disabled=false;trialBtn.textContent='Try free — no download';
+  }
+});
 tunnelInput.addEventListener('keydown',e=>{if(e.key==='Enter')attemptConnect()});
 apikeyInput.addEventListener('keydown',e=>{if(e.key==='Enter')attemptConnect()});
 async function attemptConnect(){
@@ -563,21 +587,37 @@ async function sendMessage(){
   streamController=new AbortController();let fullText='';
   try{
     const sys=worldModelSystemPrompt();
-    const res=await fetch('/api/proxy',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({tunnelUrl:config.tunnelUrl,apiKey:config.apiKey||'',model,messages:sys?[{role:'system',content:sys},...history]:history}),
-      signal:streamController.signal,
-    });
-    if(!res.ok){const e=await res.text().catch(()=>'');throw new Error(`HTTP ${res.status}: ${e.slice(0,200)}`)}
+    const fullMsgs=sys?[{role:'system',content:sys},...history]:history;
+    const res=trialMode
+      ? await fetch('/api/trial',{
+          method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({action:'chat',token:trialToken,messages:fullMsgs}),
+          signal:streamController.signal,
+        })
+      : await fetch('/api/proxy',{
+          method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({tunnelUrl:config.tunnelUrl,apiKey:config.apiKey||'',model,messages:fullMsgs}),
+          signal:streamController.signal,
+        });
+    if(!res.ok){
+      const e=await res.json().catch(()=>({}));
+      if(e.capped){
+        bubble.innerHTML=`<div style="font-size:.85rem;line-height:1.6">🌿 ${escHtml(e.error||"You've used your free messages.")}<br><br><a href="https://runonaspen.com" style="color:var(--gd);font-weight:600;text-decoration:none">Download Aspen — free →</a></div>`;
+        isStreaming=false;sendBtn.classList.remove('hidden');stopBtn.classList.add('hidden');sendBtn.disabled=false;streamController=null;return;
+      }
+      throw new Error(e.error||`HTTP ${res.status}`);
+    }
     const reader=res.body.getReader(),decoder=new TextDecoder();let buf='';
     while(true){
       const{done,value}=await reader.read();if(done)break;
       buf+=decoder.decode(value,{stream:true});
       const lines=buf.split('\n');buf=lines.pop()??'';
       for(const line of lines){
-        const t=line.trim();if(!t.startsWith('data: '))continue;
+        const t=line.trim();
+        if(trialMode&&t.startsWith(': messagesLeft=')){trialMsgsLeft=parseInt(t.slice(15))||0;continue;}
+        if(!t.startsWith('data: '))continue;
         const d=t.slice(6);if(d==='[DONE]')continue;
-        try{const delta=JSON.parse(d).choices?.[0]?.delta?.content;if(delta){fullText+=delta;bubble.innerHTML=formatMessage(fullText)+'<span class="cursor"></span>';scrollToBottom()}}catch{}
+        try{const j=JSON.parse(d);if(j.error){throw new Error(j.error);}const delta=j.choices?.[0]?.delta?.content;if(delta){fullText+=delta;bubble.innerHTML=formatMessage(fullText)+'<span class="cursor"></span>';scrollToBottom()}}catch(err){if(err.message&&err.message!=='Unexpected end of JSON input'&&!d.startsWith('{')){/*surface real upstream errors*/}}
       }
     }
   }catch(e){
@@ -597,6 +637,7 @@ stopBtn.addEventListener('click',()=>{streamController?.abort();streamController
 
 // Models
 async function loadModels(){
+  if(trialMode){modelSelect.innerHTML='<option value="">Cloud trial</option>';modelFooter.textContent='Cloud trial';return;}
   modelSelect.innerHTML='<option value="">Loading…</option>';
   try{
     const res=await fetch(`${config.tunnelUrl}/v1/models`,{headers:config.apiKey?{'Authorization':`Bearer ${config.apiKey}`}:{},signal:AbortSignal.timeout(6000)});
@@ -612,6 +653,7 @@ function updateModelFooter(){modelFooter.textContent=modelSelect.value?.split(':
 // Status
 function startStatusCheck(){checkStatus();statusInterval=setInterval(checkStatus,15000)}
 async function checkStatus(){
+  if(trialMode){statusDot.className='dot online';statusText.textContent=`Cloud trial · ${trialMsgsLeft} left`;settingsStatus.textContent='Cloud trial';offlineBanner.classList.remove('visible');return;}
   statusDot.className='dot checking';statusText.textContent='Checking…';settingsStatus.textContent='Checking…';
   try{
     const res=await fetch(`${config.tunnelUrl}/v1/models`,{headers:config.apiKey?{'Authorization':`Bearer ${config.apiKey}`}:{},signal:AbortSignal.timeout(5000)});
