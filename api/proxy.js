@@ -187,15 +187,31 @@ export default async function handler(req) {
   let enrichedMessages = messages || [];
 
   if (userText.length > 3) {
-    // Regex first — instant, no network
-    const regexHit = SEARCH_TRIGGERS.some(r => r.test(userText));
-    // Classifier only if regex misses
-    const shouldSearch = regexHit || await classifierNeedsSearch(
-      userText, tunnelUrl.replace(/\/+$/, ''), apiKey, model || 'llama3'
-    );
-    if (shouldSearch) {
-      const results = await fetchSearchResults(userText);
-      if (results.length > 0) enrichedMessages = injectSearch(messages, userText.slice(0, 100), results);
+    // The whole search step (classifier + fetching results) is capped at a hard
+    // overall deadline. If it can't finish in time, we abandon search entirely
+    // and just answer normally — search is an enhancement, never a blocker.
+    // This prevents the search step from hanging long enough to blow Vercel's
+    // function timeout (the FUNCTION_INVOCATION_TIMEOUT / HTTP 504 error).
+    const SEARCH_DEADLINE_MS = 6000;
+    try {
+      enrichedMessages = await Promise.race([
+        (async () => {
+          // Regex first — instant, no network.
+          const regexHit = SEARCH_TRIGGERS.some(r => r.test(userText));
+          // Classifier only if regex misses (this makes a network call).
+          const shouldSearch = regexHit || await classifierNeedsSearch(
+            userText, tunnelUrl.replace(/\/+$/, ''), apiKey, model || 'llama3'
+          );
+          if (shouldSearch) {
+            const results = await fetchSearchResults(userText);
+            if (results.length > 0) return injectSearch(messages, userText.slice(0, 100), results);
+          }
+          return messages || [];
+        })(),
+        new Promise(resolve => setTimeout(() => resolve(messages || []), SEARCH_DEADLINE_MS)),
+      ]);
+    } catch {
+      enrichedMessages = messages || [];
     }
   }
 
