@@ -28,8 +28,14 @@ final class KokoroEngine: NSObject, AspenKokoroProvider {
     private var modelPath: URL { cacheDir.appendingPathComponent("kokoro-v1_0.safetensors") }
     private var voicesPath: URL { Bundle.main.url(forResource: "voices", withExtension: "npz")! }
 
+    // Expected exact size of kokoro-v1_0.safetensors. A partial/corrupt file
+    // (e.g. from an interrupted download) fails this check and re-downloads.
+    private let expectedModelBytes: Int64 = 327115152
+
     var filesDownloaded: Bool {
-        FileManager.default.fileExists(atPath: modelPath.path)
+        guard let attrs = try? FileManager.default.attributesOfItem(atPath: modelPath.path),
+              let size = attrs[.size] as? Int64 else { return false }
+        return size == expectedModelBytes
     }
 
     func ensureDownloaded(progress: @escaping (Double) -> Void,
