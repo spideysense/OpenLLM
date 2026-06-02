@@ -1,46 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../App';
 
-// Curated model catalog — matches registry/models.json
-const CATALOG = [
-  {
-    category: 'General Purpose',
-    icon: '💬',
-    models: [
-      { id: 'llama3.2:3b', name: 'Llama 3.2 3B', provider: 'Meta', sizeGB: '2.0', tier: 'light', why: 'Fast on any machine, great for simple tasks' },
-      { id: 'qwen2.5:7b', name: 'Qwen 2.5 7B', provider: 'Alibaba', sizeGB: '4.7', tier: 'medium', why: 'Top-rated small model, best everyday AI' },
-      { id: 'qwen2.5:32b', name: 'Qwen 2.5 32B', provider: 'Alibaba', sizeGB: '19', tier: 'heavy', why: 'Rivals GPT-4 quality' },
-      { id: 'llama3.3', name: 'Llama 3.3 70B', provider: 'Meta', sizeGB: '40', tier: 'ultra', why: "Meta's flagship, rivals commercial models" },
-    ],
-  },
-  {
-    category: 'Coding',
-    icon: '👨‍💻',
-    models: [
-      { id: 'qwen2.5-coder:3b', name: 'Qwen Coder 3B', provider: 'Alibaba', sizeGB: '1.9', tier: 'light', why: 'Quick code completion and simple scripts' },
-      { id: 'qwen2.5-coder:7b', name: 'Qwen Coder 7B', provider: 'Alibaba', sizeGB: '4.7', tier: 'medium', why: 'Best small coding model, multi-language' },
-      { id: 'qwen2.5-coder:32b', name: 'Qwen Coder 32B', provider: 'Alibaba', sizeGB: '19', tier: 'heavy', why: 'Production-grade code generation' },
-      { id: 'deepseek-coder-v2', name: 'DeepSeek Coder V2', provider: 'DeepSeek', sizeGB: '8.9', tier: 'medium', why: 'Specialized for complex codebases' },
-    ],
-  },
-  {
-    category: 'Reasoning',
-    icon: '🧠',
-    models: [
-      { id: 'deepseek-r1:7b', name: 'DeepSeek R1 7B', provider: 'DeepSeek', sizeGB: '4.7', tier: 'medium', why: 'Chain-of-thought reasoning, thinks step by step' },
-      { id: 'deepseek-r1:14b', name: 'DeepSeek R1 14B', provider: 'DeepSeek', sizeGB: '9.0', tier: 'medium', why: 'Strong math and logic problem solving' },
-      { id: 'deepseek-r1:32b', name: 'DeepSeek R1 32B', provider: 'DeepSeek', sizeGB: '19', tier: 'heavy', why: 'Rivals o1 on reasoning benchmarks' },
-    ],
-  },
-  {
-    category: 'Creative Writing',
-    icon: '✍️',
-    models: [
-      { id: 'llama3.2:3b', name: 'Llama 3.2 3B', provider: 'Meta', sizeGB: '2.0', tier: 'light', why: 'Good for quick creative prompts' },
-      { id: 'gemma2:9b', name: 'Gemma 2 9B', provider: 'Google', sizeGB: '5.4', tier: 'medium', why: 'Excellent creative and narrative writing' },
-      { id: 'llama3.3', name: 'Llama 3.3 70B', provider: 'Meta', sizeGB: '40', tier: 'ultra', why: 'Best overall creative quality' },
-    ],
-  },
+// Tool-capable defaults shown if the remote registry can't be fetched. Power-ranked.
+const FALLBACK_MODELS = [
+  { model: 'llama4:scout', name: 'Llama 4 Scout', provider: 'Meta', download_gb: 65, min_tier: 'ultra', why: "Meta's open flagship. Strong tool use, huge context." },
+  { model: 'qwen3:32b', name: 'Qwen 3 32B', provider: 'Alibaba', download_gb: 20, min_tier: 'heavy', why: 'Most reliable tool-calling of any local model.' },
+  { model: 'gemma4:27b', name: 'Gemma 4 27B', provider: 'Google', download_gb: 17, min_tier: 'heavy', why: 'Native function-calling trained in. Great all-round agent.' },
+  { model: 'qwen2.5:32b', name: 'Qwen 2.5 32B', provider: 'Alibaba', download_gb: 20, min_tier: 'heavy', why: 'GPT-4-class with a mature tool ecosystem.' },
+  { model: 'qwen3:14b', name: 'Qwen 3 14B', provider: 'Alibaba', download_gb: 10, min_tier: 'medium', why: 'Production tool reliability that fits 16 GB. The sweet spot.' },
+  { model: 'gemma4:9b', name: 'Gemma 4 9B', provider: 'Google', download_gb: 6, min_tier: 'medium', why: 'Built-in tools + vision in a compact size.' },
+  { model: 'qwen2.5:7b', name: 'Qwen 2.5 7B', provider: 'Alibaba', download_gb: 4.7, min_tier: 'medium', why: 'Beats larger models on benchmarks, solid tools.' },
+  { model: 'llama3.1:8b', name: 'Llama 3.1 8B', provider: 'Meta', download_gb: 5, min_tier: 'light', why: 'Reliable lightweight pick. Fast, dependable tool calling.' },
+  { model: 'llama3.2:3b', name: 'Llama 3.2 3B', provider: 'Meta', download_gb: 2.0, min_tier: 'light', why: 'Runs on anything. Tool-capable and fast.' },
 ];
 
 export default function ModelHub() {
@@ -49,6 +20,14 @@ export default function ModelHub() {
   // at once without clobbering each other. Each entry: { progress, status, eta }.
   const [pulls, setPulls] = useState({});
   const pullMetaRef = React.useRef({}); // per-model { startTime, lastPct } for ETA + monotonic smoothing
+  const [catalog, setCatalog] = useState(FALLBACK_MODELS);
+
+  useEffect(() => {
+    if (!bridge?.registry?.get) return;
+    bridge.registry.get().then((reg) => {
+      if (Array.isArray(reg?.models) && reg.models.length > 0) setCatalog(reg.models);
+    }).catch(() => {});
+  }, []);
 
   const installedNames = models.map((m) => m.name);
 
@@ -123,44 +102,39 @@ export default function ModelHub() {
     <div className="page">
       <div className="page-title">Models</div>
       <div className="page-sub">
-        Aspen picked these for you. Your machine: <strong>{hardwareTier}</strong> tier.
+        Ranked most to least capable. Every model here works with Aspen's tools. Your machine: <strong>{hardwareTier}</strong> tier.
       </div>
 
-      {CATALOG.map((cat) => (
-        <div key={cat.category} style={{ marginBottom: 36 }}>
-          <h3 style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: 18,
-            fontWeight: 700,
-            color: 'var(--earth)',
-            marginBottom: 12,
-          }}>
-            {cat.icon} {cat.category}
-          </h3>
-
+      {(() => {
+        // The recommended model = the most capable one this machine can run
+        // (catalog is already power-ranked, so it's the first that fits).
+        const recommendedId = catalog.find((m) => canRun(m.min_tier))?.model || null;
+        return (
           <div className="model-grid">
-            {cat.models.map((model) => {
-              const installed = isInstalled(model.id);
-              const pullState = pulls[model.id];
+            {catalog.map((model) => {
+              const id = model.model;
+              const installed = isInstalled(id);
+              const pullState = pulls[id];
               const isPulling = !!pullState;
-              const fitsHardware = canRun(model.tier);
+              const fitsHardware = canRun(model.min_tier);
+              const isRecommended = id === recommendedId;
 
               return (
                 <div
-                  key={model.id}
-                  className={`model-card ${fitsHardware && !installed ? 'recommended' : ''}`}
+                  key={id}
+                  className={`model-card ${isRecommended ? 'recommended' : ''}`}
                   style={{ opacity: fitsHardware ? 1 : 0.55 }}
                 >
                   <div className="model-card-header">
                     <div>
                       <h3>{model.name}</h3>
-                      <div className="model-meta">{model.provider} · {model.sizeGB} GB</div>
+                      <div className="model-meta">{model.provider} · {model.download_gb} GB</div>
                     </div>
                     {installed && <span className="badge badge-green">Installed</span>}
-                    {!installed && fitsHardware && !isPulling && (
-                      <span className="badge badge-yellow">★ Fits</span>
+                    {!installed && isRecommended && !isPulling && (
+                      <span className="badge badge-yellow">★ Recommended</span>
                     )}
-                    {!fitsHardware && !installed && (
+                    {!fitsHardware && !installed && !isRecommended && (
                       <span className="badge" style={{ background: 'rgba(93,78,55,0.06)', color: 'var(--text-light)' }}>
                         Too big
                       </span>
@@ -190,15 +164,15 @@ export default function ModelHub() {
                     </div>
                   ) : installed ? (
                     <div className="flex gap-2">
-                      <button className="btn btn-sm btn-primary" onClick={() => { selectModel(model.id); setPage('chat'); }}>
+                      <button className="btn btn-sm btn-primary" onClick={() => { selectModel(id); setPage('chat'); }}>
                         Chat →
                       </button>
-                      <button className="btn btn-sm btn-danger" onClick={() => handleDelete(model.id)}>
+                      <button className="btn btn-sm btn-danger" onClick={() => handleDelete(id)}>
                         Remove
                       </button>
                     </div>
                   ) : fitsHardware ? (
-                    <button className="btn btn-sm btn-primary" onClick={() => handlePull(model.id)}>
+                    <button className="btn btn-sm btn-primary" onClick={() => handlePull(id)}>
                       Get Model
                     </button>
                   ) : (
@@ -208,7 +182,7 @@ export default function ModelHub() {
                       </div>
                       <button
                         className="btn btn-sm"
-                        onClick={() => handlePull(model.id)}
+                        onClick={() => handlePull(id)}
                         style={{ background: 'transparent', border: '1.5px solid rgba(93,78,55,0.3)', color: 'var(--text-light)' }}
                       >
                         Try anyway
@@ -219,8 +193,8 @@ export default function ModelHub() {
               );
             })}
           </div>
-        </div>
-      ))}
+        );
+      })()}
     </div>
   );
 }

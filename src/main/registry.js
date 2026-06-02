@@ -52,45 +52,41 @@ async function getRegistry() {
 }
 
 // ═══════════════════════════════════════════════════
-// Check for upgrade opportunities
+// Flat-list helpers (schema v3)
 // ═══════════════════════════════════════════════════
 
-function checkUpgrades(installedModels, registry, tier) {
-  if (!registry?.categories) return [];
+const TIER_ORDER = { light: 1, medium: 2, heavy: 3, ultra: 4 };
 
-  const upgrades = [];
-  const installedNames = installedModels.map((m) => m.name.split(':')[0]);
-
-  for (const [category, catData] of Object.entries(registry.categories)) {
-    const rec = catData.recommendations?.[tier];
-    if (!rec) continue;
-
-    const recBase = rec.model.split(':')[0];
-    const isInstalled = installedNames.some(
-      (n) => n === recBase || n === rec.model
-    );
-
-    if (!isInstalled) {
-      // Check if user has an older model in this category that could be upgraded
-      const hasOlderVersion = catData.recommendations && Object.values(catData.recommendations).some(
-        (r) => {
-          const rBase = r.model.split(':')[0];
-          return installedNames.includes(rBase) && r.model !== rec.model;
-        }
-      );
-
-      upgrades.push({
-        category,
-        recommended: rec,
-        type: hasOlderVersion ? 'upgrade' : 'new',
-        message: hasOlderVersion
-          ? `A better ${category} model is available: ${rec.name}`
-          : `Try the best ${category} model for your machine: ${rec.name}`,
-      });
-    }
-  }
-
-  return upgrades;
+// Models the user's hardware can actually run, power-ranked (registry order is
+// already most→least capable). Only tool-capable models are in the registry.
+function modelsForTier(registry, tier) {
+  if (!Array.isArray(registry?.models)) return [];
+  const cap = TIER_ORDER[tier] || 2;
+  return registry.models.filter((m) => (TIER_ORDER[m.min_tier] || 2) <= cap);
 }
 
-module.exports = { getRegistry, checkUpgrades };
+// The single best model the user's machine can run = first runnable in the
+// power-ranked list. Returns the model id to tag as "Recommended".
+function recommendedModel(registry, tier) {
+  const runnable = modelsForTier(registry, tier);
+  return runnable[0]?.model || null;
+}
+
+// Check for upgrade opportunities: is the best model the user *could* run not
+// yet installed? If so, suggest it.
+function checkUpgrades(installedModels, registry, tier) {
+  if (!Array.isArray(registry?.models)) return [];
+  const best = modelsForTier(registry, tier)[0];
+  if (!best) return [];
+  const installedBases = installedModels.map((m) => m.name.split(':')[0]);
+  const bestBase = best.model.split(':')[0];
+  const haveBest = installedBases.includes(bestBase);
+  if (haveBest) return [];
+  return [{
+    recommended: best,
+    type: 'upgrade',
+    message: `${best.name} is the most capable model your machine can run`,
+  }];
+}
+
+module.exports = { getRegistry, checkUpgrades, modelsForTier, recommendedModel };

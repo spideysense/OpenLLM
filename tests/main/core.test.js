@@ -176,7 +176,7 @@ describe('Model Recommendations', () => {
 
   it('should recommend flagship models for ultra tier', () => {
     const rec = models.getRecommendation('ultra', null);
-    expect(rec.model).toMatch(/70b|llama3\.3/i);
+    expect(rec.model).toMatch(/scout|llama4|qwen3|qwen2\.5:32b/i);
   });
 
   it('should include a human-readable reason', () => {
@@ -277,26 +277,27 @@ describe('Model Registry', () => {
     const raw = fs.readFileSync(registryPath, 'utf8');
     const registry = JSON.parse(raw);
     expect(registry).toHaveProperty('schema_version');
-    expect(registry).toHaveProperty('categories');
+    expect(registry).toHaveProperty('models');
+    expect(Array.isArray(registry.models)).toBe(true);
   });
 
-  it('should have general category with tier recommendations', () => {
+  it('should have a power-ranked list of tool-capable models', () => {
     const registry = JSON.parse(fs.readFileSync(path.resolve('registry/models.json'), 'utf8'));
-    const general = registry.categories?.general;
-    expect(general).toBeTruthy();
-    if (general?.recommendations) {
-      const tiers = Object.keys(general.recommendations);
-      expect(tiers.length).toBeGreaterThanOrEqual(2);
+    expect(Array.isArray(registry.models)).toBe(true);
+    expect(registry.models.length).toBeGreaterThanOrEqual(2);
+    // Every listed model must be tool-capable (that's the whole point).
+    for (const m of registry.models) {
+      expect(m.tool_support).toBe(true);
+      expect(m.model).toBeTruthy();
+      expect(m.min_tier).toBeTruthy();
     }
   });
 
   it('should have valid model names in recommendations', () => {
     const registry = JSON.parse(fs.readFileSync(path.resolve('registry/models.json'), 'utf8'));
-    for (const [cat, catData] of Object.entries(registry.categories || {})) {
-      for (const [tier, rec] of Object.entries(catData.recommendations || {})) {
-        expect(rec.model).toBeTruthy();
-        expect(typeof rec.model).toBe('string');
-      }
+    for (const m of (registry.models || [])) {
+      expect(m.model).toBeTruthy();
+      expect(typeof m.model).toBe('string');
     }
   });
 });

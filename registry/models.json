@@ -1,171 +1,106 @@
 {
-  "schema_version": 2,
-  "updated": "2025-03-03",
-  "changelog": "Initial registry — curated best-in-class models as of March 2025. Added model aliasing defaults.",
+  "schema_version": 3,
+  "updated": "2026-06-01",
+  "changelog": "v3: Flat power-ranked list (most -> least capable). Only models with reliable native tool-calling are included, since Aspen's assistant depends on tools (time, web search, math). Reasoning-only and non-tool models (deepseek-r1, phi, mistral-nemo) removed. Recommendation is chosen by hardware tier at runtime.",
   "hardware_tiers": {
-    "light":  { "label": "Light",    "description": "8 GB RAM, no dedicated GPU",   "max_model_gb": 5  },
+    "light":  { "label": "Light",    "description": "8 GB RAM, no dedicated GPU",   "max_model_gb": 6  },
     "medium": { "label": "Standard", "description": "16 GB RAM, or Apple Silicon",  "max_model_gb": 12 },
     "heavy":  { "label": "Power",    "description": "32+ GB RAM, dedicated GPU",    "max_model_gb": 25 },
-    "ultra":  { "label": "Beast",    "description": "64+ GB RAM, high-end GPU",     "max_model_gb": 50 }
+    "ultra":  { "label": "Beast",    "description": "64+ GB RAM, high-end GPU",     "max_model_gb": 60 }
   },
   "aliases": {
-    "_comment": "Maps familiar commercial model names to local models. Resolved dynamically based on what's installed and the user's hardware tier. 'tier' means: pick the best installed model at that tier or below. 'category' means: prefer models from that category.",
+    "_comment": "Maps commercial model names to the best installed local model at or below the given tier. All targets are tool-capable.",
     "defaults": {
-      "gpt-4":              { "tier": "heavy",  "category": "general",   "fallback_tier": "medium" },
-      "gpt-4o":             { "tier": "medium", "category": "general",   "fallback_tier": "light"  },
-      "gpt-4o-mini":        { "tier": "light",  "category": "general",   "fallback_tier": "light"  },
-      "gpt-3.5-turbo":      { "tier": "light",  "category": "general",   "fallback_tier": "light"  },
-      "claude-3-opus":      { "tier": "heavy",  "category": "general",   "fallback_tier": "medium" },
-      "claude-3.5-sonnet":  { "tier": "medium", "category": "general",   "fallback_tier": "light"  },
-      "claude-3-sonnet":    { "tier": "medium", "category": "general",   "fallback_tier": "light"  },
-      "claude-3-haiku":     { "tier": "light",  "category": "general",   "fallback_tier": "light"  },
-      "gemini-pro":         { "tier": "medium", "category": "general",   "fallback_tier": "light"  },
-      "gemini-1.5-pro":     { "tier": "heavy",  "category": "general",   "fallback_tier": "medium" },
-      "o1":                 { "tier": "heavy",  "category": "reasoning", "fallback_tier": "medium" },
-      "o1-mini":            { "tier": "medium", "category": "reasoning", "fallback_tier": "light"  },
-      "o3-mini":            { "tier": "medium", "category": "reasoning", "fallback_tier": "light"  }
+      "gpt-4":             { "tier": "heavy",  "fallback_tier": "medium" },
+      "gpt-4o":            { "tier": "medium", "fallback_tier": "light"  },
+      "gpt-4o-mini":       { "tier": "light",  "fallback_tier": "light"  },
+      "claude-3-opus":     { "tier": "heavy",  "fallback_tier": "medium" },
+      "claude-3.5-sonnet": { "tier": "medium", "fallback_tier": "light"  },
+      "claude-3-haiku":    { "tier": "light",  "fallback_tier": "light"  },
+      "gemini-1.5-pro":    { "tier": "heavy",  "fallback_tier": "medium" }
     }
   },
-  "categories": {
-    "general": {
-      "label": "General Purpose",
-      "description": "Everyday AI — answer questions, write emails, brainstorm, summarize.",
-      "icon": "💬",
-      "recommendations": {
-        "light":  {
-          "model": "llama3.2:3b",
-          "name": "Llama 3.2 3B",
-          "provider": "Meta",
-          "download_gb": 2.0,
-          "why": "Surprisingly capable for its size. Runs fast on any machine.",
-          "replaces": null
-        },
-        "medium": {
-          "model": "qwen2.5:7b",
-          "name": "Qwen 2.5 7B",
-          "provider": "Alibaba",
-          "download_gb": 4.7,
-          "why": "Top-rated small model. Beats many models twice its size on benchmarks.",
-          "replaces": null
-        },
-        "heavy": {
-          "model": "qwen2.5:32b",
-          "name": "Qwen 2.5 32B",
-          "provider": "Alibaba",
-          "download_gb": 19.9,
-          "why": "Competes with GPT-4 class models. Excellent at complex tasks.",
-          "replaces": null
-        },
-        "ultra": {
-          "model": "llama3.3",
-          "name": "Llama 3.3 70B",
-          "provider": "Meta",
-          "download_gb": 42.0,
-          "why": "Meta's best open model. Rivals the top commercial models.",
-          "replaces": null
-        }
-      }
+  "models": [
+    {
+      "model": "llama4:scout",
+      "name": "Llama 4 Scout",
+      "provider": "Meta",
+      "download_gb": 65,
+      "min_tier": "ultra",
+      "tool_support": true,
+      "why": "Meta's open flagship. 10M-token context, MoE efficiency, strong tool use. Needs serious hardware."
     },
-    "coding": {
-      "label": "Coding Assistant",
-      "description": "Write, debug, and explain code across all programming languages.",
-      "icon": "👨‍💻",
-      "recommendations": {
-        "light": {
-          "model": "qwen2.5-coder:7b",
-          "name": "Qwen 2.5 Coder 7B",
-          "provider": "Alibaba",
-          "download_gb": 4.7,
-          "why": "State-of-the-art code generation for its size. Knows 80+ languages.",
-          "replaces": null
-        },
-        "medium": {
-          "model": "phi4",
-          "name": "Phi-4 14B",
-          "provider": "Microsoft",
-          "download_gb": 9.1,
-          "why": "Microsoft's reasoning-focused model. Punches way above its weight on code.",
-          "replaces": null
-        },
-        "heavy": {
-          "model": "qwen2.5-coder:32b",
-          "name": "Qwen 2.5 Coder 32B",
-          "provider": "Alibaba",
-          "download_gb": 19.9,
-          "why": "Best open coding model. Competitive with Copilot-level quality.",
-          "replaces": null
-        }
-      }
+    {
+      "model": "qwen3:32b",
+      "name": "Qwen 3 32B",
+      "provider": "Alibaba",
+      "download_gb": 20,
+      "min_tier": "heavy",
+      "tool_support": true,
+      "why": "Most reliable tool-calling of any local model. Top-tier quality, rarely drops a tool call."
     },
-    "reasoning": {
-      "label": "Deep Reasoning",
-      "description": "Complex analysis, math, logic puzzles, step-by-step problem solving.",
-      "icon": "🧠",
-      "recommendations": {
-        "light": {
-          "model": "deepseek-r1:8b",
-          "name": "DeepSeek R1 8B",
-          "provider": "DeepSeek",
-          "download_gb": 4.9,
-          "why": "Shows its thinking process. Surprisingly strong at math and logic.",
-          "replaces": null
-        },
-        "medium": {
-          "model": "deepseek-r1:14b",
-          "name": "DeepSeek R1 14B",
-          "provider": "DeepSeek",
-          "download_gb": 9.0,
-          "why": "Sweet spot for reasoning on consumer hardware.",
-          "replaces": null
-        },
-        "heavy": {
-          "model": "deepseek-r1:32b",
-          "name": "DeepSeek R1 32B",
-          "provider": "DeepSeek",
-          "download_gb": 19.9,
-          "why": "Approaches o1-level reasoning. Excels at multi-step problems.",
-          "replaces": null
-        },
-        "ultra": {
-          "model": "deepseek-r1:70b",
-          "name": "DeepSeek R1 70B",
-          "provider": "DeepSeek",
-          "download_gb": 42.0,
-          "why": "Full-power reasoning. Competitive with the best commercial models.",
-          "replaces": null
-        }
-      }
+    {
+      "model": "gemma4:27b",
+      "name": "Gemma 4 27B",
+      "provider": "Google",
+      "download_gb": 17,
+      "min_tier": "heavy",
+      "tool_support": true,
+      "why": "Native function-calling trained into the weights. Excellent all-round agent model."
     },
-    "creative": {
-      "label": "Creative Writing",
-      "description": "Stories, blog posts, marketing copy, brainstorming.",
-      "icon": "✍️",
-      "recommendations": {
-        "light": {
-          "model": "llama3.1:8b",
-          "name": "Llama 3.1 8B",
-          "provider": "Meta",
-          "download_gb": 4.7,
-          "why": "Great at natural-sounding prose and following creative instructions.",
-          "replaces": null
-        },
-        "medium": {
-          "model": "gemma2:9b",
-          "name": "Gemma 2 9B",
-          "provider": "Google",
-          "download_gb": 5.4,
-          "why": "Google's open model. Excellent at instruction following and creative writing.",
-          "replaces": null
-        },
-        "heavy": {
-          "model": "command-r",
-          "name": "Command R 35B",
-          "provider": "Cohere",
-          "download_gb": 20.0,
-          "why": "Designed for long-form content and grounded, factual writing.",
-          "replaces": null
-        }
-      }
+    {
+      "model": "qwen2.5:32b",
+      "name": "Qwen 2.5 32B",
+      "provider": "Alibaba",
+      "download_gb": 20,
+      "min_tier": "heavy",
+      "tool_support": true,
+      "why": "GPT-4-class quality with a mature tool-calling ecosystem. Great for complex tasks."
+    },
+    {
+      "model": "qwen3:14b",
+      "name": "Qwen 3 14B",
+      "provider": "Alibaba",
+      "download_gb": 10,
+      "min_tier": "medium",
+      "tool_support": true,
+      "why": "Production-grade tool reliability that fits a 16 GB machine. The sweet spot for most users."
+    },
+    {
+      "model": "gemma4:9b",
+      "name": "Gemma 4 9B",
+      "provider": "Google",
+      "download_gb": 6,
+      "min_tier": "medium",
+      "tool_support": true,
+      "why": "Built-in tool calling and vision in a compact size. Runs on modest hardware."
+    },
+    {
+      "model": "qwen2.5:7b",
+      "name": "Qwen 2.5 7B",
+      "provider": "Alibaba",
+      "download_gb": 4.7,
+      "min_tier": "medium",
+      "tool_support": true,
+      "why": "Beats many larger models on benchmarks, with solid, well-tested tool support."
+    },
+    {
+      "model": "llama3.1:8b",
+      "name": "Llama 3.1 8B",
+      "provider": "Meta",
+      "download_gb": 5,
+      "min_tier": "light",
+      "tool_support": true,
+      "why": "The reliable lightweight pick. Fast, English-first, dependable tool calling."
+    },
+    {
+      "model": "llama3.2:3b",
+      "name": "Llama 3.2 3B",
+      "provider": "Meta",
+      "download_gb": 2.0,
+      "min_tier": "light",
+      "tool_support": true,
+      "why": "Runs on anything. Tool-capable and fast, best when RAM is tight."
     }
-  }
+  ]
 }

@@ -109,18 +109,24 @@ async function getRunningModels() {
 // ═══════════════════════════════════════════════════
 
 function getRecommendation(tier, registry) {
-  if (!registry?.categories?.general?.recommendations?.[tier]) {
-    // Fallback recommendations
-    const fallbacks = {
-      light: { model: 'llama3.2:3b', name: 'Llama 3.2 3B', why: 'Fast on any machine', sizeGB: '2.0' },
-      medium: { model: 'qwen2.5:7b', name: 'Qwen 2.5 7B', why: 'Top-rated for everyday use', sizeGB: '4.7' },
-      heavy: { model: 'qwen2.5:32b', name: 'Qwen 2.5 32B', why: 'Rivals GPT-4 quality', sizeGB: '19' },
-      ultra: { model: 'llama3.3', name: 'Llama 3.3 70B', why: "Meta's flagship model", sizeGB: '40' },
-    };
-    return fallbacks[tier] || fallbacks.medium;
+  // Schema v3: flat power-ranked list. Best model the machine can run = the
+  // first runnable entry (registry is ordered most→least capable).
+  if (Array.isArray(registry?.models)) {
+    const TIER_ORDER = { light: 1, medium: 2, heavy: 3, ultra: 4 };
+    const cap = TIER_ORDER[tier] || 2;
+    const best = registry.models.find((m) => (TIER_ORDER[m.min_tier] || 2) <= cap);
+    if (best) {
+      return { model: best.model, name: best.name, provider: best.provider, why: best.why, sizeGB: String(best.download_gb) };
+    }
   }
-
-  return registry.categories.general.recommendations[tier];
+  // Fallback (registry unavailable) — tool-capable defaults.
+  const fallbacks = {
+    light: { model: 'llama3.2:3b', name: 'Llama 3.2 3B', why: 'Fast, tool-capable, runs anywhere', sizeGB: '2.0' },
+    medium: { model: 'qwen2.5:7b', name: 'Qwen 2.5 7B', why: 'Reliable tools, great quality', sizeGB: '4.7' },
+    heavy: { model: 'qwen2.5:32b', name: 'Qwen 2.5 32B', why: 'GPT-4-class with solid tools', sizeGB: '20' },
+    ultra: { model: 'llama4:scout', name: 'Llama 4 Scout', why: "Meta's open flagship", sizeGB: '65' },
+  };
+  return fallbacks[tier] || fallbacks.medium;
 }
 
 module.exports = {

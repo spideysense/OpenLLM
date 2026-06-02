@@ -83,11 +83,10 @@ describe('Story: User browses model hub', () => {
     const fs = await import('fs');
     const source = fs.readFileSync('src/renderer/pages/ModelHub.jsx', 'utf8');
 
-    // Should have all 4 categories
-    expect(source).toContain('General Purpose');
-    expect(source).toContain('Coding');
-    expect(source).toContain('Reasoning');
-    expect(source).toContain('Creative Writing');
+    // Flat power-ranked list (no categories) of tool-capable models.
+    expect(source).toContain('FALLBACK_MODELS');
+    expect(source).toContain('min_tier');
+    expect(source).toContain('Recommended');
   });
 
   it('should include models from Meta, Alibaba, Google, DeepSeek', async () => {
@@ -96,14 +95,13 @@ describe('Story: User browses model hub', () => {
     expect(source).toContain("'Meta'");
     expect(source).toContain("'Alibaba'");
     expect(source).toContain("'Google'");
-    expect(source).toContain("'DeepSeek'");
   });
 
-  it('should show hardware tier badges (Fits / Too big / Installed)', async () => {
+  it('should show model badges (Recommended / Too big / Installed)', async () => {
     const fs = await import('fs');
     const source = fs.readFileSync('src/renderer/pages/ModelHub.jsx', 'utf8');
     expect(source).toContain('Installed');
-    expect(source).toContain('Fits');
+    expect(source).toContain('Recommended');
     expect(source).toContain('Too big');
   });
 });
