@@ -1,23 +1,60 @@
 {
   "schema_version": 3,
   "updated": "2026-06-01",
-  "changelog": "v3: Flat power-ranked list (most -> least capable). Only models with reliable native tool-calling are included, since Aspen's assistant depends on tools (time, web search, math). Reasoning-only and non-tool models (deepseek-r1, phi, mistral-nemo) removed. Recommendation is chosen by hardware tier at runtime.",
+  "changelog": "v3.1: Corrected Gemma 4 tags to real Ollama tags (gemma4:e4b, gemma4:26b \u2014 gemma4:9b/27b did not exist and failed to pull). All tags now verified against ollama.com/library.",
   "hardware_tiers": {
-    "light":  { "label": "Light",    "description": "8 GB RAM, no dedicated GPU",   "max_model_gb": 6  },
-    "medium": { "label": "Standard", "description": "16 GB RAM, or Apple Silicon",  "max_model_gb": 12 },
-    "heavy":  { "label": "Power",    "description": "32+ GB RAM, dedicated GPU",    "max_model_gb": 25 },
-    "ultra":  { "label": "Beast",    "description": "64+ GB RAM, high-end GPU",     "max_model_gb": 60 }
+    "light": {
+      "label": "Light",
+      "description": "8 GB RAM, no dedicated GPU",
+      "max_model_gb": 6
+    },
+    "medium": {
+      "label": "Standard",
+      "description": "16 GB RAM, or Apple Silicon",
+      "max_model_gb": 12
+    },
+    "heavy": {
+      "label": "Power",
+      "description": "32+ GB RAM, dedicated GPU",
+      "max_model_gb": 25
+    },
+    "ultra": {
+      "label": "Beast",
+      "description": "64+ GB RAM, high-end GPU",
+      "max_model_gb": 60
+    }
   },
   "aliases": {
     "_comment": "Maps commercial model names to the best installed local model at or below the given tier. All targets are tool-capable.",
     "defaults": {
-      "gpt-4":             { "tier": "heavy",  "fallback_tier": "medium" },
-      "gpt-4o":            { "tier": "medium", "fallback_tier": "light"  },
-      "gpt-4o-mini":       { "tier": "light",  "fallback_tier": "light"  },
-      "claude-3-opus":     { "tier": "heavy",  "fallback_tier": "medium" },
-      "claude-3.5-sonnet": { "tier": "medium", "fallback_tier": "light"  },
-      "claude-3-haiku":    { "tier": "light",  "fallback_tier": "light"  },
-      "gemini-1.5-pro":    { "tier": "heavy",  "fallback_tier": "medium" }
+      "gpt-4": {
+        "tier": "heavy",
+        "fallback_tier": "medium"
+      },
+      "gpt-4o": {
+        "tier": "medium",
+        "fallback_tier": "light"
+      },
+      "gpt-4o-mini": {
+        "tier": "light",
+        "fallback_tier": "light"
+      },
+      "claude-3-opus": {
+        "tier": "heavy",
+        "fallback_tier": "medium"
+      },
+      "claude-3.5-sonnet": {
+        "tier": "medium",
+        "fallback_tier": "light"
+      },
+      "claude-3-haiku": {
+        "tier": "light",
+        "fallback_tier": "light"
+      },
+      "gemini-1.5-pro": {
+        "tier": "heavy",
+        "fallback_tier": "medium"
+      }
     }
   },
   "models": [
@@ -40,13 +77,13 @@
       "why": "Most reliable tool-calling of any local model. Top-tier quality, rarely drops a tool call."
     },
     {
-      "model": "gemma4:27b",
-      "name": "Gemma 4 27B",
+      "model": "gemma4:26b",
+      "name": "Gemma 4 26B",
       "provider": "Google",
-      "download_gb": 17,
+      "download_gb": 18,
       "min_tier": "heavy",
       "tool_support": true,
-      "why": "Native function-calling trained into the weights. Excellent all-round agent model."
+      "why": "Native function-calling trained in. MoE efficiency (3.8B active). Great all-round agent."
     },
     {
       "model": "qwen2.5:32b",
@@ -67,13 +104,13 @@
       "why": "Production-grade tool reliability that fits a 16 GB machine. The sweet spot for most users."
     },
     {
-      "model": "gemma4:9b",
-      "name": "Gemma 4 9B",
+      "model": "gemma4:e4b",
+      "name": "Gemma 4 E4B",
       "provider": "Google",
-      "download_gb": 6,
+      "download_gb": 9.6,
       "min_tier": "medium",
       "tool_support": true,
-      "why": "Built-in tool calling and vision in a compact size. Runs on modest hardware."
+      "why": "Built-in tool calling and vision, edge-optimized. Runs on modest hardware."
     },
     {
       "model": "qwen2.5:7b",
