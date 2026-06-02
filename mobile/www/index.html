@@ -727,7 +727,7 @@ async function sendMessage(){
   streamController=new AbortController();let fullText='';
   try{
     const sys=worldModelSystemPrompt();
-    const useStream=!IS_NATIVE; // CapacitorHttp can't stream; use full response natively
+    const useStream=true; // stream on web AND native — proxy returns SSE; WKWebView (iOS 17.4+) supports fetch ReadableStream
     const res=await fetch(API_BASE+'/api/proxy',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({tunnelUrl:config.tunnelUrl,apiKey:config.apiKey||'',model,messages:sys?[{role:'system',content:sys},...history]:history,stream:useStream}),
@@ -800,7 +800,7 @@ function worldModelSystemPrompt(){
   const timeStr=now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',timeZoneName:'short'});
   const facts=getWorldModel().facts;
   const factBlock=facts?.length?`\n\nWhat you know about this user:\n${facts.join('\n')}\n\nUse this naturally. Don't reference it unless asked.`:'';
-  return `You are a helpful private AI assistant running locally via Aspen. Today is ${dateStr}, ${timeStr}.${factBlock}`;
+  return `You are a helpful private AI assistant running locally via Aspen. Always respond in English unless the user explicitly writes to you in another language. Today is ${dateStr}, ${timeStr}.${factBlock}`;
 }
 async function extractFacts(userMsg,assistantMsg){
   if(!config?.tunnelUrl||!userMsg||userMsg.length<20)return;
