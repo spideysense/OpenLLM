@@ -245,9 +245,28 @@ ipcMain.handle('models:list', async () => {
 });
 
 ipcMain.handle('models:pull', async (event, modelName) => {
-  return models.pullModel(modelName, (progress) => {
-    mainWindow?.webContents.send('models:pullProgress', { model: modelName, ...progress });
-  });
+  const notify = (progress) => mainWindow?.webContents.send('models:pullProgress', { model: modelName, ...progress });
+  const status = (msg) => notify({ status: msg, total: 0, completed: 0, percent: 0 });
+
+  // Daisy-chain for non-technical users: make sure the AI engine is new enough
+  // BEFORE pulling. Newer models (gemma4, qwen3, llama4) need a recent Ollama.
+  if (!(await ollama.isCurrentEnough())) {
+    status('Updating AI engine…');
+    await ollama.ensureCurrent((m) => status(typeof m === 'string' ? m : 'Updating AI engine…'));
+  }
+
+  let result = await models.pullModel(modelName, notify);
+
+  // Safety net: if the pull still failed because the engine is too old, upgrade
+  // and retry once.
+  if (!result.success && /newer version|412/i.test(result.error || '')) {
+    status('Updating AI engine…');
+    const up = await ollama.ensureCurrent((m) => status(typeof m === 'string' ? m : 'Updating AI engine…'));
+    if (up.success) {
+      result = await models.pullModel(modelName, notify);
+    }
+  }
+  return result;
 });
 
 ipcMain.handle('models:delete', async (event, modelName) => {

@@ -209,6 +209,39 @@ async function isRunning() {
   }
 }
 
+// Newest models (gemma4, qwen3, llama4) require a recent Ollama. If the running
+// Ollama is older, pulling them fails with HTTP 412 "requires a newer version".
+// We treat this as the bar for "current enough".
+const MIN_OLLAMA_VERSION = '0.20.0';
+
+function versionGte(a, b) {
+  const pa = String(a).split('.').map((n) => parseInt(n, 10) || 0);
+  const pb = String(b).split('.').map((n) => parseInt(n, 10) || 0);
+  for (let i = 0; i < 3; i++) {
+    if ((pa[i] || 0) > (pb[i] || 0)) return true;
+    if ((pa[i] || 0) < (pb[i] || 0)) return false;
+  }
+  return true;
+}
+
+async function getRunningVersion() {
+  try {
+    const res = await fetch(`${OLLAMA_HOST}/api/version`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.version || null;
+  } catch {
+    return null;
+  }
+}
+
+// Is the currently running Ollama new enough for the latest models?
+async function isCurrentEnough() {
+  const v = await getRunningVersion();
+  if (!v) return false;
+  return versionGte(v, MIN_OLLAMA_VERSION);
+}
+
 async function getStatus() {
   const running = await isRunning();
   const ollamaPath = getOllamaPath();
@@ -311,6 +344,54 @@ async function ensureRunning(onProgress) {
 
 async function install() {
   return { success: true };
+}
+
+// ═══════════════════════════════════════════════════
+// Silent Ollama upgrade — for Luddite users who never touch a terminal.
+// If the running Ollama is too old for the latest models, download the newest
+// Ollama ourselves, stop the old server, and start the new one. Invisible.
+// ═══════════════════════════════════════════════════
+async function ensureCurrent(onProgress) {
+  const notify = onProgress || (() => {});
+  // Already current? Nothing to do.
+  if (await isCurrentEnough()) return { success: true, upgraded: false };
+
+  notify('Updating AI engine…');
+  try {
+    // Always pulls releases/latest (newest Ollama) into Aspen's own bin dir.
+    const newPath = await downloadOllama(notify);
+    if (!newPath) return { success: false, error: 'download_failed' };
+
+    // Stop the old server (ours if we spawned it; otherwise the system one).
+    try { if (ollamaProcess) { ollamaProcess.kill('SIGTERM'); ollamaProcess = null; } } catch {}
+    // Also stop any system ollama serving on the port so the new one can bind.
+    if (process.platform !== 'win32') {
+      try { execSync('pkill -f "ollama serve" || true', { stdio: 'pipe' }); } catch {}
+    }
+    // Give the port a moment to free up.
+    await new Promise((r) => setTimeout(r, 1500));
+
+    // Start the freshly downloaded Ollama.
+    if (process.platform !== 'win32') { try { fs.chmodSync(newPath, 0o755); } catch {} }
+    if (process.platform === 'darwin') { try { execSync(`xattr -cr "${newPath}"`, { stdio: 'pipe' }); } catch {} }
+
+    ollamaProcess = spawn(newPath, ['serve'], {
+      detached: true, stdio: 'ignore',
+      env: { ...process.env, OLLAMA_HOST: '127.0.0.1:11434', OLLAMA_MODELS: path.join(MONET_DIR, 'models') },
+    });
+    ollamaProcess.unref();
+
+    // Poll until the new one is up (up to ~15s).
+    for (let i = 0; i < 30; i++) {
+      await new Promise((r) => setTimeout(r, 500));
+      if (await isCurrentEnough()) { notify('AI engine updated!'); return { success: true, upgraded: true }; }
+    }
+    // It started but version still reads old (shouldn't happen) — report honestly.
+    return { success: (await isRunning()), upgraded: true, warning: 'version_unconfirmed' };
+  } catch (err) {
+    console.error('[Ollama] Upgrade failed:', err.message);
+    return { success: false, error: 'upgrade_failed', message: err.message };
+  }
 }
 
 // ═══════════════════════════════════════════════════
@@ -441,5 +522,6 @@ function abortChat() {
 
 module.exports = {
   isRunning, isInstalled, getStatus, install, ensureRunning,
+  ensureCurrent, isCurrentEnough, getRunningVersion,
   chat, abortChat, getOllamaPath, getBundledPath, getDownloadedPath,
 };

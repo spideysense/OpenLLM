@@ -43,6 +43,8 @@ async function pullModel(modelName, onProgress) {
 
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
+    let lastError = null;
+    let sawSuccess = false;
 
     while (true) {
       const { done, value } = await reader.read();
@@ -54,6 +56,10 @@ async function pullModel(modelName, onProgress) {
       for (const line of lines) {
         try {
           const json = JSON.parse(line);
+          // Ollama streams errors as {"error":"..."} with HTTP 200, then closes.
+          // Without this check the loop just ends and we'd falsely report success.
+          if (json.error) { lastError = json.error; continue; }
+          if (json.status === 'success') sawSuccess = true;
           onProgress({
             status: json.status || '',
             completed: json.completed || 0,
@@ -66,6 +72,7 @@ async function pullModel(modelName, onProgress) {
       }
     }
 
+    if (lastError) return { success: false, error: lastError };
     return { success: true };
   } catch (err) {
     return { success: false, error: err.message };
