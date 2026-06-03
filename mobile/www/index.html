@@ -104,6 +104,19 @@ body.is-mobile .chat-delete{opacity:.4!important}
 .chat-delete:active{background:rgba(220,38,38,.1);color:var(--danger)}
 .chat-section-label{font-size:.62rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--t4);padding:.7rem .7rem .2rem}
 .sidebar-footer{padding:.7rem .9rem;border-top:1px solid var(--brd);padding-bottom:calc(.7rem + var(--safe-bottom))}
+.sb-footer-item{display:flex;align-items:center;gap:.55rem;width:100%;padding:.55rem .6rem;background:none;border:none;border-radius:9px;cursor:pointer;color:var(--bk);font-size:.85rem;font-weight:500;text-align:left;margin-bottom:.5rem}
+.sb-footer-item:active,.sb-footer-item.active{background:var(--gd-light);color:var(--gd)}
+.sb-user{display:flex;align-items:center;gap:.55rem;padding:.3rem .3rem 0}
+.sb-avatar{width:30px;height:30px;border-radius:50%;background:var(--gd);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:.85rem;flex-shrink:0}
+.wm-list{display:flex;flex-direction:column;gap:.5rem;margin-bottom:1.25rem}
+.wm-fact{display:flex;align-items:center;justify-content:space-between;gap:.6rem;padding:.6rem .85rem;background:var(--wh);border:1px solid var(--brd);border-radius:11px;font-size:.86rem;line-height:1.4}
+.wm-del{flex-shrink:0;width:22px;height:22px;border:none;background:rgba(0,0,0,.05);border-radius:50%;cursor:pointer;color:var(--t2);font-size:1rem;line-height:1;display:flex;align-items:center;justify-content:center}
+.wm-del:active{background:var(--danger,#C0392B);color:#fff}
+.wm-empty{font-size:.84rem;color:var(--t2);line-height:1.6;padding:.5rem 0 1.25rem}
+.wm-add{display:flex;gap:.5rem;margin-bottom:1.5rem}
+.wm-add input{flex:1;padding:.6rem .8rem;border:1.5px solid var(--brd);border-radius:11px;font-size:.86rem;outline:none}
+.wm-add input:focus{border-color:var(--gd)}
+.wm-clear{background:none;border:none;color:var(--danger,#C0392B);font-size:.8rem;cursor:pointer;text-decoration:underline;padding:0}
 .status-dot{display:flex;align-items:center;gap:.5rem;font-size:.72rem;color:var(--t3)}
 .dot{width:7px;height:7px;border-radius:50%;background:var(--t4);flex-shrink:0;transition:background .4s}
 .dot.online{background:#34C759;box-shadow:0 0 0 2px rgba(52,199,89,.15)}
@@ -369,7 +382,14 @@ select.settings-select{font-family:var(--san);font-size:.84rem;color:var(--bk);b
       </div>
       <div class="chat-list" id="chat-list"></div>
       <div class="sidebar-footer">
-        <div class="status-dot"><span class="dot checking" id="status-dot"></span><span id="status-text">Connecting…</span></div>
+        <button class="sb-footer-item" data-panel="worldmodel" id="nav-worldmodel">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v1a3 3 0 0 0-3 3 3 3 0 0 0 0 6 3 3 0 0 0 3 3v1a3 3 0 0 0 6 0v-1a3 3 0 0 0 3-3 3 3 0 0 0 0-6 3 3 0 0 0-3-3V5a3 3 0 0 0-3-3z"/></svg>
+          <span>World Model</span>
+        </button>
+        <div class="sb-user">
+          <div class="sb-avatar" id="sb-avatar">A</div>
+          <div class="status-dot"><span class="dot checking" id="status-dot"></span><span id="status-text">Connecting…</span></div>
+        </div>
       </div>
     </aside>
 
@@ -416,6 +436,28 @@ select.settings-select{font-family:var(--san);font-size:.84rem;color:var(--bk);b
             </button>
           </div>
           <div class="input-footer">Running on your machine · <span id="model-footer">–</span></div>
+        </div>
+      </div>
+
+      <!-- WORLD MODEL PANEL -->
+      <div class="panel" id="panel-worldmodel">
+        <header class="chat-header">
+          <button class="header-hamburger" id="hamburger-btn-wm" aria-label="Open menu">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <span class="chat-title-text">World Model</span>
+        </header>
+        <div class="panel-scroll">
+          <div class="panel-inner">
+            <h1 class="panel-title">What Aspen <em>knows</em> about you</h1>
+            <p class="panel-sub">Aspen builds a private memory of facts you share — your name, work, preferences — to give better answers. This lives only on your device. Edit or remove anything.</p>
+            <div id="wm-list" class="wm-list"></div>
+            <div class="wm-add">
+              <input type="text" id="wm-add-input" placeholder="Add something Aspen should remember…" autocomplete="off">
+              <button class="btn-primary" id="wm-add-btn" type="button">Add</button>
+            </div>
+            <button class="wm-clear" id="wm-clear-btn" type="button">Clear everything Aspen knows</button>
+          </div>
         </div>
       </div>
 
@@ -582,15 +624,16 @@ document.addEventListener('touchend',e=>{
 },{passive:true});
 
 // Nav
-document.querySelectorAll('.sb-nav-item').forEach(btn=>{
+document.querySelectorAll('.sb-nav-item, .sb-footer-item').forEach(btn=>{
   btn.addEventListener('click',()=>{
     const t=btn.dataset.panel;
-    document.querySelectorAll('.sb-nav-item').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.sb-nav-item, .sb-footer-item').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
     document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
     $('panel-'+t).classList.add('active');
     closeDrawer();
     if(t==='chat')inputBox.focus();
+    if(t==='worldmodel')renderWorldModel();
   });
 });
 function switchToChat(){
@@ -913,6 +956,28 @@ async function checkStatus(){
 
 // World model
 function getWorldModel(){try{return JSON.parse(localStorage.getItem(WORLD_MODEL_KEY)||'{}')}catch{return{}}}
+function saveWorldModel(wm){localStorage.setItem(WORLD_MODEL_KEY,JSON.stringify({...wm,updatedAt:new Date().toISOString()}))}
+function renderWorldModel(){
+  const list=$('wm-list');if(!list)return;
+  const facts=(getWorldModel().facts)||[];
+  if(!facts.length){list.innerHTML='<p class="wm-empty">Aspen hasn\'t learned anything about you yet. As you chat, facts you share will appear here — or add your own below.</p>';return;}
+  list.innerHTML=facts.map((f,i)=>`<div class="wm-fact"><span>${escHtml(f)}</span><button class="wm-del" data-i="${i}" type="button" aria-label="Remove">×</button></div>`).join('');
+}
+function wmAddFact(text){
+  const t=text.trim();if(!t)return;
+  const wm=getWorldModel();const facts=[...(wm.facts||[]),t].slice(-50);
+  saveWorldModel({...wm,facts});renderWorldModel();
+}
+function wmDeleteFact(i){
+  const wm=getWorldModel();const facts=(wm.facts||[]).filter((_,idx)=>idx!==i);
+  saveWorldModel({...wm,facts});renderWorldModel();
+}
+// Wiring
+$('wm-add-btn')?.addEventListener('click',()=>{const inp=$('wm-add-input');wmAddFact(inp.value);inp.value=''});
+$('wm-add-input')?.addEventListener('keydown',e=>{if(e.key==='Enter'){wmAddFact(e.target.value);e.target.value=''}});
+$('wm-list')?.addEventListener('click',e=>{const b=e.target.closest('.wm-del');if(b)wmDeleteFact(parseInt(b.dataset.i,10))});
+$('wm-clear-btn')?.addEventListener('click',()=>{if(confirm('Clear everything Aspen has learned about you? This cannot be undone.')){saveWorldModel({...getWorldModel(),facts:[]});renderWorldModel()}});
+$('hamburger-btn-wm')?.addEventListener('click',openDrawer);
 function worldModelSystemPrompt(){
   const now=new Date();
   const dateStr=now.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
