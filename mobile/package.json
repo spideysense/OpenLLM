@@ -19,8 +19,7 @@
     "@capacitor/splash-screen": "^6.0.3",
     "@capacitor-community/speech-recognition": "^6.0.0",
     "@capacitor-community/text-to-speech": "^5.0.1",
-    "@capacitor/keyboard": "^6.0.3",
-    "aspen-voice": "file:./aspen-voice"
+    "@capacitor/keyboard": "^6.0.3"
   },
   "devDependencies": {
     "@capacitor/cli": "^6.2.0"
