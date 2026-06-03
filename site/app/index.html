@@ -706,8 +706,12 @@ function appendMessage(role,content,stream=false){
   row.appendChild(bubble);messagesEl.appendChild(row);scrollToBottom();return bubble;
 }
 function formatMessage(text){
-  let h=escHtml(text);
-  h=h.replace(/```([\w]*)\n?([\s\S]*?)```/g,(_,lang,c)=>{
+  // Extract code blocks FIRST from the RAW text (before escaping anything), so the
+  // preview iframe and copy get true source — not double-escaped &lt;!DOCTYPE. We
+  // stash each artifact's HTML behind a placeholder, escape+format the prose, then
+  // swap the artifacts back in.
+  const blocks=[];
+  let src=text.replace(/```([\w]*)\n?([\s\S]*?)```/g,(_,lang,c)=>{
     const code=c.replace(/\n+$/,'');
     let l=(lang||'').toLowerCase();
     if(!l||l==='text'){
@@ -716,20 +720,26 @@ function formatMessage(text){
       else if(head.startsWith('<svg'))l='svg';
     }
     const runnable=(l==='html'||l==='svg');
-    const enc=encodeURIComponent(code);
-    return `<div class="artifact" data-code="${enc}" data-lang="${l}">`
+    const enc=encodeURIComponent(code); // RAW code -> correct preview + copy
+    const html=`<div class="artifact" data-code="${enc}" data-lang="${l}">`
       +`<div class="artifact-head"><span class="artifact-lang">${l||'text'}</span>`
       +`<span class="artifact-actions">`
       +(runnable?`<button class="artifact-btn" data-act="preview" type="button">Preview</button>`:'')
       +`<button class="artifact-btn" data-act="copy" type="button">Copy</button>`
       +`</span></div>`
-      +`<pre class="artifact-code"><code>${escHtml(code)}</code></pre>`
+      +`<pre class="artifact-code"><code>${escHtml(code)}</code></pre>` // escaped ONCE, for display
       +`</div>`;
+    blocks.push(html);
+    return `\u0000ARTIFACT${blocks.length-1}\u0000`;
   });
+  let h=escHtml(src);
   h=h.replace(/`([^`\n]+)`/g,'<code>$1</code>');
   h=h.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
   const p=h.split(/\n\n+/);
-  return p.length>1?p.map(s=>`<p>${s.replace(/\n/g,'<br>')}</p>`).join(''):h.replace(/\n/g,'<br>');
+  h=p.length>1?p.map(s=>`<p>${s.replace(/\n/g,'<br>')}</p>`).join(''):h.replace(/\n/g,'<br>');
+  // Swap artifacts back in (escHtml turns \u0000 through untouched).
+  h=h.replace(/\u0000ARTIFACT(\d+)\u0000/g,(_,i)=>blocks[+i]||'');
+  return h;
 }
 function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function scrollToBottom(){requestAnimationFrame(()=>{messagesEl.scrollTop=messagesEl.scrollHeight})}
