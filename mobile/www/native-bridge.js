@@ -44,6 +44,7 @@
 
     // Native STT with silence auto-detect — auto-submits when you stop talking
     async startListening(onResult, onEnd) {
+      if (!SpeechRecognition) { onEnd && onEnd(); return; }
       if (listening) return;
       listening = true;
       AspenNative._lastPartial = '';
@@ -176,8 +177,10 @@
     },
   };
 
-  // Request permissions on load so the prompt appears early
-  AspenNative.requestPermissions();
+  // Voice/mic is disabled on iOS (Web Speech unsupported in WebView), so we do
+  // NOT request microphone permission on launch — requesting access for a
+  // capability the app doesn't use is both pointless and an App Store rejection
+  // risk (Guideline 5.1.1).
 
 
   // Keyboard: manually shrink the app to sit above the keyboard.
