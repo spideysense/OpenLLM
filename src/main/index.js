@@ -351,7 +351,7 @@ ipcMain.handle('chat:send', async (event, { model, messages }) => {
   const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
   const SYSTEM_PROMPT = {
     role: 'system',
-    content: `You are a helpful AI assistant running locally inside Aspen on the user's own computer. All processing is 100% on this machine — nothing leaves the device. The current date is ${dateStr} and the time is ${timeStr}. Be helpful, friendly, and concise.`,
+    content: `You are a helpful AI assistant running locally inside Aspen on the user's own computer. All processing is 100% on this machine — nothing leaves the device. The current date is ${dateStr} and the time is ${timeStr}. When asked to build a web page or website, always produce ONE self-contained HTML file with all CSS inside a <style> tag and all JavaScript inside a <script> tag — never split into separate files and never use external <link rel="stylesheet"> or external script src references, so it previews correctly. Use a code fence labeled html. Be helpful, friendly, and concise.`,
   };
 
   // Only prepend if there's no existing system message

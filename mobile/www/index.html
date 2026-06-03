@@ -1051,7 +1051,7 @@ function worldModelSystemPrompt(){
   const timeStr=now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',timeZoneName:'short'});
   const facts=getWorldModel().facts;
   const factBlock=facts?.length?`\n\nWhat you know about this user:\n${facts.join('\n')}\n\nUse this naturally. Don't reference it unless asked.`:'';
-  return `You are a helpful private AI assistant running locally via Aspen. Always respond in English unless the user explicitly writes to you in another language. Today is ${dateStr}, ${timeStr}.${factBlock}`;
+  return `You are a helpful private AI assistant running locally via Aspen. Always respond in English unless the user explicitly writes to you in another language. When asked to build a web page or website, always produce ONE self-contained HTML file with all CSS inside a <style> tag and all JavaScript inside a <script> tag — never split into separate files and never use external <link rel="stylesheet"> or external script src references, so it previews correctly. Use a code fence labeled html. Today is ${dateStr}, ${timeStr}.${factBlock}`;
 }
 async function extractFacts(userMsg,assistantMsg){
   if(!config?.tunnelUrl||!userMsg||userMsg.length<20)return;
