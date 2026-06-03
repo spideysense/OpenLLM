@@ -137,10 +137,10 @@ body.is-mobile .chat-delete{opacity:.4!important}
 .msg-row.assistant .msg-bubble{background:var(--wh);color:var(--bk);border:1px solid var(--brd);border-bottom-left-radius:4px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
 .msg-bubble p{margin-bottom:.55rem}.msg-bubble p:last-child{margin-bottom:0}
 .msg-row.assistant{display:flex;flex-direction:column;align-items:flex-start}
-.msg-copy{margin-top:.3rem;margin-left:.2rem;background:none;border:none;color:var(--t3);cursor:pointer;padding:.3rem;border-radius:6px;display:inline-flex;align-items:center;gap:.25rem;opacity:.55;transition:opacity .15s,color .15s}
-.msg-copy:hover,.msg-copy:active{opacity:1;color:var(--gd);background:var(--gd-light)}
-.msg-copy.copied{color:#0F6E56;opacity:1}
-.msg-copy.copied::after{content:'Copied';font-size:.7rem}
+.msg-actions{display:flex;gap:.15rem;margin-top:.25rem;margin-left:.1rem}
+.msg-act{background:none;border:none;color:var(--t3);cursor:pointer;padding:.35rem;border-radius:7px;display:inline-flex;align-items:center;opacity:.5;transition:opacity .15s,color .15s,background .15s}
+.msg-act:hover,.msg-act:active{opacity:1;color:var(--gd);background:var(--gd-light)}
+.msg-act.done{color:#0F6E56;opacity:1}
 .aspen-think{display:inline-flex;align-items:center;gap:8px}
 .aspen-think svg{width:20px;height:20px;flex-shrink:0}
 .aspen-think .tw{font-size:.85rem;color:var(--t2);animation:aspenWord 2.8s ease-in-out infinite}
@@ -723,20 +723,28 @@ function appendMessage(role,content,stream=false){
   const bubble=document.createElement('div');bubble.className='msg-bubble';
   bubble.innerHTML=stream&&role==='assistant'?'<span class="aspen-think"><svg viewBox="0 0 48 48" aria-label="Thinking"><path class="aspen-leaf" d="M24 6 C32 14, 38 22, 24 42 C10 22, 16 14, 24 6 Z" fill="#B8860B" fill-opacity="0" stroke="#B8860B" stroke-width="1.6" stroke-linejoin="round" pathLength="1"/><line class="aspen-stem" x1="24" y1="6" x2="24" y2="42" stroke="#B8860B" stroke-width="1.1" stroke-linecap="round" pathLength="1"/></svg><span class="tw">Thinking</span></span>':formatMessage(content);
   row.appendChild(bubble);
-  if(role==='assistant'){
-    const copyBtn=document.createElement('button');
-    copyBtn.className='msg-copy';copyBtn.title='Copy';copyBtn.type='button';
-    copyBtn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
-    copyBtn.addEventListener('click',()=>{
-      const txt=bubble.innerText||bubble.textContent||'';
-      navigator.clipboard?.writeText(txt).then(()=>{
-        copyBtn.classList.add('copied');copyBtn.title='Copied!';
-        setTimeout(()=>{copyBtn.classList.remove('copied');copyBtn.title='Copy';},1500);
-      }).catch(()=>{});
-    });
-    row.appendChild(copyBtn);
-  }
+  if(role==='assistant' && !stream){ row.appendChild(buildActions(bubble)); }
   messagesEl.appendChild(row);scrollToBottom();return bubble;
+}
+function buildActions(bubble){
+  const actions=document.createElement('div');actions.className='msg-actions';
+  const copyBtn=document.createElement('button');
+  copyBtn.className='msg-act';copyBtn.title='Copy';copyBtn.type='button';
+  copyBtn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+  copyBtn.addEventListener('click',()=>{
+    const txt=bubble.innerText||bubble.textContent||'';
+    navigator.clipboard?.writeText(txt).then(()=>{
+      copyBtn.classList.add('done');const o=copyBtn.title;copyBtn.title='Copied!';
+      setTimeout(()=>{copyBtn.classList.remove('done');copyBtn.title=o;},1500);
+    }).catch(()=>{});
+  });
+  actions.appendChild(copyBtn);
+  const redoBtn=document.createElement('button');
+  redoBtn.className='msg-act';redoBtn.title='Regenerate';redoBtn.type='button';
+  redoBtn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>';
+  redoBtn.addEventListener('click',()=>{ if(!isStreaming) regenerate(); });
+  actions.appendChild(redoBtn);
+  return actions;
 }
 function formatMessage(text){
   let h=escHtml(text);
@@ -759,11 +767,31 @@ document.querySelectorAll('.starter').forEach(btn=>{
 
 async function sendMessage(){
   if(isStreaming)return;const text=inputBox.value.trim();if(!text)return;
+  inputBox.value='';inputBox.style.height='auto';inputBox.focus();
+  await sendText(text);
+}
+
+async function regenerate(){
+  if(isStreaming)return;
+  const chat=chats[activeChatId];if(!chat)return;
+  // Find the last user message; drop everything after it (incl. last assistant reply), then resend.
+  let lastUserIdx=-1;
+  for(let i=chat.messages.length-1;i>=0;i--){if(chat.messages[i].role==='user'){lastUserIdx=i;break;}}
+  if(lastUserIdx<0)return;
+  const userText=chat.messages[lastUserIdx].content;
+  chat.messages=chat.messages.slice(0,lastUserIdx); // remove the user msg + trailing assistant; sendText re-adds user
+  saveChats();
+  renderMessages(); // re-render the trimmed conversation
+  await sendText(userText);
+}
+
+async function sendText(text){
+  if(isStreaming)return;
   const chat=chats[activeChatId];if(!chat)return;
   const model=modelSelect.value||'llama3';
   chat.messages.push({role:'user',content:text});
   if(chat.messages.length===1){chat.title=text.slice(0,52)+(text.length>52?'…':'');chatTitle.textContent=chat.title;renderChatList()}
-  saveChats();appendMessage('user',text,false);inputBox.value='';inputBox.style.height='auto';inputBox.focus();
+  saveChats();appendMessage('user',text,false);
   const bubble=appendMessage('assistant','',true);
   isStreaming=true;sendBtn.classList.add('hidden');stopBtn.classList.remove('hidden');sendBtn.disabled=true;
   const history=chat.messages.slice(-20).map(m=>({role:m.role,content:m.content}));
@@ -805,6 +833,7 @@ async function sendMessage(){
   if(fullText){
     const c=chats[activeChatId];
     if(c){c.messages.push({role:'assistant',content:fullText});saveChats();extractFacts(c.messages.filter(m=>m.role==='user').slice(-1)[0]?.content||'',fullText)}
+    if(bubble.parentNode && !bubble.parentNode.querySelector('.msg-actions')){ bubble.parentNode.appendChild(buildActions(bubble)); }
   }
   isStreaming=false;sendBtn.classList.remove('hidden');stopBtn.classList.add('hidden');sendBtn.disabled=false;streamController=null;inputBox.focus();
 }
