@@ -184,21 +184,19 @@ export default async function handler(req) {
 
   const lastUser = [...(messages || [])].reverse().find(m => m.role === 'user');
   const userText = lastUser?.content || '';
-  let enrichedMessages = messages || [];
 
-  if (userText.length > 3) {
-    // The whole search step (classifier + fetching results) is capped at a hard
-    // overall deadline. If it can't finish in time, we abandon search entirely
-    // and just answer normally — search is an enhancement, never a blocker.
-    // This prevents the search step from hanging long enough to blow Vercel's
-    // function timeout (the FUNCTION_INVOCATION_TIMEOUT / HTTP 504 error).
-    const SEARCH_DEADLINE_MS = 6000;
+  // Search enrichment (classifier + web results) makes network calls and can be
+  // slow. We DON'T run it before opening the stream — doing so ate into Vercel's
+  // 25s "first byte" window and caused FUNCTION_INVOCATION_TIMEOUT / 504. Instead,
+  // for streaming we open the stream first (first byte out instantly), then run
+  // search inside the stream while heartbeats keep the connection alive.
+  const SEARCH_DEADLINE_MS = 5000;
+  async function enrich() {
+    if (userText.length <= 3) return messages || [];
     try {
-      enrichedMessages = await Promise.race([
+      return await Promise.race([
         (async () => {
-          // Regex first — instant, no network.
           const regexHit = SEARCH_TRIGGERS.some(r => r.test(userText));
-          // Classifier only if regex misses (this makes a network call).
           const shouldSearch = regexHit || await classifierNeedsSearch(
             userText, tunnelUrl.replace(/\/+$/, ''), apiKey, model || 'llama3'
           );
@@ -210,10 +208,12 @@ export default async function handler(req) {
         })(),
         new Promise(resolve => setTimeout(() => resolve(messages || []), SEARCH_DEADLINE_MS)),
       ]);
-    } catch {
-      enrichedMessages = messages || [];
-    }
+    } catch { return messages || []; }
   }
+
+  // For non-streaming, enrich synchronously (that path opts out of streaming).
+  let enrichedMessages = messages || [];
+  if (!stream) { enrichedMessages = await enrich(); }
 
   // NON-STREAMING: fetch fully, then return. (Subject to the 25s init limit, but
   // non-stream callers opt out of streaming deliberately.)
@@ -245,16 +245,18 @@ export default async function handler(req) {
     async start(controller) {
       // Immediate keep-alive (SSE comment line — ignored by clients) beats the 25s clock.
       controller.enqueue(encoder.encode(': connected\n\n'));
-      // Heartbeat every 10s while we wait for the model's first token, so neither
-      // Vercel nor any intermediary considers the connection idle.
+      // Heartbeat every 8s while we wait (under Vercel's ~15s idle-chunk cancel).
       let alive = true;
       const heartbeat = setInterval(() => {
         if (alive) { try { controller.enqueue(encoder.encode(': keep-alive\n\n')); } catch {} }
-      }, 10000);
+      }, 8000);
       try {
+        // Run search enrichment AFTER the first byte is already out, so the slow
+        // classifier/web-search work can't blow the 25s first-byte window.
+        const enriched = await enrich();
         const upRes = await fetch(upstream, {
           method: 'POST', headers: upHeaders,
-          body: JSON.stringify({ model: model || 'llama3', messages: enrichedMessages, stream: true }),
+          body: JSON.stringify({ model: model || 'llama3', messages: enriched, stream: true }),
         });
         if (!upRes.ok || !upRes.body) {
           const t = await upRes.text().catch(() => '');
