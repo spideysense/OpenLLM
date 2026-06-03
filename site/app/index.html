@@ -58,6 +58,23 @@ body{font-family:var(--san);background:var(--bg);color:var(--bk);-webkit-font-sm
 /* APP LAYOUT */
 #app-screen{background:var(--bg)}
 .app-layout{display:flex;height:100%;overflow:hidden}
+/* Artifact side panel (Claude-style split) */
+.artifact-panel{display:none;flex-direction:column;width:0;flex-shrink:0;border-left:1px solid var(--brd);background:var(--wh);overflow:hidden}
+.app-layout.artifact-open .artifact-panel{display:flex;width:min(48%,640px)}
+.app-layout.artifact-open .chat-main{flex:1;min-width:0}
+body.is-mobile .app-layout.artifact-open .artifact-panel{position:fixed;inset:0;width:100%!important;z-index:30}
+.artifact-panel-head{display:flex;align-items:center;gap:.5rem;padding:.6rem .8rem;border-bottom:1px solid var(--brd);flex-shrink:0}
+.artifact-panel-title{font-size:.85rem;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.artifact-panel-tabs{display:flex;gap:.2rem;background:rgba(0,0,0,.05);border-radius:8px;padding:2px}
+.ap-tab{font-size:.74rem;font-weight:600;padding:.3rem .7rem;border:none;background:none;border-radius:6px;cursor:pointer;color:var(--t2)}
+.ap-tab.active{background:var(--wh);color:var(--bk);box-shadow:0 1px 2px rgba(0,0,0,.1)}
+.artifact-panel-copy{font-size:.74rem;font-weight:600;padding:.3rem .65rem;border:1px solid var(--brd);background:var(--wh);border-radius:7px;cursor:pointer;color:var(--bk)}
+.artifact-panel-copy:hover{background:var(--gd);color:#fff;border-color:var(--gd)}
+.artifact-panel-close{width:28px;height:28px;border:none;background:none;cursor:pointer;font-size:1rem;color:var(--t2);border-radius:6px;flex-shrink:0}
+.artifact-panel-close:hover{background:rgba(0,0,0,.06)}
+.artifact-panel-body{flex:1;overflow:auto;min-height:0}
+.artifact-panel-body iframe{width:100%;height:100%;border:none;background:#fff;display:block}
+.artifact-panel-body pre{margin:0;padding:1rem;font-size:.8rem;line-height:1.55;overflow:auto;height:100%;box-sizing:border-box}
 
 /* SIDEBAR */
 .sidebar{width:var(--sidebar);flex-shrink:0;background:var(--wh);border-right:1px solid var(--brd);display:flex;flex-direction:column;overflow:hidden;transition:transform .28s cubic-bezier(.4,0,.2,1);z-index:20}
@@ -449,6 +466,19 @@ select.settings-select{font-family:var(--san);font-size:.84rem;color:var(--bk);b
           </div>
         </div>
       </div>
+      <!-- ARTIFACT SIDE PANEL -->
+      <div class="artifact-panel" id="artifact-panel">
+        <div class="artifact-panel-head">
+          <span class="artifact-panel-title" id="artifact-panel-title">Artifact</span>
+          <div class="artifact-panel-tabs">
+            <button class="ap-tab active" id="ap-tab-preview" data-tab="preview">Preview</button>
+            <button class="ap-tab" id="ap-tab-code" data-tab="code">Code</button>
+          </div>
+          <button class="artifact-panel-copy" id="artifact-panel-copy" title="Copy">Copy</button>
+          <button class="artifact-panel-close" id="artifact-panel-close" title="Close" aria-label="Close">✕</button>
+        </div>
+        <div class="artifact-panel-body" id="artifact-panel-body"></div>
+      </div>
     </div>
   </div>
 
@@ -474,27 +504,61 @@ const tunnelInput=$('tunnel-input'), apikeyInput=$('apikey-input'), connectBtn=$
 const sidebar=$('sidebar'), drawerOverlay=$('drawer-overlay');
 const chatList=$('chat-list'), newChatBtn=$('new-chat-btn'), headerNewBtn=$('header-new-btn');
 const messagesEl=$('messages'), emptyState=$('empty-state');
-messagesEl.addEventListener('click',(e)=>{
-  const btn=e.target.closest('.artifact-btn');if(!btn)return;
-  const art=btn.closest('.artifact');if(!art)return;
-  const code=decodeURIComponent(art.dataset.code||'');
-  const act=btn.dataset.act;
-  if(act==='copy'){
-    navigator.clipboard?.writeText(code).then(()=>{const o=btn.textContent;btn.textContent='Copied';setTimeout(()=>btn.textContent=o,1500)}).catch(()=>{});
-  }else if(act==='preview'){
-    const pre=art.querySelector('.artifact-code');
-    let frame=art.querySelector('.artifact-preview');
-    if(frame){frame.remove();pre.style.display='';btn.textContent='Preview';return;}
-    const lang=(art.dataset.lang||'').toLowerCase();
-    const srcDoc=lang==='svg'
-      ? '<!doctype html><meta charset="utf-8"><body style="margin:0;display:grid;place-items:center;min-height:100vh">'+code+'</body>'
-      : code;
-    frame=document.createElement('iframe');
-    frame.className='artifact-preview';frame.title='Preview';
-    frame.setAttribute('sandbox','allow-scripts');
-    frame.srcdoc=srcDoc;
-    pre.style.display='none';art.appendChild(frame);btn.textContent='Code';
+
+// ── Artifact side panel (Claude-style) ──
+let apCurrent=null; // { code, lang }
+function buildSrcDoc(code,lang){
+  return lang==='svg'
+    ? '<!doctype html><meta charset="utf-8"><body style="margin:0;display:grid;place-items:center;min-height:100vh">'+code+'</body>'
+    : code;
+}
+function renderArtifactPanel(tab){
+  const body=$('artifact-panel-body');if(!apCurrent)return;
+  const {code,lang}=apCurrent;
+  const runnable=(lang==='html'||lang==='svg');
+  const useTab=(tab==='preview'&&runnable)?'preview':(runnable?tab:'code');
+  $('ap-tab-preview').style.display=runnable?'':'none';
+  $('ap-tab-preview').classList.toggle('active',useTab==='preview');
+  $('ap-tab-code').classList.toggle('active',useTab==='code');
+  if(useTab==='preview'){
+    const f=document.createElement('iframe');
+    f.title='Preview';f.setAttribute('sandbox','allow-scripts');f.srcdoc=buildSrcDoc(code,lang);
+    body.innerHTML='';body.appendChild(f);
+  }else{
+    const pre=document.createElement('pre');const c=document.createElement('code');
+    c.textContent=code;pre.appendChild(c);body.innerHTML='';body.appendChild(pre);
   }
+}
+function openArtifactPanel(code,lang){
+  apCurrent={code,lang};
+  $('artifact-panel-title').textContent=(lang||'code').toUpperCase()+' artifact';
+  $('app-screen').querySelector('.app-layout').classList.add('artifact-open');
+  renderArtifactPanel((lang==='html'||lang==='svg')?'preview':'code');
+}
+function closeArtifactPanel(){
+  $('app-screen').querySelector('.app-layout').classList.remove('artifact-open');
+  $('artifact-panel-body').innerHTML='';apCurrent=null;
+}
+$('artifact-panel-close').addEventListener('click',closeArtifactPanel);
+$('ap-tab-preview').addEventListener('click',()=>renderArtifactPanel('preview'));
+$('ap-tab-code').addEventListener('click',()=>renderArtifactPanel('code'));
+$('artifact-panel-copy').addEventListener('click',()=>{
+  if(!apCurrent)return;const b=$('artifact-panel-copy');
+  navigator.clipboard?.writeText(apCurrent.code).then(()=>{b.textContent='Copied';setTimeout(()=>b.textContent='Copy',1500)}).catch(()=>{});
+});
+
+// Artifact in chat = a card. "Open" / "Preview" opens the side panel; Copy copies inline.
+messagesEl.addEventListener('click',(e)=>{
+  const btn=e.target.closest('.artifact-btn');
+  const art=e.target.closest('.artifact');if(!art)return;
+  const code=decodeURIComponent(art.dataset.code||'');
+  const lang=(art.dataset.lang||'').toLowerCase();
+  if(btn&&btn.dataset.act==='copy'){
+    navigator.clipboard?.writeText(code).then(()=>{const o=btn.textContent;btn.textContent='Copied';setTimeout(()=>btn.textContent=o,1500)}).catch(()=>{});
+    return;
+  }
+  // Any other click on the artifact (or its Open/Preview button) opens the panel.
+  openArtifactPanel(code,lang);
 });
 const inputBox=$('input-box'), sendBtn=$('send-btn'), stopBtn=$('stop-btn'), micBtn=$('mic-btn');
 const statusDot=$('status-dot'), statusText=$('status-text');
@@ -724,7 +788,7 @@ function formatMessage(text){
     const html=`<div class="artifact" data-code="${enc}" data-lang="${l}">`
       +`<div class="artifact-head"><span class="artifact-lang">${l||'text'}</span>`
       +`<span class="artifact-actions">`
-      +(runnable?`<button class="artifact-btn" data-act="preview" type="button">Preview</button>`:'')
+      +`<button class="artifact-btn" data-act="open" type="button">${runnable?'Open ↗':'View ↗'}</button>`
       +`<button class="artifact-btn" data-act="copy" type="button">Copy</button>`
       +`</span></div>`
       +`<pre class="artifact-code"><code>${escHtml(code)}</code></pre>` // escaped ONCE, for display
