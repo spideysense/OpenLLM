@@ -171,36 +171,42 @@ export default async function handler(req) {
   // graceful fail if the host machine is unreachable.
   const encoder = new TextEncoder();
   const streamBody = new ReadableStream({
-    async start(controller) {
+    start(controller) {
+      // start() must be synchronous (no await) or Vercel buffers the whole stream
+      // until it resolves — same bug fixed in proxy.js. Flush immediately, pump in
+      // a detached task. This is why messagesLeft + tokens stream live.
       controller.enqueue(encoder.encode(': connected\n\n'));
-      // Surface remaining-message count to the client as a comment line it can read.
       controller.enqueue(encoder.encode(`: messagesLeft=${messagesLeft}\n\n`));
       let alive = true;
-      const hb = setInterval(() => { if (alive) { try { controller.enqueue(encoder.encode(': keep-alive\n\n')); } catch {} } }, 10000);
-      try {
-        const upRes = await fetch(upstream, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'User-Agent': 'Aspen-Trial/1.0', ...(TRIAL_API_KEY ? { Authorization: `Bearer ${TRIAL_API_KEY}` } : {}) },
-          body: JSON.stringify({ model: trialModel, messages, stream: true }),
-        });
-        if (!upRes.ok || !upRes.body) {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: 'The cloud trial is unavailable right now. Download Aspen to run locally.', unavailable: true })}\n\n`));
-          controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-          return;
+      const hb = setInterval(() => { if (alive) { try { controller.enqueue(encoder.encode(': keep-alive\n\n')); } catch {} } }, 8000);
+      (async () => {
+        try {
+          const upRes = await fetch(upstream, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'User-Agent': 'Aspen-Trial/1.0', ...(TRIAL_API_KEY ? { Authorization: `Bearer ${TRIAL_API_KEY}` } : {}) },
+            body: JSON.stringify({ model: trialModel, messages, stream: true }),
+          });
+          if (!upRes.ok || !upRes.body) {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: 'The cloud trial is unavailable right now. Download Aspen to run locally.', unavailable: true })}\n\n`));
+            controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+            return;
+          }
+          const reader = upRes.body.getReader();
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            controller.enqueue(value);
+          }
+        } catch {
+          try {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: 'The cloud trial is unavailable right now. Download Aspen to run locally.', unavailable: true })}\n\n`));
+            controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+          } catch {}
+        } finally {
+          alive = false; clearInterval(hb);
+          try { controller.close(); } catch {}
         }
-        const reader = upRes.body.getReader();
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          controller.enqueue(value);
-        }
-      } catch {
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: 'The cloud trial is unavailable right now. Download Aspen to run locally.', unavailable: true })}\n\n`));
-        controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-      } finally {
-        alive = false; clearInterval(hb);
-        try { controller.close(); } catch {}
-      }
+      })();
     },
   });
 
