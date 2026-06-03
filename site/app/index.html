@@ -136,6 +136,15 @@ body.is-mobile .chat-delete{opacity:.4!important}
 .msg-bubble li{margin-bottom:.2rem}
 .cursor{display:inline-block;width:2px;height:1em;background:var(--gd);margin-left:2px;vertical-align:text-bottom;animation:blink .8s step-end infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.aspen-think{display:inline-flex;align-items:center;gap:8px}
+.aspen-think svg{width:20px;height:20px;flex-shrink:0}
+.aspen-think .tw{font-size:.85rem;color:var(--t2);animation:aspenWord 2.8s ease-in-out infinite}
+.aspen-leaf{transform-origin:24px 24px;animation:aspenDraw 2.8s ease-in-out infinite}
+.aspen-stem{transform-origin:24px 24px;animation:aspenStem 2.8s ease-in-out infinite}
+@keyframes aspenDraw{0%{stroke-dasharray:1;stroke-dashoffset:1;fill-opacity:0;transform:scale(.7)}35%{stroke-dashoffset:0;fill-opacity:0;transform:scale(1)}55%{fill-opacity:.18}80%{fill-opacity:.18;opacity:1}100%{fill-opacity:.18;opacity:0;transform:scale(1)}}
+@keyframes aspenStem{0%,20%{stroke-dasharray:1;stroke-dashoffset:1;opacity:0}45%{stroke-dashoffset:0;opacity:1}80%{opacity:1}100%{opacity:0}}
+@keyframes aspenWord{0%,100%{opacity:.45}50%{opacity:1}}
+@media(prefers-reduced-motion:reduce){.aspen-leaf,.aspen-stem,.aspen-think .tw{animation:none;fill-opacity:.18;stroke-dashoffset:0;opacity:1}}
 .empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem 1.5rem;text-align:center}
 .empty-icon{font-size:2.4rem;margin-bottom:.8rem}
 .empty-title{font-family:var(--ser);font-size:1.55rem;margin-bottom:.4rem}
@@ -663,7 +672,7 @@ function appendMessage(role,content,stream=false){
   emptyState.style.display='none';if(emptyState.parentNode===messagesEl)messagesEl.removeChild(emptyState);
   const row=document.createElement('div');row.className=`msg-row ${role}`;
   const bubble=document.createElement('div');bubble.className='msg-bubble';
-  bubble.innerHTML=stream&&role==='assistant'?'<span class="cursor"></span>':formatMessage(content);
+  bubble.innerHTML=stream&&role==='assistant'?'<span class="aspen-think"><svg viewBox="0 0 48 48" aria-label="Thinking"><path class="aspen-leaf" d="M24 6 C32 14, 38 22, 24 42 C10 22, 16 14, 24 6 Z" fill="#B8860B" fill-opacity="0" stroke="#B8860B" stroke-width="1.6" stroke-linejoin="round" pathLength="1"/><line class="aspen-stem" x1="24" y1="6" x2="24" y2="42" stroke="#B8860B" stroke-width="1.1" stroke-linecap="round" pathLength="1"/></svg><span class="tw">Thinking</span></span>':formatMessage(content);
   row.appendChild(bubble);messagesEl.appendChild(row);scrollToBottom();return bubble;
 }
 function formatMessage(text){

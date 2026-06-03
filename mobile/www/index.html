@@ -136,6 +136,15 @@ body.is-mobile .chat-delete{opacity:.4!important}
 .msg-row.user .msg-bubble{background:var(--bk);color:var(--bg);border-bottom-right-radius:4px}
 .msg-row.assistant .msg-bubble{background:var(--wh);color:var(--bk);border:1px solid var(--brd);border-bottom-left-radius:4px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
 .msg-bubble p{margin-bottom:.55rem}.msg-bubble p:last-child{margin-bottom:0}
+.aspen-think{display:inline-flex;align-items:center;gap:8px}
+.aspen-think svg{width:20px;height:20px;flex-shrink:0}
+.aspen-think .tw{font-size:.85rem;color:var(--t2);animation:aspenWord 2.8s ease-in-out infinite}
+.aspen-leaf{transform-origin:24px 24px;animation:aspenDraw 2.8s ease-in-out infinite}
+.aspen-stem{transform-origin:24px 24px;animation:aspenStem 2.8s ease-in-out infinite}
+@keyframes aspenDraw{0%{stroke-dasharray:1;stroke-dashoffset:1;fill-opacity:0;transform:scale(.7)}35%{stroke-dashoffset:0;fill-opacity:0;transform:scale(1)}55%{fill-opacity:.18}80%{fill-opacity:.18;opacity:1}100%{fill-opacity:.18;opacity:0;transform:scale(1)}}
+@keyframes aspenStem{0%,20%{stroke-dasharray:1;stroke-dashoffset:1;opacity:0}45%{stroke-dashoffset:0;opacity:1}80%{opacity:1}100%{opacity:0}}
+@keyframes aspenWord{0%,100%{opacity:.45}50%{opacity:1}}
+@media(prefers-reduced-motion:reduce){.aspen-leaf,.aspen-stem,.aspen-think .tw{animation:none;fill-opacity:.18;stroke-dashoffset:0;opacity:1}}
 .msg-bubble code{font-family:var(--mono);font-size:.8em;background:rgba(0,0,0,.06);padding:.1em .32em;border-radius:4px}
 .msg-row.user .msg-bubble code{background:rgba(255,255,255,.15)}
 .msg-bubble pre{background:rgba(0,0,0,.05);border-radius:10px;padding:.8rem 1rem;overflow-x:auto;margin:.45rem 0}
@@ -707,7 +716,7 @@ function appendMessage(role,content,stream=false){
   emptyState.style.display='none';if(emptyState.parentNode===messagesEl)messagesEl.removeChild(emptyState);
   const row=document.createElement('div');row.className=`msg-row ${role}`;
   const bubble=document.createElement('div');bubble.className='msg-bubble';
-  bubble.innerHTML=stream&&role==='assistant'?'<span class="cursor"></span>':formatMessage(content);
+  bubble.innerHTML=stream&&role==='assistant'?'<span class="aspen-think"><svg viewBox="0 0 48 48" aria-label="Thinking"><path class="aspen-leaf" d="M24 6 C32 14, 38 22, 24 42 C10 22, 16 14, 24 6 Z" fill="#B8860B" fill-opacity="0" stroke="#B8860B" stroke-width="1.6" stroke-linejoin="round" pathLength="1"/><line class="aspen-stem" x1="24" y1="6" x2="24" y2="42" stroke="#B8860B" stroke-width="1.1" stroke-linecap="round" pathLength="1"/></svg><span class="tw">Thinking</span></span>':formatMessage(content);
   row.appendChild(bubble);messagesEl.appendChild(row);scrollToBottom();return bubble;
 }
 function formatMessage(text){

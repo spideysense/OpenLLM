@@ -431,9 +431,21 @@ export default function Chat() {
           <div className="chat-message assistant">
             <div className="chat-avatar">🌿</div>
             <div className="chat-bubble">
-              <MessageContent content={streamBuffer || ''} />
-              {isStreaming && (
-                <span style={{ display: 'inline-block', width: 6, height: 16, background: 'var(--pipe-yellow)', borderRadius: 2, animation: 'pulse 0.8s infinite', marginLeft: 2, verticalAlign: 'text-bottom' }} />
+              {isStreaming && !streamBuffer ? (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                  <svg viewBox="0 0 48 48" style={{ width: 22, height: 22, flexShrink: 0 }} aria-label="Thinking">
+                    <path className="aspen-leaf" d="M24 6 C32 14, 38 22, 24 42 C10 22, 16 14, 24 6 Z" fill="#B8860B" fillOpacity="0" stroke="#B8860B" strokeWidth="1.6" strokeLinejoin="round" pathLength="1" />
+                    <line className="aspen-stem" x1="24" y1="6" x2="24" y2="42" stroke="#B8860B" strokeWidth="1.1" strokeLinecap="round" pathLength="1" />
+                  </svg>
+                  <span className="aspen-tw" style={{ fontSize: 14, color: 'var(--text-light)' }}>Thinking</span>
+                </span>
+              ) : (
+                <>
+                  <MessageContent content={streamBuffer || ''} />
+                  {isStreaming && (
+                    <span style={{ display: 'inline-block', width: 6, height: 16, background: 'var(--pipe-yellow)', borderRadius: 2, animation: 'pulse 0.8s infinite', marginLeft: 2, verticalAlign: 'text-bottom' }} />
+                  )}
+                </>
               )}
             </div>
           </div>
