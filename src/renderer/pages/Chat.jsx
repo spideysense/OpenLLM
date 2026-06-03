@@ -28,6 +28,8 @@ export default function Chat() {
   const [connectorList, setConnectorList] = useState([]);
   const [connBusy, setConnBusy] = useState(null);
   const [codeTipDismissed, setCodeTipDismissed] = useState(false);
+  const [artifact, setArtifact] = useState(null); // { code, lang } open in side panel
+  const [artifactTab, setArtifactTab] = useState('preview');
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -65,6 +67,11 @@ export default function Chat() {
 
   useEffect(() => { if (connMenuOpen) loadConnectors(); }, [connMenuOpen, loadConnectors]);
   useEffect(() => { loadConnectors(); }, [loadConnectors]);
+
+  const openArtifact = useCallback((code, lang) => {
+    setArtifact({ code, lang });
+    setArtifactTab(RUNNABLE.includes(lang) ? 'preview' : 'code');
+  }, []);
 
   // One-time coding tip: show when the conversation has code, GitHub isn't
   // connected, and the user hasn't dismissed it. Connectors run on desktop, so
@@ -455,7 +462,7 @@ export default function Chat() {
                   ? <img key={j} src={a.preview} alt={a.name} style={{ maxWidth: 240, maxHeight: 180, borderRadius: 8, marginBottom: 8, display: 'block' }} />
                   : <div key={j} style={{ fontSize: 11, color: 'var(--text-light)', marginBottom: 6, padding: '4px 8px', background: 'rgba(93,78,55,.06)', borderRadius: 6 }}>📄 {a.name}</div>
               ))}
-              <MessageContent content={msg.content} />
+              <MessageContent content={msg.content} onOpenArtifact={openArtifact} />
             </div>
           </div>
         ))}
@@ -474,7 +481,7 @@ export default function Chat() {
                 </span>
               ) : (
                 <>
-                  <MessageContent content={streamBuffer || ''} />
+                  <MessageContent content={streamBuffer || ''} onOpenArtifact={openArtifact} />
                   {isStreaming && (
                     <span style={{ display: 'inline-block', width: 6, height: 16, background: 'var(--pipe-yellow)', borderRadius: 2, animation: 'pulse 0.8s infinite', marginLeft: 2, verticalAlign: 'text-bottom' }} />
                   )}
@@ -689,12 +696,45 @@ export default function Chat() {
         )}
       </div>
     </div>
+
+      {/* Artifact side panel */}
+      {artifact && (
+        <div style={{ width: 'min(48%,640px)', flexShrink: 0, borderLeft: '1.5px solid rgba(93,78,55,.1)', display: 'flex', flexDirection: 'column', background: '#fff', overflow: 'hidden' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderBottom: '1.5px solid rgba(93,78,55,.1)', flexShrink: 0 }}>
+            <span style={{ fontSize: 13, fontWeight: 600, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {(artifact.lang || 'code').toUpperCase()} artifact
+            </span>
+            {RUNNABLE.includes(artifact.lang) && (
+              <div style={{ display: 'flex', gap: 2, background: 'rgba(0,0,0,.05)', borderRadius: 8, padding: 2 }}>
+                <button onClick={() => setArtifactTab('preview')} style={{ fontSize: 12, fontWeight: 600, padding: '4px 10px', border: 'none', borderRadius: 6, cursor: 'pointer', background: artifactTab === 'preview' ? '#fff' : 'transparent', color: artifactTab === 'preview' ? 'var(--earth)' : 'var(--text-light)' }}>Preview</button>
+                <button onClick={() => setArtifactTab('code')} style={{ fontSize: 12, fontWeight: 600, padding: '4px 10px', border: 'none', borderRadius: 6, cursor: 'pointer', background: artifactTab === 'code' ? '#fff' : 'transparent', color: artifactTab === 'code' ? 'var(--earth)' : 'var(--text-light)' }}>Code</button>
+              </div>
+            )}
+            <button onClick={() => { navigator.clipboard?.writeText(artifact.code); }} style={{ fontSize: 12, fontWeight: 600, padding: '4px 10px', border: '1.5px solid rgba(93,78,55,.12)', borderRadius: 7, background: '#fff', cursor: 'pointer' }}>Copy</button>
+            <button onClick={() => setArtifact(null)} title="Close" style={{ width: 28, height: 28, border: 'none', background: 'none', cursor: 'pointer', fontSize: 15, color: 'var(--text-light)' }}>✕</button>
+          </div>
+          <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+            {(artifactTab === 'preview' && RUNNABLE.includes(artifact.lang)) ? (
+              <iframe
+                title="Preview"
+                sandbox="allow-scripts"
+                srcDoc={artifact.lang === 'svg'
+                  ? `<!doctype html><meta charset="utf-8"><body style="margin:0;display:grid;place-items:center;min-height:100vh">${artifact.code}</body>`
+                  : artifact.code}
+                style={{ width: '100%', height: '100%', border: 'none', background: '#fff', display: 'block' }}
+              />
+            ) : (
+              <pre style={{ margin: 0, padding: '1rem', fontSize: 13, lineHeight: 1.55, overflow: 'auto', height: '100%', boxSizing: 'border-box' }}><code>{artifact.code}</code></pre>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 // ─── Safe Markdown rendering — no dangerouslySetInnerHTML ───
-function MessageContent({ content }) {
+function MessageContent({ content, onOpenArtifact }) {
   if (!content) return null;
   const parts = content.split(/(```[\s\S]*?```)/g);
   return (
@@ -704,7 +744,7 @@ function MessageContent({ content }) {
           const lines = part.slice(3, -3).split('\n');
           const lang = lines[0]?.trim() || '';
           const code = lang ? lines.slice(1).join('\n') : lines.join('\n');
-          return <CodeBlock key={i} lang={lang} code={code} />;
+          return <CodeBlock key={i} lang={lang} code={code} onOpenArtifact={onOpenArtifact} />;
         }
         // Parse inline formatting into React elements (no dangerouslySetInnerHTML)
         return <InlineText key={i} text={part} />;
@@ -728,56 +768,41 @@ function InlineText({ text }) {
   );
 }
 
-// ─── Code artifact: header + copy + (for runnable code) a sandboxed preview ───
+// ─── Code artifact card: opens in the side panel (Claude-style) ───
 const RUNNABLE = ['html', 'svg'];
-function CodeBlock({ lang, code }) {
-  const [copied, setCopied] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
+function normLang(lang, code) {
   let norm = (lang || '').toLowerCase();
-  // Local models often omit the language tag — sniff content so HTML/SVG still preview.
   if (!norm || norm === 'text') {
     const head = (code || '').trimStart().slice(0, 200).toLowerCase();
     if (head.startsWith('<!doctype html') || head.startsWith('<html') || head.includes('<body')) norm = 'html';
     else if (head.startsWith('<svg')) norm = 'svg';
   }
+  return norm;
+}
+function CodeBlock({ lang, code, onOpenArtifact }) {
+  const [copied, setCopied] = useState(false);
+  const norm = normLang(lang, code);
   const canPreview = RUNNABLE.includes(norm);
 
-  function copy() {
+  function copy(e) {
+    e.stopPropagation();
     navigator.clipboard?.writeText(code).then(() => {
       setCopied(true); setTimeout(() => setCopied(false), 1500);
     }).catch(() => {});
   }
 
-  // Build the document for the sandboxed iframe. SVG gets wrapped; HTML used as-is.
-  const srcDoc = norm === 'svg'
-    ? `<!doctype html><meta charset="utf-8"><body style="margin:0;display:grid;place-items:center;min-height:100vh">${code}</body>`
-    : code;
-
   return (
-    <div className="artifact">
+    <div className="artifact" onClick={() => onOpenArtifact?.(code, norm)} style={{ cursor: 'pointer' }}>
       <div className="artifact-head">
-        <span className="artifact-lang">{lang || 'text'}</span>
+        <span className="artifact-lang">{lang || norm || 'text'}</span>
         <div className="artifact-actions">
-          {canPreview && (
-            <button className="artifact-btn" onClick={() => setShowPreview((v) => !v)}>
-              {showPreview ? 'Code' : 'Preview'}
-            </button>
-          )}
+          <button className="artifact-btn" onClick={(e) => { e.stopPropagation(); onOpenArtifact?.(code, norm); }}>
+            {canPreview ? 'Open ↗' : 'View ↗'}
+          </button>
           <button className="artifact-btn" onClick={copy}>{copied ? 'Copied' : 'Copy'}</button>
         </div>
       </div>
-      {showPreview && canPreview ? (
-        // sandbox WITHOUT allow-same-origin: previewed code is fully isolated —
-        // it cannot read Aspen's page, tokens, connectors, or make requests as the user.
-        <iframe
-          className="artifact-preview"
-          title="Preview"
-          sandbox="allow-scripts"
-          srcDoc={srcDoc}
-        />
-      ) : (
-        <pre className="artifact-code"><code>{code}</code></pre>
-      )}
+      <pre className="artifact-code"><code>{code}</code></pre>
     </div>
   );
 }
