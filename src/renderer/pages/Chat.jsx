@@ -27,6 +27,7 @@ export default function Chat() {
   const [connMenuOpen, setConnMenuOpen] = useState(false);
   const [connectorList, setConnectorList] = useState([]);
   const [connBusy, setConnBusy] = useState(null);
+  const [codeTipDismissed, setCodeTipDismissed] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -63,6 +64,14 @@ export default function Chat() {
   }
 
   useEffect(() => { if (connMenuOpen) loadConnectors(); }, [connMenuOpen, loadConnectors]);
+  useEffect(() => { loadConnectors(); }, [loadConnectors]);
+
+  // One-time coding tip: show when the conversation has code, GitHub isn't
+  // connected, and the user hasn't dismissed it. Connectors run on desktop, so
+  // this lives here where it's actually actionable.
+  const convoHasCode = messages.some((m) => typeof m.content === 'string' && m.content.includes('```'));
+  const githubConnected = connectorList.some((c) => c.id === 'github' && c.connected);
+  const showCodeTip = convoHasCode && !githubConnected && !codeTipDismissed;
 
   // Load saved exchange count
   useEffect(() => {
@@ -559,6 +568,22 @@ export default function Chat() {
       )}
 
       {/* Input area */}
+      {showCodeTip && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem', margin: '0 auto .6rem', maxWidth: 720, padding: '.55rem .8rem', background: 'rgba(184,134,11,.08)', border: '1px solid rgba(184,134,11,.2)', borderRadius: 11, fontSize: '.83rem' }}>
+          <span style={{ flex: 1, color: 'var(--text,#1D1D1F)' }}>
+            Working with code? Connect GitHub and Aspen can read and write your repos directly — just add a token.
+          </span>
+          <button onClick={() => { setPage('connectors'); }}
+            style={{ flexShrink: 0, fontSize: '.78rem', fontWeight: 600, padding: '.3rem .7rem', borderRadius: 8, border: 'none', background: 'var(--gold,#B8860B)', color: '#fff', cursor: 'pointer' }}>
+            Connect GitHub →
+          </button>
+          <button onClick={() => setCodeTipDismissed(true)} title="Dismiss"
+            style={{ flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-light,#6E6E73)', fontSize: '1.1rem', lineHeight: 1, padding: '0 .2rem' }}>
+            ×
+          </button>
+        </div>
+      )}
+
       <div className="chat-input-area">
         {/* Connector quick-menu ("+") */}
         <div style={{ position: 'relative', flexShrink: 0 }}>
