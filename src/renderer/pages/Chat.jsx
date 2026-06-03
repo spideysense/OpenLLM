@@ -14,7 +14,7 @@ function isVisionModel(modelName) {
 }
 
 export default function Chat() {
-  const { bridge, activeModel, selectModel, models } = useApp();
+  const { bridge, activeModel, selectModel, models, setPage } = useApp();
   const [conversations, setConversations] = useState([{ id: 1, title: 'New Chat', messages: [] }]);
   const [activeConvo, setActiveConvo] = useState(1);
   const [input, setInput] = useState('');
@@ -24,6 +24,9 @@ export default function Chat() {
   const [isListening, setIsListening] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(false);
   const [totalExchanges, setTotalExchanges] = useState(0);
+  const [connMenuOpen, setConnMenuOpen] = useState(false);
+  const [connectorList, setConnectorList] = useState([]);
+  const [connBusy, setConnBusy] = useState(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -39,6 +42,27 @@ export default function Chat() {
   const voiceModeRef = useRef(false);
   const pendingSentences = useRef([]);
   const speakingQueue = useRef(false);
+
+  // ── Connector quick-menu (the "+" in the composer) ──
+  const loadConnectors = useCallback(async () => {
+    try {
+      const list = await window.aspen?.connectors?.list?.();
+      setConnectorList(list || []);
+    } catch { setConnectorList([]); }
+  }, []);
+
+  async function quickConnect(c) {
+    // Token-based connectors can't be set up inline — send the user to the full page.
+    if (c.needsToken && !c.hasToken) { setConnMenuOpen(false); setPage('connectors'); return; }
+    setConnBusy(c.id);
+    try {
+      if (c.connected) await window.aspen.connectors.disconnect(c.id);
+      else await window.aspen.connectors.connect(c.id);
+      await loadConnectors();
+    } finally { setConnBusy(null); }
+  }
+
+  useEffect(() => { if (connMenuOpen) loadConnectors(); }, [connMenuOpen, loadConnectors]);
 
   // Load saved exchange count
   useEffect(() => {
@@ -536,6 +560,43 @@ export default function Chat() {
 
       {/* Input area */}
       <div className="chat-input-area">
+        {/* Connector quick-menu ("+") */}
+        <div style={{ position: 'relative', flexShrink: 0 }}>
+          <button
+            onClick={() => setConnMenuOpen((v) => !v)}
+            title="Connectors"
+            style={{ width: 40, height: 40, borderRadius: '50%', background: connMenuOpen ? 'var(--gold,#B8860B)' : 'rgba(93,78,55,.08)', color: connMenuOpen ? '#fff' : 'inherit', border: '1.5px solid rgba(93,78,55,.1)', cursor: 'pointer', fontSize: 22, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            +
+          </button>
+          {connMenuOpen && (
+            <>
+              <div onClick={() => setConnMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
+              <div className="conn-menu" style={{ position: 'absolute', bottom: 50, left: 0, zIndex: 41, width: 280, background: 'var(--surface,#fff)', border: '1px solid var(--border,rgba(0,0,0,.1))', borderRadius: 14, boxShadow: '0 8px 30px rgba(0,0,0,.16)', padding: '.5rem', maxHeight: 360, overflowY: 'auto' }}>
+                <div style={{ fontSize: '.72rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--text-light,#6E6E73)', padding: '.4rem .55rem' }}>Connectors</div>
+                {connectorList.length === 0 && (
+                  <div style={{ padding: '.55rem', fontSize: '.82rem', color: 'var(--text-light,#6E6E73)' }}>No connectors available.</div>
+                )}
+                {connectorList.map((c) => (
+                  <button key={c.id} onClick={() => quickConnect(c)} disabled={connBusy === c.id}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '.6rem', width: '100%', padding: '.55rem', border: 'none', background: 'none', borderRadius: 9, cursor: 'pointer', textAlign: 'left' }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(0,0,0,.04)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'none'}>
+                    <span style={{ fontSize: '.88rem', fontWeight: 500 }}>{c.label}</span>
+                    <span style={{ fontSize: '.7rem', fontWeight: 600, color: c.connected ? '#0F6E56' : 'var(--text-light,#6E6E73)' }}>
+                      {connBusy === c.id ? '…' : c.connected ? '● On' : (c.needsToken && !c.hasToken) ? 'Set up →' : 'Connect'}
+                    </span>
+                  </button>
+                ))}
+                <button onClick={() => { setConnMenuOpen(false); setPage('connectors'); }}
+                  style={{ width: '100%', marginTop: '.35rem', padding: '.5rem', border: 'none', borderTop: '1px solid var(--border,rgba(0,0,0,.08))', background: 'none', cursor: 'pointer', fontSize: '.8rem', color: 'var(--gold,#B8860B)', fontWeight: 600 }}>
+                  Manage all connectors
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+
         {/* Hidden file input */}
         <input
           ref={fileInputRef}
