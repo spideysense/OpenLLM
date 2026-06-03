@@ -1069,8 +1069,19 @@ if(voiceUpgradeSkip)voiceUpgradeSkip.addEventListener('click',()=>{
   const up=$('voice-upgrade');if(up)up.classList.add('hidden');
 });
 
-// Mic button = voice mode always
-micBtn.addEventListener('click', enterVoiceMode);
+// Mic button = voice mode always.
+// Web Speech API (webkitSpeechRecognition) is NOT available in the iOS WebView /
+// Capacitor, so the mic does nothing there and shows no permission prompt —
+// which Apple rejects as a non-functional control. Hide it on native (and any
+// platform that lacks speech recognition) so there's no dead button.
+(function(){
+  const SR_OK = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+  if (IS_NATIVE || !SR_OK) {
+    if (micBtn) micBtn.style.display = 'none';
+  } else {
+    micBtn.addEventListener('click', enterVoiceMode);
+  }
+})();
 
 boot();
 </script>
