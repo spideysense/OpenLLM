@@ -153,6 +153,11 @@ body.is-mobile .chat-delete{opacity:.4!important}
 .msg-bubble li{margin-bottom:.2rem}
 .cursor{display:inline-block;width:2px;height:1em;background:var(--gd);margin-left:2px;vertical-align:text-bottom;animation:blink .8s step-end infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.msg-actions{display:flex;gap:.15rem;margin-top:.3rem;padding-left:.1rem}
+.msg-row.user .msg-actions{display:none}
+.msg-act{width:30px;height:30px;display:flex;align-items:center;justify-content:center;border:none;background:none;border-radius:7px;cursor:pointer;color:var(--t3);transition:background .15s,color .15s}
+.msg-act:hover{background:rgba(0,0,0,.06);color:var(--bk)}
+.msg-act.ok{color:#0F6E56}
 .artifact{border:1px solid var(--brd);border-radius:12px;overflow:hidden;margin:.5rem 0;background:var(--bg)}
 .artifact-head{display:flex;justify-content:space-between;align-items:center;padding:.4rem .65rem;background:rgba(0,0,0,.04);border-bottom:1px solid var(--brd)}
 .artifact-lang{font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--t2)}
@@ -767,7 +772,38 @@ function appendMessage(role,content,stream=false){
   const row=document.createElement('div');row.className=`msg-row ${role}`;
   const bubble=document.createElement('div');bubble.className='msg-bubble';
   bubble.innerHTML=stream&&role==='assistant'?'<span class="aspen-think"><svg viewBox="0 0 48 48" aria-label="Thinking"><path class="aspen-leaf" d="M24 6 C32 14, 38 22, 24 42 C10 22, 16 14, 24 6 Z" fill="#B8860B" fill-opacity="0" stroke="#B8860B" stroke-width="1.6" stroke-linejoin="round" pathLength="1"/><line class="aspen-stem" x1="24" y1="6" x2="24" y2="42" stroke="#B8860B" stroke-width="1.1" stroke-linecap="round" pathLength="1"/></svg><span class="tw">Thinking</span></span>':formatMessage(content);
-  row.appendChild(bubble);messagesEl.appendChild(row);scrollToBottom();return bubble;
+  row.appendChild(bubble);messagesEl.appendChild(row);
+  if(role==='assistant'&&!stream&&content)buildActions(row,content);
+  scrollToBottom();return bubble;
+}
+// Copy + Retry action row under finalized assistant messages.
+function buildActions(row,text){
+  if(row.querySelector('.msg-actions'))return;
+  const bar=document.createElement('div');bar.className='msg-actions';
+  const copyBtn=document.createElement('button');copyBtn.className='msg-act';copyBtn.title='Copy';
+  copyBtn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+  copyBtn.addEventListener('click',()=>{navigator.clipboard?.writeText(text).then(()=>{copyBtn.classList.add('ok');setTimeout(()=>copyBtn.classList.remove('ok'),1200)}).catch(()=>{})});
+  const retryBtn=document.createElement('button');retryBtn.className='msg-act';retryBtn.title='Regenerate';
+  retryBtn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>';
+  retryBtn.addEventListener('click',()=>regenerate(row));
+  bar.appendChild(copyBtn);bar.appendChild(retryBtn);row.appendChild(bar);
+}
+// Regenerate: drop the last assistant turn and re-send the prior user message.
+async function regenerate(row){
+  if(isStreaming)return;
+  const chat=chats[activeChatId];if(!chat)return;
+  // remove trailing assistant message from state
+  if(chat.messages.length&&chat.messages[chat.messages.length-1].role==='assistant')chat.messages.pop();
+  const lastUser=[...chat.messages].reverse().find(m=>m.role==='user');
+  if(!lastUser)return;
+  saveChats();
+  // re-render without the dropped assistant turn
+  renderMessages();
+  inputBox.value=lastUser.content;
+  // pop the user msg too (sendMessage re-pushes it)
+  if(chat.messages.length&&chat.messages[chat.messages.length-1].role==='user')chat.messages.pop();
+  saveChats();renderMessages();
+  sendMessage();
 }
 function formatMessage(text){
   // Extract code blocks FIRST from the RAW text (before escaping anything), so the
@@ -872,6 +908,7 @@ async function sendMessage(){
   if(fullText){
     const c=chats[activeChatId];
     if(c){c.messages.push({role:'assistant',content:fullText});saveChats();extractFacts(c.messages.filter(m=>m.role==='user').slice(-1)[0]?.content||'',fullText)}
+    if(bubble.parentNode)buildActions(bubble.parentNode,fullText);
   }
   isStreaming=false;sendBtn.classList.remove('hidden');stopBtn.classList.add('hidden');sendBtn.disabled=false;streamController=null;inputBox.focus();
 }
