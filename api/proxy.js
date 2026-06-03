@@ -242,42 +242,48 @@ export default async function handler(req) {
   // why a slow model no longer produces FUNCTION_INVOCATION_TIMEOUT / HTTP 504.
   const encoder = new TextEncoder();
   const streamBody = new ReadableStream({
-    async start(controller) {
-      // Immediate keep-alive (SSE comment line — ignored by clients) beats the 25s clock.
+    start(controller) {
+      // CRITICAL: start() must NOT be async / must NOT await the work. If start()
+      // is async and awaits, Vercel buffers the whole stream until it resolves and
+      // the first byte never flushes early — which is what caused the 504. Instead
+      // we flush ': connected' now and run the pump in a DETACHED async task, so the
+      // function counts as "responded" within the 25s window regardless of model speed.
       controller.enqueue(encoder.encode(': connected\n\n'));
-      // Heartbeat every 8s while we wait (under Vercel's ~15s idle-chunk cancel).
       let alive = true;
       const heartbeat = setInterval(() => {
         if (alive) { try { controller.enqueue(encoder.encode(': keep-alive\n\n')); } catch {} }
       }, 8000);
-      try {
-        // Run search enrichment AFTER the first byte is already out, so the slow
-        // classifier/web-search work can't blow the 25s first-byte window.
-        const enriched = await enrich();
-        const upRes = await fetch(upstream, {
-          method: 'POST', headers: upHeaders,
-          body: JSON.stringify({ model: model || 'llama3', messages: enriched, stream: true }),
-        });
-        if (!upRes.ok || !upRes.body) {
-          const t = await upRes.text().catch(() => '');
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: `Upstream HTTP ${upRes.status}: ${t.slice(0,200)}` })}\n\n`));
-          controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-          return;
+
+      (async () => {
+        try {
+          const enriched = await enrich();
+          const upRes = await fetch(upstream, {
+            method: 'POST', headers: upHeaders,
+            body: JSON.stringify({ model: model || 'llama3', messages: enriched, stream: true }),
+          });
+          if (!upRes.ok || !upRes.body) {
+            const t = await upRes.text().catch(() => '');
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: `Upstream HTTP ${upRes.status}: ${t.slice(0,200)}` })}\n\n`));
+            controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+            return;
+          }
+          const reader = upRes.body.getReader();
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            controller.enqueue(value); // pass model tokens straight through
+          }
+        } catch (e) {
+          try {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: `Could not reach tunnel: ${e.message}` })}\n\n`));
+            controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+          } catch {}
+        } finally {
+          alive = false;
+          clearInterval(heartbeat);
+          try { controller.close(); } catch {}
         }
-        const reader = upRes.body.getReader();
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          controller.enqueue(value); // pass model tokens straight through
-        }
-      } catch (e) {
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: `Could not reach tunnel: ${e.message}` })}\n\n`));
-        controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-      } finally {
-        alive = false;
-        clearInterval(heartbeat);
-        try { controller.close(); } catch {}
-      }
+      })();
     },
   });
 
