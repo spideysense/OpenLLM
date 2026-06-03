@@ -32,6 +32,7 @@ export default function Sidebar() {
     { id: 'worldmodel', icon: '🧠', label: 'World Model' },
     { id: 'apikeys', icon: '🔑', label: 'API Keys' },
     { id: 'appsetup', icon: '📱', label: 'App Setup' },
+    { id: 'connectors', icon: '🔌', label: 'Connectors' },
     { id: 'settings', icon: '⚙️', label: 'Settings' },
   ];
 

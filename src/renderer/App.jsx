@@ -6,6 +6,7 @@ import ModelHub from './pages/ModelHub';
 import ReplaceWizard from './pages/ReplaceWizard';
 import APIKeys from './pages/APIKeys';
 import Settings from './pages/Settings';
+import Connectors from './pages/Connectors';
 import AppSetup from './pages/AppSetup';
 import WorldModel from './pages/WorldModel';
 import Home from './pages/Home';
@@ -199,6 +200,7 @@ export default function App() {
           {page === 'worldmodel' && <WorldModel />}
           {page === 'apikeys' && <APIKeys />}
           {page === 'appsetup' && <AppSetup />}
+          {page === 'connectors' && <Connectors />}
           {page === 'settings' && <Settings />}
         </main>
       </div>
