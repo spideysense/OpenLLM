@@ -618,7 +618,7 @@ function MessageContent({ content }) {
           const lines = part.slice(3, -3).split('\n');
           const lang = lines[0]?.trim() || '';
           const code = lang ? lines.slice(1).join('\n') : lines.join('\n');
-          return <pre key={i}><code>{code}</code></pre>;
+          return <CodeBlock key={i} lang={lang} code={code} />;
         }
         // Parse inline formatting into React elements (no dangerouslySetInnerHTML)
         return <InlineText key={i} text={part} />;
@@ -639,5 +639,53 @@ function InlineText({ text }) {
         return p;
       })}
     </>
+  );
+}
+
+// ─── Code artifact: header + copy + (for runnable code) a sandboxed preview ───
+const RUNNABLE = ['html', 'svg'];
+function CodeBlock({ lang, code }) {
+  const [copied, setCopied] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const norm = (lang || '').toLowerCase();
+  const canPreview = RUNNABLE.includes(norm);
+
+  function copy() {
+    navigator.clipboard?.writeText(code).then(() => {
+      setCopied(true); setTimeout(() => setCopied(false), 1500);
+    }).catch(() => {});
+  }
+
+  // Build the document for the sandboxed iframe. SVG gets wrapped; HTML used as-is.
+  const srcDoc = norm === 'svg'
+    ? `<!doctype html><meta charset="utf-8"><body style="margin:0;display:grid;place-items:center;min-height:100vh">${code}</body>`
+    : code;
+
+  return (
+    <div className="artifact">
+      <div className="artifact-head">
+        <span className="artifact-lang">{lang || 'text'}</span>
+        <div className="artifact-actions">
+          {canPreview && (
+            <button className="artifact-btn" onClick={() => setShowPreview((v) => !v)}>
+              {showPreview ? 'Code' : 'Preview'}
+            </button>
+          )}
+          <button className="artifact-btn" onClick={copy}>{copied ? 'Copied' : 'Copy'}</button>
+        </div>
+      </div>
+      {showPreview && canPreview ? (
+        // sandbox WITHOUT allow-same-origin: previewed code is fully isolated —
+        // it cannot read Aspen's page, tokens, connectors, or make requests as the user.
+        <iframe
+          className="artifact-preview"
+          title="Preview"
+          sandbox="allow-scripts"
+          srcDoc={srcDoc}
+        />
+      ) : (
+        <pre className="artifact-code"><code>{code}</code></pre>
+      )}
+    </div>
   );
 }

@@ -154,6 +154,14 @@ body.is-mobile .chat-delete{opacity:.4!important}
 .msg-row.user .msg-bubble code{background:rgba(255,255,255,.15)}
 .msg-bubble pre{background:rgba(0,0,0,.05);border-radius:10px;padding:.8rem 1rem;overflow-x:auto;margin:.45rem 0}
 .msg-bubble pre code{background:none;padding:0}
+.artifact{border:1px solid var(--brd);border-radius:12px;overflow:hidden;margin:.5rem 0;background:var(--bg)}
+.artifact-head{display:flex;justify-content:space-between;align-items:center;padding:.4rem .65rem;background:rgba(0,0,0,.04);border-bottom:1px solid var(--brd)}
+.artifact-lang{font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--t2)}
+.artifact-actions{display:flex;gap:.3rem}
+.artifact-btn{font-size:.68rem;font-weight:600;padding:.22rem .55rem;border-radius:7px;border:1px solid var(--brd);background:var(--wh);color:var(--bk);cursor:pointer}
+.artifact-btn:active{background:var(--gd);color:#fff;border-color:var(--gd)}
+.artifact-code{margin:0;padding:.7rem .85rem;overflow-x:auto;background:none;font-size:.8rem;line-height:1.5}
+.artifact-preview{width:100%;height:320px;border:none;background:#fff;display:block}
 .msg-row.user .msg-bubble pre{background:rgba(255,255,255,.1)}
 .msg-bubble strong{font-weight:600}
 .msg-bubble ul,.msg-bubble ol{padding-left:1.4rem;margin:.35rem 0}
@@ -501,6 +509,31 @@ const tunnelInput=$('tunnel-input'), apikeyInput=$('apikey-input'), connectBtn=$
 const sidebar=$('sidebar'), drawerOverlay=$('drawer-overlay');
 const chatList=$('chat-list'), newChatBtn=$('new-chat-btn'), headerNewBtn=$('header-new-btn');
 const messagesEl=$('messages'), emptyState=$('empty-state');
+// Artifact buttons (copy / preview) via event delegation.
+messagesEl.addEventListener('click',(e)=>{
+  const btn=e.target.closest('.artifact-btn');if(!btn)return;
+  const art=btn.closest('.artifact');if(!art)return;
+  const code=decodeURIComponent(art.dataset.code||'');
+  const act=btn.dataset.act;
+  if(act==='copy'){
+    navigator.clipboard?.writeText(code).then(()=>{const o=btn.textContent;btn.textContent='Copied';setTimeout(()=>btn.textContent=o,1500)}).catch(()=>{});
+  }else if(act==='preview'){
+    const pre=art.querySelector('.artifact-code');
+    let frame=art.querySelector('.artifact-preview');
+    if(frame){ // toggle back to code
+      frame.remove();pre.style.display='';btn.textContent='Preview';return;
+    }
+    const lang=(art.dataset.lang||'').toLowerCase();
+    const srcDoc=lang==='svg'
+      ? '<!doctype html><meta charset="utf-8"><body style="margin:0;display:grid;place-items:center;min-height:100vh">'+code+'</body>'
+      : code;
+    frame=document.createElement('iframe');
+    frame.className='artifact-preview';frame.title='Preview';
+    frame.setAttribute('sandbox','allow-scripts'); // isolated: no same-origin, no token/page access
+    frame.srcdoc=srcDoc;
+    pre.style.display='none';art.appendChild(frame);btn.textContent='Code';
+  }
+});
 const inputBox=$('input-box'), sendBtn=$('send-btn'), stopBtn=$('stop-btn'), micBtn=$('mic-btn');
 const statusDot=$('status-dot'), statusText=$('status-text');
 const modelSelect=$('model-select'), modelFooter=$('model-footer');
@@ -748,7 +781,21 @@ function buildActions(bubble){
 }
 function formatMessage(text){
   let h=escHtml(text);
-  h=h.replace(/```[\w]*\n?([\s\S]*?)```/g,(_,c)=>`<pre><code>${c.trim()}</code></pre>`);
+  // Code blocks -> artifact (header with language + copy, and preview for html/svg).
+  h=h.replace(/```([\w]*)\n?([\s\S]*?)```/g,(_,lang,c)=>{
+    const code=c.replace(/\n+$/,'');
+    const l=(lang||'').toLowerCase();
+    const runnable=(l==='html'||l==='svg');
+    const enc=encodeURIComponent(code);
+    return `<div class="artifact" data-code="${enc}" data-lang="${l}">`
+      +`<div class="artifact-head"><span class="artifact-lang">${l||'text'}</span>`
+      +`<span class="artifact-actions">`
+      +(runnable?`<button class="artifact-btn" data-act="preview" type="button">Preview</button>`:'')
+      +`<button class="artifact-btn" data-act="copy" type="button">Copy</button>`
+      +`</span></div>`
+      +`<pre class="artifact-code"><code>${escHtml(code)}</code></pre>`
+      +`</div>`;
+  });
   h=h.replace(/`([^`\n]+)`/g,'<code>$1</code>');
   h=h.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
   const p=h.split(/\n\n+/);
