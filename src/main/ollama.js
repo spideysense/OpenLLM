@@ -446,6 +446,79 @@ async function fetchSearchResults(query) {
   } catch { return null; }
 }
 
+// ═══════════════════════════════════════════════════
+// Vision (multimodal) support
+// ═══════════════════════════════════════════════════
+// Known vision-capable model families on Ollama. Matched as a prefix on the
+// model name (before any ':tag'). Kept conservative to avoid false positives.
+const VISION_MODELS = ['llava', 'llava-llama3', 'llava-phi3', 'bakllava', 'moondream', 'llama3.2-vision', 'llama4', 'gemma3', 'qwen2-vl', 'qwen2.5-vl', 'minicpm-v'];
+// The model we offer to pull on one tap — small, well-supported, Apache-2.0.
+const RECOMMENDED_VISION_MODEL = 'llava';
+
+function isVisionModel(model) {
+  if (!model) return false;
+  const base = String(model).split(':')[0].toLowerCase();
+  return VISION_MODELS.some((v) => base === v || base.startsWith(v));
+}
+
+async function listModels() {
+  try {
+    const res = await fetch(`${OLLAMA_HOST}/api/tags`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.models || []).map((m) => m.name);
+  } catch { return []; }
+}
+
+// Is any vision-capable model already installed?
+async function hasVisionModel() {
+  const models = await listModels();
+  return models.some((m) => isVisionModel(m));
+}
+
+// Pull a model with streaming progress. onProgress({status, percent}).
+let pullController = null;
+async function pullModel(model, onProgress) {
+  const notify = onProgress || (() => {});
+  pullController = new AbortController();
+  try {
+    const res = await fetch(`${OLLAMA_HOST}/api/pull`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model, stream: true }),
+      signal: pullController.signal,
+    });
+    if (!res.ok) return { success: false, error: `Pull failed: HTTP ${res.status}` };
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const lines = decoder.decode(value, { stream: true }).split('\n').filter(Boolean);
+      for (const line of lines) {
+        try {
+          const j = JSON.parse(line);
+          let percent = null;
+          if (j.total && j.completed) percent = Math.round((j.completed / j.total) * 100);
+          notify({ status: j.status || 'downloading', percent });
+          if (j.error) return { success: false, error: j.error };
+        } catch {}
+      }
+    }
+    return { success: true };
+  } catch (err) {
+    if (err.name === 'AbortError') return { success: false, aborted: true };
+    return { success: false, error: err.message };
+  } finally {
+    pullController = null;
+  }
+}
+
+function abortPull() {
+  if (pullController) { pullController.abort(); return { success: true }; }
+  return { success: false, error: 'No active pull' };
+}
+
 async function chat(model, messages, onChunk) {
   chatController = new AbortController();
 
@@ -524,4 +597,6 @@ module.exports = {
   isRunning, isInstalled, getStatus, install, ensureRunning,
   ensureCurrent, isCurrentEnough, getRunningVersion,
   chat, abortChat, getOllamaPath, getBundledPath, getDownloadedPath,
+  isVisionModel, hasVisionModel, listModels, pullModel, abortPull,
+  RECOMMENDED_VISION_MODEL,
 };

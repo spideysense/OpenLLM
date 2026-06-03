@@ -30,6 +30,8 @@ export default function Chat() {
   const [codeTipDismissed, setCodeTipDismissed] = useState(false);
   const [artifact, setArtifact] = useState(null); // { code, lang } open in side panel
   const [artifactTab, setArtifactTab] = useState('preview');
+  const [modelIsVision, setModelIsVision] = useState(true);
+  const [pulling, setPulling] = useState(null); // { model, percent, status }
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -72,6 +74,43 @@ export default function Chat() {
     setArtifact({ code, lang });
     setArtifactTab(RUNNABLE.includes(lang) ? 'preview' : 'code');
   }, []);
+
+  // Is the active model able to see images? (drives the attach-image gate)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!activeModel) return;
+      try {
+        const v = await window.aspen?.ollama?.isVisionModel?.(activeModel);
+        if (!cancelled) setModelIsVision(!!v);
+      } catch { if (!cancelled) setModelIsVision(true); }
+    })();
+    return () => { cancelled = true; };
+  }, [activeModel]);
+
+  // One-tap pull of a vision model, with live progress.
+  const pullVisionModel = useCallback(async () => {
+    let model = 'llava';
+    try { model = await window.aspen?.ollama?.recommendedVisionModel?.() || 'llava'; } catch {}
+    setPulling({ model, percent: null, status: 'starting' });
+    const unsub = window.aspen?.ollama?.onPullProgress?.((p) => {
+      setPulling((cur) => cur ? { ...cur, percent: p.percent, status: p.status } : cur);
+    });
+    try {
+      const res = await window.aspen?.ollama?.pullModel?.(model);
+      if (res?.success) {
+        // Switch to the freshly pulled vision model if the app exposes selectModel.
+        try { selectModel?.(model); } catch {}
+        setModelIsVision(true);
+      }
+    } finally {
+      unsub?.();
+      setPulling(null);
+    }
+  }, [selectModel]);
+
+  const hasImageAttached = attachments.some((a) => a.type === 'image');
+  const showVisionGate = hasImageAttached && !modelIsVision;
 
   // One-time coding tip: show when the conversation has code, GitHub isn't
   // connected, and the user hasn't dismissed it. Connectors run on desktop, so
@@ -575,6 +614,28 @@ export default function Chat() {
       )}
 
       {/* Input area */}
+      {showVisionGate && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem', margin: '0 auto .6rem', maxWidth: 720, padding: '.55rem .8rem', background: 'rgba(184,134,11,.08)', border: '1px solid rgba(184,134,11,.2)', borderRadius: 11, fontSize: '.83rem' }}>
+          {pulling ? (
+            <>
+              <span style={{ flex: 1 }}>
+                Downloading <strong>{pulling.model}</strong>… {pulling.percent != null ? `${pulling.percent}%` : (pulling.status || '')}
+              </span>
+              <button onClick={() => window.aspen?.ollama?.abortPull?.()} style={{ fontSize: '.78rem', padding: '.3rem .7rem', borderRadius: 8, border: '1px solid rgba(93,78,55,.2)', background: '#fff', cursor: 'pointer' }}>Cancel</button>
+            </>
+          ) : (
+            <>
+              <span style={{ flex: 1 }}>
+                <strong>{activeModel}</strong> can't see images. Install a vision model to analyze this image — it runs fully on your machine.
+              </span>
+              <button onClick={pullVisionModel} style={{ flexShrink: 0, fontSize: '.78rem', fontWeight: 600, padding: '.3rem .7rem', borderRadius: 8, border: 'none', background: 'var(--gold,#B8860B)', color: '#fff', cursor: 'pointer' }}>
+                Get vision model
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
       {showCodeTip && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem', margin: '0 auto .6rem', maxWidth: 720, padding: '.55rem .8rem', background: 'rgba(184,134,11,.08)', border: '1px solid rgba(184,134,11,.2)', borderRadius: 11, fontSize: '.83rem' }}>
           <span style={{ flex: 1, color: 'var(--text,#1D1D1F)' }}>

@@ -277,6 +277,25 @@ ipcMain.handle('ollama:install', async () => {
   return ollama.install();
 });
 
+// ── Vision (multimodal) ──
+ipcMain.handle('ollama:hasVisionModel', async () => {
+  return ollama.hasVisionModel();
+});
+ipcMain.handle('ollama:isVisionModel', async (event, model) => {
+  return ollama.isVisionModel(model);
+});
+ipcMain.handle('ollama:recommendedVisionModel', async () => {
+  return ollama.RECOMMENDED_VISION_MODEL;
+});
+ipcMain.handle('ollama:pullModel', async (event, model) => {
+  return ollama.pullModel(model, (p) => {
+    try { event.sender.send('ollama:pullProgress', p); } catch {}
+  });
+});
+ipcMain.handle('ollama:abortPull', async () => {
+  return ollama.abortPull();
+});
+
 // ═══════════════════════════════════════════════════
 // IPC Handlers — Models
 // ═══════════════════════════════════════════════════

@@ -21,6 +21,16 @@ contextBridge.exposeInMainWorld('aspen', {
     ensureRunning: () => ipcRenderer.invoke('ollama:ensureRunning'),
     isInstalled: () => ipcRenderer.invoke('ollama:isInstalled'),
     install: () => ipcRenderer.invoke('ollama:install'),
+    hasVisionModel: () => ipcRenderer.invoke('ollama:hasVisionModel'),
+    isVisionModel: (model) => ipcRenderer.invoke('ollama:isVisionModel', model),
+    recommendedVisionModel: () => ipcRenderer.invoke('ollama:recommendedVisionModel'),
+    pullModel: (model) => ipcRenderer.invoke('ollama:pullModel', model),
+    abortPull: () => ipcRenderer.invoke('ollama:abortPull'),
+    onPullProgress: (cb) => {
+      const handler = (event, data) => cb(data);
+      ipcRenderer.on('ollama:pullProgress', handler);
+      return () => ipcRenderer.removeListener('ollama:pullProgress', handler);
+    },
     onProgress: (cb) => {
       const handler = (event, data) => cb(data);
       ipcRenderer.on('ollama:progress', handler);
