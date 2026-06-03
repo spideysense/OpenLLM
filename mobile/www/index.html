@@ -827,7 +827,14 @@ function formatMessage(text){
   // Code blocks -> artifact (header with language + copy, and preview for html/svg).
   h=h.replace(/```([\w]*)\n?([\s\S]*?)```/g,(_,lang,c)=>{
     const code=c.replace(/\n+$/,'');
-    const l=(lang||'').toLowerCase();
+    let l=(lang||'').toLowerCase();
+    // Local models often omit the language tag. Sniff the content so HTML/SVG
+    // still get a live preview even when unlabeled.
+    if(!l||l==='text'){
+      const head=code.trimStart().slice(0,200).toLowerCase();
+      if(head.startsWith('<!doctype html')||head.startsWith('<html')||head.includes('<body'))l='html';
+      else if(head.startsWith('<svg'))l='svg';
+    }
     const runnable=(l==='html'||l==='svg');
     const enc=encodeURIComponent(code);
     return `<div class="artifact" data-code="${enc}" data-lang="${l}">`

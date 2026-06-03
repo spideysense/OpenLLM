@@ -708,7 +708,13 @@ const RUNNABLE = ['html', 'svg'];
 function CodeBlock({ lang, code }) {
   const [copied, setCopied] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-  const norm = (lang || '').toLowerCase();
+  let norm = (lang || '').toLowerCase();
+  // Local models often omit the language tag — sniff content so HTML/SVG still preview.
+  if (!norm || norm === 'text') {
+    const head = (code || '').trimStart().slice(0, 200).toLowerCase();
+    if (head.startsWith('<!doctype html') || head.startsWith('<html') || head.includes('<body')) norm = 'html';
+    else if (head.startsWith('<svg')) norm = 'svg';
+  }
   const canPreview = RUNNABLE.includes(norm);
 
   function copy() {
