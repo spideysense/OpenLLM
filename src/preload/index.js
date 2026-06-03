@@ -7,6 +7,14 @@ contextBridge.exposeInMainWorld('aspen', {
     getHardwareTier: () => ipcRenderer.invoke('system:getHardwareTier'),
   },
 
+  // ── Connectors (MCP) ──
+  connectors: {
+    list: () => ipcRenderer.invoke('connectors:list'),
+    connect: (id, token) => ipcRenderer.invoke('connectors:connect', { id, token }),
+    disconnect: (id) => ipcRenderer.invoke('connectors:disconnect', { id }),
+    removeToken: (id) => ipcRenderer.invoke('connectors:removeToken', { id }),
+  },
+
   // ── Ollama ──
   ollama: {
     status: () => ipcRenderer.invoke('ollama:status'),

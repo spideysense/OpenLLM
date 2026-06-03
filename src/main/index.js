@@ -9,6 +9,7 @@ const aliases = require('./aliases');
 const registry = require('./registry');
 const store = require('./store');
 const toolSettings = require('./tool-settings');
+const connectors = require('./connectors');
 const agent = require('./agent');
 const tunnel = require('./tunnel');
 const updater = require('./updater');
@@ -178,6 +179,10 @@ app.whenReady().then(async () => {
     }
   });
 
+  // Reconnect any connectors the user previously set up (their tokens live
+  // encrypted in the OS keychain). Best-effort — never block startup.
+  connectors.reconnectSaved().catch(() => {});
+
   // Auto-updater — checks GitHub releases, downloads + installs silently
   updater.init(mainWindow);
 
@@ -208,6 +213,42 @@ ipcMain.handle('system:getInfo', async () => {
 
 ipcMain.handle('system:getHardwareTier', async () => {
   return system.getHardwareTier();
+});
+
+// ═══════════════════════════════════════════════════
+// IPC Handlers — Connectors (MCP)
+// ═══════════════════════════════════════════════════
+
+ipcMain.handle('connectors:list', async () => {
+  return connectors.listConnectors();
+});
+
+ipcMain.handle('connectors:connect', async (event, { id, token }) => {
+  try {
+    const r = await connectors.connect(id, token);
+    return { ok: true, ...r };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+});
+
+ipcMain.handle('connectors:disconnect', async (event, { id }) => {
+  try {
+    await connectors.disconnect(id);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+});
+
+ipcMain.handle('connectors:removeToken', async (event, { id }) => {
+  try {
+    await connectors.disconnect(id);
+    connectors.deleteToken(id);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
 });
 
 // ═══════════════════════════════════════════════════

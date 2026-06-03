@@ -203,15 +203,50 @@ const TOOLS = {
   },
 };
 
+// ── MCP connector tools ──────────────────────────────────────────────────────
+// Tools exposed by connected MCP servers (GitHub, etc.) are merged in alongside
+// the built-in local tools. They share the same OpenAI function schema, so the
+// agent loop and the model treat them identically. Execution is routed to the
+// MCP client. We namespace names as "<connectorId>__<toolName>" to avoid clashes.
+let mcpClient = null;
+try { mcpClient = require('./mcp-client'); } catch { /* optional */ }
+
+function mcpToolDefinitions() {
+  if (!mcpClient) return [];
+  return mcpClient.listAllTools().map((t) => ({
+    type: 'function',
+    function: {
+      name: `${t.connectorId}__${t.name}`,
+      description: t.description,
+      parameters: t.inputSchema || { type: 'object', properties: {} },
+    },
+  }));
+}
+
+async function runMcpTool(namespacedName, args) {
+  const idx = namespacedName.indexOf('__');
+  if (idx < 0) return `Unknown tool: ${namespacedName}`;
+  const connectorId = namespacedName.slice(0, idx);
+  const toolName = namespacedName.slice(idx + 2);
+  return mcpClient.callTool(connectorId, toolName, args || {});
+}
+
 // Returns OpenAI-format tool definitions for the enabled tools.
 function getToolDefinitions(enabledNames) {
-  return Object.entries(TOOLS)
+  const builtins = Object.entries(TOOLS)
     .filter(([name]) => enabledNames.includes(name))
     .map(([, t]) => t.definition);
+  // MCP/connector tools are always offered when their server is connected.
+  return [...builtins, ...mcpToolDefinitions()];
 }
 
 // Execute a tool call by name. Always returns a string (never throws).
 async function executeTool(name, args) {
+  // Connector tools are namespaced "<id>__<tool>".
+  if (name.includes('__') && mcpClient) {
+    try { return await runMcpTool(name, args); }
+    catch (e) { return `Tool ${name} error: ${e.message}`; }
+  }
   const tool = TOOLS[name];
   if (!tool) return `Unknown tool: ${name}`;
   try {
