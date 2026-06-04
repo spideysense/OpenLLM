@@ -94,9 +94,20 @@ function contentTypeFor(name) {
 (async () => {
   if (!GH_TOKEN) { console.error('Missing GH_TOKEN'); process.exit(1); }
 
-  // 1. Build (renderer + electron-builder with NO publish). Staple hook runs here.
-  console.log('▶ Building (no publish) — staple hook will notarize+staple the DMG...');
-  execSync('npm run build:renderer && electron-builder --mac --publish never', { cwd: ROOT, stdio: 'inherit' });
+  // 1. Build the renderer, then SMOKE TEST it before packaging anything. The
+  //    smoke test boots the real Electron app against the built renderer and
+  //    fails if the main process crashes, the renderer fails to load, the console
+  //    has errors, or the page renders blank. This is the gate that would have
+  //    caught the v0.4.10 (MCP require crash) and v0.4.11 (blank screen) bugs
+  //    BEFORE they shipped. A broken build cannot get past this point.
+  console.log('▶ Building renderer...');
+  execSync('npm run build:renderer', { cwd: ROOT, stdio: 'inherit' });
+
+  console.log('▶ Smoke testing the built app (must boot + render)...');
+  execSync('node scripts/smoke-test.js', { cwd: ROOT, stdio: 'inherit' });
+
+  console.log('▶ Packaging DMG (no publish) — staple hook will notarize+staple...');
+  execSync('electron-builder --mac --publish never', { cwd: ROOT, stdio: 'inherit' });
 
   // 1b. Verify the DMG is actually stapled before we upload anything.
   console.log('▶ Verifying DMG staple...');

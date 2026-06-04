@@ -13,7 +13,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "release:mac": "node scripts/release-mac.js"
+    "release:mac": "node scripts/release-mac.js",
+    "smoke": "npm run build:renderer && node scripts/smoke-test.js"
   },
   "build": {
     "appId": "com.runonaspen.app",
