@@ -146,6 +146,22 @@ function contentTypeFor(name) {
     console.log(`   ✅ Confirmed — users downloading now get ${TAG}.`);
   }
 
+  // 6. Kick off the Windows EXE build (runs on a GitHub Windows runner) so every
+  //    Mac release also gets a matching Aspen-win.exe attached to this same tag.
+  //    The release-windows.yml push-tag trigger does NOT fire for tags created via
+  //    the releases API (GitHub suppresses that), so we dispatch it explicitly.
+  try {
+    console.log(`▶ Triggering Windows EXE build for ${TAG}...`);
+    await ghRequest('POST', `/repos/${OWNER}/${REPO}/actions/workflows/release-windows.yml/dispatches`, {
+      body: { ref: 'main', inputs: { tag: TAG } },
+    });
+    console.log(`   ✅ Windows build started — Aspen-win.exe will attach to ${TAG} in a few minutes.`);
+    console.log(`   Track it: https://github.com/${OWNER}/${REPO}/actions/workflows/release-windows.yml`);
+  } catch (e) {
+    console.error(`   ⚠️ Could not auto-trigger Windows build: ${e.message}`);
+    console.error(`   Run it manually: Actions → Release Windows EXE → Run workflow → tag ${TAG}`);
+  }
+
   console.log(`\n✅ Released ${TAG} — DMG stapled BEFORE upload AND verified as served 'latest'.`);
   console.log(`   ${release.html_url}`);
 })().catch((e) => { console.error('Release failed:', e.message); process.exit(1); });
