@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useApp } from '../App';
 import tts from '../lib/tts';
 
@@ -117,13 +117,16 @@ export default function Chat() {
   const hasImageAttached = attachments.some((a) => a.type === 'image');
   const showVisionGate = hasImageAttached && !modelIsVision;
 
-  const convo = conversations.find((c) => c.id === activeConvo);
-  const messages = convo?.messages || [];
+  const convo = useMemo(() => conversations.find((c) => c.id === activeConvo), [conversations, activeConvo]);
+  const messages = useMemo(() => convo?.messages || [], [convo]);
 
   // One-time coding tip: show when the conversation has code, GitHub isn't
   // connected, and the user hasn't dismissed it. Connectors run on desktop, so
   // this lives here where it's actually actionable.
-  const convoHasCode = messages.some((m) => typeof m.content === 'string' && m.content.includes('```'));
+  const convoHasCode = useMemo(
+    () => messages.some((m) => typeof m.content === 'string' && m.content.includes('```')),
+    [messages]
+  );
   const githubConnected = connectorList.some((c) => c.id === 'github' && c.connected);
   const showCodeTip = convoHasCode && !githubConnected && !codeTipDismissed;
 
