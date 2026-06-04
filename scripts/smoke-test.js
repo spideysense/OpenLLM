@@ -44,10 +44,11 @@ ok('renderer build present');
 //    loads — so any renderer runtime error reproduces here.
 const harnessPath = path.join(ROOT, '.smoke-harness.js');
 const harness = `
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 
 const RENDERER = ${JSON.stringify(rendererIndex)};
+const PRELOAD = ${JSON.stringify(path.join(ROOT, 'src/preload/index.js'))};
 let win;
 const errors = [];
 
@@ -55,12 +56,25 @@ process.on('uncaughtException', (e) => {
   console.log('SMOKE_EVENT:' + JSON.stringify({ type: 'main-uncaught', message: e.message }));
 });
 
+// Mock startup IPC so the app gets PAST its "Waking up Aspen..." loading gate and
+// renders the real UI. Without the preload + these, the app sits on the loading
+// screen forever (~519 chars) and we'd never test the actual render path.
+function mock(channel, value) { try { ipcMain.handle(channel, () => value); } catch {} }
+mock('ollama:status', { running: true, installed: true });
+mock('ollama:info', { version: '0.0.0' });
+mock('ollama:isVisionModel', false);
+mock('store:get', true);
+mock('store:set', true);
+mock('models:list', []);
+mock('connectors:list', []);
+mock('tier:get', 'free');
+
 app.on('ready', async () => {
   win = new BrowserWindow({
     show: false,
     width: 1200,
     height: 800,
-    webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: false },
+    webPreferences: { preload: PRELOAD, contextIsolation: true, nodeIntegration: false, sandbox: false },
   });
 
   win.webContents.on('console-message', (_e, level, message) => {
