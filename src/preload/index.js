@@ -1,6 +1,9 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('aspen', {
+  files: {
+    extractText: (payload) => ipcRenderer.invoke('files:extractText', payload),
+  },
   // ── System ──
   system: {
     getInfo: () => ipcRenderer.invoke('system:getInfo'),

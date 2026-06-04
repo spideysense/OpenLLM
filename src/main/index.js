@@ -277,6 +277,12 @@ ipcMain.handle('ollama:install', async () => {
   return ollama.install();
 });
 
+// ── File text extraction (PDF / Word / Excel -> plain text, all local) ──
+ipcMain.handle('files:extractText', async (event, payload) => {
+  const { extractText } = require('./file-extract');
+  return extractText(payload || {});
+});
+
 // ── Vision (multimodal) ──
 ipcMain.handle('ollama:hasVisionModel', async () => {
   return ollama.hasVisionModel();

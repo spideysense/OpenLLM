@@ -354,15 +354,35 @@ export default function Chat() {
     const files = Array.from(e.target.files);
     if (!files.length) return;
 
+    const DOC_EXT = /\.(pdf|docx|xlsx|xls)$/i;
+
     const newAttachments = await Promise.all(files.map((file) => {
       return new Promise((resolve) => {
         const reader = new FileReader();
         const isImage = file.type.startsWith('image/');
+        const isDoc = DOC_EXT.test(file.name);
 
         if (isImage) {
           reader.onload = (ev) => {
             const base64 = ev.target.result.split(',')[1]; // strip data:image/...;base64,
             resolve({ type: 'image', name: file.name, data: base64, preview: ev.target.result });
+          };
+          reader.readAsDataURL(file);
+        } else if (isDoc) {
+          // PDF / Word / Excel: send bytes to main for local text extraction.
+          reader.onload = async (ev) => {
+            const base64 = ev.target.result.split(',')[1];
+            try {
+              const res = await window.aspen?.files?.extractText?.({ name: file.name, base64 });
+              if (res?.ok && res.text) {
+                const note = res.truncated ? '\n\n[Note: document was long; only the first part is included.]' : '';
+                resolve({ type: 'text', name: file.name, data: `--- Content of ${file.name} ---\n${res.text}${note}`, preview: null });
+              } else {
+                resolve({ type: 'text', name: file.name, data: `[Could not read ${file.name}: ${res?.error || 'unsupported file'}]`, preview: null });
+              }
+            } catch (err) {
+              resolve({ type: 'text', name: file.name, data: `[Could not read ${file.name}: ${err.message}]`, preview: null });
+            }
           };
           reader.readAsDataURL(file);
         } else {
@@ -695,7 +715,7 @@ export default function Chat() {
           ref={fileInputRef}
           type="file"
           multiple
-          accept="image/*,.txt,.md,.js,.ts,.py,.json,.csv,.html,.css,.jsx,.tsx"
+          accept="image/*,.txt,.md,.js,.ts,.py,.json,.csv,.html,.css,.jsx,.tsx,.pdf,.docx,.xlsx,.xls"
           style={{ display: 'none' }}
           onChange={handleFileSelect}
         />
