@@ -57,17 +57,44 @@ process.on('uncaughtException', (e) => {
 });
 
 // Mock startup IPC so the app gets PAST its "Waking up Aspen..." loading gate and
-// renders the real UI. Without the preload + these, the app sits on the loading
-// screen forever (~519 chars) and we'd never test the actual render path.
+// renders the real UI. We register a safe default for EVERY channel the preload
+// exposes (not a hand-picked few) so no init call can reject and stall the app.
 function mock(channel, value) { try { ipcMain.handle(channel, () => value); } catch {} }
-mock('ollama:status', { running: true, installed: true });
-mock('ollama:info', { version: '0.0.0' });
-mock('ollama:isVisionModel', false);
-mock('store:get', true);
-mock('store:set', true);
-mock('models:list', []);
-mock('connectors:list', []);
-mock('tier:get', 'free');
+// Channels auto-extracted from the preload at test-build time:
+const ALL_CHANNELS = ${JSON.stringify(
+  Array.from(new Set((fs.readFileSync(path.join(ROOT, 'src/preload/index.js'), 'utf8')
+    .match(/invoke\('([^']+)'/g) || []).map((m) => m.replace(/invoke\('/, '').replace(/'$/, ''))))
+)};
+// Sensible default return values for the channels the app reads at startup.
+const DEFAULTS = {
+  'ollama:status': { running: true, installed: true },
+  'ollama:info': { version: '0.0.0' },
+  'ollama:isInstalled': true,
+  'ollama:isVisionModel': false,
+  'ollama:hasVisionModel': false,
+  'system:getInfo': { platform: 'darwin', arch: 'arm64', totalMemGB: 16, cpu: 'Test', model: 'Test' },
+  'system:getHardwareTier': 'mid',
+  'store:get': true,
+  'store:set': true,
+  'models:list': [],
+  'models:getRunning': [],
+  'models:recommend': { name: 'llama3.2', label: 'Llama 3.2' },
+  'connectors:list': [],
+  'tools:list': [],
+  'aliases:list': [],
+  'aliases:getDefaults': {},
+  'apikeys:list': [],
+  'gateway:status': { running: false },
+  'gateway:getPort': 0,
+  'tunnel:getStatus': { active: false },
+  'registry:get': {},
+  'registry:checkUpgrades': [],
+  'hotUpdater:version': '0.0.0',
+  'updater:status': {},
+  'app:getVersion': '0.0.0',
+  'conversations:load': [],
+};
+for (const ch of ALL_CHANNELS) mock(ch, DEFAULTS[ch] !== undefined ? DEFAULTS[ch] : null);
 
 app.on('ready', async () => {
   win = new BrowserWindow({
