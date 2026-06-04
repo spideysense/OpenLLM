@@ -18,8 +18,26 @@
  *     itself makes directly to that service's API. Aspen's servers see none of it.
  */
 
-const { Client } = require('@modelcontextprotocol/sdk/client/index.js');
-const { StdioClientTransport } = require('@modelcontextprotocol/sdk/client/stdio.js');
+// MCP SDK is loaded LAZILY (only when a connector is actually used), not at module
+// top. Connectors are an optional feature; if the SDK ever fails to load, the app
+// must still launch — it just won't offer connectors. (A top-level require here
+// previously crashed the whole app on startup when the packaged asar couldn't
+// resolve the SDK's subpath exports.)
+let _sdk = null;
+let _sdkError = null;
+function loadSdk() {
+  if (_sdk) return _sdk;
+  if (_sdkError) throw _sdkError;
+  try {
+    const { Client } = require('@modelcontextprotocol/sdk/client');
+    const { StdioClientTransport } = require('@modelcontextprotocol/sdk/client/stdio.js');
+    _sdk = { Client, StdioClientTransport };
+    return _sdk;
+  } catch (e) {
+    _sdkError = new Error(`MCP connector support is unavailable: ${e.message}`);
+    throw _sdkError;
+  }
+}
 
 // One live connection per enabled connector id.
 const connections = new Map(); // id -> { client, transport, tools: [...] }
@@ -33,6 +51,7 @@ const connections = new Map(); // id -> { client, transport, tools: [...] }
  * @returns {Promise<{tools:Array}>}
  */
 async function connectServer(id, command, args = [], env = {}) {
+  const { Client, StdioClientTransport } = loadSdk();
   if (connections.has(id)) await disconnectServer(id);
 
   const transport = new StdioClientTransport({
