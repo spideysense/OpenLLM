@@ -67,6 +67,7 @@ app.on('ready', async () => {
     // level 3 = error
     if (level >= 3) errors.push(message);
   });
+  // 'preload-error' and uncaught errors in the renderer surface here too.
   win.webContents.on('did-fail-load', (_e, code, desc) => {
     console.log('SMOKE_EVENT:' + JSON.stringify({ type: 'did-fail-load', code, desc }));
   });
@@ -76,25 +77,33 @@ app.on('ready', async () => {
 
   try {
     await win.loadFile(RENDERER);
+    // Catch uncaught errors thrown in the renderer AFTER load (e.g. TDZ errors
+    // that fire during React render/effects, which is exactly the blank-screen
+    // bug). window.onerror reports these; we pull them out below.
+    await win.webContents.executeJavaScript(
+      "window.__smokeErrors=[];addEventListener('error',e=>window.__smokeErrors.push(String(e.message||e.error)));addEventListener('unhandledrejection',e=>window.__smokeErrors.push(String(e.reason)));true"
+    );
   } catch (e) {
     console.log('SMOKE_EVENT:' + JSON.stringify({ type: 'load-throw', message: e.message }));
     app.quit();
     return;
   }
 
-  // Give the renderer a moment to mount React + run effects, then inspect it.
+  // Wait longer so React mounts AND effects/interactions run, then inspect.
   setTimeout(async () => {
     let rootHtmlLen = -1;
+    let pageErrors = [];
     try {
       rootHtmlLen = await win.webContents.executeJavaScript(
         "(document.getElementById('root') ? document.getElementById('root').innerHTML.length : -1)"
       );
+      pageErrors = await win.webContents.executeJavaScript("window.__smokeErrors||[]");
     } catch (e) {
       console.log('SMOKE_EVENT:' + JSON.stringify({ type: 'eval-throw', message: e.message }));
     }
-    console.log('SMOKE_EVENT:' + JSON.stringify({ type: 'report', errors, rootHtmlLen }));
+    console.log('SMOKE_EVENT:' + JSON.stringify({ type: 'report', errors: errors.concat(pageErrors), rootHtmlLen }));
     app.quit();
-  }, 4000);
+  }, 7000);
 });
 `;
 fs.writeFileSync(harnessPath, harness);
@@ -173,10 +182,11 @@ child.on('exit', () => {
   }
   ok('no renderer console errors');
 
-  // Blank-screen guard: a mounted React app fills #root with real markup. The
-  // v0.4.11 blank-screen bug left this empty.
-  if (report.rootHtmlLen < 200) {
-    fail(`renderer mounted almost no content (#root innerHTML = ${report.rootHtmlLen} chars). Likely a blank screen / render crash.`);
+  // Blank-screen guard: a fully mounted Aspen fills #root with thousands of chars
+  // of markup (sidebar, composer, messages). The blank-screen bug left a near-empty
+  // root (only the static loading shell, ~500 chars). Require a real mount.
+  if (report.rootHtmlLen < 2000) {
+    fail(`renderer mounted too little content (#root innerHTML = ${report.rootHtmlLen} chars; healthy is thousands). Likely a blank screen / render crash.`);
   }
   ok(`renderer mounted content (#root = ${report.rootHtmlLen} chars)`);
 

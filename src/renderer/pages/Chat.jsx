@@ -117,6 +117,9 @@ export default function Chat() {
   const hasImageAttached = attachments.some((a) => a.type === 'image');
   const showVisionGate = hasImageAttached && !modelIsVision;
 
+  const convo = conversations.find((c) => c.id === activeConvo);
+  const messages = convo?.messages || [];
+
   // One-time coding tip: show when the conversation has code, GitHub isn't
   // connected, and the user hasn't dismissed it. Connectors run on desktop, so
   // this lives here where it's actually actionable.
@@ -139,8 +142,6 @@ export default function Chat() {
     tts.preload(); // start download in background
   }, []);
 
-  const convo = conversations.find((c) => c.id === activeConvo);
-  const messages = convo?.messages || [];
   const moneySaved = (totalExchanges * COST_PER_EXCHANGE).toFixed(2);
 
   // Load saved conversations on mount
