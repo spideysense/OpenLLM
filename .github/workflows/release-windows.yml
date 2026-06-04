@@ -1,0 +1,68 @@
+name: Release Windows EXE
+
+# Builds the Windows installer on a Windows runner and uploads it to a GitHub
+# release. Decoupled from the Mac build (Mac is cut manually via npm run
+# release:mac with the local signing cert). Trigger by pushing a tag like
+# v0.4.10, or run manually and type the tag.
+#
+# NOTE: this produces an UNSIGNED Windows build. Windows SmartScreen will show a
+# "Windows protected your PC" warning until the app earns reputation or you add a
+# code-signing cert (secrets.WIN_CSC_LINK / WIN_CSC_KEY_PASSWORD) later.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing release tag to attach the EXE to (e.g. v0.4.10)'
+        required: true
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    name: Build & publish Windows EXE
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build renderer
+        run: npm run build:renderer
+
+      - name: Build EXE
+        run: npx electron-builder --win --publish never
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Determine tag
+        id: tag
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload EXE to the release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          files: |
+            dist/*.exe
+            dist/latest.yml
+          generate_release_notes: false
+          draft: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
