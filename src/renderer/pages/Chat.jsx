@@ -7,6 +7,11 @@ import tts from '../lib/tts';
 // Avg per exchange: ~200 input tokens + ~500 output tokens ≈ $0.04/exchange
 const COST_PER_EXCHANGE = 0.040;
 const VISION_MODELS = ['llava', 'llava-llama3', 'moondream', 'bakllava', 'llava-phi3'];
+// Languages that can render in the artifact preview panel. Declared at module top
+// (not below the component) so it's initialized before Chat's callbacks reference
+// it — otherwise the bundler hits a temporal dead zone: "Cannot access before
+// initialization", which blanks the whole renderer.
+const RUNNABLE = ['html', 'svg'];
 
 function isVisionModel(modelName) {
   if (!modelName) return false;
@@ -850,7 +855,6 @@ function InlineText({ text }) {
 }
 
 // ─── Code artifact card: opens in the side panel (Claude-style) ───
-const RUNNABLE = ['html', 'svg'];
 function normLang(lang, code) {
   let norm = (lang || '').toLowerCase();
   if (!norm || norm === 'text') {
