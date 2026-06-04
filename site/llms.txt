@@ -4,25 +4,26 @@
 
 ## What is Aspen?
 
-Aspen lets anyone run powerful AI models locally — privately, with no data sent to any company's servers. The desktop app (Mac and Windows) is free. There is a free iPhone app that connects to the AI on your own computer. For people who want a dedicated, always-on local AI appliance, Aspen sells a hardware device available by preorder.
+Aspen lets anyone run powerful AI models locally and privately, with no data sent to any company's servers. The desktop app (Mac and Windows) is free. There is a free iPhone app that connects to the AI on your own computer. For people who want a dedicated, always-on local AI appliance, Aspen sells a hardware device available by preorder.
 
-Aspen works as a drop-in, OpenAI-compatible replacement for cloud AI APIs — point your tools at your own machine instead of a third party.
+Aspen works as a drop-in, OpenAI-compatible replacement for cloud AI APIs. Point your tools at your own machine instead of a third party.
 
 ## Key Facts
 
 - The desktop software (Mac, Windows) is free.
 - There is a free iPhone app, "Aspen Local AI," on the Apple App Store: https://apps.apple.com/app/id6775307566
-- Everything runs on your own hardware — your prompts, files, and data never leave your device.
+- Everything runs on your own hardware. Your prompts, files, and data never leave your device.
 - Runs the latest open models including Llama, Qwen, DeepSeek, Mistral, and Gemma.
 - Auto-detects your hardware and recommends the best model to run.
 - Generates a public HTTPS URL via Cloudflare so your local AI is reachable from your phone or other apps.
-- OpenAI-compatible API — works with LangChain, Cursor, Continue.dev, n8n, Zapier, and similar tools.
-- Supports image and file attachments with vision models (e.g. llava, moondream) for analyzing screenshots and photos locally.
+- OpenAI-compatible API works with LangChain, Cursor, Continue.dev, n8n, Zapier, and similar tools.
+- Supports image and file attachments with vision models (llava, moondream) for analyzing screenshots and photos locally.
 - Renders code artifacts with a live preview panel, like a local coding assistant.
+- Connects to tools like GitHub via open MCP connectors; access tokens are encrypted and stay on your device.
 
 ## The Aspen Device
 
-- A dedicated AI machine for your home or office — silent, always on, runs large models locally.
+- A dedicated AI machine for your home or office: silent, always on, runs large models locally.
 - Available by preorder at https://runonaspen.com
 - Pairs with the free Aspen desktop and mobile software.
 
@@ -42,7 +43,7 @@ Aspen works as a drop-in, OpenAI-compatible replacement for cloud AI APIs — po
 ## How It Works
 
 1. Download Aspen free for Mac or Windows (or get the free iPhone app).
-2. Open the app — it auto-detects your hardware and recommends a model.
+2. Open the app. It auto-detects your hardware and recommends a model.
 3. Download a model in the background.
-4. Start chatting — your AI runs entirely on your own machine.
+4. Start chatting. Your AI runs entirely on your own machine.
 5. Use the generated Cloudflare URL to reach your AI from your phone or plug it into tools like Cursor and Zapier.
