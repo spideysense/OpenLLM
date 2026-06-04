@@ -5,7 +5,7 @@ const fs = require('fs');
 const https = require('https');
 const http = require('http');
 const os = require('os');
-const { runFetchUrl } = require('./tools');
+const { runFetchUrl, executeTool } = require('./tools');
 
 const OLLAMA_HOST = 'http://127.0.0.1:11434';
 const MONET_DIR = path.join(os.homedir(), '.aspen');
@@ -409,6 +409,45 @@ Answer with exactly one word: YES or NO.
 
 Question: `;
 
+// Generalized tool router: ask the model which single tool (if any) the message
+// needs. Small models can't reliably emit structured tool-calls, but they CAN
+// pick one word from a fixed list — so we classify, then WE trigger the tool
+// deterministically. Fast (temp 0, ~6 tokens, 4s timeout).
+const ROUTER_PROMPT = `You decide if a user message needs ONE tool. Reply with EXACTLY one word from this list:
+
+SEARCH - needs current/real-time info from the web (news, prices, weather, scores, recent events, who currently holds a role)
+CALC - needs a precise arithmetic calculation
+TIME - asks for the current date, time, or day
+NONE - can be answered directly with no tool
+
+Reply with only the single word. Message: `;
+
+async function routeTool(userMessage, model) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 4000);
+  try {
+    const res = await fetch(`${OLLAMA_HOST}/api/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model,
+        prompt: ROUTER_PROMPT + userMessage.slice(0, 400),
+        stream: false,
+        options: { temperature: 0, num_predict: 6 },
+      }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return 'NONE';
+    const data = await res.json();
+    const word = (data.response || '').trim().toUpperCase();
+    if (word.startsWith('SEARCH')) return 'SEARCH';
+    if (word.startsWith('CALC')) return 'CALC';
+    if (word.startsWith('TIME')) return 'TIME';
+    return 'NONE';
+  } catch { clearTimeout(timeout); return 'NONE'; }
+}
+
 async function askModelIfSearchNeeded(userMessage, model) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 4000);
@@ -546,17 +585,38 @@ async function chat(model, messages, onChunk) {
         } catch {}
         onChunk({ content: '', done: false });
       }
-      const needsSearch = await askModelIfSearchNeeded(userText, model);
-      if (needsSearch) {
-        onChunk({ content: '🔍 Searching…', done: false });
-        const results = await fetchSearchResults(userText);
-        if (results) {
-          const searchBlock = `\n\n--- Live web search results ---\n${results}\n--- End of search results ---\n\nIMPORTANT: Use the search results above to answer the user's question directly and concisely in plain English. Do NOT write code. Just state the answer using the data from the results.`;
-          const hasSystem = enrichedMessages[0]?.role === 'system';
-          if (hasSystem) enrichedMessages = [{ ...enrichedMessages[0], content: enrichedMessages[0].content + searchBlock }, ...enrichedMessages.slice(1)];
-          else enrichedMessages = [{ role: 'system', content: `You are a helpful assistant.${searchBlock}` }, ...enrichedMessages];
+      // No URL pasted -> ask the model which tool (if any) this needs, then WE
+      // run it. This replaces brittle keyword regexes: the model classifies into
+      // one word (SEARCH/CALC/TIME/NONE) which small models do reliably, and we
+      // trigger the tool deterministically.
+      if (!urlMatch) {
+        const route = await routeTool(userText, model);
+        let block = '';
+        if (route === 'SEARCH') {
+          onChunk({ content: '🔍 Searching…', done: false });
+          const results = await fetchSearchResults(userText);
+          if (results) block = `\n\n--- Live web search results ---\n${results}\n--- End of search results ---\n\nIMPORTANT: Use the search results above to answer the user's question directly and concisely in plain English. Do NOT write code. Just state the answer using the data from the results.`;
+        } else if (route === 'CALC') {
+          // Pull the arithmetic part out of the sentence (runCalculate rejects letters).
+          const expr = (userText.match(/[-0-9.,()+*/^%\s]*[0-9][-0-9.,()+*/^%\s]*[-+*/^%][-0-9.,()+*/^%\s]*/) || [])[0]?.trim();
+          if (expr) {
+            try {
+              const out = await executeTool('calculate', { expression: expr });
+              if (out && !/unsupported|No expression|Could not/.test(out)) block = `\n\n--- Calculation result ---\n${expr} = ${out}\n--- End ---\n\nUse this result to answer.`;
+            } catch {}
+          }
+        } else if (route === 'TIME') {
+          try {
+            const out = await executeTool('get_datetime', {});
+            if (out) block = `\n\n--- Current date/time on this machine ---\n${out}\n--- End ---`;
+          } catch {}
         }
-        onChunk({ content: '', done: false });
+        if (block) {
+          const hasSystem = enrichedMessages[0]?.role === 'system';
+          if (hasSystem) enrichedMessages = [{ ...enrichedMessages[0], content: enrichedMessages[0].content + block }, ...enrichedMessages.slice(1)];
+          else enrichedMessages = [{ role: 'system', content: `You are a helpful assistant.${block}` }, ...enrichedMessages];
+          onChunk({ content: '', done: false });
+        }
       }
     }
 
