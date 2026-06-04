@@ -133,12 +133,55 @@ async function runFetchUrl(args) {
   if (!url) return 'No URL provided.';
   if (!/^https?:\/\//.test(url)) url = 'https://' + url;
   try {
-    const html = await fetchText(url, { maxBytes: 300000 });
+    const html = await fetchText(url, { maxBytes: 600000 });
+    // YouTube: the page is a JS shell with no readable body text, but it carries
+    // rich metadata (title, channel, description, views, date) in og: tags and a
+    // JSON blob. Pull that so the model can answer "what is this video about?".
+    // NOTE: this is metadata only — it cannot describe what happens IN the video
+    // (that needs the transcript, which YouTube increasingly gates).
+    if (/(?:youtube\.com|youtu\.be)/i.test(url)) {
+      const yt = extractYouTubeMeta(html);
+      if (yt) return yt;
+      // fall through to generic text if extraction failed
+    }
     const text = htmlToText(html);
     return text.slice(0, 4000) || 'Page had no readable text.';
   } catch (e) {
     return `Could not fetch page: ${e.message}`;
   }
+}
+
+// Pull YouTube metadata from page HTML (og: meta tags + embedded JSON).
+function extractYouTubeMeta(html) {
+  const meta = (prop) => {
+    const re = new RegExp(`<meta[^>]+(?:property|name)=["']${prop}["'][^>]+content=["']([^"']*)["']`, 'i');
+    const m = html.match(re);
+    return m ? decodeEntities(m[1]) : '';
+  };
+  const title = meta('og:title') || meta('title');
+  const channel = (html.match(/"author":"([^"]+)"/) || [])[1] || meta('og:video:tag');
+  // Description: prefer the longer shortDescription JSON field over og:description.
+  let desc = (html.match(/"shortDescription":"((?:[^"\\]|\\.)*)"/) || [])[1] || '';
+  if (desc) { try { desc = JSON.parse('"' + desc + '"'); } catch {} }
+  if (!desc) desc = meta('og:description');
+  const views = (html.match(/"viewCount":"(\d+)"/) || [])[1];
+  const date = (html.match(/"uploadDate":"([^"]+)"/) || [])[1]
+            || (html.match(/"publishDate":"([^"]+)"/) || [])[1];
+  const lengthSec = (html.match(/"lengthSeconds":"(\d+)"/) || [])[1];
+  if (!title) return null;
+  const parts = [`YouTube video: "${title}"`];
+  if (channel) parts.push(`Channel: ${channel}`);
+  if (date) parts.push(`Published: ${date.slice(0, 10)}`);
+  if (views) parts.push(`Views: ${Number(views).toLocaleString()}`);
+  if (lengthSec) { const m = Math.floor(lengthSec / 60), s = lengthSec % 60; parts.push(`Length: ${m}m ${s}s`); }
+  if (desc) parts.push(`\nDescription:\n${desc.slice(0, 2500)}`);
+  parts.push('\n(This is the video\u2019s metadata and description. I can\u2019t watch the video itself, so I can\u2019t describe footage or spoken content beyond what the description says.)');
+  return parts.join('\n');
+}
+
+function decodeEntities(s) {
+  return String(s).replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&#x27;/g, "'").replace(/&#39;/g, "'").replace(/&quot;/g, '"');
 }
 
 // ═══════════════════════════════════════════════════
@@ -258,4 +301,4 @@ async function executeTool(name, args) {
 
 const ALL_TOOL_NAMES = Object.keys(TOOLS);
 
-module.exports = { getToolDefinitions, executeTool, ALL_TOOL_NAMES };
+module.exports = { getToolDefinitions, executeTool, ALL_TOOL_NAMES, runFetchUrl };

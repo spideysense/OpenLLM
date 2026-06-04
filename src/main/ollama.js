@@ -5,6 +5,7 @@ const fs = require('fs');
 const https = require('https');
 const http = require('http');
 const os = require('os');
+const { runFetchUrl } = require('./tools');
 
 const OLLAMA_HOST = 'http://127.0.0.1:11434';
 const MONET_DIR = path.join(os.homedir(), '.aspen');
@@ -528,6 +529,23 @@ async function chat(model, messages, onChunk) {
     const userText = lastUser?.content || '';
     let enrichedMessages = messages;
     if (userText.length > 3) {
+      // If the user pasted a URL, fetch it directly and inject the content. This
+      // doesn't rely on the small model choosing to call a tool (which it often
+      // won't). For YouTube links this returns the video's metadata + description.
+      const urlMatch = userText.match(/https?:\/\/[^\s)]+/);
+      if (urlMatch) {
+        onChunk({ content: '🌐 Reading the link…', done: false });
+        try {
+          const pageText = await runFetchUrl({ url: urlMatch[0] });
+          if (pageText && !/^Could not fetch/.test(pageText)) {
+            const urlBlock = `\n\n--- Content fetched from ${urlMatch[0]} ---\n${pageText}\n--- End of fetched content ---\n\nUse the fetched content above to answer the user's question about this link. If it's a YouTube video, you have its title, channel, and description but cannot see the actual footage — be honest about that limit.`;
+            const hasSys = enrichedMessages[0]?.role === 'system';
+            if (hasSys) enrichedMessages = [{ ...enrichedMessages[0], content: enrichedMessages[0].content + urlBlock }, ...enrichedMessages.slice(1)];
+            else enrichedMessages = [{ role: 'system', content: `You are a helpful assistant.${urlBlock}` }, ...enrichedMessages];
+          }
+        } catch {}
+        onChunk({ content: '', done: false });
+      }
       const needsSearch = await askModelIfSearchNeeded(userText, model);
       if (needsSearch) {
         onChunk({ content: '🔍 Searching…', done: false });
