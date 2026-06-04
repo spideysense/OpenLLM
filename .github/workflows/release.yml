@@ -1,9 +1,13 @@
 name: Build & Release
 
+# NOTE: Auto-trigger on tag push is disabled. Mac releases are cut manually via
+# `npm run release:mac` (which signs + notarizes + staples using the local
+# Developer ID cert). CI can't sign Mac builds because the signing certificate
+# isn't installed on GitHub runners, so the mac job always failed and spammed
+# failure emails. This workflow is now manual-only (Run workflow button) and can
+# be re-enabled once the signing cert + secrets are set up in CI.
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch:
 
 permissions:
   contents: write
