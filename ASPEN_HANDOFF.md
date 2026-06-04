@@ -68,6 +68,7 @@ Every chat feature must be built **3×**. Consolidating these into one shared mo
 
 - **Artifacts:** code blocks render as artifacts; runnable HTML/SVG opens in a **Claude-style right-side panel** (Preview/Code tabs, Copy, close, resizable divider on web). Content-sniffing detects HTML/SVG when the model omits the language tag. Escaping fixed (extract code from RAW text before escaping prose). Sandboxed iframe (`sandbox="allow-scripts"`, no same-origin). All 3 surfaces.
 - **Vision (desktop):** image attach (base64 in Ollama native `images[]`), vision-model detection, one-tap "Get vision model" pull (llava) with progress. Desktop only (native `/api/chat`; `/v1` vision is unreliable).
+- **File reading (desktop):** attach PDF / Word (.docx) / Excel (.xlsx) and ask about it. `src/main/file-extract.js` extracts text in MAIN (renderer is sandboxed) via pdf-parse (`PDFParse.getText`), mammoth, xlsx; IPC `files:extractText`; renderer stores result as a text attachment. 100k char cap. Plain text/code/CSV already worked via direct read. All local.
 - **Connectors (desktop):** MCP. GitHub connector, encrypted tokens, "+" menu in composer, Connectors page, coding tip. End-to-end GitHub read/write NOT fully tested live.
 - **Single-file HTML system prompt:** model told to inline CSS/JS (no external files) so previews render. All 3 surfaces.
 - **Auto-scroll:** only sticks to bottom if user is already near bottom; sending forces scroll. Web + mobile.
