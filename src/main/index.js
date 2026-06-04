@@ -381,16 +381,15 @@ ipcMain.handle('chat:send', async (event, { model, messages }) => {
   // actually needs a tool. Normal chat streams directly from Ollama token-by-
   // token, so it feels instant instead of hanging until the full answer is ready.
   const lastUser = [...fullMessages].reverse().find((m) => m.role === 'user');
-  const userText = (lastUser?.content || '').toLowerCase();
-  const TOOL_TRIGGERS = [
-    /\b(stock|share)\s*(price|cost|value|quote)/, /\b(weather|forecast|temperature|rain)\b/,
-    /\b(news|headlines?|what'?s happening)\b/, /\b(latest|breaking|today'?s|tonight'?s)\b/,
-    /\b(price of|cost of|how much is|how much does)\b/, /\b(who (won|is winning|is the (ceo|president|prime minister)))\b/,
-    /\b(calculate|compute|what'?s|whats)\b.*[\d+\-*/^%]/, /\b(current|right now)\b.*\b(time|date|day)\b/,
-  ];
-  const needsTools = userText.length > 2 && TOOL_TRIGGERS.some((r) => r.test(userText));
+  const userText = lastUser?.content || '';
 
-  if (agent.isEnabled() && needsTools) {
+  // SOTA native tool-calling: when tools are enabled, route through the agent loop
+  // and let the MODEL decide whether (and which) tool to call via Ollama's native
+  // tools API. No keyword regex — Gemma 4 / Qwen have native function calling and
+  // pick the tool (or none) themselves, which is more reliable and general than
+  // pattern-matching. The agent loop has its own plain-text fallback when a small
+  // model mis-formats a tool call, so non-tool questions still answer normally.
+  if (agent.isEnabled()) {
     try {
       const content = await agent.runAgent({ model, messages: fullMessages });
       mainWindow?.webContents.send('chat:stream', { content: content || '', done: false });

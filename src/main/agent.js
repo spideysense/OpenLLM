@@ -51,6 +51,24 @@ async function runAgent({ model, messages }) {
   const enabled = toolSettings.getEnabledToolNames();
   const toolDefs = tools.getToolDefinitions(enabled);
 
+  // Deterministic URL pre-fetch: if the user pasted a link, read it directly and
+  // inject the content, rather than hoping the model calls fetch_url. For YouTube
+  // this returns title/channel/description. (Pasted-link intent is unambiguous, so
+  // we don't leave it to model choice.)
+  try {
+    const lastUser = [...messages].reverse().find((m) => m.role === 'user');
+    const urlMatch = (lastUser?.content || '').match(/https?:\/\/[^\s)]+/);
+    if (urlMatch) {
+      const pageText = await tools.runFetchUrl({ url: urlMatch[0] });
+      if (pageText && !/^Could not fetch/.test(pageText)) {
+        const block = `\n\n--- Content fetched from ${urlMatch[0]} ---\n${pageText}\n--- End of fetched content ---\n\nUse the fetched content above to answer the user's question about this link. If it's a YouTube video you have its title/channel/description but cannot see the footage — be honest about that.`;
+        messages = messages[0]?.role === 'system'
+          ? [{ ...messages[0], content: messages[0].content + block }, ...messages.slice(1)]
+          : [{ role: 'system', content: `You are a helpful assistant.${block}` }, ...messages];
+      }
+    }
+  } catch {}
+
   // Some models do NOT support OpenAI-style tool-calling. Sending them a `tools`
   // param makes Ollama return empty/garbled content → "Sorry, I could not generate
   // a response." Detect those and treat them as plain chat. deepseek-r1 is a
