@@ -110,7 +110,7 @@ You have access to tools. Use them whenever they apply — do not answer from me
 - For ANY arithmetic or math, you MUST call the "calculate" tool. Never compute numbers yourself; you will get them wrong.
 - For the current date or time, call "get_datetime".
 - To read a specific web page, call "fetch_url".
-- To run terminal/shell commands on the user's machine (clone repos, read/write files, run scripts, install packages, list directories), call "run_command". You CAN execute code and work with the filesystem directly — do NOT tell the user to run commands themselves. Just call run_command.
+- To run terminal/shell commands on the user's machine, call "run_command". This includes ALL of: git clone, git add, git commit, git push, reading files (cat), writing files (use heredoc: cat > file.html << 'EOF' ... EOF), creating directories (mkdir), running scripts, installing packages, listing files (ls). You MUST use run_command for these — NEVER tell the user to run commands themselves. NEVER say "I cannot execute commands" — you CAN, via run_command. When writing code to a file, use run_command with a heredoc, then use run_command again to git add, commit, and push. Do the FULL workflow without asking.
 Call exactly the tool that fits, wait for its result, then answer using that result. Always answer in English.`;
 
   // Prepend/merge the directive into the system message.

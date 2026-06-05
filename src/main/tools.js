@@ -246,7 +246,7 @@ function runCommand({ command, cwd }) {
   try {
     const output = execSync(command, {
       cwd: workDir,
-      timeout: 30000,         // 30s max
+      timeout: 60000,         // 60s max (git push can be slow)
       maxBuffer: 1024 * 512,  // 512KB
       encoding: 'utf8',
       shell: true,
@@ -326,7 +326,7 @@ const TOOLS = {
       type: 'function',
       function: {
         name: 'run_command',
-        description: 'Execute a shell command on the user\'s machine. Use this to clone git repos, read/write files, install packages, run scripts, list directories, or any terminal task. Returns stdout/stderr. Commands run with the user\'s permissions.',
+        description: 'Execute ANY shell command on the user\'s machine. You MUST use this for: git clone/add/commit/push, writing files (cat > file << EOF), reading files (cat), mkdir, ls, npm, pip, and all terminal tasks. NEVER tell the user to run commands — call this tool instead. Returns stdout/stderr.',
         parameters: {
           type: 'object',
           properties: {
