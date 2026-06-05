@@ -38,8 +38,14 @@ async function getInstance() {
   loading = true;
 
   try {
-    // Dynamically import from CDN
-    const { PiperTTSSession } = await import(/* @vite-ignore */ CDN + 'index.js');
+    // Dynamically import from CDN. NOTE: the published package's entry is
+    // dist/piper-tts-web.js (its package.json "module"/"exports" point there);
+    // there is no dist/index.js, so the old path 404'd. TTS is an OPTIONAL feature
+    // — if the CDN/import fails for any reason we swallow it so it can never break
+    // chat or spam the console. Voice can be revisited (and self-hosted) later.
+    const mod = await import(/* @vite-ignore */ CDN + 'piper-tts-web.js');
+    const PiperTTSSession = mod.PiperTTSSession || mod.default?.PiperTTSSession;
+    if (!PiperTTSSession) throw new Error('TTS module shape unexpected');
 
     const session = new PiperTTSSession({
       wasmPath: CDN + 'piper_phonemize.js',

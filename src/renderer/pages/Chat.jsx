@@ -185,16 +185,14 @@ export default function Chat() {
     const unsub = bridge.chat.onStream((chunk) => {
       if (chunk.done) {
         setIsStreaming(false);
-        // Capture buffer content before clearing
-        let finalContent = '';
+        // Read the accumulated buffer via the functional updater, capture it,
+        // commit the assistant message in the SAME pass, then clear. The old code
+        // assigned finalContent inside the updater and read it in a setTimeout
+        // before the updater had run → intermittent EMPTY assistant bubbles.
         setStreamBuffer((prev) => {
-          finalContent = prev + (chunk.content || '');
-          return '';
-        });
-        // Use setTimeout to ensure buffer state is settled
-        setTimeout(() => {
-          setConversations((prev) =>
-            prev.map((c) =>
+          const finalContent = prev + (chunk.content || '');
+          setConversations((cs) =>
+            cs.map((c) =>
               c.id === activeConvo
                 ? {
                     ...c,
@@ -204,35 +202,30 @@ export default function Chat() {
                 : c
             )
           );
-        }, 0);
-        // Speak response in voice mode
-        if (voiceModeRef.current && chunk.done) {
-          const fullText = buf + (chunk.content || '');
-          const sentences = tts.splitIntoSentences(fullText);
-          if (sentences.length > 0) {
-            setIsSpeaking(true);
-            (async () => {
-              for (const sentence of sentences) {
-                if (!voiceModeRef.current) break;
-                await tts.speak(sentence);
-              }
-              setIsSpeaking(false);
-              // Auto-listen again after speaking
-              if (voiceModeRef.current) {
-                setTimeout(() => startListening(), 500);
-              }
-            })();
+          if (voiceModeRef.current) {
+            const sentences = tts.splitIntoSentences(finalContent);
+            if (sentences.length > 0) {
+              setIsSpeaking(true);
+              (async () => {
+                for (const sentence of sentences) {
+                  if (!voiceModeRef.current) break;
+                  await tts.speak(sentence);
+                }
+                setIsSpeaking(false);
+                if (voiceModeRef.current) setTimeout(() => startListening(), 500);
+              })();
+            }
           }
-        }
+          return '';
+        });
 
-        // Increment savings counter
         setTotalExchanges((prev) => {
           const next = prev + 1;
           bridge?.store.set('totalExchanges', next).catch(() => {});
           return next;
         });
       } else {
-        setStreamBuffer((prev) => prev + chunk.content);
+        setStreamBuffer((prev) => prev + (chunk.content || ''));
       }
     });
     return unsub;
