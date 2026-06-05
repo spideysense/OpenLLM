@@ -5,7 +5,7 @@ import ReplaceWizard from './ReplaceWizard';
 
 export default function Settings() {
   const [section, setSection] = useState('system');
-  const { bridge, systemInfo, hardwareTier, ollamaStatus, gatewayStatus, models } = useApp();
+  const { bridge, systemInfo, hardwareTier, ollamaStatus, gatewayStatus, models, activeModel } = useApp();
   const [aliases, setAliases] = useState({});
   const [editingAlias, setEditingAlias] = useState(null);
   const [saved, setSaved] = useState(false);
@@ -32,6 +32,7 @@ export default function Settings() {
     calculate: { icon: '🧮', title: 'Calculator', desc: 'Evaluate math expressions.' },
     get_datetime: { icon: '🕐', title: 'Date & Time', desc: 'Tell the assistant the current date, time, and timezone.' },
     fetch_url: { icon: '🌐', title: 'Read Web Page', desc: 'Fetch and read the text of a specific URL — from your machine.' },
+    run_command: { icon: '💻', title: 'Run Commands', desc: 'Execute shell commands — clone repos, read/write files, run scripts. Works best with 12B+ models.' },
   };
 
   useEffect(() => {
@@ -82,12 +83,25 @@ export default function Settings() {
             All tools are on by default.
           </p>
 
-          {/* Model-quality warning */}
-          <div style={{ background: 'rgba(212,160,23,0.12)', border: '1px solid rgba(212,160,23,0.35)', borderRadius: 8, padding: '10px 14px', marginBottom: 18, fontSize: 12.5, color: 'var(--earth)', lineHeight: 1.5 }}>
-            ⚠️ Tool use works best with larger models. On smaller models (≈7B and under),
-            the assistant may occasionally skip a tool or pick the wrong one. If results feel
-            unreliable, try a bigger model in the Models tab.
-          </div>
+          {/* Model-quality warning — dynamic based on active model */}
+          {(() => {
+            const m = (activeModel || '').toLowerCase();
+            const isSmall = m.includes('e4b') || m.includes('e2b') || m.includes(':3b') || m.includes(':1b') || m.includes(':7b') || m.includes(':8b');
+            const isRecommended = m.includes(':12b') || m.includes(':14b') || m.includes(':26b') || m.includes(':32b') || m.includes('scout');
+            if (isSmall) return (
+              <div style={{ background: 'rgba(220,53,69,0.10)', border: '1px solid rgba(220,53,69,0.35)', borderRadius: 8, padding: '10px 14px', marginBottom: 18, fontSize: 12.5, color: '#8b1a2b', lineHeight: 1.5 }}>
+                ⚠️ Your current model <strong>{activeModel}</strong> is too small for reliable tool use. The model may refuse to call tools or make things up instead.
+                Switch to <strong>Gemma 4 12B</strong> or <strong>Qwen 3 14B</strong> in the Models tab for tools to work properly.
+              </div>
+            );
+            return (
+              <div style={{ background: isRecommended ? 'rgba(40,167,69,0.10)' : 'rgba(212,160,23,0.12)', border: `1px solid ${isRecommended ? 'rgba(40,167,69,0.35)' : 'rgba(212,160,23,0.35)'}`, borderRadius: 8, padding: '10px 14px', marginBottom: 18, fontSize: 12.5, color: isRecommended ? '#155724' : 'var(--earth)', lineHeight: 1.5 }}>
+                {isRecommended ? '✅' : '⚠️'} {isRecommended
+                  ? `${activeModel} — good choice for tool calling.`
+                  : `Tool use works best with 12B+ models. Your current model may occasionally skip a tool. Try a bigger model in the Models tab if results feel unreliable.`}
+              </div>
+            );
+          })()}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {toolStates.map((t) => {
