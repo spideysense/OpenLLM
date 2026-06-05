@@ -443,6 +443,8 @@ html, body, #root {
   font-size: 14px;
   line-height: 1.65;
   word-break: break-word;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .chat-message.assistant .chat-bubble {
@@ -780,7 +782,7 @@ html, body, #root {
 .connector-link { margin-top: .7rem; background: none; border: none; color: #C0392B; font-size: .78rem; cursor: pointer; padding: 0; text-decoration: underline; }
 
 /* ── Code artifacts ── */
-.artifact { border: 1px solid var(--border, rgba(0,0,0,.1)); border-radius: 12px; overflow: hidden; margin: .6rem 0; background: var(--surface, #fff); }
+.artifact { border: 1px solid var(--border, rgba(0,0,0,.1)); border-radius: 12px; overflow: hidden; margin: .6rem 0; background: var(--surface, #fff); max-width: 100%; box-sizing: border-box; }
 .artifact-head { display: flex; justify-content: space-between; align-items: center; padding: .4rem .7rem; background: rgba(0,0,0,.04); border-bottom: 1px solid var(--border, rgba(0,0,0,.08)); }
 .artifact-lang { font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--text-light, #6E6E73); }
 .artifact-actions { display: flex; gap: .35rem; }
