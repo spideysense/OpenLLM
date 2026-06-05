@@ -1,7 +1,7 @@
 {
   "schema_version": 3,
-  "updated": "2026-06-01",
-  "changelog": "v3.2: All tags verified against official ollama.com/library tag pages. Sizes corrected to match.",
+  "updated": "2026-06-05",
+  "changelog": "v3.3: Added Gemma 4 12B (June 3 release). Encoder-free multimodal, 256K context, Apache 2.0. New recommended for medium tier.",
   "hardware_tiers": {
     "light": {
       "label": "Light",
@@ -93,6 +93,15 @@
       "min_tier": "heavy",
       "tool_support": true,
       "why": "GPT-4-class quality with a mature tool-calling ecosystem. Great for complex tasks."
+    },
+    {
+      "model": "gemma4:12b",
+      "name": "Gemma 4 12B",
+      "provider": "Google",
+      "download_gb": 7.6,
+      "min_tier": "medium",
+      "tool_support": true,
+      "why": "Encoder-free multimodal (text, image, audio), 256K context, Apache 2.0. The new sweet spot for 16GB machines."
     },
     {
       "model": "qwen3:14b",
