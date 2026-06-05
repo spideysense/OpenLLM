@@ -48,7 +48,7 @@ async function _pullModelInner(modelName, onProgress, allowRetry) {
         onProgress({ status: 'Updating engine for this model...', completed: 0, total: 0, percent: 0 });
         try {
           const ollama = require('./ollama');
-          const result = await ollama.ensureCurrent((msg) => onProgress({ status: msg, completed: 0, total: 0, percent: 0 }));
+          const result = await ollama.ensureCurrent((msg) => onProgress({ status: msg, completed: 0, total: 0, percent: 0 }), { force: true });
           if (result.success) return _pullModelInner(modelName, onProgress, false);
         } catch {}
         return { success: false, error: 'Could not update engine. Please restart Aspen and try again.' };
@@ -83,7 +83,7 @@ async function _pullModelInner(modelName, onProgress, allowRetry) {
               onProgress({ status: 'Updating engine for this model...', completed: 0, total: 0, percent: 0 });
               try {
                 const ollama = require('./ollama');
-                const result = await ollama.ensureCurrent((msg) => onProgress({ status: msg, completed: 0, total: 0, percent: 0 }));
+                const result = await ollama.ensureCurrent((msg) => onProgress({ status: msg, completed: 0, total: 0, percent: 0 }), { force: true });
                 if (result.success) return _pullModelInner(modelName, onProgress, false);
                 return { success: false, error: 'Could not update engine. Please restart Aspen and try again.' };
               } catch (updateErr) {

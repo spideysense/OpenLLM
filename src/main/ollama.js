@@ -353,10 +353,10 @@ async function install() {
 // If the running Ollama is too old for the latest models, download the newest
 // Ollama ourselves, stop the old server, and start the new one. Invisible.
 // ═══════════════════════════════════════════════════
-async function ensureCurrent(onProgress) {
+async function ensureCurrent(onProgress, { force = false } = {}) {
   const notify = onProgress || (() => {});
-  // Already current? Nothing to do.
-  if (await isCurrentEnough()) return { success: true, upgraded: false };
+  // Already current? Nothing to do — unless a pull explicitly told us otherwise.
+  if (!force && await isCurrentEnough()) return { success: true, upgraded: false };
 
   notify('Updating AI engine…');
   try {
