@@ -116,18 +116,10 @@ function start() {
         return;
       }
 
-      // ── Agent loop: ONLY for messages that need tools/real-time data ──
-      // Tool-needing queries go through the agent (which must think first, so it
-      // can't stream). Everything else falls through to the direct Ollama path
-      // below, which pipes tokens through in real time.
-      if (req.method === 'POST' && req.url.includes('/chat/completions') && agent.isEnabled()) {
-        let parsed;
-        try { parsed = JSON.parse(body); } catch { parsed = null; }
-        if (parsed && Array.isArray(parsed.messages) && messageNeedsTools(parsed.messages)) {
-          handleAgentChat(parsed, res);
-          return;
-        }
-      }
+      // Gateway always streams directly through Ollama for reliable real-time
+      // responses. Tool execution (web_search, calculate) is handled by the
+      // desktop IPC path (index.js → agent.js), not the gateway. The non-streaming
+      // agent path caused timeouts for web/mobile clients on long responses.
 
       // POST /v1/chat/completions → Ollama /v1/chat/completions (native support)
       // Ollama already handles /v1/* routes natively
