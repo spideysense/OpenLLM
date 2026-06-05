@@ -196,8 +196,10 @@ export default async function handler(req) {
     try {
       return await Promise.race([
         (async () => {
-          const regexHit = SEARCH_TRIGGERS.some(r => r.test(userText));
-          const shouldSearch = regexHit || await classifierNeedsSearch(
+          // Use only the LLM classifier (not keyword regex) to decide if search is
+          // needed. Regex caused false positives on code-gen prompts containing
+          // trigger words like "weather" or "news" — the user wanted code, not data.
+          const shouldSearch = await classifierNeedsSearch(
             userText, tunnelUrl.replace(/\/+$/, ''), apiKey, model || 'llama3'
           );
           if (shouldSearch) {
