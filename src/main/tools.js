@@ -69,18 +69,27 @@ async function runSearch(args) {
     const html = await fetchText(
       `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}&kl=us-en`
     );
+
+    // Parse per result block. DDG groups each hit under a container that holds a
+    // .result__a (title+link) and a .result__snippet. We split on the result
+    // boundary and pull each piece out INDEPENDENTLY, so a change in element
+    // order or extra attributes can't break extraction (the old single combined
+    // regex required an exact title→snippet ordering and silently matched 0).
     const results = [];
-    const re = /<a[^>]*class="result__a"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<a[^>]*class="result__snippet"[^>]*>([\s\S]*?)<\/a>/g;
-    let m;
-    while ((m = re.exec(html)) && results.length < 6) {
-      const title = htmlToText(m[2]);
-      const snippet = htmlToText(m[3]);
-      let link = m[1];
-      // DDG wraps links in a redirect; pull out the real uddg= target
+    const blocks = html.split(/class="result[ "]/).slice(1);
+    for (const block of blocks) {
+      if (results.length >= 6) break;
+      const titleM = block.match(/result__a[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/);
+      const snipM = block.match(/result__snippet[^>]*>([\s\S]*?)<\/a>/);
+      if (!titleM) continue;
+      const title = htmlToText(titleM[2]);
+      let link = titleM[1];
       const uddg = link.match(/uddg=([^&]+)/);
       if (uddg) { try { link = decodeURIComponent(uddg[1]); } catch {} }
+      const snippet = snipM ? htmlToText(snipM[1]) : '';
       if (title) results.push({ title, snippet, link });
     }
+
     if (results.length === 0) return `No results found for "${query}".`;
     return results
       .map((r, i) => `[${i + 1}] ${r.title}\n${r.snippet}\n${r.link}`)
