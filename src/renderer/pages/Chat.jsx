@@ -823,11 +823,30 @@ function MessageContent({ content, onOpenArtifact }) {
   return (
     <>
       {parts.map((part, i) => {
-        if (part.startsWith('```')) {
+        if (part.startsWith('```') && part.endsWith('```')) {
           const lines = part.slice(3, -3).split('\n');
           const lang = lines[0]?.trim() || '';
           const code = lang ? lines.slice(1).join('\n') : lines.join('\n');
           return <CodeBlock key={i} lang={lang} code={code} onOpenArtifact={onOpenArtifact} />;
+        }
+        // Unclosed code fence (still streaming)
+        if (part.includes('```')) {
+          const fenceIdx = part.lastIndexOf('```');
+          const before = part.slice(0, fenceIdx);
+          const after = part.slice(fenceIdx + 3);
+          const lines = after.split('\n');
+          const lang = lines[0]?.trim() || '';
+          const code = lang ? lines.slice(1).join('\n') : lines.join('\n');
+          const norm = normLang(lang, code);
+          return <React.Fragment key={i}>
+            {before && <InlineText text={before} />}
+            <div className="artifact" style={{ opacity: 0.85 }}>
+              <div className="artifact-head">
+                <span className="artifact-lang">{norm || 'code'} · generating...</span>
+              </div>
+              <pre className="artifact-code" style={{ maxHeight: 200, overflow: 'hidden' }}><code>{code.slice(-800)}</code></pre>
+            </div>
+          </React.Fragment>;
         }
         // Parse inline formatting into React elements (no dangerouslySetInnerHTML)
         return <InlineText key={i} text={part} />;

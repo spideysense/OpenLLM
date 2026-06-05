@@ -866,6 +866,24 @@ function formatMessage(text){
     blocks.push(html);
     return `\u0000ARTIFACT${blocks.length-1}\u0000`;
   });
+  // Handle unclosed code fence (still streaming) — show as a live artifact block
+  const unclosed=src.match(/```([\w]*)\n?([\s\S]*)$/);
+  if(unclosed){
+    const before=src.slice(0,unclosed.index);
+    const code=unclosed[2]||'';
+    let l=(unclosed[1]||'').toLowerCase();
+    if(!l||l==='text'){
+      const head=code.trimStart().slice(0,200).toLowerCase();
+      if(head.startsWith('<!doctype html')||head.startsWith('<html')||head.includes('<body'))l='html';
+      else if(head.startsWith('<svg'))l='svg';
+    }
+    const html=`<div class="artifact" style="opacity:.85">`
+      +`<div class="artifact-head"><span class="artifact-lang">${l||'code'} · generating...</span></div>`
+      +`<pre class="artifact-code" style="max-height:200px;overflow:hidden"><code>${escHtml(code.slice(-800))}</code></pre>`
+      +`</div>`;
+    blocks.push(html);
+    src=before+`\u0000ARTIFACT${blocks.length-1}\u0000`;
+  }
   let h=escHtml(src);
   h=h.replace(/`([^`\n]+)`/g,'<code>$1</code>');
   h=h.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
