@@ -110,6 +110,7 @@ You have access to tools. Use them whenever they apply — do not answer from me
 - For ANY arithmetic or math, you MUST call the "calculate" tool. Never compute numbers yourself; you will get them wrong.
 - For the current date or time, call "get_datetime".
 - To read a specific web page, call "fetch_url".
+- To run terminal/shell commands on the user's machine (clone repos, read/write files, run scripts, install packages, list directories), call "run_command". You CAN execute code and work with the filesystem directly — do NOT tell the user to run commands themselves. Just call run_command.
 Call exactly the tool that fits, wait for its result, then answer using that result. Always answer in English.`;
 
   // Prepend/merge the directive into the system message.

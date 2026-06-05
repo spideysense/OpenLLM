@@ -233,6 +233,35 @@ function decodeEntities(s) {
 }
 
 // ═══════════════════════════════════════════════════
+// TOOL: run_command — execute a shell command on the user's machine
+// ═══════════════════════════════════════════════════
+
+const { execSync } = require('child_process');
+const os = require('os');
+const path = require('path');
+
+function runCommand({ command, cwd }) {
+  if (!command || typeof command !== 'string') return 'Error: command is required';
+  const workDir = cwd || os.homedir();
+  try {
+    const output = execSync(command, {
+      cwd: workDir,
+      timeout: 30000,         // 30s max
+      maxBuffer: 1024 * 512,  // 512KB
+      encoding: 'utf8',
+      shell: true,
+      env: { ...process.env, HOME: os.homedir(), PATH: process.env.PATH },
+    });
+    const trimmed = output.length > 50000 ? output.slice(0, 50000) + '\n... (truncated)' : output;
+    return trimmed || '(no output)';
+  } catch (e) {
+    // Include both stdout and stderr from failed commands
+    const out = (e.stdout || '') + (e.stderr || '');
+    return `Exit code ${e.status || 1}:\n${out || e.message}`.slice(0, 50000);
+  }
+}
+
+// ═══════════════════════════════════════════════════
 // Registry — definitions (sent to the model) + runners
 // ═══════════════════════════════════════════════════
 const TOOLS = {
@@ -291,6 +320,24 @@ const TOOLS = {
       },
     },
     run: runFetchUrl,
+  },
+  run_command: {
+    definition: {
+      type: 'function',
+      function: {
+        name: 'run_command',
+        description: 'Execute a shell command on the user\'s machine. Use this to clone git repos, read/write files, install packages, run scripts, list directories, or any terminal task. Returns stdout/stderr. Commands run with the user\'s permissions.',
+        parameters: {
+          type: 'object',
+          properties: {
+            command: { type: 'string', description: 'The shell command to run, e.g. "git clone https://..." or "ls -la" or "cat file.txt"' },
+            cwd: { type: 'string', description: 'Working directory (defaults to home directory)' },
+          },
+          required: ['command'],
+        },
+      },
+    },
+    run: runCommand,
   },
 };
 
