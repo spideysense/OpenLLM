@@ -29,6 +29,10 @@ async function listModels() {
 // ═══════════════════════════════════════════════════
 
 async function pullModel(modelName, onProgress) {
+  return _pullModelInner(modelName, onProgress, true);
+}
+
+async function _pullModelInner(modelName, onProgress, allowRetry) {
   try {
     const res = await fetch(`${OLLAMA_HOST}/api/pull`, {
       method: 'POST',
@@ -36,9 +40,23 @@ async function pullModel(modelName, onProgress) {
       body: JSON.stringify({ name: modelName, stream: true }),
     });
 
+    // 412 = Ollama too old for this model. Auto-update and retry.
+    if (res.status === 412 && allowRetry) {
+      onProgress({ status: 'Updating engine for this model...', completed: 0, total: 0, percent: 0 });
+      try {
+        const ollama = require('./ollama');
+        const result = await ollama.ensureCurrent((msg) => onProgress({ status: msg, completed: 0, total: 0, percent: 0 }));
+        if (result.success) return _pullModelInner(modelName, onProgress, false);
+        return { success: false, error: 'Could not update engine. Please restart Aspen and try again.' };
+      } catch (updateErr) {
+        return { success: false, error: `Could not update engine: ${updateErr.message}. Please restart Aspen and try again.` };
+      }
+    }
+
     if (!res.ok) {
       const err = await res.text();
-      throw new Error(err);
+      // Never show "Ollama" to the user
+      throw new Error(err.replace(/[Oo]llama/g, 'engine'));
     }
 
     const reader = res.body.getReader();
@@ -57,8 +75,22 @@ async function pullModel(modelName, onProgress) {
         try {
           const json = JSON.parse(line);
           // Ollama streams errors as {"error":"..."} with HTTP 200, then closes.
-          // Without this check the loop just ends and we'd falsely report success.
-          if (json.error) { lastError = json.error; continue; }
+          if (json.error) {
+            // Auto-update on version error streamed as JSON
+            if (allowRetry && json.error.includes('requires a newer version')) {
+              onProgress({ status: 'Updating engine for this model...', completed: 0, total: 0, percent: 0 });
+              try {
+                const ollama = require('./ollama');
+                const result = await ollama.ensureCurrent((msg) => onProgress({ status: msg, completed: 0, total: 0, percent: 0 }));
+                if (result.success) return _pullModelInner(modelName, onProgress, false);
+                return { success: false, error: 'Could not update engine. Please restart Aspen and try again.' };
+              } catch (updateErr) {
+                return { success: false, error: 'Could not update engine. Please restart Aspen and try again.' };
+              }
+            }
+            lastError = json.error.replace(/[Oo]llama/g, 'engine');
+            continue;
+          }
           if (json.status === 'success') sawSuccess = true;
           onProgress({
             status: json.status || '',
@@ -75,7 +107,7 @@ async function pullModel(modelName, onProgress) {
     if (lastError) return { success: false, error: lastError };
     return { success: true };
   } catch (err) {
-    return { success: false, error: err.message };
+    return { success: false, error: err.message.replace(/[Oo]llama/g, 'engine') };
   }
 }
 
