@@ -19,7 +19,7 @@ const MAX_TOOL_ROUNDS = 4; // safety cap so a confused model can't loop forever
 // One non-streaming call to Ollama's OpenAI-compatible endpoint.
 function ollamaChat(payload) {
   return new Promise((resolve, reject) => {
-    const body = JSON.stringify({ ...payload, stream: false, max_tokens: 32768 });
+    const body = JSON.stringify({ ...payload, stream: false, max_tokens: 131072, options: { num_predict: -1 } });
     const req = http.request(
       {
         hostname: OLLAMA_HOST,
