@@ -95,6 +95,11 @@ function start() {
               changed = true;
             }
           }
+          // Ensure generous token limit so long code responses don't truncate
+          if (req.url.includes('chat/completions') && !parsed.max_tokens) {
+            parsed.max_tokens = 32768;
+            changed = true;
+          }
           if (changed) body = JSON.stringify(parsed);
         } catch {
           // Not JSON or no model field — pass through
