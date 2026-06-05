@@ -143,7 +143,20 @@ function getHardwareTier() {
   return 'light';
 }
 
+// Recommended Ollama context window based on available hardware.
+// Ollama defaults to 2048 which truncates code gen. We scale with RAM.
+function getRecommendedContext() {
+  const tier = getHardwareTier();
+  switch (tier) {
+    case 'ultra':  return 65536;  // 64k — plenty of room
+    case 'heavy':  return 32768;  // 32k
+    case 'medium': return 16384;  // 16k
+    default:       return 8192;   // 8k — safe for 8GB machines
+  }
+}
+
 module.exports = {
   getSystemInfo,
   getHardwareTier,
+  getRecommendedContext,
 };

@@ -2,6 +2,7 @@ const http = require('http');
 const apikeys = require('./apikeys');
 const aliases = require('./aliases');
 const agent = require('./agent');
+const system = require('./system');
 
 const OLLAMA_HOST = '127.0.0.1';
 const OLLAMA_PORT = 11434;
@@ -97,11 +98,12 @@ function start() {
           }
           // Ensure generous token limit so long code responses don't truncate
           if (req.url.includes('chat/completions')) {
-            if (!parsed.max_tokens) parsed.max_tokens = 32768;
+            const ctx = system.getRecommendedContext();
+            if (!parsed.max_tokens) parsed.max_tokens = ctx;
             // Ollama defaults num_ctx to 2048 — far too small for code gen.
-            // Bump to 32k so the model has room for both prompt and response.
+            // Scale to hardware so the model has room for both prompt and response.
             if (!parsed.options) parsed.options = {};
-            if (!parsed.options.num_ctx) parsed.options.num_ctx = 32768;
+            if (!parsed.options.num_ctx) parsed.options.num_ctx = ctx;
             changed = true;
           }
           if (changed) body = JSON.stringify(parsed);

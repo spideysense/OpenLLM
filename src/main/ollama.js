@@ -3,6 +3,7 @@ const { app } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const https = require('https');
+const system = require('./system');
 const http = require('http');
 const os = require('os');
 const { runFetchUrl } = require('./tools');
@@ -509,7 +510,7 @@ async function chat(model, messages, onChunk) {
     const res = await fetch(`${OLLAMA_HOST}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, messages: enrichedMessages, stream: true, options: { num_predict: -1, num_ctx: 32768 } }),
+      body: JSON.stringify({ model, messages: enrichedMessages, stream: true, options: { num_predict: -1, num_ctx: system.getRecommendedContext() } }),
       signal: chatController.signal,
     });
 

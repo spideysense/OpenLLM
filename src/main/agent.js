@@ -11,6 +11,7 @@
 const http = require('http');
 const tools = require('./tools');
 const toolSettings = require('./tool-settings');
+const system = require('./system');
 
 const OLLAMA_HOST = '127.0.0.1';
 const OLLAMA_PORT = 11434;
@@ -19,7 +20,8 @@ const MAX_TOOL_ROUNDS = 4; // safety cap so a confused model can't loop forever
 // One non-streaming call to Ollama's OpenAI-compatible endpoint.
 function ollamaChat(payload) {
   return new Promise((resolve, reject) => {
-    const body = JSON.stringify({ ...payload, stream: false, max_tokens: 131072, options: { num_predict: -1, num_ctx: 32768 } });
+    const ctx = system.getRecommendedContext();
+    const body = JSON.stringify({ ...payload, stream: false, max_tokens: ctx, options: { num_predict: -1, num_ctx: ctx } });
     const req = http.request(
       {
         hostname: OLLAMA_HOST,
