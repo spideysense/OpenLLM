@@ -509,7 +509,7 @@ async function chat(model, messages, onChunk) {
     const res = await fetch(`${OLLAMA_HOST}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, messages: enrichedMessages, stream: true, options: { num_predict: -1 } }),
+      body: JSON.stringify({ model, messages: enrichedMessages, stream: true, options: { num_predict: -1, num_ctx: 32768 } }),
       signal: chatController.signal,
     });
 

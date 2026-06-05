@@ -96,8 +96,12 @@ function start() {
             }
           }
           // Ensure generous token limit so long code responses don't truncate
-          if (req.url.includes('chat/completions') && !parsed.max_tokens) {
-            parsed.max_tokens = 32768;
+          if (req.url.includes('chat/completions')) {
+            if (!parsed.max_tokens) parsed.max_tokens = 32768;
+            // Ollama defaults num_ctx to 2048 — far too small for code gen.
+            // Bump to 32k so the model has room for both prompt and response.
+            if (!parsed.options) parsed.options = {};
+            if (!parsed.options.num_ctx) parsed.options.num_ctx = 32768;
             changed = true;
           }
           if (changed) body = JSON.stringify(parsed);
