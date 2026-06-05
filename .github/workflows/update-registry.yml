@@ -1,0 +1,30 @@
+name: Update Model Registry
+
+on:
+  schedule:
+    - cron: '0 9 * * 1'  # Every Monday at 9am UTC
+  workflow_dispatch: {}    # Manual trigger
+
+jobs:
+  update-registry:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Check Ollama for new models
+        run: node scripts/update-registry.js
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "Aspen Bot"
+          git config user.email "bot@runonaspen.com"
+          git diff --quiet registry/models.json && echo "No changes" && exit 0
+          git add registry/models.json
+          git commit -m "Auto-update model registry — new models detected from Ollama"
+          git push
