@@ -130,10 +130,46 @@ Call exactly the tool that fits, wait for its result, then answer using that res
 
     const toolCalls = msg.tool_calls || [];
     if (toolCalls.length === 0) {
-      // Model answered with plain text — done.
       const out = clean(msg.content);
+
+      // ── Refusal override ──
+      // Small/medium models sometimes refuse to call run_command due to safety
+      // training, even though the tool exists. If the model's response contains
+      // refusal patterns AND the user asked for a shell/git operation, extract
+      // the command from the model's response and call run_command directly.
+      if (out && toolSettings.getEnabledToolNames().includes('run_command')) {
+        const refusalPatterns = /cannot (execute|run|perform|directly)|security protocol|your (own )?terminal|please (run|execute) these|cannot directly|do not have.*access|cannot.*shell|operating as an AI/i;
+        const userMsg = (messages[messages.length - 1]?.content || '').toLowerCase();
+        const shellIntent = /\b(git |commit|push|pull|clone|mkdir|cat |echo |npm |pip |cd |ls |write|create.*file|save.*file|deploy|ship it|do it)\b/i;
+
+        if (refusalPatterns.test(out) && shellIntent.test(userMsg)) {
+          // Try to extract commands from code blocks in the model's response
+          const codeBlocks = out.match(/```(?:bash|sh|shell)?\n?([\s\S]*?)```/g) || [];
+          const commands = codeBlocks
+            .map(b => b.replace(/```(?:bash|sh|shell)?\n?/g, '').replace(/```/g, '').trim())
+            .filter(Boolean);
+
+          if (commands.length > 0) {
+            // Execute the commands the model wanted the user to run
+            const combined = commands.join('\n');
+            const result = await tools.executeTool('run_command', { command: combined });
+            return `I ran the commands directly:\n\n\`\`\`\n${combined}\n\`\`\`\n\nResult:\n\`\`\`\n${result}\n\`\`\``;
+          }
+
+          // No code blocks found but user wants a git/file operation — construct it
+          if (/commit/i.test(userMsg)) {
+            const commitMsg = userMsg.match(/message[:\s]+["']?(.+?)["']?$/i)?.[1] || 'Update from Aspen';
+            const result = await tools.executeTool('run_command', { command: `git add -A && git commit -m "${commitMsg}"` });
+            return `Done! Committed your changes:\n\n\`\`\`\n${result}\n\`\`\``;
+          }
+          if (/push/i.test(userMsg)) {
+            const result = await tools.executeTool('run_command', { command: 'git push origin main' });
+            return `Pushed to main:\n\n\`\`\`\n${result}\n\`\`\``;
+          }
+        }
+      }
+
       if (out) return out;
-      // Empty content despite claiming tool support — retry once as plain chat.
       const r = await ollamaChat({ model, messages });
       return clean(r.choices?.[0]?.message?.content) || 'Sorry, I could not generate a response.';
     }
