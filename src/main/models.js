@@ -40,22 +40,24 @@ async function _pullModelInner(modelName, onProgress, allowRetry) {
       body: JSON.stringify({ name: modelName, stream: true }),
     });
 
-    // 412 = Ollama too old for this model. Auto-update and retry.
-    if (res.status === 412 && allowRetry) {
-      onProgress({ status: 'Updating engine for this model...', completed: 0, total: 0, percent: 0 });
-      try {
-        const ollama = require('./ollama');
-        const result = await ollama.ensureCurrent((msg) => onProgress({ status: msg, completed: 0, total: 0, percent: 0 }));
-        if (result.success) return _pullModelInner(modelName, onProgress, false);
+    // Engine too old for this model — auto-update and retry.
+    // Ollama sends this as HTTP 412, or as a non-200 with "412" / "newer version" in the body.
+    if (!res.ok && allowRetry) {
+      const errText = await res.text();
+      if (res.status === 412 || errText.includes('412') || errText.includes('newer version')) {
+        onProgress({ status: 'Updating engine for this model...', completed: 0, total: 0, percent: 0 });
+        try {
+          const ollama = require('./ollama');
+          const result = await ollama.ensureCurrent((msg) => onProgress({ status: msg, completed: 0, total: 0, percent: 0 }));
+          if (result.success) return _pullModelInner(modelName, onProgress, false);
+        } catch {}
         return { success: false, error: 'Could not update engine. Please restart Aspen and try again.' };
-      } catch (updateErr) {
-        return { success: false, error: `Could not update engine: ${updateErr.message}. Please restart Aspen and try again.` };
       }
+      throw new Error(errText.replace(/[Oo]llama/g, 'engine'));
     }
 
     if (!res.ok) {
       const err = await res.text();
-      // Never show "Ollama" to the user
       throw new Error(err.replace(/[Oo]llama/g, 'engine'));
     }
 

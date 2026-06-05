@@ -72,13 +72,21 @@ export default function ModelHub() {
 
     if (result.success) {
       const list = await refreshModels();
-      // Only switch to it if it's genuinely installed now.
       const installed = Array.isArray(list)
-        ? list.some((m) => m.name === modelId || m.name.startsWith(modelId.split(':')[0]))
+        ? list.some((m) => m.name === modelId || m.name === modelId.split(':')[0])
         : true;
       if (installed) selectModel(modelId);
     } else {
-      alert(`Couldn't download ${modelId}.\n\n${result.error || 'The model may be unavailable. Try another model.'}`);
+      // Show error inline on the model card instead of a system alert
+      setPulls((prev) => ({
+        ...prev,
+        [modelId]: { progress: 0, status: result.error || 'Download failed. Try again.', error: true },
+      }));
+      setTimeout(() => {
+        setPulls((prev) => { const n = { ...prev }; delete n[modelId]; return n; });
+        delete pullMetaRef.current[modelId];
+      }, 5000);
+      return; // skip the cleanup below — the timeout handles it
     }
 
     // Clear this model's download state (leave any other in-flight downloads alone).
