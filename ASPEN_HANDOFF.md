@@ -15,7 +15,7 @@ Aspen is **private AI that runs on your own hardware**. Free desktop app (Mac/Wi
 
 1. **Rotate exposed credentials** (pasted in chat/screenshots, now compromised):
    - GitHub PAT, Apple app-specific password (`nrac-gska-vrof-kete`), all `sk-aspen-*` keys.
-2. **Revoke the hardcoded iOS reviewer API key** `sk-aspen-usLjpMOWr8F9K6iSYed2_k37Eig0jPVJ` now that Apple approved (it's baked in the shipped iOS app for the reviewer demo).
+2. ~~Revoke the hardcoded iOS reviewer API key~~ **DONE** — removed from source. Key should still be revoked server-side.
 3. **Verify the App Store link is publicly live:** `https://apps.apple.com/app/id6775307566` (used on site + PH; was never confirmed loading).
 4. **Sitemap in Google Search Console:** resolve the www vs non-www mismatch — site redirects `runonaspen.com` → `www.runonaspen.com` but sitemap/canonical declare non-www. Fix in Vercel → Settings → Domains (set non-www primary) OR change sitemap+canonical to www. The file itself is valid.
 5. **Cut the next DMG** to ship all the desktop work below (native tools, vision, artifacts panel, connectors, URL fetch). Released DMG is **v0.4.8** (Apple Silicon only, notarized+stapled). Desktop features below are committed but NOT yet in a released DMG beyond v0.4.8 — check git vs release tag.

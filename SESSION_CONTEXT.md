@@ -29,7 +29,7 @@ Apple Team ID:             S6UBG93XBS
 Mac signing identity:      89FD3F540A60DB7AA00C6E53513820E47546E8B8
 iOS bundle ID:             com.runonaspen.app
 iOS App Store app ID:      6775307566
-iOS reviewer API key:      <REVOKE — sk-aspen-... ; Apple already approved>
+iOS reviewer API key:      REMOVED from source; revoke server-side
 ```
 
 ## How to cut a release (Mac DMG + auto Windows EXE)
@@ -147,7 +147,7 @@ auto-deploys. Desktop renderer/main changes → need a new DMG. **GOTCHA: Mac
 
 ## Outstanding TODO (user — Claude can't do these)
 1. **Rotate** the GitHub PAT + Apple app-specific password (pasted many times).
-2. **Revoke** the iOS reviewer key sk-aspen-usLjpMOWr8F9K6... (Apple approved already).
+2. ~~**Revoke** the iOS reviewer key~~ **DONE** — removed from source. Revoke server-side too.
 3. Verify App Store link loads: https://apps.apple.com/app/id6775307566
 4. Fix sitemap www/non-www in Vercel domain settings for runonaspen.com.
 5. (Optional) Windows code-signing cert to kill the SmartScreen warning.

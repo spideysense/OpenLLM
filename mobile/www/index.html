@@ -46,7 +46,6 @@ body{font-family:var(--san);background:var(--bg);color:var(--bk);-webkit-font-sm
 .pair-logo{display:flex;align-items:center;gap:.5rem;margin-bottom:1.6rem}
 .pair-logo img{height:24px}
 .pair-logo span{font-weight:600;font-size:.95rem;letter-spacing:.06em}
-.review-unlock{margin-top:1rem;padding-top:1rem;border-top:1px dashed var(--brd)}
 .pair-logo{cursor:default;-webkit-user-select:none;user-select:none}
 .pair-tagline{font-family:var(--ser);font-size:1.4rem;line-height:1.2;margin-bottom:.4rem}
 .pair-tagline em{font-style:italic;color:var(--gd)}
@@ -361,11 +360,7 @@ select.settings-select{font-family:var(--san);font-size:.84rem;color:var(--bk);b
     </div>
     <button class="pair-btn" id="connect-btn">Connect to my Aspen</button>
     <div class="pair-err" id="pair-err"></div>
-    <div class="field review-unlock hidden" id="review-unlock">
-      <label>Reviewer access code</label>
-      <input type="text" id="review-code" placeholder="Enter code" autocomplete="off" spellcheck="false">
-      <button class="pair-btn" id="review-btn" style="margin-top:.6rem">Enter demo</button>
-    </div>
+
     <p class="pair-privacy">🔒 We never see your messages or data. <a href="https://runonaspen.com">Learn how →</a></p>
 
     <div class="pair-companion">
@@ -729,38 +724,6 @@ function showApp(){
   loadModels();startStatusCheck();
 }
 
-// ── Reviewer demo unlock (hidden) ──
-// Tap the ASPEN logo 5x to reveal a code field. Correct code connects to the
-// always-on review server. Code is only shared in App Store reviewer notes.
-const REVIEW_CODE = 'aspen-review-2026';
-const REVIEW_TUNNEL = 'https://c5pvto71.runonaspen.com';
-const REVIEW_KEY = 'sk-aspen-usLjpMOWr8F9K6iSYed2_k37Eig0jPVJ';
-let logoTaps = 0, logoTapTimer = null;
-const pairLogo = document.querySelector('.pair-logo');
-if (pairLogo) {
-  pairLogo.addEventListener('click', () => {
-    logoTaps++;
-    clearTimeout(logoTapTimer);
-    logoTapTimer = setTimeout(() => { logoTaps = 0; }, 1200);
-    if (logoTaps >= 5) {
-      logoTaps = 0;
-      $('review-unlock').classList.remove('hidden');
-    }
-  });
-}
-const reviewBtn = $('review-btn');
-if (reviewBtn) {
-  reviewBtn.addEventListener('click', () => {
-    const code = ($('review-code').value || '').trim().toLowerCase();
-    if (code !== REVIEW_CODE) {
-      pairErr.textContent = 'Invalid code.';
-      return;
-    }
-    config = { tunnelUrl: REVIEW_TUNNEL.replace(/\/v1\/?$/, '').replace(/\/+$/, ''), apiKey: REVIEW_KEY };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
-    showApp();
-  });
-}
 
 // Pairing
 connectBtn.addEventListener('click',attemptConnect);
