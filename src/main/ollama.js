@@ -57,104 +57,96 @@ function getOllamaPath() {
 // Silent Download — no browser, no terminal, no user action
 // ═══════════════════════════════════════════════════
 
-// GitHub releases URLs for the actual binaries
+// GitHub releases URLs — try multiple formats since Ollama changes these
 const DOWNLOAD_URLS = {
-  darwin: 'https://github.com/ollama/ollama/releases/latest/download/ollama-darwin.tgz',
-  linux: 'https://github.com/ollama/ollama/releases/latest/download/ollama-linux-amd64.tgz',
-  win32: 'https://github.com/ollama/ollama/releases/latest/download/ollama-windows-amd64.zip',
+  darwin: [
+    'https://github.com/ollama/ollama/releases/latest/download/ollama-darwin.tgz',
+    'https://github.com/ollama/ollama/releases/latest/download/ollama-darwin',
+    'https://github.com/ollama/ollama/releases/latest/download/ollama-darwin-arm64.tgz',
+    'https://github.com/ollama/ollama/releases/latest/download/ollama-darwin-arm64',
+  ],
+  linux: [
+    'https://github.com/ollama/ollama/releases/latest/download/ollama-linux-amd64.tgz',
+    'https://github.com/ollama/ollama/releases/latest/download/ollama-linux-amd64',
+  ],
+  win32: [
+    'https://github.com/ollama/ollama/releases/latest/download/ollama-windows-amd64.zip',
+    'https://github.com/ollama/ollama/releases/latest/download/ollama-windows-amd64.exe',
+  ],
 };
 
-async function downloadOllama(notify) {
+async function downloadOllama(notify, { force = false } = {}) {
   const ext = process.platform === 'win32' ? '.exe' : '';
   const destPath = path.join(BIN_DIR, `ollama${ext}`);
 
-  // Already have it
-  if (fs.existsSync(destPath) && fs.statSync(destPath).size > 1_000_000) {
+  // Already have it — unless we're force-updating after a pull failure
+  if (!force && fs.existsSync(destPath) && fs.statSync(destPath).size > 1_000_000) {
     return destPath;
   }
 
+  // Delete old binary so we get a fresh one
+  try { if (fs.existsSync(destPath)) fs.unlinkSync(destPath); } catch {}
+
   fs.mkdirSync(BIN_DIR, { recursive: true });
 
-  const url = DOWNLOAD_URLS[process.platform];
-  if (!url) throw new Error('Unsupported platform: ' + process.platform);
+  const urls = DOWNLOAD_URLS[process.platform];
+  if (!urls || urls.length === 0) throw new Error('Unsupported platform: ' + process.platform);
 
-  const isTgz = url.endsWith('.tgz');
-  const isZip = url.endsWith('.zip');
-
-  if (isTgz || isZip) {
-    // Download archive, extract, find binary
-    const archiveExt = isTgz ? '.tgz' : '.zip';
-    const archivePath = path.join(BIN_DIR, `ollama-download${archiveExt}`);
-
-    notify('Downloading AI engine...');
-    await downloadFileWithProgress(url, archivePath, notify);
-
-    notify('Setting up AI engine...');
-
-    if (isTgz) {
-      // Extract tgz — tar is available on macOS and Linux
-      execSync(`tar -xzf "${archivePath}" -C "${BIN_DIR}"`, { stdio: 'pipe' });
-    } else {
-      // Extract zip — PowerShell on Windows
-      execSync(
-        `powershell -command "Expand-Archive -Path '${archivePath}' -DestinationPath '${BIN_DIR}' -Force"`,
-        { stdio: 'pipe' }
-      );
-    }
-
-    // Clean up archive
-    try { fs.unlinkSync(archivePath); } catch {}
-
-    // Find the ollama binary in what we extracted
-    // Could be at: bin/ollama, ollama, or nested
-    const searchPaths = [
-      destPath, // ~/.aspen/bin/ollama (ideal)
-      path.join(BIN_DIR, 'bin', 'ollama'), // Some tgz nest in bin/
-      path.join(BIN_DIR, `ollama-darwin`), // Raw name from archive
-      path.join(BIN_DIR, `ollama-linux-amd64`),
-    ];
-
-    for (const candidate of searchPaths) {
-      if (candidate !== destPath && fs.existsSync(candidate)) {
-        fs.renameSync(candidate, destPath);
-        break;
-      }
-    }
-
-    if (!fs.existsSync(destPath)) {
-      // Scan the directory for anything that looks like ollama
-      const files = fs.readdirSync(BIN_DIR);
-      console.log('[Ollama] Extracted files:', files);
-      const match = files.find(f => f.startsWith('ollama') && !f.endsWith('.tgz') && !f.endsWith('.zip'));
-      if (match) {
-        fs.renameSync(path.join(BIN_DIR, match), destPath);
-      }
-    }
-  } else {
-    // Direct binary download
-    notify('Downloading AI engine...');
-    await downloadFileWithProgress(url, destPath, notify);
-  }
-
-  if (!fs.existsSync(destPath)) {
-    throw new Error('Download completed but AI engine binary not found');
-  }
-
-  // Make executable
-  if (process.platform !== 'win32') {
-    fs.chmodSync(destPath, 0o755);
-  }
-
-  // macOS: clear quarantine attribute or Gatekeeper silently blocks execution
-  if (process.platform === 'darwin') {
+  let lastErr = null;
+  for (const url of urls) {
     try {
-      require('child_process').execSync(`xattr -cr "${destPath}"`, { stdio: 'pipe' });
-    } catch (e) {}
+      const isTgz = url.endsWith('.tgz');
+      const isZip = url.endsWith('.zip');
+
+      if (isTgz || isZip) {
+        const archiveExt = isTgz ? '.tgz' : '.zip';
+        const archivePath = path.join(BIN_DIR, `ollama-download${archiveExt}`);
+
+        notify('Downloading AI engine...');
+        await downloadFileWithProgress(url, archivePath, notify);
+
+        notify('Setting up AI engine...');
+
+        if (isTgz) {
+          execSync(`tar -xzf "${archivePath}" -C "${BIN_DIR}"`, { stdio: 'pipe' });
+        } else {
+          execSync(
+            `powershell -command "Expand-Archive -Path '${archivePath}' -DestinationPath '${BIN_DIR}' -Force"`,
+            { stdio: 'pipe' }
+          );
+        }
+
+        try { fs.unlinkSync(archivePath); } catch {}
+
+        // Find the ollama binary in the extracted files
+        const candidates = [destPath, path.join(BIN_DIR, 'ollama'), path.join(BIN_DIR, 'bin', 'ollama')];
+        for (const c of candidates) {
+          if (fs.existsSync(c) && fs.statSync(c).size > 1_000_000) {
+            if (c !== destPath) fs.renameSync(c, destPath);
+            if (process.platform !== 'win32') { try { fs.chmodSync(destPath, 0o755); } catch {} }
+            if (process.platform === 'darwin') { try { execSync(`xattr -cr "${destPath}"`, { stdio: 'pipe' }); } catch {} }
+            return destPath;
+          }
+        }
+      } else {
+        // Direct binary download
+        notify('Downloading AI engine...');
+        await downloadFileWithProgress(url, destPath, notify);
+
+        if (fs.existsSync(destPath) && fs.statSync(destPath).size > 1_000_000) {
+          if (process.platform !== 'win32') { try { fs.chmodSync(destPath, 0o755); } catch {} }
+          if (process.platform === 'darwin') { try { execSync(`xattr -cr "${destPath}"`, { stdio: 'pipe' }); } catch {} }
+          return destPath;
+        }
+      }
+    } catch (err) {
+      lastErr = err;
+      console.log(`[Ollama] Download failed for ${url}: ${err.message}, trying next...`);
+      continue;
+    }
   }
 
-  const sizeMB = (fs.statSync(destPath).size / 1e6).toFixed(0);
-  notify(`AI engine ready (${sizeMB}MB)`);
-  return destPath;
+  throw lastErr || new Error('All download URLs failed');
 }
 
 function downloadFileWithProgress(url, dest, notify) {
@@ -361,7 +353,7 @@ async function ensureCurrent(onProgress, { force = false } = {}) {
   notify('Updating AI engine…');
   try {
     // Always pulls releases/latest (newest Ollama) into Aspen's own bin dir.
-    const newPath = await downloadOllama(notify);
+    const newPath = await downloadOllama(notify, { force });
     if (!newPath) return { success: false, error: 'download_failed' };
 
     // Stop the old server (ours if we spawned it; otherwise the system one).
