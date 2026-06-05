@@ -94,7 +94,10 @@ export default function ModelHub() {
   }
 
   function isInstalled(modelId) {
-    return installedNames.some((n) => n === modelId || n.startsWith(modelId.split(':')[0]));
+    // Exact match: "gemma4:e4b" only matches "gemma4:e4b", not "gemma4:12b".
+    // Also match without tag for models where Ollama stores as "model:latest".
+    const base = modelId.split(':')[0];
+    return installedNames.some((n) => n === modelId || n === base || n === `${base}:latest`);
   }
 
   const tierOrder = { light: 0, medium: 1, heavy: 2, ultra: 3 };
