@@ -108,10 +108,18 @@ $('enter').addEventListener('click',async()=>{
   $('enter').disabled=true;$('enter').textContent='Checking…';
   const ok=await load();
   $('enter').disabled=false;$('enter').textContent='Enter';
-  if(ok){$('gate').classList.add('hidden');$('dash').classList.remove('hidden');}
+  if(ok){
+    sessionStorage.setItem('admin_pw',pw);
+    $('gate').classList.add('hidden');$('dash').classList.remove('hidden');
+  }
 });
 $('pw').addEventListener('keydown',e=>{if(e.key==='Enter')$('enter').click();});
 $('refresh').addEventListener('click',load);
+// Auto-login if session exists
+(async()=>{
+  const saved=sessionStorage.getItem('admin_pw');
+  if(saved){pw=saved;const ok=await load();if(ok){$('gate').classList.add('hidden');$('dash').classList.remove('hidden');}}
+})();
 </script>
 </body>
 </html>
