@@ -66,6 +66,19 @@ async function runSearch(args) {
   // Because each user searches from their own IP, there is no single-IP
   // rate-limit cliff (the failure mode of a central server).
   try {
+    // Layer 1: DDG Instant Answer JSON — clean structured data (definitions,
+    // facts, some live values), no scraping. Runs from the user's machine.
+    let instant = '';
+    try {
+      const iaRaw = await fetchText(
+        `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_redirect=1&no_html=1&skip_disambig=1`
+      );
+      const ia = JSON.parse(iaRaw);
+      if (ia.AbstractText) instant += `${ia.Heading || query}: ${ia.AbstractText}\n`;
+      if (ia.Answer) instant += `Answer: ${ia.Answer}\n`;
+      if (ia.Definition) instant += `Definition: ${ia.Definition}\n`;
+    } catch {}
+
     const html = await fetchText(
       `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}&kl=us-en`
     );
@@ -91,9 +104,35 @@ async function runSearch(args) {
     }
 
     if (results.length === 0) return `No results found for "${query}".`;
-    return results
+
+    // Snippets are often just link descriptions ("the most accurate forecast...")
+    // and don't contain the actual answer (the live temperature, the price). So we
+    // also FETCH the top result page(s) and include their readable text — this is
+    // where the real value lives. Without this, the model only has links and can
+    // only say "check these sites" instead of answering. Fetch the top 2 in
+    // parallel, keep it cheap, and never let a slow/blocked page break the search.
+    let pageContext = '';
+    try {
+      const top = results.slice(0, 3).filter((r) => r.link && /^https?:\/\//.test(r.link));
+      const pages = await Promise.all(
+        top.map(async (r) => {
+          try {
+            const text = await runFetchUrl({ url: r.link });
+            if (text && !/^Could not fetch|^Page had no readable/.test(text)) {
+              return `\n\n--- Page content from ${r.link} ---\n${text.slice(0, 3500)}`;
+            }
+          } catch {}
+          return '';
+        })
+      );
+      pageContext = pages.join('');
+    } catch {}
+
+    const summary = results
       .map((r, i) => `[${i + 1}] ${r.title}\n${r.snippet}\n${r.link}`)
       .join('\n\n');
+    return (instant ? `${instant}\n` : '') + summary + pageContext +
+      `\n\nAnswer the user's question using the information above. If it contains the specific value asked for (a temperature, price, score, etc.), state that value directly.`;
   } catch (e) {
     return `Search failed: ${e.message}`;
   }
@@ -154,7 +193,7 @@ async function runFetchUrl(args) {
       // fall through to generic text if extraction failed
     }
     const text = htmlToText(html);
-    return text.slice(0, 4000) || 'Page had no readable text.';
+    return text.slice(0, 6000) || 'Page had no readable text.';
   } catch (e) {
     return `Could not fetch page: ${e.message}`;
   }

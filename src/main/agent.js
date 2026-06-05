@@ -104,8 +104,8 @@ async function runAgent({ model, messages }) {
   const TOOL_DIRECTIVE = `CRITICAL: You MUST respond ONLY in English. Never use Chinese or any other language, regardless of the tools or their output. Every word of your response must be in English.
 
 You have access to tools. Use them whenever they apply — do not answer from memory when a tool can give the correct answer.
+- For ANY question about current, real-time, or factual information you are not 100% certain of — weather, temperature, prices, stocks, news, scores, "who is", "what is", current events, dates of recent things, any specific number or fact — you MUST call "web_search". Do NOT guess or answer from memory, and do NOT tell the user to check a website themselves: call web_search and answer from its results. The search results include real page content; read it and state the specific value (temperature, price, score, etc.) directly.
 - For ANY arithmetic or math, you MUST call the "calculate" tool. Never compute numbers yourself; you will get them wrong.
-- For current events, news, prices, or anything recent, call "web_search".
 - For the current date or time, call "get_datetime".
 - To read a specific web page, call "fetch_url".
 Call exactly the tool that fits, wait for its result, then answer using that result. Always answer in English.`;
