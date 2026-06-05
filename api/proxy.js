@@ -213,18 +213,13 @@ export default async function handler(req) {
     } catch { return messages || []; }
   }
 
-  // For non-streaming, enrich synchronously (that path opts out of streaming).
-  let enrichedMessages = messages || [];
-  if (!stream) { enrichedMessages = await enrich(); }
-
-  // NON-STREAMING: fetch fully, then return. (Subject to the 25s init limit, but
-  // non-stream callers opt out of streaming deliberately.)
+  // NON-STREAMING: fetch fully, then return.
   if (!stream) {
     let upRes;
     try {
       upRes = await fetch(upstream, {
         method: 'POST', headers: upHeaders,
-        body: JSON.stringify({ model: model || 'llama3', messages: enrichedMessages, stream: false }),
+        body: JSON.stringify({ model: model || 'llama3', messages: messages || [], stream: false }),
       });
     } catch (e) { return jsonErr(`Could not reach tunnel: ${e.message}`, 502); }
     if (!upRes.ok) {
@@ -258,10 +253,13 @@ export default async function handler(req) {
 
       (async () => {
         try {
-          const enriched = await enrich();
+          // Pass messages straight to the user's local Ollama — no search enrichment.
+          // Tool execution (web_search, calculate) is handled by the desktop agent,
+          // not the proxy. The classifier call was causing intermittent empty responses
+          // by sending back-to-back requests to Ollama on resource-limited machines.
           const upRes = await fetch(upstream, {
             method: 'POST', headers: upHeaders,
-            body: JSON.stringify({ model: model || 'llama3', messages: enriched, stream: true }),
+            body: JSON.stringify({ model: model || 'llama3', messages: messages || [], stream: true }),
           });
           if (!upRes.ok || !upRes.body) {
             const t = await upRes.text().catch(() => '');
