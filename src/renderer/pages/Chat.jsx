@@ -793,6 +793,23 @@ export default function Chat() {
                 <button onClick={() => setArtifactTab('code')} style={{ fontSize: 12, fontWeight: 600, padding: '4px 10px', border: 'none', borderRadius: 6, cursor: 'pointer', background: artifactTab === 'code' ? '#fff' : 'transparent', color: artifactTab === 'code' ? 'var(--earth)' : 'var(--text-light)' }}>Code</button>
               </div>
             )}
+            <button onClick={async () => {
+              const btn = document.activeElement;
+              try {
+                const res = await fetch(`http://127.0.0.1:4000/api/publish-artifact`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ html: artifact.code }),
+                });
+                const data = await res.json();
+                if (data.id) {
+                  const tunnelUrl = await bridge?.store?.get('tunnelUrl');
+                  const url = (tunnelUrl || 'http://127.0.0.1:4000') + data.path;
+                  await navigator.clipboard?.writeText(url);
+                  if (btn) { btn.textContent = 'Link copied!'; setTimeout(() => { btn.textContent = 'Publish 🚀'; }, 2000); }
+                }
+              } catch { if (btn) { btn.textContent = 'Error'; setTimeout(() => { btn.textContent = 'Publish 🚀'; }, 2000); } }
+            }} style={{ fontSize: 12, fontWeight: 600, padding: '4px 10px', border: 'none', borderRadius: 7, background: 'var(--gold)', color: '#fff', cursor: 'pointer' }}>Publish 🚀</button>
             <button onClick={() => { navigator.clipboard?.writeText(artifact.code); }} style={{ fontSize: 12, fontWeight: 600, padding: '4px 10px', border: '1.5px solid rgba(93,78,55,.12)', borderRadius: 7, background: '#fff', cursor: 'pointer' }}>Copy</button>
             <button onClick={() => setArtifact(null)} title="Close" style={{ width: 28, height: 28, border: 'none', background: 'none', cursor: 'pointer', fontSize: 15, color: 'var(--text-light)' }}>✕</button>
           </div>
