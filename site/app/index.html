@@ -486,6 +486,7 @@ select.settings-select{font-family:var(--san);font-size:.84rem;color:var(--bk);b
             <button class="ap-tab active" id="ap-tab-preview" data-tab="preview">Preview</button>
             <button class="ap-tab" id="ap-tab-code" data-tab="code">Code</button>
           </div>
+          <button class="artifact-panel-copy" id="artifact-panel-publish" title="Publish to shareable link" style="background:var(--gd);color:#fff;border-color:var(--gd)">Publish 🚀</button>
           <button class="artifact-panel-copy" id="artifact-panel-copy" title="Copy">Copy</button>
           <button class="artifact-panel-close" id="artifact-panel-close" title="Close" aria-label="Close">✕</button>
         </div>
@@ -581,6 +582,32 @@ $('ap-tab-code').addEventListener('click',()=>renderArtifactPanel('code'));
 $('artifact-panel-copy').addEventListener('click',()=>{
   if(!apCurrent)return;const b=$('artifact-panel-copy');
   navigator.clipboard?.writeText(apCurrent.code).then(()=>{b.textContent='Copied';setTimeout(()=>b.textContent='Copy',1500)}).catch(()=>{});
+});
+$('artifact-panel-publish').addEventListener('click',async()=>{
+  if(!apCurrent)return;
+  const b=$('artifact-panel-publish');
+  b.textContent='Publishing...';b.disabled=true;
+  try{
+    const tunnelUrl=(config?.tunnelUrl||'').replace(/\/+$/,'');
+    const res=await fetch(tunnelUrl+'/api/publish-artifact',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(config?.apiKey||'')},
+      body:JSON.stringify({html:apCurrent.code})
+    });
+    const data=await res.json();
+    if(data.id){
+      const url=tunnelUrl+data.path;
+      await navigator.clipboard?.writeText(url);
+      b.textContent='Link copied!';
+      // Also show a toast
+      const t=document.createElement('div');
+      t.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 20px;border-radius:8px;font-size:14px;z-index:999;';
+      t.textContent='📋 Published! Link copied: '+url;
+      document.body.appendChild(t);
+      setTimeout(()=>t.remove(),4000);
+    } else { b.textContent='Failed'; }
+  }catch(e){ b.textContent='Error'; }
+  setTimeout(()=>{b.textContent='Publish 🚀';b.disabled=false},2000);
 });
 
 // Artifact in chat = a card. "Open" / "Preview" opens the side panel; Copy copies inline.

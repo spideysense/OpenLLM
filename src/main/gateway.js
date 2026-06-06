@@ -1,8 +1,22 @@
 const http = require('http');
+const fs = require('fs');
+const path = require('path');
 const apikeys = require('./apikeys');
 const aliases = require('./aliases');
 const agent = require('./agent');
 const system = require('./system');
+
+// ── Published artifacts (persisted across restarts) ──
+const artifactsDir = path.join(require('electron').app.getPath('userData'), 'artifacts');
+const artifactsPath = path.join(artifactsDir, 'published.json');
+const artifacts = new Map();
+try {
+  fs.mkdirSync(artifactsDir, { recursive: true });
+  if (fs.existsSync(artifactsPath)) {
+    const data = JSON.parse(fs.readFileSync(artifactsPath, 'utf8'));
+    for (const [k, v] of data) artifacts.set(k, v);
+  }
+} catch {}
 
 const OLLAMA_HOST = '127.0.0.1';
 const OLLAMA_PORT = 11434;
@@ -51,6 +65,37 @@ function start() {
     if (req.method === 'OPTIONS') {
       res.writeHead(204);
       res.end();
+      return;
+    }
+
+    // ── Published artifacts (public, no auth) ──
+    if (req.url.startsWith('/artifacts/')) {
+      const id = req.url.split('/artifacts/')[1]?.split('?')[0];
+      if (req.method === 'GET' && id && artifacts.has(id)) {
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(artifacts.get(id));
+        return;
+      }
+      res.writeHead(404, { 'Content-Type': 'text/html' });
+      res.end('<h1>Not found</h1><p>This artifact may have expired or been removed.</p>');
+      return;
+    }
+
+    if (req.url === '/api/publish-artifact' && req.method === 'POST') {
+      let body = '';
+      req.on('data', c => { body += c; });
+      req.on('end', () => {
+        try {
+          const { html } = JSON.parse(body);
+          if (!html) { res.writeHead(400); res.end('{"error":"html required"}'); return; }
+          const id = require('crypto').randomBytes(4).toString('hex');
+          artifacts.set(id, html);
+          // Persist to disk
+          try { fs.writeFileSync(artifactsPath, JSON.stringify([...artifacts])); } catch {}
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ id, path: `/artifacts/${id}` }));
+        } catch { res.writeHead(400); res.end('{"error":"invalid JSON"}'); }
+      });
       return;
     }
 
