@@ -101,19 +101,25 @@ function start() {
 
     // ── Auth check ──
     const keys = apikeys.listKeys();
+    let authToken = '';
     if (keys.length > 0) {
       const authHeader = req.headers['authorization'] || '';
-      const token = authHeader.replace(/^Bearer\s+/i, '');
-      if (!apikeys.validateKey(token)) {
+      authToken = authHeader.replace(/^Bearer\s+/i, '');
+      if (!apikeys.validateKey(authToken)) {
         res.writeHead(401, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: { message: 'Invalid API key', type: 'authentication_error' } }));
         return;
       }
-      apikeys.touchKey(token);
+      apikeys.touchKey(authToken);
     }
 
-    // ── World Model (auth-protected) ──
+    // ── World Model (owner-only — not accessible by shared/demo keys) ──
     if (req.url === '/world-model' && req.method === 'GET') {
+      if (!apikeys.isOwnerKey(authToken)) {
+        res.writeHead(403, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Only the device owner can view memory' }));
+        return;
+      }
       try {
         const store = require('./store');
         const wm = store.get('worldModel') || { facts: [] };
@@ -143,6 +149,22 @@ function start() {
           // drift to Chinese without this). Covers the direct-streaming path that
           // does not go through the agent.
           if (req.url.includes('chat/completions') && Array.isArray(parsed.messages)) {
+            // World model injection — ONLY for owner keys (not shared/demo users)
+            if (apikeys.isOwnerKey(authToken)) {
+              try {
+                const worldModel = require('./world-model');
+                const wmPrefix = worldModel.getSystemPrefix();
+                if (wmPrefix) {
+                  if (parsed.messages[0]?.role === 'system') {
+                    parsed.messages[0] = { ...parsed.messages[0], content: `${wmPrefix}\n${parsed.messages[0].content}` };
+                  } else {
+                    parsed.messages.unshift({ role: 'system', content: wmPrefix });
+                  }
+                  changed = true;
+                }
+              } catch {}
+            }
+
             const ENGLISH = 'You MUST respond only in English. Never use Chinese or any other language.';
             if (parsed.messages[0]?.role === 'system') {
               if (!parsed.messages[0].content.includes('only in English')) {

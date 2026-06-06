@@ -116,7 +116,7 @@ app.whenReady().then(async () => {
   // so the app is never in open mode when the Cloudflare tunnel is active.
   const existingKeys = apikeys.listKeys();
   if (existingKeys.length === 0) {
-    const defaultKey = apikeys.createKey('Default');
+    const defaultKey = apikeys.createKey('Default', { owner: true });
     console.log('[Security] Auto-generated default API key:', defaultKey.secret.slice(0, 20) + '...');
     store.set('defaultKeyGenerated', true);
   }

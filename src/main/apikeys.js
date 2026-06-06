@@ -11,7 +11,7 @@ function listKeys() {
   return store.get('apikeys') || [];
 }
 
-function createKey(label = 'Default') {
+function createKey(label = 'Default', { owner = false } = {}) {
   const keys = listKeys();
   const id = crypto.randomUUID();
   const secret = KEY_PREFIX + crypto.randomBytes(24).toString('base64url');
@@ -19,6 +19,7 @@ function createKey(label = 'Default') {
     id,
     label,
     secret,
+    owner,
     created: new Date().toISOString(),
     lastUsed: null,
   };
@@ -52,4 +53,11 @@ function touchKey(token) {
   }
 }
 
-module.exports = { listKeys, createKey, revokeKey, validateKey, touchKey };
+function isOwnerKey(token) {
+  if (!token) return false;
+  const keys = listKeys();
+  const key = keys.find(k => k.secret === token);
+  return key?.owner === true;
+}
+
+module.exports = { listKeys, createKey, revokeKey, validateKey, touchKey, isOwnerKey };
