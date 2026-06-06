@@ -951,21 +951,24 @@ export default function Chat() {
 // ─── Safe Markdown rendering — no dangerouslySetInnerHTML ───
 function MessageContent({ content, onOpenArtifact }) {
   if (!content) return null;
+  const text = typeof content === 'string' ? content : String(content || '');
 
   // ── Thinking display: extract <think>...</think> blocks ──
   let thinkContent = null;
-  let displayContent = content;
-  const thinkMatch = content.match(/<think>([\s\S]*?)<\/think>/);
+  let displayContent = text;
+  const thinkMatch = text.match(/<think>([\s\S]*?)<\/think>/);
   if (thinkMatch) {
-    thinkContent = thinkMatch[1].trim();
-    displayContent = content.replace(/<think>[\s\S]*?<\/think>\s*/g, '').trim();
+    thinkContent = (thinkMatch[1] || '').trim();
+    displayContent = text.replace(/<think>[\s\S]*?<\/think>\s*/g, '').trim();
   }
 
   // ── Citations: detect [Source: url] or [1]: url patterns ──
   const citations = [];
   displayContent = displayContent.replace(/\[(?:Source|Ref|(\d+))\]:\s*(https?:\/\/\S+)/gi, (_, num, url) => {
-    const domain = new URL(url).hostname.replace('www.', '');
-    citations.push({ num: num || citations.length + 1, url, domain });
+    try {
+      const domain = new URL(url).hostname.replace('www.', '');
+      citations.push({ num: num || citations.length + 1, url, domain });
+    } catch {}
     return '';
   });
 
@@ -1030,11 +1033,12 @@ function MessageContent({ content, onOpenArtifact }) {
 }
 
 function InlineText({ text }) {
+  if (!text || typeof text !== 'string') return null;
   // Split on **bold**, `code`, $latex$, $$latex$$, URLs, and newlines
   const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`|\$\$[^$]+\$\$|\$[^$]+\$|https?:\/\/\S+|\n)/g);
   return (
     <>
-      {parts.map((p, i) => {
+      {parts.filter(Boolean).map((p, i) => {
         if (p.startsWith('**') && p.endsWith('**')) return <strong key={i}>{p.slice(2, -2)}</strong>;
         if (p.startsWith('`') && p.endsWith('`')) return <code key={i}>{p.slice(1, -1)}</code>;
         if (p.startsWith('$$') && p.endsWith('$$')) return <div key={i} style={{ fontFamily: 'var(--font-mono)', fontSize: 13, background: 'rgba(0,0,0,.04)', padding: '8px 12px', borderRadius: 6, margin: '4px 0', textAlign: 'center', overflowX: 'auto' }}>{p.slice(2, -2)}</div>;
