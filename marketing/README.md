@@ -39,9 +39,8 @@ Go to GitHub → Actions → "Daily Marketing Engine" → Run workflow
 Add these to GitHub Secrets (Settings → Secrets → Actions):
 - `ASPEN_TUNNEL_URL` — your Cloudflare tunnel URL (e.g. `https://xqwppdrl.runonaspen.com`)
 - `ASPEN_API_KEY` — your Aspen API key (e.g. `sk-aspen-...`)
-- `ASPEN_MODEL` — (optional) model to use, defaults to `gemma4`
 
-Your Aspen desktop app must be running for the Action to reach it through the tunnel. The marketing engine eats its own dogfood — powered by Aspen itself.
+That's it. The engine auto-detects whatever model is running on your machine. Swap models anytime — the marketing engine just uses whatever's active.
 
 ## Social posting
 

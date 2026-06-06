@@ -49,15 +49,41 @@ function pickTopic() {
   return unused[Math.floor(Math.random() * unused.length)];
 }
 
+async function getActiveModel(tunnelUrl, apiKey) {
+  return new Promise((resolve) => {
+    const url = new URL('/v1/models', tunnelUrl);
+    const req = https.request({
+      hostname: url.hostname, port: url.port || 443, path: url.pathname, method: 'GET',
+      headers: { 'Authorization': `Bearer ${apiKey}` },
+    }, (res) => {
+      let data = '';
+      res.on('data', c => { data += c; });
+      res.on('end', () => {
+        try {
+          const models = JSON.parse(data).data || [];
+          const local = models.filter(m => m.owned_by !== 'aspen-alias');
+          resolve(local[0]?.id || models[0]?.id || 'gemma4');
+        } catch { resolve('gemma4'); }
+      });
+    });
+    req.on('error', () => resolve('gemma4'));
+    req.setTimeout(10000, () => { req.destroy(); resolve('gemma4'); });
+    req.end();
+  });
+}
+
 async function callClaude(prompt, maxTokens = 2000) {
   const tunnelUrl = process.env.ASPEN_TUNNEL_URL;
   const apiKey = process.env.ASPEN_API_KEY;
   if (!tunnelUrl || !apiKey) throw new Error('ASPEN_TUNNEL_URL and ASPEN_API_KEY must be set');
 
+  const model = await getActiveModel(tunnelUrl, apiKey);
+  console.log(`  Using model: ${model}`);
+
   const url = new URL('/v1/chat/completions', tunnelUrl);
 
   const body = JSON.stringify({
-    model: process.env.ASPEN_MODEL || 'gemma4',
+    model,
     max_tokens: maxTokens,
     messages: [{ role: 'user', content: prompt }],
     stream: false,
