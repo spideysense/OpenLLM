@@ -9,6 +9,7 @@ import Settings from './pages/Settings';
 import Connectors from './pages/Connectors';
 import AppSetup from './pages/AppSetup';
 import WorldModel from './pages/WorldModel';
+import Templates from './pages/Templates';
 import Home from './pages/Home';
 
 // ═══════════════════════════════════════════════════
@@ -197,6 +198,7 @@ export default function App() {
           )}
           {page === 'home' && <Home />}
           {page === 'chat' && <Chat />}
+          {page === 'templates' && <Templates />}
           {page === 'worldmodel' && <WorldModel />}
           {page === 'apikeys' && <APIKeys />}
           {page === 'appsetup' && <AppSetup />}

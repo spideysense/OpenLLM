@@ -141,7 +141,7 @@ describe('Story: User chats with a local model', () => {
   it('should show empty state with Aspen icon when no messages', async () => {
     const fs = await import('fs');
     const source = fs.readFileSync('src/renderer/pages/Chat.jsx', 'utf8');
-    expect(source).toContain('Ask me anything');
+    expect(source).toContain('What can I help with');
     expect(source).toContain('🌿');
   });
 });

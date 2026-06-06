@@ -176,6 +176,18 @@ export default function Chat() {
   }, []);
 
   // Scroll to bottom
+  // ── Pick up pending prompt from templates/demos ──
+  useEffect(() => {
+    if (!bridge?.store) return;
+    bridge.store.get('pendingPrompt').then(p => {
+      if (p) {
+        setInput(p);
+        bridge.store.set('pendingPrompt', '');
+        setTimeout(() => inputRef.current?.focus(), 100);
+      }
+    }).catch(() => {});
+  }, [bridge]);
+
   // ── Keyboard shortcuts ──
   useEffect(() => {
     function handleKey(e) {
@@ -560,11 +572,55 @@ export default function Chat() {
       {/* Messages */}
       <div className="chat-messages">
         {messages.length === 0 && !streamBuffer && (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', opacity: 0.6 }}>
-            <div style={{ fontSize: 64, marginBottom: 12 }}>🌿</div>
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, color: 'var(--earth)', marginBottom: 6 }}>Ask me anything</div>
-            <div style={{ fontSize: 14, color: 'var(--text-light)', maxWidth: 300, textAlign: 'center', lineHeight: 1.5 }}>
-              Everything stays on your machine. Your data, always private. 🌿
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 24px' }}>
+            <div style={{ fontSize: 48, marginBottom: 8 }}>🌿</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, color: 'var(--earth)', marginBottom: 4 }}>What can I help with?</div>
+            <div style={{ fontSize: 13, color: 'var(--text-light)', marginBottom: 24, textAlign: 'center' }}>100% private — everything stays on your machine</div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10, width: '100%', maxWidth: 500 }}>
+              {[
+                { icon: '✍️', label: 'Write for me', prompt: 'Help me write a professional email to my boss about taking time off next week. Keep it polite and brief.' },
+                { icon: '📸', label: 'Analyze a photo', prompt: 'I\'ll share a photo — please describe what you see and answer any questions about it.' },
+                { icon: '🎮', label: 'Build me an app', prompt: 'Build me a fun interactive web app — surprise me with something creative and visually polished!' },
+                { icon: '🔍', label: 'Research a topic', prompt: 'Research the latest developments in AI and give me a comprehensive summary with sources.' },
+                { icon: '📝', label: 'Fix my writing', prompt: 'I\'ll paste some text — please fix the grammar, improve clarity, and make it more professional.' },
+                { icon: '🧑‍🏫', label: 'Teach me something', prompt: 'Teach me something fascinating I probably don\'t know — explain it simply with examples, like I\'m a curious beginner.' },
+                { icon: '💡', label: 'Brainstorm ideas', prompt: 'Help me brainstorm creative ideas. Ask me what topic or problem I\'m working on and then generate 10 unique approaches.' },
+                { icon: '🌐', label: 'Translate text', prompt: 'I\'ll share some text — please translate it. Ask me what language I want it in.' },
+              ].map((card, i) => (
+                <button key={i} onClick={() => { setInput(card.prompt); setTimeout(() => inputRef.current?.focus(), 50); }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px', border: '1.5px solid rgba(93,78,55,.1)', borderRadius: 12, background: 'var(--cloud, #fff)', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--text-dark)', textAlign: 'left', transition: 'all .15s' }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--gold)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(93,78,55,.1)'; e.currentTarget.style.transform = 'none'; }}
+                >
+                  <span style={{ fontSize: 18 }}>{card.icon}</span>
+                  <span>{card.label}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Quick rewrite bar */}
+            <div style={{ marginTop: 24, padding: '12px 16px', background: 'rgba(184,134,11,.05)', border: '1.5px solid rgba(184,134,11,.12)', borderRadius: 12, width: '100%', maxWidth: 500 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--earth)', marginBottom: 8 }}>✨ Quick rewrite — paste any text, then:</div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {[
+                  { label: '🎩 Make formal', prompt: 'Rewrite the following text in a formal, professional tone:\n\n' },
+                  { label: '😊 Make casual', prompt: 'Rewrite the following text in a friendly, casual tone:\n\n' },
+                  { label: '✏️ Fix grammar', prompt: 'Fix all grammar, spelling, and punctuation errors in the following text. Show the corrected version:\n\n' },
+                  { label: '📐 Make shorter', prompt: 'Make the following text significantly shorter while keeping the key points:\n\n' },
+                  { label: '🇪🇸 To Spanish', prompt: 'Translate the following text to Spanish:\n\n' },
+                ].map((rw, i) => (
+                  <button key={i} onClick={async () => {
+                    try {
+                      const clip = await navigator.clipboard?.readText();
+                      if (clip) { setInput(rw.prompt + clip); setTimeout(() => inputRef.current?.focus(), 50); }
+                      else { setInput(rw.prompt + '[paste your text here]'); inputRef.current?.focus(); }
+                    } catch { setInput(rw.prompt + '[paste your text here]'); inputRef.current?.focus(); }
+                  }}
+                    style={{ padding: '6px 10px', border: '1px solid rgba(93,78,55,.12)', borderRadius: 8, background: '#fff', cursor: 'pointer', fontSize: 11, fontWeight: 600, color: 'var(--text-dark)' }}
+                  >{rw.label}</button>
+                ))}
+              </div>
             </div>
           </div>
         )}

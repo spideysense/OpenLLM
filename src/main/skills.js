@@ -95,6 +95,11 @@ function getRelevantSkills(userMessage) {
     if (content) relevant.push(content);
   }
 
+  if (/\b(screenshot|recreate|rebuild|copy this|make this|looks like|photo of|image of)\b/.test(msg)) {
+    const content = readSkill('screenshot-to-app');
+    if (content) relevant.push(content);
+  }
+
   return relevant;
 }
 

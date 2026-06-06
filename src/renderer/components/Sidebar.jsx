@@ -29,6 +29,7 @@ export default function Sidebar() {
   const nav = [
     { id: 'home', icon: '🏠', label: 'Home' },
     { id: 'chat', icon: '💬', label: 'Chat' },
+    { id: 'templates', icon: '📋', label: 'Templates' },
     { id: 'worldmodel', icon: '🧠', label: 'World Model' },
     { id: 'apikeys', icon: '🔑', label: 'API Keys' },
     { id: 'appsetup', icon: '📱', label: 'App Setup' },

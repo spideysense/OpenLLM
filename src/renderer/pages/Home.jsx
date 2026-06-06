@@ -4,7 +4,7 @@ import { useApp } from '../App';
 const COST_PER_EXCHANGE = 0.040;
 
 export default function Home() {
-  const { bridge, gatewayStatus, models } = useApp();
+  const { bridge, gatewayStatus, models, setPage } = useApp();
   const [keys, setKeys] = useState([]);
   const [tunnelStatus, setTunnelStatus] = useState({ connected: false, url: null });
   const [showInvite, setShowInvite] = useState(false);
@@ -83,6 +83,30 @@ export default function Home() {
               </div>
             ))}
           </div>
+        </div>
+      </div>
+
+      {/* Wow demos — show what Aspen can do */}
+      <div className="card mb-6" style={{ padding: '20px 24px' }}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--earth)', fontFamily: 'var(--font-display)', marginBottom: 12 }}>✨ See what Aspen can do</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          {[
+            { emoji: '🎮', title: 'Build a game', prompt: 'Build me a beautiful, playable font guessing game using Google Fonts. Include score tracking, multiple choice answers, a give up button, and smooth animations. Make it visually stunning.' },
+            { emoji: '🌐', title: 'Generate a website', prompt: 'Create a stunning, modern landing page for a fictional AI startup called "NovaMind" — include a hero section, features grid, testimonials, and a CTA. Use beautiful gradients and animations.' },
+            { emoji: '🔍', title: 'Research anything', prompt: 'Do deep research on the current state of local AI models in 2026 — what are the best open-weight models, how do they compare to cloud models, and what is the future direction? Include sources.' },
+            { emoji: '📊', title: 'Visualize data', prompt: 'Create an interactive dashboard that shows fictional sales data for a company across 4 quarters. Include bar charts, line graphs, and summary cards. Make it colorful and responsive.' },
+          ].map((demo, i) => (
+            <button key={i} onClick={() => {
+              if (bridge?.store) bridge.store.set('pendingPrompt', demo.prompt);
+              setPage('chat');
+            }} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', border: '1.5px solid rgba(93,78,55,.1)', borderRadius: 10, background: 'var(--cloud)', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--text-dark)', textAlign: 'left' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--gold)'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(93,78,55,.1)'; }}
+            >
+              <span style={{ fontSize: 22 }}>{demo.emoji}</span>
+              <span>{demo.title}</span>
+            </button>
+          ))}
         </div>
       </div>
 
