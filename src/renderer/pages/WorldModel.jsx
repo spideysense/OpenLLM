@@ -12,7 +12,7 @@ export default function WorldModel() {
   const load = useCallback(async () => {
     if (!bridge) return;
     const data = await bridge.store.get('worldModel').catch(() => null);
-    setWm(data || { facts: [], updatedAt: null });
+    setWm(data && typeof data === 'object' && data.facts ? data : { facts: [], updatedAt: null });
   }, [bridge]);
 
   useEffect(() => { load(); }, [load]);

@@ -180,7 +180,7 @@ export default function Chat() {
   useEffect(() => {
     if (!bridge?.store) return;
     bridge.store.get('pendingPrompt').then(p => {
-      if (p) {
+      if (p && typeof p === 'string') {
         setInput(p);
         bridge.store.set('pendingPrompt', '');
         setTimeout(() => inputRef.current?.focus(), 100);
