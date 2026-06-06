@@ -29,6 +29,7 @@ export default function Chat() {
   const [isListening, setIsListening] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(false);
   const [totalExchanges, setTotalExchanges] = useState(0);
+  const [smallModelDismissed, setSmallModelDismissed] = useState(false);
   const [connMenuOpen, setConnMenuOpen] = useState(false);
   const [connectorList, setConnectorList] = useState([]);
   const [connBusy, setConnBusy] = useState(null);
@@ -501,6 +502,19 @@ export default function Chat() {
 
         <button className="btn btn-sm btn-secondary" onClick={newConvo} style={{ display: 'none' }}>+ New</button>
       </div>
+
+      {/* Small model warning — dismissible */}
+      {(() => {
+        const m = (activeModel || '').toLowerCase();
+        const isSmall = m.includes('e4b') || m.includes('e2b') || m.includes(':3b') || m.includes(':1b') || m.includes(':7b') || m.includes(':8b');
+        if (!isSmall || smallModelDismissed) return null;
+        return (
+          <div style={{ margin: '0 24px', padding: '10px 14px', background: 'rgba(220,53,69,0.08)', border: '1px solid rgba(220,53,69,0.25)', borderRadius: 10, fontSize: 13, color: '#8b1a2b', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ flex: 1 }}>⚠️ <strong>{activeModel}</strong> is too small for reliable tool calling (web search, code execution). Switch to a 12B+ model for full capability.</span>
+            <button onClick={() => setSmallModelDismissed(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: '#8b1a2b', padding: '0 4px' }}>✕</button>
+          </div>
+        );
+      })()}
 
       {/* Messages */}
       <div className="chat-messages">
