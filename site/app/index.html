@@ -321,28 +321,28 @@ select.settings-select{font-family:var(--san);font-size:.84rem;color:var(--bk);b
       <li style="display:flex;gap:.7rem;align-items:flex-start;font-size:.85rem;line-height:1.4"><span style="font-size:1rem">🌿</span><span><strong>Powers all the AI in your life.</strong> One private brain you own, connected to everything you use.</span></li>
     </ul>
 
-    <button class="pair-btn" id="trial-btn" style="background:var(--gd);color:#fff">Try Free — 20 messages, no download</button>
-    <p style="font-size:.7rem;color:var(--t3);text-align:center;margin-top:.6rem;line-height:1.45">A free taste on a powerful cloud model so you can feel what Aspen does. <strong>Trial chats route through our servers</strong> — the app you download does not. That's the whole point: install it and it's <em>all</em> yours.</p>
+    <div style="display:flex;gap:.75rem;margin-top:.5rem">
+      <button class="pair-btn" id="trial-btn" style="flex:1;background:var(--gd);color:#fff">Try Free — 20 messages</button>
+      <button class="pair-btn" id="show-connect-btn" style="flex:1;background:#fff;color:var(--bk);border:1.5px solid var(--brd)" onclick="document.getElementById('connect-section').classList.toggle('hidden');this.textContent=document.getElementById('connect-section').classList.contains('hidden')?'Connect My Aspen':'Hide'">Connect My Aspen</button>
+    </div>
+    <p style="font-size:.7rem;color:var(--t3);text-align:center;margin-top:.6rem;line-height:1.45">Try free uses a cloud model via our servers. <strong>Your own Aspen</strong> runs 100% on your machine — nothing touches our servers.</p>
 
     <div class="pair-err" id="pair-err" style="margin-top:.6rem"></div>
 
-    <details style="margin-top:1.4rem;border-top:1px solid var(--brd);padding-top:1rem">
-      <summary style="cursor:pointer;font-size:.8rem;color:var(--t2);font-weight:600;list-style:none">Already have Aspen installed? Connect to it →</summary>
-      <div style="margin-top:1rem">
-        <p class="pair-sub" style="margin-bottom:1rem">Every message goes directly to your machine — nothing touches our servers.</p>
-        <div class="field">
-          <label>Tunnel URL</label>
-          <input type="url" id="tunnel-input" placeholder="https://xxxxxxxx.runonaspen.com" autocomplete="off" spellcheck="false">
-          <div class="hint">Aspen app → API Keys → "From anywhere" URL</div>
-        </div>
-        <div class="field">
-          <label>API Key</label>
-          <input type="text" id="apikey-input" placeholder="sk-aspen-…" autocomplete="new-password" spellcheck="false" style="-webkit-text-security:disc">
-          <div class="hint">Aspen app → API Keys → copy any key.</div>
-        </div>
-        <button class="pair-btn" id="connect-btn">Connect to my Aspen</button>
+    <div id="connect-section" class="hidden" style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--brd)">
+      <p class="pair-sub" style="margin-bottom:1rem">Every message goes directly to your machine — nothing touches our servers.</p>
+      <div class="field">
+        <label>Tunnel URL</label>
+        <input type="url" id="tunnel-input" placeholder="https://xxxxxxxx.runonaspen.com" autocomplete="off" spellcheck="false">
+        <div class="hint">Aspen app → API Keys → "From anywhere" URL</div>
       </div>
-    </details>
+      <div class="field">
+        <label>API Key</label>
+        <input type="text" id="apikey-input" placeholder="sk-aspen-…" autocomplete="new-password" spellcheck="false" style="-webkit-text-security:disc">
+        <div class="hint">Aspen app → API Keys → copy any key.</div>
+      </div>
+      <button class="pair-btn" id="connect-btn">Connect to my Aspen</button>
+    </div>
   </div>
 
   <div class="explainer">
