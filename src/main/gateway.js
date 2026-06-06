@@ -109,8 +109,21 @@ function start() {
         res.end(JSON.stringify({ error: { message: 'Invalid API key', type: 'authentication_error' } }));
         return;
       }
-      // Update last-used timestamp
       apikeys.touchKey(token);
+    }
+
+    // ── World Model (auth-protected) ──
+    if (req.url === '/world-model' && req.method === 'GET') {
+      try {
+        const store = require('./store');
+        const wm = store.get('worldModel') || { facts: [] };
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(wm));
+      } catch {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ facts: [] }));
+      }
+      return;
     }
 
     // ── Read body ──

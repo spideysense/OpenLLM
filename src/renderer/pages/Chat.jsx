@@ -542,6 +542,9 @@ export default function Chat() {
           }} title="Export as Markdown (⌘E)" style={{ padding: '4px 8px', border: '1.5px solid rgba(93,78,55,0.12)', borderRadius: 'var(--radius-pill)', background: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--text-light)' }}>↓ Export</button>
         )}
 
+        <button onClick={() => setPage('worldmodel')} title="What Aspen knows about you"
+          style={{ padding: '4px 8px', border: '1.5px solid rgba(93,78,55,0.12)', borderRadius: 'var(--radius-pill)', background: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--text-light)' }}>🧠 Memory</button>
+
         <select
           value={activeModel || ''}
           onChange={(e) => selectModel(e.target.value)}
