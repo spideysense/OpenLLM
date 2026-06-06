@@ -358,8 +358,10 @@ select.settings-select{font-family:var(--san);font-size:.84rem;color:var(--bk);b
       <input type="text" id="apikey-input" placeholder="sk-aspen-…" autocomplete="new-password" spellcheck="false" style="-webkit-text-security:disc">
       <div class="hint">Aspen app → API Keys → copy any key.</div>
     </div>
-    <button class="pair-btn" id="connect-btn">Connect to my Aspen</button>
+    <button class="pair-btn" id="trial-btn" style="background:var(--gd);color:#fff;margin-bottom:.5rem">Try Free — 20 messages</button>
+    <button class="pair-btn" id="connect-btn" style="background:#fff;color:var(--bk);border:1.5px solid var(--brd)">Connect to my Aspen</button>
     <div class="pair-err" id="pair-err"></div>
+    <p style="font-size:.65rem;color:var(--t3);text-align:center;margin-top:.5rem">Try Free uses a cloud model. Your own Aspen is 100% local.</p>
 
     <p class="pair-privacy">🔒 We never see your messages or data. <a href="https://runonaspen.com">Learn how →</a></p>
 
@@ -596,6 +598,22 @@ let config=null, chats={}, activeChatId=null, streamController=null, isStreaming
 const $ = id => document.getElementById(id);
 const pairScreen=$('pair-screen'), appScreen=$('app-screen');
 const tunnelInput=$('tunnel-input'), apikeyInput=$('apikey-input'), connectBtn=$('connect-btn'), pairErr=$('pair-err');
+let trialMode=false, trialToken=null, trialMsgsLeft=20;
+
+// Trial mode — free cloud AI, no setup needed
+$('trial-btn').addEventListener('click',async()=>{
+  const btn=$('trial-btn');
+  btn.disabled=true;btn.textContent='Starting...';
+  try{
+    const res=await fetch('https://runonaspen.com/api/trial',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'start'})});
+    const data=await res.json();
+    if(data.error){pairErr.textContent=data.error;btn.disabled=false;btn.textContent='Try Free — 20 messages';return}
+    trialMode=true;trialToken=data.token;trialMsgsLeft=data.messagesLeft??20;
+    config={tunnelUrl:'__TRIAL__',apiKey:''};
+    localStorage.setItem(STORAGE_KEY,JSON.stringify({trial:true,token:trialToken}));
+    showApp();
+  }catch(e){pairErr.textContent='Could not start trial.';btn.disabled=false;btn.textContent='Try Free — 20 messages'}
+});
 const sidebar=$('sidebar'), drawerOverlay=$('drawer-overlay');
 const chatList=$('chat-list'), newChatBtn=$('new-chat-btn'), headerNewBtn=$('header-new-btn');
 const messagesEl=$('messages'), emptyState=$('empty-state');
@@ -998,10 +1016,15 @@ async function sendText(text){
   streamController=new AbortController();let fullText='';
   try{
     const sys=worldModelSystemPrompt();
-    const useStream=true; // stream on web AND native — proxy returns SSE; WKWebView (iOS 17.4+) supports fetch ReadableStream
-    const res=await fetch(API_BASE+'/api/proxy',{
+    const useStream=true;
+    // Trial mode: use Vercel trial API; Connected mode: use tunnel proxy
+    const fetchUrl=trialMode?API_BASE+'/api/trial':API_BASE+'/api/proxy';
+    const fetchBody=trialMode
+      ?{action:'chat',token:trialToken,messages:sys?[{role:'system',content:sys},...history]:history,stream:useStream}
+      :{tunnelUrl:config.tunnelUrl,apiKey:config.apiKey||'',model,messages:sys?[{role:'system',content:sys},...history]:history,stream:useStream};
+    const res=await fetch(fetchUrl,{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({tunnelUrl:config.tunnelUrl,apiKey:config.apiKey||'',model,messages:sys?[{role:'system',content:sys},...history]:history,stream:useStream}),
+      body:JSON.stringify(fetchBody),
       signal:streamController.signal,
     });
     if(!res.ok){const e=await res.text().catch(()=>'');throw new Error(`HTTP ${res.status}: ${e.slice(0,200)}`)}
