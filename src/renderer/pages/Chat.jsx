@@ -180,7 +180,15 @@ export default function Chat() {
   useEffect(() => {
     function handleKey(e) {
       const meta = e.metaKey || e.ctrlKey;
-      if (meta && e.key === 'n') { e.preventDefault(); newConvo(); }
+      // Cmd+N — new chat (inline to avoid temporal dead zone with newConvo)
+      if (meta && e.key === 'n') {
+        e.preventDefault();
+        setConversations(cs => {
+          const id = Math.max(...cs.map(c => c.id), 0) + 1;
+          return [...cs, { id, title: 'New Chat', messages: [] }];
+        });
+      }
+      // Cmd+E — export conversation as markdown
       if (meta && e.key === 'e') {
         e.preventDefault();
         const md = messages.map(m => `**${m.role === 'user' ? 'You' : 'Aspen'}:**\n${m.content}\n`).join('\n---\n\n');
@@ -188,6 +196,7 @@ export default function Chat() {
         const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
         a.download = `aspen-chat-${new Date().toISOString().split('T')[0]}.md`; a.click();
       }
+      // Cmd+Shift+C — copy last code block
       if (meta && e.shiftKey && e.key === 'C') {
         e.preventDefault();
         const last = [...messages].reverse().find(m => m.role === 'assistant');
@@ -197,7 +206,7 @@ export default function Chat() {
     }
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [messages, newConvo]);
+  }, [messages]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
