@@ -519,6 +519,12 @@ select.settings-select{font-family:var(--san);font-size:.84rem;color:var(--bk);b
           <button class="artifact-panel-close" id="artifact-panel-close" title="Close" aria-label="Close">✕</button>
         </div>
         <div class="artifact-panel-body" id="artifact-panel-body"></div>
+        <div class="artifact-panel-head" style="border-top:1px solid var(--brd);border-bottom:none">
+          <button class="artifact-panel-copy" id="artifact-refresh" title="Refresh preview" onclick="if(apCurrent)renderArtifactPanel('preview')">↻ Refresh</button>
+          <div style="flex:1"></div>
+          <button class="artifact-panel-copy" onclick="if(apCurrent){const b=this;navigator.clipboard?.writeText(apCurrent.code).then(()=>{b.textContent='Copied';setTimeout(()=>b.textContent='Copy',1500)})}" title="Copy">Copy</button>
+          <button class="artifact-panel-copy" style="background:var(--gd);color:#fff;border-color:var(--gd)" onclick="document.getElementById('artifact-panel-publish').click()" title="Publish">Publish 🚀</button>
+        </div>
       </div>
   </div>
 
@@ -1055,6 +1061,9 @@ async function sendMessage(){
     const c=chats[activeChatId];
     if(c){c.messages.push({role:'assistant',content:fullText});saveChats();extractFacts(c.messages.filter(m=>m.role==='user').slice(-1)[0]?.content||'',fullText)}
     if(bubble.parentNode)buildActions(bubble.parentNode,fullText);
+    // Auto-open artifact panel if response contains HTML/SVG code
+    const artMatch=fullText.match(/```(html|svg)\n?([\s\S]*?)```/);
+    if(artMatch){openArtifactPanel(artMatch[2].replace(/\n+$/,''),artMatch[1]);}
   }
   isStreaming=false;sendBtn.classList.remove('hidden');stopBtn.classList.add('hidden');sendBtn.disabled=false;streamController=null;inputBox.focus();
 }
