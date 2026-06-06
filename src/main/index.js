@@ -11,6 +11,7 @@ const store = require('./store');
 const toolSettings = require('./tool-settings');
 const connectors = require('./connectors');
 const agent = require('./agent');
+const worldModel = require('./world-model');
 const tunnel = require('./tunnel');
 const updater = require('./updater');
 const hotUpdater = require('./hot-updater');
@@ -374,9 +375,13 @@ ipcMain.handle('chat:send', async (event, { model, messages }) => {
   const now = new Date();
   const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
+
+  // World model — prepend known facts about the user
+  const wmPrefix = worldModel.getSystemPrefix();
+
   const SYSTEM_PROMPT = {
     role: 'system',
-    content: `You are a helpful AI assistant running locally inside Aspen on the user's own computer. All processing is 100% on this machine — nothing leaves the device. The current date is ${dateStr} and the time is ${timeStr}. When asked to build a web page or website, always produce ONE self-contained HTML file with all CSS inside a <style> tag and all JavaScript inside a <script> tag — never split into separate files and never use external <link rel="stylesheet"> or external script src references, so it previews correctly. Use a code fence labeled html. Be helpful, friendly, and concise.`,
+    content: `${wmPrefix}You are a helpful AI assistant running locally inside Aspen on the user's own computer. All processing is 100% on this machine — nothing leaves the device. The current date is ${dateStr} and the time is ${timeStr}. When asked to build a web page or website, always produce ONE self-contained HTML file with all CSS inside a <style> tag and all JavaScript inside a <script> tag — never split into separate files and never use external <link rel="stylesheet"> or external script src references, so it previews correctly. Use a code fence labeled html. Be helpful, friendly, and concise.`,
   };
 
   // Only prepend if there's no existing system message
@@ -389,17 +394,20 @@ ipcMain.handle('chat:send', async (event, { model, messages }) => {
   const lastUser = [...fullMessages].reverse().find((m) => m.role === 'user');
   const userText = lastUser?.content || '';
 
-  // SOTA native tool-calling: when tools are enabled, route through the agent loop
-  // and let the MODEL decide whether (and which) tool to call via Ollama's native
-  // tools API. No keyword regex — Gemma 4 / Qwen have native function calling and
-  // pick the tool (or none) themselves, which is more reliable and general than
-  // pattern-matching. The agent loop has its own plain-text fallback when a small
-  // model mis-formats a tool call, so non-tool questions still answer normally.
+  // After response, extract facts in the background (non-blocking)
+  const scheduleExtraction = () => {
+    setTimeout(() => {
+      worldModel.extractFacts(model, fullMessages).catch(() => {});
+    }, 500);
+  };
+
   if (agent.isEnabled()) {
     try {
       const content = await agent.runAgent({ model, messages: fullMessages });
       mainWindow?.webContents.send('chat:stream', { content: content || '', done: false });
       mainWindow?.webContents.send('chat:stream', { content: '', done: true });
+      // Extract facts from the completed conversation
+      scheduleExtraction();
       return { content: content || '' };
     } catch (e) {
       const msg = `⚠️ ${e.message}`;
@@ -409,9 +417,12 @@ ipcMain.handle('chat:send', async (event, { model, messages }) => {
     }
   }
 
-  return ollama.chat(model, fullMessages, (chunk) => {
+  const result = await ollama.chat(model, fullMessages, (chunk) => {
     mainWindow?.webContents.send('chat:stream', chunk);
   });
+  // Extract facts after streaming completes
+  scheduleExtraction();
+  return result;
 });
 
 ipcMain.handle('chat:stop', async () => {
