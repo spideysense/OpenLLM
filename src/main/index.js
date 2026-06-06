@@ -119,6 +119,13 @@ app.whenReady().then(async () => {
     const defaultKey = apikeys.createKey('Default', { owner: true });
     console.log('[Security] Auto-generated default API key:', defaultKey.secret.slice(0, 20) + '...');
     store.set('defaultKeyGenerated', true);
+  } else {
+    // Migration: mark existing Default keys as owner (added in v0.4.21)
+    let migrated = false;
+    for (const key of existingKeys) {
+      if (key.label === 'Default' && !key.owner) { key.owner = true; migrated = true; }
+    }
+    if (migrated) { store.set('apikeys', existingKeys); console.log('[Security] Migrated Default key to owner'); }
   }
 
   // Start Ollama — push status to renderer once ready, then poll every 5s
