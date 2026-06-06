@@ -412,7 +412,11 @@ select.settings-select{font-family:var(--san);font-size:.84rem;color:var(--bk);b
           </button>
         </header>
         <div class="offline-banner" id="offline-banner">Your Aspen machine appears to be offline.</div>
-        <div class="messages" id="messages">
+        <div class="messages" id="messages"
+          ondragover="event.preventDefault();this.style.outline='2px dashed var(--gd)';this.style.outlineOffset='-4px'"
+          ondragleave="this.style.outline='';this.style.outlineOffset=''"
+          ondrop="event.preventDefault();this.style.outline='';this.style.outlineOffset='';handleFileDrop(event.dataTransfer.files)"
+        >
           <div class="empty-state" id="empty-state">
             <div class="empty-icon">🌿</div>
             <h3 class="empty-title">What can I <em>help</em> with?</h3>
@@ -1002,6 +1006,35 @@ document.querySelectorAll('.starter').forEach(btn=>{
     inputBox.value=btn.dataset.msg;inputBox.focus();inputBox.dispatchEvent(new Event('input'));if(!btn.dataset.msg.endsWith(' '))sendMessage()
   });
 });
+
+// ── Drag & drop file handling ──
+function handleFileDrop(files){
+  if(!files||!files.length)return;
+  for(const file of files){
+    const isImage=file.type.startsWith('image/');
+    if(isImage){
+      const reader=new FileReader();
+      reader.onload=()=>{
+        const b64=reader.result;
+        // Add image preview above input
+        const preview=document.createElement('div');
+        preview.style.cssText='display:flex;align-items:center;gap:6px;padding:6px 10px;margin:4px 0;background:rgba(0,0,0,.04);border-radius:8px;font-size:.8rem';
+        preview.innerHTML=`<img src="${b64}" style="max-height:40px;border-radius:4px"> ${escHtml(file.name)} <button onclick="this.parentNode.remove()" style="background:none;border:none;cursor:pointer;font-size:1rem">✕</button>`;
+        preview.dataset.imageB64=b64.split(',')[1]||'';
+        inputBox.parentNode.insertBefore(preview,inputBox);
+      };
+      reader.readAsDataURL(file);
+    }else{
+      const reader=new FileReader();
+      reader.onload=()=>{
+        const content=reader.result;
+        inputBox.value=`--- Content of ${file.name} ---\n${content.slice(0,8000)}\n---\n\n${inputBox.value}`;
+        inputBox.dispatchEvent(new Event('input'));inputBox.focus();
+      };
+      reader.readAsText(file);
+    }
+  }
+}
 
 async function sendMessage(){
   if(isStreaming)return;const text=inputBox.value.trim();if(!text)return;

@@ -473,6 +473,18 @@ export default function Chat() {
     setIsStreaming(false);
   };
 
+  // ── Drag & drop files ──
+  const [dragOver, setDragOver] = useState(false);
+  const handleDrop = useCallback((e) => {
+    e.preventDefault();
+    setDragOver(false);
+    const files = e.dataTransfer?.files;
+    if (files?.length) {
+      // Reuse the existing file handler by creating a synthetic event
+      handleFileSelect({ target: { files } });
+    }
+  }, [handleFileSelect]);
+
   const hasVision = isVisionModel(activeModel);
 
   return (
@@ -573,7 +585,12 @@ export default function Chat() {
       })()}
 
       {/* Messages */}
-      <div className="chat-messages">
+      <div className="chat-messages"
+        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={handleDrop}
+        style={dragOver ? { outline: '2px dashed var(--gold)', outlineOffset: -4, background: 'rgba(184,134,11,0.04)' } : {}}
+      >
         {messages.length === 0 && !streamBuffer && (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 24px' }}>
             <div style={{ fontSize: 48, marginBottom: 8 }}>🌿</div>
