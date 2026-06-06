@@ -1,0 +1,36 @@
+name: Daily Marketing Engine
+
+on:
+  schedule:
+    - cron: '0 14 * * *'  # Every day at 7am PT (14:00 UTC)
+  workflow_dispatch: {}    # Manual trigger
+
+jobs:
+  generate-content:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Generate marketing content
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: node scripts/marketing-engine.js
+
+      - name: Commit and push new content
+        run: |
+          git config user.name "Aspen Marketing Bot"
+          git config user.email "marketing@runonaspen.com"
+          
+          # Check if there are changes
+          git add marketing/ site/blog/
+          git diff --cached --quiet && echo "No new content" && exit 0
+          
+          DATE=$(date +%Y-%m-%d)
+          git commit -m "📝 Daily marketing content — $DATE"
+          git push
