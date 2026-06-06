@@ -26,6 +26,12 @@ async function kvGet(url, token, key) {
   } catch { return null; }
 }
 
+async function kvSet(url, token, key, value) {
+  try {
+    await fetch(`${url}/set/${encodeURIComponent(key)}/${encodeURIComponent(value)}`, { headers: { Authorization: `Bearer ${token}` } });
+  } catch {}
+}
+
 async function kvSumPrefix(url, token, prefix) {
   // Sum all integer values under a key prefix (e.g. all trial:ip:* ).
   try {
@@ -60,7 +66,7 @@ export default async function handler(req, res) {
   try {
     const ghHeaders = { 'User-Agent': 'Aspen-Admin', Accept: 'application/vnd.github+json' };
     if (process.env.GH_TOKEN) ghHeaders.Authorization = `token ${process.env.GH_TOKEN}`;
-    const r = await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/releases?per_page=20`, { headers: ghHeaders });
+    const r = await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/releases?per_page=30`, { headers: ghHeaders });
     if (r.ok) {
       const releases = await r.json();
       for (const rel of releases) {
@@ -68,6 +74,18 @@ export default async function handler(req, res) {
         for (const a of rel.assets || []) relTotal += a.download_count || 0;
         out.downloads.byRelease.push({ tag: rel.tag_name, downloads: relTotal });
         out.downloads.total += relTotal;
+      }
+      // Download floor — never show a number lower than the highest we've seen.
+      // Re-publishing a release resets its GitHub download count, which makes the
+      // total drop. We store the high-water mark in KV and use it as a floor.
+      const kvUrl = process.env.KV_REST_API_URL, kvTok = process.env.KV_REST_API_TOKEN;
+      if (kvUrl && kvTok) {
+        const floor = parseInt(await kvGet(kvUrl, kvTok, 'aspen:download_floor')) || 0;
+        if (out.downloads.total > floor) {
+          await kvSet(kvUrl, kvTok, 'aspen:download_floor', String(out.downloads.total));
+        } else if (out.downloads.total < floor) {
+          out.downloads.total = floor;
+        }
       }
     } else {
       out.notes.push('GitHub download data unavailable.');
