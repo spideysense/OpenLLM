@@ -587,6 +587,7 @@ export default function Chat() {
                 { icon: '🧑‍🏫', label: 'Teach me something', prompt: 'Teach me something fascinating I probably don\'t know — explain it simply with examples, like I\'m a curious beginner.' },
                 { icon: '💡', label: 'Brainstorm ideas', prompt: 'Help me brainstorm creative ideas. Ask me what topic or problem I\'m working on and then generate 10 unique approaches.' },
                 { icon: '🌐', label: 'Translate text', prompt: 'I\'ll share some text — please translate it. Ask me what language I want it in.' },
+                { icon: '👋', label: 'Get to know me', prompt: 'Let\'s get to know each other! Ask me 5 questions one at a time about myself — my name, what I do, where I live, my interests, and what I\'m working on. Wait for my answer before asking the next one. Be warm and conversational. At the end, summarize what you learned about me.' },
               ].map((card, i) => (
                 <button key={i} onClick={() => { setInput(card.prompt); setTimeout(() => inputRef.current?.focus(), 50); }}
                   style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px', border: '1.5px solid rgba(93,78,55,.1)', borderRadius: 12, background: 'var(--cloud, #fff)', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--text-dark)', textAlign: 'left', transition: 'all .15s' }}

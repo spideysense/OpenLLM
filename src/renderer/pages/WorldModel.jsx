@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useApp } from '../App';
 
 export default function WorldModel() {
-  const { bridge } = useApp();
+  const { bridge, setPage } = useApp();
   const [wm, setWm] = useState({ facts: [], updatedAt: null });
   const [editing, setEditing] = useState(null);
   const [editText, setEditText] = useState('');
@@ -80,7 +80,13 @@ export default function WorldModel() {
           <div style={{ padding: '32px 18px', textAlign: 'center', color: 'var(--text-light)', fontSize: 14 }}>
             <div style={{ fontSize: 32, marginBottom: 8 }}>🌱</div>
             <div style={{ fontWeight: 600, marginBottom: 4, color: 'var(--earth)' }}>Nothing yet</div>
-            <div style={{ fontSize: 13 }}>Start chatting and your AI will begin learning about you.</div>
+            <div style={{ fontSize: 13, marginBottom: 16 }}>Start chatting and your AI will begin learning about you.</div>
+            <button onClick={() => {
+              if (bridge?.store) bridge.store.set('pendingPrompt', "Let's get to know each other! Ask me 5 questions one at a time about myself — my name, what I do, where I live, my interests, and what I'm working on. Wait for my answer before asking the next one. Be warm and conversational. At the end, summarize what you learned about me.");
+              setPage('chat');
+            }} className="btn" style={{ background: 'var(--gold)', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+              👋 Let's get to know each other
+            </button>
           </div>
         ) : (
           <div>
