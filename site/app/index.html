@@ -589,7 +589,7 @@ $('artifact-panel-publish').addEventListener('click',async()=>{
   b.textContent='Publishing...';b.disabled=true;
   try{
     const tunnelUrl=(config?.tunnelUrl||'').replace(/\/+$/,'');
-    const res=await fetch(tunnelUrl+'/api/publish-artifact',{
+    const res=await fetch(tunnelUrl+'/publish-artifact',{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+(config?.apiKey||'')},
       body:JSON.stringify({html:apCurrent.code})

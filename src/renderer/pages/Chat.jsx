@@ -796,7 +796,7 @@ export default function Chat() {
             <button onClick={async () => {
               const btn = document.activeElement;
               try {
-                const res = await fetch(`http://127.0.0.1:4000/api/publish-artifact`, {
+                const res = await fetch(`http://127.0.0.1:4000/publish-artifact`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ html: artifact.code }),

@@ -992,8 +992,8 @@ async function loadModels(){
   try{
     const res=await fetch(`${config.tunnelUrl}/v1/models`,{headers:config.apiKey?{'Authorization':`Bearer ${config.apiKey}`}:{},signal:AbortSignal.timeout(6000)});
     if(!res.ok)throw new Error();
-    const models=(await res.json()).data?.filter(m=>!m.id.includes('embed'))||[];
-    modelSelect.innerHTML=models.length?models.map(m=>`<option value="${escHtml(m.id)}">${escHtml(m.id.split(':')[0])}</option>`).join(''):'<option value="">No models installed</option>';
+    const models=(await res.json()).data?.filter(m=>!m.id.includes('embed')&&m.owned_by!=='aspen-alias')||[];
+    modelSelect.innerHTML=models.length?models.map(m=>`<option value="${escHtml(m.id)}">${escHtml(m.id)}</option>`).join(''):'<option value="">No models installed</option>';
     updateModelFooter();
   }catch{modelSelect.innerHTML='<option value="">Could not load models</option>'}
 }

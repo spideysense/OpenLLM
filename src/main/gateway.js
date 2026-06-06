@@ -81,7 +81,7 @@ function start() {
       return;
     }
 
-    if (req.url === '/api/publish-artifact' && req.method === 'POST') {
+    if (req.url === '/publish-artifact' && req.method === 'POST') {
       let body = '';
       req.on('data', c => { body += c; });
       req.on('end', () => {
