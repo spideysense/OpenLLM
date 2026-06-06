@@ -36,7 +36,12 @@ Go to GitHub → Actions → "Daily Marketing Engine" → Run workflow
 
 ## Setup
 
-Add `ANTHROPIC_API_KEY` to the repo's GitHub Secrets (Settings → Secrets → Actions).
+Add these to GitHub Secrets (Settings → Secrets → Actions):
+- `ASPEN_TUNNEL_URL` — your Cloudflare tunnel URL (e.g. `https://xqwppdrl.runonaspen.com`)
+- `ASPEN_API_KEY` — your Aspen API key (e.g. `sk-aspen-...`)
+- `ASPEN_MODEL` — (optional) model to use, defaults to `gemma4`
+
+Your Aspen desktop app must be running for the Action to reach it through the tunnel. The marketing engine eats its own dogfood — powered by Aspen itself.
 
 ## Social posting
 

@@ -19,7 +19,9 @@ jobs:
 
       - name: Generate marketing content
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ASPEN_TUNNEL_URL: ${{ secrets.ASPEN_TUNNEL_URL }}
+          ASPEN_API_KEY: ${{ secrets.ASPEN_API_KEY }}
+          ASPEN_MODEL: ${{ secrets.ASPEN_MODEL || 'gemma4' }}
         run: node scripts/marketing-engine.js
 
       - name: Commit and push new content

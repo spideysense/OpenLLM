@@ -50,24 +50,28 @@ function pickTopic() {
 }
 
 async function callClaude(prompt, maxTokens = 2000) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error('ANTHROPIC_API_KEY not set');
+  const tunnelUrl = process.env.ASPEN_TUNNEL_URL;
+  const apiKey = process.env.ASPEN_API_KEY;
+  if (!tunnelUrl || !apiKey) throw new Error('ASPEN_TUNNEL_URL and ASPEN_API_KEY must be set');
+
+  const url = new URL('/v1/chat/completions', tunnelUrl);
 
   const body = JSON.stringify({
-    model: 'claude-sonnet-4-20250514',
+    model: process.env.ASPEN_MODEL || 'gemma4',
     max_tokens: maxTokens,
     messages: [{ role: 'user', content: prompt }],
+    stream: false,
   });
 
   return new Promise((resolve, reject) => {
     const req = https.request({
-      hostname: 'api.anthropic.com',
-      path: '/v1/messages',
+      hostname: url.hostname,
+      port: url.port || 443,
+      path: url.pathname,
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
+        'Authorization': `Bearer ${apiKey}`,
       },
     }, (res) => {
       let data = '';
@@ -75,12 +79,13 @@ async function callClaude(prompt, maxTokens = 2000) {
       res.on('end', () => {
         try {
           const json = JSON.parse(data);
-          const text = json.content?.[0]?.text || '';
+          const text = json.choices?.[0]?.message?.content || '';
           resolve(text);
-        } catch (e) { reject(e); }
+        } catch (e) { reject(new Error(`API response parse error: ${data.slice(0, 200)}`)); }
       });
     });
     req.on('error', reject);
+    req.setTimeout(120000, () => { req.destroy(); reject(new Error('Aspen API timeout (120s)')); });
     req.write(body);
     req.end();
   });
