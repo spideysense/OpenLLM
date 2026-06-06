@@ -414,16 +414,28 @@ select.settings-select{font-family:var(--san);font-size:.84rem;color:var(--bk);b
         <div class="offline-banner" id="offline-banner">Your Aspen machine appears to be offline.</div>
         <div class="messages" id="messages">
           <div class="empty-state" id="empty-state">
-            <div class="empty-icon">🍃</div>
-            <h3 class="empty-title">Your <em>private</em> AI</h3>
-            <p class="empty-sub">Runs on your machine. Nothing leaves.</p>
-            <div class="starters">
-              <button class="starter" data-msg="What can you help me with?">What can you help me with?</button>
-              <button class="starter" data-msg="Summarize this for me: ">Summarize something</button>
-              <button class="starter" data-msg="Write a quick email about ">Draft an email</button>
-              <button class="starter" data-msg="Explain this concept simply: ">Explain a concept</button>
-              <button class="starter" data-msg="Debug this code: ">Debug code</button>
-              <button class="starter" data-msg="What's in the news today?">Today's news</button>
+            <div class="empty-icon">🌿</div>
+            <h3 class="empty-title">What can I <em>help</em> with?</h3>
+            <p class="empty-sub">100% private — everything stays on your machine</p>
+            <div class="starters" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;max-width:400px;margin-top:1rem">
+              <button class="starter" data-msg="Help me write a professional email to my boss about taking time off next week. Keep it polite and brief.">✍️ Write for me</button>
+              <button class="starter" data-msg="I'll share a photo — please describe what you see and answer any questions about it.">📸 Analyze a photo</button>
+              <button class="starter" data-msg="Build me a fun interactive web app — surprise me with something creative and visually polished!">🎮 Build me an app</button>
+              <button class="starter" data-msg="Research the latest developments in AI and give me a comprehensive summary with sources.">🔍 Research a topic</button>
+              <button class="starter" data-msg="I'll paste some text — please fix the grammar, improve clarity, and make it more professional.">📝 Fix my writing</button>
+              <button class="starter" data-msg="Teach me something fascinating I probably don't know — explain it simply with examples, like I'm a curious beginner.">🧑‍🏫 Teach me</button>
+              <button class="starter" data-msg="Help me brainstorm creative ideas. Ask me what topic or problem I'm working on and then generate 10 unique approaches.">💡 Brainstorm</button>
+              <button class="starter" data-msg="I'll share some text — please translate it. Ask me what language I want it in.">🌐 Translate</button>
+            </div>
+            <div style="margin-top:1rem;padding:10px 14px;background:rgba(184,134,11,.05);border:1.5px solid rgba(184,134,11,.12);border-radius:10px;width:100%;max-width:400px">
+              <div style="font-size:11px;font-weight:700;color:var(--gd);margin-bottom:6px">✨ Quick rewrite — paste text, then:</div>
+              <div style="display:flex;gap:5px;flex-wrap:wrap">
+                <button class="starter rw-btn" data-prefix="Rewrite the following text in a formal, professional tone:\n\n">🎩 Formal</button>
+                <button class="starter rw-btn" data-prefix="Rewrite the following text in a friendly, casual tone:\n\n">😊 Casual</button>
+                <button class="starter rw-btn" data-prefix="Fix all grammar, spelling, and punctuation errors:\n\n">✏️ Fix</button>
+                <button class="starter rw-btn" data-prefix="Make this significantly shorter while keeping key points:\n\n">📐 Shorter</button>
+                <button class="starter rw-btn" data-prefix="Translate the following text to Spanish:\n\n">🇪🇸 Spanish</button>
+              </div>
             </div>
           </div>
         </div>
@@ -936,7 +948,17 @@ sendBtn.addEventListener('click',sendMessage);
 inputBox.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage()}});
 inputBox.addEventListener('input',()=>{inputBox.style.height='auto';inputBox.style.height=Math.min(inputBox.scrollHeight,140)+'px'});
 document.querySelectorAll('.starter').forEach(btn=>{
-  btn.addEventListener('click',()=>{inputBox.value=btn.dataset.msg;inputBox.focus();inputBox.dispatchEvent(new Event('input'));if(!btn.dataset.msg.endsWith(' '))sendMessage()});
+  btn.addEventListener('click',()=>{
+    if(btn.classList.contains('rw-btn')){
+      // Rewrite button — read clipboard and prepend prefix
+      navigator.clipboard?.readText().then(clip=>{
+        inputBox.value=(btn.dataset.prefix||'')+(clip||'[paste your text here]');
+        inputBox.focus();inputBox.dispatchEvent(new Event('input'));
+      }).catch(()=>{inputBox.value=(btn.dataset.prefix||'')+'[paste your text here]';inputBox.focus()});
+      return;
+    }
+    inputBox.value=btn.dataset.msg;inputBox.focus();inputBox.dispatchEvent(new Event('input'));if(!btn.dataset.msg.endsWith(' '))sendMessage()
+  });
 });
 
 async function sendMessage(){
