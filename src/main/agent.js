@@ -12,6 +12,7 @@ const http = require('http');
 const tools = require('./tools');
 const toolSettings = require('./tool-settings');
 const system = require('./system');
+const skills = require('./skills');
 
 const OLLAMA_HOST = '127.0.0.1';
 const OLLAMA_PORT = 11434;
@@ -114,11 +115,18 @@ You have access to tools. Use them whenever they apply — do not answer from me
 Call exactly the tool that fits, wait for its result, then answer using that result. Always answer in English.`;
 
   // Prepend/merge the directive into the system message.
+  // Auto-inject relevant skills based on the user's latest message
+  const userMsg = messages[messages.length - 1]?.content || '';
+  const relevantSkills = skills.getRelevantSkills(userMsg);
+  const skillsBlock = relevantSkills.length > 0
+    ? '\n\n--- SKILLS (follow these instructions carefully) ---\n' + relevantSkills.join('\n\n---\n\n')
+    : '';
+
   const convoBase = [...messages];
   if (convoBase[0]?.role === 'system') {
-    convoBase[0] = { ...convoBase[0], content: `${convoBase[0].content}\n\n${TOOL_DIRECTIVE}` };
+    convoBase[0] = { ...convoBase[0], content: `${convoBase[0].content}\n\n${TOOL_DIRECTIVE}${skillsBlock}` };
   } else {
-    convoBase.unshift({ role: 'system', content: TOOL_DIRECTIVE });
+    convoBase.unshift({ role: 'system', content: `${TOOL_DIRECTIVE}${skillsBlock}` });
   }
 
   const convo = convoBase;
