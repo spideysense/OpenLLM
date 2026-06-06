@@ -176,6 +176,29 @@ export default function Chat() {
   }, []);
 
   // Scroll to bottom
+  // ── Keyboard shortcuts ──
+  useEffect(() => {
+    function handleKey(e) {
+      const meta = e.metaKey || e.ctrlKey;
+      if (meta && e.key === 'n') { e.preventDefault(); newConvo(); }
+      if (meta && e.key === 'e') {
+        e.preventDefault();
+        const md = messages.map(m => `**${m.role === 'user' ? 'You' : 'Aspen'}:**\n${m.content}\n`).join('\n---\n\n');
+        const blob = new Blob([md], { type: 'text/markdown' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+        a.download = `aspen-chat-${new Date().toISOString().split('T')[0]}.md`; a.click();
+      }
+      if (meta && e.shiftKey && e.key === 'C') {
+        e.preventDefault();
+        const last = [...messages].reverse().find(m => m.role === 'assistant');
+        const code = last?.content?.match(/```[\w]*\n([\s\S]*?)```/)?.[1];
+        if (code) navigator.clipboard?.writeText(code);
+      }
+    }
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [messages, newConvo]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, streamBuffer]);
@@ -488,6 +511,15 @@ export default function Chat() {
         )}
 
         <div style={{ flex: 1 }} />
+
+        {messages.length > 0 && (
+          <button onClick={() => {
+            const md = messages.map(m => `**${m.role === 'user' ? 'You' : 'Aspen'}:**\n${m.content}\n`).join('\n---\n\n');
+            const blob = new Blob([md], { type: 'text/markdown' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+            a.download = `aspen-chat-${new Date().toISOString().split('T')[0]}.md`; a.click();
+          }} title="Export as Markdown (⌘E)" style={{ padding: '4px 8px', border: '1.5px solid rgba(93,78,55,0.12)', borderRadius: 'var(--radius-pill)', background: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--text-light)' }}>↓ Export</button>
+        )}
 
         <select
           value={activeModel || ''}
@@ -850,14 +882,45 @@ export default function Chat() {
 // ─── Safe Markdown rendering — no dangerouslySetInnerHTML ───
 function MessageContent({ content, onOpenArtifact }) {
   if (!content) return null;
-  const parts = content.split(/(```[\s\S]*?```)/g);
+
+  // ── Thinking display: extract <think>...</think> blocks ──
+  let thinkContent = null;
+  let displayContent = content;
+  const thinkMatch = content.match(/<think>([\s\S]*?)<\/think>/);
+  if (thinkMatch) {
+    thinkContent = thinkMatch[1].trim();
+    displayContent = content.replace(/<think>[\s\S]*?<\/think>\s*/g, '').trim();
+  }
+
+  // ── Citations: detect [Source: url] or [1]: url patterns ──
+  const citations = [];
+  displayContent = displayContent.replace(/\[(?:Source|Ref|(\d+))\]:\s*(https?:\/\/\S+)/gi, (_, num, url) => {
+    const domain = new URL(url).hostname.replace('www.', '');
+    citations.push({ num: num || citations.length + 1, url, domain });
+    return '';
+  });
+
+  const parts = displayContent.split(/(```[\s\S]*?```)/g);
   return (
     <>
+      {thinkContent && (
+        <details style={{ marginBottom: 8, fontSize: 13, color: 'var(--text-light)' }}>
+          <summary style={{ cursor: 'pointer', fontWeight: 600, fontSize: 12, opacity: 0.7, marginBottom: 4 }}>💭 Thinking...</summary>
+          <div style={{ padding: '8px 12px', background: 'rgba(0,0,0,.03)', borderRadius: 8, whiteSpace: 'pre-wrap', lineHeight: 1.5, fontStyle: 'italic' }}>{thinkContent}</div>
+        </details>
+      )}
       {parts.map((part, i) => {
         if (part.startsWith('```') && part.endsWith('```')) {
           const lines = part.slice(3, -3).split('\n');
           const lang = lines[0]?.trim() || '';
           const code = lang ? lines.slice(1).join('\n') : lines.join('\n');
+          // Mermaid diagram detection
+          if (lang.toLowerCase() === 'mermaid') {
+            return <div key={i} className="artifact" style={{ padding: '12px 16px' }}>
+              <div className="artifact-head"><span className="artifact-lang">📊 Mermaid Diagram</span></div>
+              <pre className="artifact-code" style={{ fontSize: 12 }}><code>{code}</code></pre>
+            </div>;
+          }
           return <CodeBlock key={i} lang={lang} code={code} onOpenArtifact={onOpenArtifact} />;
         }
         // Unclosed code fence (still streaming)
@@ -879,21 +942,35 @@ function MessageContent({ content, onOpenArtifact }) {
             </div>
           </React.Fragment>;
         }
-        // Parse inline formatting into React elements (no dangerouslySetInnerHTML)
         return <InlineText key={i} text={part} />;
       })}
+      {citations.length > 0 && (
+        <div style={{ marginTop: 8, padding: '8px 12px', background: 'rgba(0,0,0,.03)', borderRadius: 8, fontSize: 12 }}>
+          <div style={{ fontWeight: 600, marginBottom: 4, color: 'var(--text-light)' }}>Sources:</div>
+          {citations.map((c, i) => (
+            <div key={i} style={{ marginBottom: 2 }}>
+              <a href={c.url} target="_blank" rel="noopener" style={{ color: 'var(--gold)', textDecoration: 'none' }}>
+                [{c.num}] {c.domain}
+              </a>
+            </div>
+          ))}
+        </div>
+      )}
     </>
   );
 }
 
 function InlineText({ text }) {
-  // Split on **bold** and `code` markers, render as React elements
-  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`|\n)/g);
+  // Split on **bold**, `code`, $latex$, $$latex$$, URLs, and newlines
+  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`|\$\$[^$]+\$\$|\$[^$]+\$|https?:\/\/\S+|\n)/g);
   return (
     <>
       {parts.map((p, i) => {
         if (p.startsWith('**') && p.endsWith('**')) return <strong key={i}>{p.slice(2, -2)}</strong>;
         if (p.startsWith('`') && p.endsWith('`')) return <code key={i}>{p.slice(1, -1)}</code>;
+        if (p.startsWith('$$') && p.endsWith('$$')) return <div key={i} style={{ fontFamily: 'var(--font-mono)', fontSize: 13, background: 'rgba(0,0,0,.04)', padding: '8px 12px', borderRadius: 6, margin: '4px 0', textAlign: 'center', overflowX: 'auto' }}>{p.slice(2, -2)}</div>;
+        if (p.startsWith('$') && p.endsWith('$') && p.length > 2) return <span key={i} style={{ fontFamily: 'var(--font-mono)', fontSize: 13, background: 'rgba(0,0,0,.04)', padding: '1px 4px', borderRadius: 3 }}>{p.slice(1, -1)}</span>;
+        if (p.match(/^https?:\/\//)) return <a key={i} href={p} target="_blank" rel="noopener" style={{ color: 'var(--gold)', textDecoration: 'underline' }}>{p.length > 50 ? p.slice(0, 47) + '...' : p}</a>;
         if (p === '\n') return <br key={i} />;
         return p;
       })}

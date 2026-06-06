@@ -132,7 +132,7 @@ async function runSearch(args) {
       .map((r, i) => `[${i + 1}] ${r.title}\n${r.snippet}\n${r.link}`)
       .join('\n\n');
     return (instant ? `${instant}\n` : '') + summary + pageContext +
-      `\n\nAnswer the user's question using the information above. If it contains the specific value asked for (a temperature, price, score, etc.), state that value directly.`;
+      `\n\nAnswer the user's question using the information above. If it contains the specific value asked for (a temperature, price, score, etc.), state that value directly. Include source references as [Source]: URL at the end of your answer.`;
   } catch (e) {
     return `Search failed: ${e.message}`;
   }
@@ -230,6 +230,40 @@ function extractYouTubeMeta(html) {
 function decodeEntities(s) {
   return String(s).replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
     .replace(/&#x27;/g, "'").replace(/&#39;/g, "'").replace(/&quot;/g, '"');
+}
+
+// ═══════════════════════════════════════════════════
+// TOOL: deep_research — multi-step search + synthesis
+// ═══════════════════════════════════════════════════
+
+async function runDeepResearch({ topic }) {
+  if (!topic) return 'No topic provided.';
+
+  // Generate 3-4 search queries from different angles
+  const queries = [
+    topic,
+    `${topic} latest developments 2026`,
+    `${topic} analysis expert opinion`,
+    `${topic} comparison alternatives`,
+  ];
+
+  const allResults = [];
+  for (const query of queries) {
+    try {
+      const result = await runSearch({ query });
+      if (result && !result.startsWith('Search failed') && !result.startsWith('No results')) {
+        allResults.push(`=== Search: "${query}" ===\n${result}`);
+      }
+    } catch {}
+    // Small delay to avoid rate limiting
+    await new Promise(r => setTimeout(r, 500));
+  }
+
+  if (allResults.length === 0) return `Could not find information about "${topic}".`;
+
+  return `DEEP RESEARCH RESULTS for "${topic}"\n\n` +
+    allResults.join('\n\n') +
+    `\n\n---\nSynthesize the above research into a comprehensive, well-organized answer. Include key findings, different perspectives, and source references as [Source]: URL.`;
 }
 
 // ═══════════════════════════════════════════════════
@@ -338,6 +372,23 @@ const TOOLS = {
       },
     },
     run: runCommand,
+  },
+  deep_research: {
+    definition: {
+      type: 'function',
+      function: {
+        name: 'deep_research',
+        description: 'Deep research on a topic — performs multiple web searches, fetches key pages, and compiles a comprehensive research brief. Use when the user wants thorough research, analysis, or a report on a topic.',
+        parameters: {
+          type: 'object',
+          properties: {
+            topic: { type: 'string', description: 'The topic to research thoroughly' },
+          },
+          required: ['topic'],
+        },
+      },
+    },
+    run: runDeepResearch,
   },
 };
 
