@@ -23,6 +23,9 @@ jobs:
           ASPEN_API_KEY: ${{ secrets.ASPEN_API_KEY }}
         run: node scripts/marketing-engine.js
 
+      - name: Build blog HTML + SEO
+        run: node scripts/build-blog.js
+
       - name: Commit and push new content
         run: |
           git config user.name "Aspen Marketing Bot"
