@@ -99,7 +99,7 @@ async function postToDevto(title, markdown, canonicalUrl) {
   if (!apiKey) { console.log('  ⏭️ Dev.to: skipped (no API key)'); return false; }
 
   try {
-    const res = await httpsPost('dev.to', '/api/articles', { 'api-key': apiKey }, {
+    const res = await httpsPost('dev.to', '/api/articles', { 'api-key': apiKey, 'User-Agent': 'Aspen-Marketing/1.0' }, {
       article: {
         title,
         body_markdown: markdown + `\n\n---\n*Originally published at [runonaspen.com](${canonicalUrl})*`,
@@ -109,7 +109,7 @@ async function postToDevto(title, markdown, canonicalUrl) {
       }
     });
     if (res.status === 201) { console.log('  ✅ Dev.to: published'); return true; }
-    console.log(`  ❌ Dev.to: ${res.status} — ${res.body.slice(0, 200)}`);
+    console.log(`  ❌ Dev.to: ${res.status} — ${res.body.slice(0, 500)}`);
     return false;
   } catch (e) { console.log(`  ❌ Dev.to: ${e.message}`); return false; }
 }
