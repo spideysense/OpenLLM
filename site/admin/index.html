@@ -109,7 +109,7 @@ $('enter').addEventListener('click',async()=>{
   const ok=await load();
   $('enter').disabled=false;$('enter').textContent='Enter';
   if(ok){
-    sessionStorage.setItem('admin_pw',pw);
+    localStorage.setItem('admin_pw',pw);
     $('gate').classList.add('hidden');$('dash').classList.remove('hidden');
   }
 });
@@ -117,7 +117,7 @@ $('pw').addEventListener('keydown',e=>{if(e.key==='Enter')$('enter').click();});
 $('refresh').addEventListener('click',load);
 // Auto-login if session exists
 (async()=>{
-  const saved=sessionStorage.getItem('admin_pw');
+  const saved=localStorage.getItem('admin_pw');
   if(saved){pw=saved;const ok=await load();if(ok){$('gate').classList.add('hidden');$('dash').classList.remove('hidden');}}
 })();
 </script>
