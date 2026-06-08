@@ -1036,13 +1036,29 @@ function handleFileDrop(files){
   }
 }
 
-async function sendMessage(){
-  if(isStreaming)return;const text=inputBox.value.trim();if(!text)return;
+let pendingFollowUp=false;
+async function sendMessage(autoRespond){
+  if(!autoRespond){
+    const text=inputBox.value.trim();if(!text)return;
+    const chat=chats[activeChatId];if(!chat)return;
+
+    // If streaming, add to history + show bubble, then auto-respond when done
+    if(isStreaming){
+      chat.messages.push({role:'user',content:text});
+      saveChats();appendMessage('user',text,false);
+      inputBox.value='';inputBox.style.height='auto';
+      pendingFollowUp=true;
+      scrollToBottom(true);
+      return;
+    }
+
+    chat.messages.push({role:'user',content:text});
+    if(chat.messages.length===1){chat.title=text.slice(0,52)+(text.length>52?'…':'');chatTitle.textContent=chat.title;renderChatList()}
+    saveChats();appendMessage('user',text,false);inputBox.value='';inputBox.style.height='auto';
+  }
+
   const chat=chats[activeChatId];if(!chat)return;
   const model=modelSelect.value||'llama3';
-  chat.messages.push({role:'user',content:text});
-  if(chat.messages.length===1){chat.title=text.slice(0,52)+(text.length>52?'…':'');chatTitle.textContent=chat.title;renderChatList()}
-  saveChats();appendMessage('user',text,false);inputBox.value='';inputBox.style.height='auto';
   stickToBottom=true;scrollToBottom(true);
   const bubble=appendMessage('assistant','',true);
   isStreaming=true;sendBtn.classList.add('hidden');stopBtn.classList.remove('hidden');sendBtn.disabled=true;
@@ -1099,6 +1115,7 @@ async function sendMessage(){
     if(artMatch){openArtifactPanel(artMatch[2].replace(/\n+$/,''),artMatch[1]);}
   }
   isStreaming=false;sendBtn.classList.remove('hidden');stopBtn.classList.add('hidden');sendBtn.disabled=false;streamController=null;inputBox.focus();
+  if(pendingFollowUp){pendingFollowUp=false;setTimeout(()=>sendMessage(true),200);}
 }
 stopBtn.addEventListener('click',()=>{streamController?.abort();streamController=null;isStreaming=false;sendBtn.classList.remove('hidden');stopBtn.classList.add('hidden');sendBtn.disabled=false});
 
