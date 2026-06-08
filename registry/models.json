@@ -1,7 +1,7 @@
 {
   "schema_version": 3,
-  "updated": "2026-06-05",
-  "changelog": "v3.3: Added Gemma 4 12B (June 3 release). Encoder-free multimodal, 256K context, Apache 2.0. New recommended for medium tier.",
+  "updated": "2026-06-08",
+  "changelog": "Auto-updated 2026-06-08: new models detected from Ollama library.",
   "hardware_tiers": {
     "light": {
       "label": "Light",
@@ -77,6 +77,15 @@
       "why": "Most reliable tool-calling of any local model. Top-tier quality, rarely drops a tool call."
     },
     {
+      "model": "qwen3:30b",
+      "name": "Qwen3 30 B",
+      "provider": "Alibaba",
+      "download_gb": 19.5,
+      "min_tier": "heavy",
+      "tool_support": true,
+      "why": "Auto-detected from Ollama library. Verify size and capabilities."
+    },
+    {
       "model": "gemma4:26b",
       "name": "Gemma 4 26B",
       "provider": "Google",
@@ -84,6 +93,15 @@
       "min_tier": "heavy",
       "tool_support": true,
       "why": "Native function-calling trained in. MoE efficiency (3.8B active). Great all-round agent."
+    },
+    {
+      "model": "gemma4:31b",
+      "name": "Gemma4 31 B",
+      "provider": "Google",
+      "download_gb": 20.2,
+      "min_tier": "heavy",
+      "tool_support": true,
+      "why": "Auto-detected from Ollama library. Verify size and capabilities."
     },
     {
       "model": "qwen2.5:32b",
@@ -113,6 +131,15 @@
       "why": "Production-grade tool reliability that fits a 16 GB machine. The sweet spot for most users."
     },
     {
+      "model": "qwen3:8b",
+      "name": "Qwen3 8 B",
+      "provider": "Alibaba",
+      "download_gb": 5.2,
+      "min_tier": "medium",
+      "tool_support": true,
+      "why": "Auto-detected from Ollama library. Verify size and capabilities."
+    },
+    {
       "model": "gemma4:e4b",
       "name": "Gemma 4 E4B",
       "provider": "Google",
@@ -131,6 +158,15 @@
       "why": "Beats many larger models on benchmarks, with solid, well-tested tool support."
     },
     {
+      "model": "qwen2.5:3b",
+      "name": "Qwen2.5 3 B",
+      "provider": "Alibaba",
+      "download_gb": 2,
+      "min_tier": "light",
+      "tool_support": true,
+      "why": "Auto-detected from Ollama library. Verify size and capabilities."
+    },
+    {
       "model": "llama3.1:8b",
       "name": "Llama 3.1 8B",
       "provider": "Meta",
@@ -143,10 +179,154 @@
       "model": "llama3.2:3b",
       "name": "Llama 3.2 3B",
       "provider": "Meta",
-      "download_gb": 2.0,
+      "download_gb": 2,
       "min_tier": "light",
       "tool_support": true,
       "why": "Runs on anything. Tool-capable and fast, best when RAM is tight."
+    },
+    {
+      "model": "llama3.2:1b",
+      "name": "Llama3.2 1 B",
+      "provider": "Meta",
+      "download_gb": 0.7,
+      "min_tier": "light",
+      "tool_support": true,
+      "why": "Auto-detected from Ollama library. Verify size and capabilities."
+    },
+    {
+      "model": "gemma4:e2b",
+      "name": "Gemma4 E2 B",
+      "provider": "Google",
+      "download_gb": 1.3,
+      "min_tier": "light",
+      "tool_support": true,
+      "why": "Auto-detected from Ollama library. Verify size and capabilities."
+    },
+    {
+      "model": "qwen3:4b",
+      "name": "Qwen3 4 B",
+      "provider": "Alibaba",
+      "download_gb": 2.6,
+      "min_tier": "light",
+      "tool_support": true,
+      "why": "Auto-detected from Ollama library. Verify size and capabilities."
+    },
+    {
+      "model": "qwen3:235b",
+      "name": "Qwen3 235 B",
+      "provider": "Alibaba",
+      "download_gb": 152.8,
+      "min_tier": "ultra",
+      "tool_support": true,
+      "why": "Auto-detected from Ollama library. Verify size and capabilities."
+    },
+    {
+      "model": "llama3.1:70b",
+      "name": "Llama3.1 70 B",
+      "provider": "Meta",
+      "download_gb": 45.5,
+      "min_tier": "ultra",
+      "tool_support": true,
+      "why": "Auto-detected from Ollama library. Verify size and capabilities."
+    },
+    {
+      "model": "llama3.1:405b",
+      "name": "Llama3.1 405 B",
+      "provider": "Meta",
+      "download_gb": 263.3,
+      "min_tier": "ultra",
+      "tool_support": true,
+      "why": "Auto-detected from Ollama library. Verify size and capabilities."
+    },
+    {
+      "model": "qwen2.5:14b",
+      "name": "Qwen2.5 14 B",
+      "provider": "Alibaba",
+      "download_gb": 9.1,
+      "min_tier": "medium",
+      "tool_support": true,
+      "why": "Auto-detected from Ollama library. Verify size and capabilities."
+    },
+    {
+      "model": "qwen2.5:72b",
+      "name": "Qwen2.5 72 B",
+      "provider": "Alibaba",
+      "download_gb": 46.8,
+      "min_tier": "ultra",
+      "tool_support": true,
+      "why": "Auto-detected from Ollama library. Verify size and capabilities."
+    },
+    {
+      "model": "phi4:14b",
+      "name": "Phi4 14 B",
+      "provider": "Microsoft",
+      "download_gb": 9.1,
+      "min_tier": "medium",
+      "tool_support": true,
+      "why": "Auto-detected from Ollama library. Verify size and capabilities."
+    },
+    {
+      "model": "mistral:7b",
+      "name": "Mistral 7 B",
+      "provider": "Mistral",
+      "download_gb": 4.6,
+      "min_tier": "light",
+      "tool_support": true,
+      "why": "Auto-detected from Ollama library. Verify size and capabilities."
+    },
+    {
+      "model": "deepseek-r1:7b",
+      "name": "Deepseek-r1 7 B",
+      "provider": "DeepSeek",
+      "download_gb": 4.6,
+      "min_tier": "light",
+      "tool_support": false,
+      "why": "Auto-detected from Ollama library. Verify size and capabilities."
+    },
+    {
+      "model": "deepseek-r1:8b",
+      "name": "Deepseek-r1 8 B",
+      "provider": "DeepSeek",
+      "download_gb": 5.2,
+      "min_tier": "medium",
+      "tool_support": false,
+      "why": "Auto-detected from Ollama library. Verify size and capabilities."
+    },
+    {
+      "model": "deepseek-r1:14b",
+      "name": "Deepseek-r1 14 B",
+      "provider": "DeepSeek",
+      "download_gb": 9.1,
+      "min_tier": "medium",
+      "tool_support": false,
+      "why": "Auto-detected from Ollama library. Verify size and capabilities."
+    },
+    {
+      "model": "deepseek-r1:32b",
+      "name": "Deepseek-r1 32 B",
+      "provider": "DeepSeek",
+      "download_gb": 20.8,
+      "min_tier": "heavy",
+      "tool_support": false,
+      "why": "Auto-detected from Ollama library. Verify size and capabilities."
+    },
+    {
+      "model": "deepseek-r1:70b",
+      "name": "Deepseek-r1 70 B",
+      "provider": "DeepSeek",
+      "download_gb": 45.5,
+      "min_tier": "ultra",
+      "tool_support": false,
+      "why": "Auto-detected from Ollama library. Verify size and capabilities."
+    },
+    {
+      "model": "deepseek-r1:671b",
+      "name": "Deepseek-r1 671 B",
+      "provider": "DeepSeek",
+      "download_gb": 436.2,
+      "min_tier": "ultra",
+      "tool_support": false,
+      "why": "Auto-detected from Ollama library. Verify size and capabilities."
     }
   ]
 }
