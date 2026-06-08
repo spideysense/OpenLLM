@@ -1042,13 +1042,26 @@ async function sendMessage(autoRespond){
     const text=inputBox.value.trim();if(!text)return;
     const chat=chats[activeChatId];if(!chat)return;
 
-    // If streaming, add to history + show bubble, then auto-respond when done
+    // If streaming, INTERRUPT — save partial response, add follow-up, restart
     if(isStreaming){
+      streamController?.abort();
+      streamController=null;
+      isStreaming=false;
+      sendBtn.classList.remove('hidden');stopBtn.classList.add('hidden');sendBtn.disabled=false;
+
+      // Save whatever the AI generated so far as context
+      const partialBubble=document.querySelector('#messages .msg:last-child .bubble');
+      const partial=partialBubble?._fullText||'';
+      if(partial){chat.messages.push({role:'assistant',content:partial+'…'});}
+
+      // Add the user's follow-up
       chat.messages.push({role:'user',content:text});
       saveChats();appendMessage('user',text,false);
       inputBox.value='';inputBox.style.height='auto';
-      pendingFollowUp=true;
       scrollToBottom(true);
+
+      // Small delay then restart streaming with full context
+      setTimeout(()=>sendMessage(true),100);
       return;
     }
 
@@ -1096,7 +1109,7 @@ async function sendMessage(autoRespond){
         if(trialMode&&t.startsWith(': messagesLeft=')){trialMsgsLeft=parseInt(t.slice(15))||0;checkStatus();continue;}
         if(!t.startsWith('data: '))continue;
         const d=t.slice(6);if(d==='[DONE]')continue;
-        try{const j=JSON.parse(d);if(j.error){throw new Error(j.error);}const delta=j.choices?.[0]?.delta?.content;if(delta){fullText+=delta;bubble.innerHTML=formatMessage(fullText)+'<span class="cursor"></span>';scrollToBottom()}}catch(err){if(err.message&&err.message!=='Unexpected end of JSON input'&&!d.startsWith('{')){/*surface real upstream errors*/}}
+        try{const j=JSON.parse(d);if(j.error){throw new Error(j.error);}const delta=j.choices?.[0]?.delta?.content;if(delta){fullText+=delta;bubble._fullText=fullText;bubble.innerHTML=formatMessage(fullText)+'<span class="cursor"></span>';scrollToBottom()}}catch(err){if(err.message&&err.message!=='Unexpected end of JSON input'&&!d.startsWith('{')){/*surface real upstream errors*/}}
       }
     }
   }catch(e){
@@ -1115,7 +1128,6 @@ async function sendMessage(autoRespond){
     if(artMatch){openArtifactPanel(artMatch[2].replace(/\n+$/,''),artMatch[1]);}
   }
   isStreaming=false;sendBtn.classList.remove('hidden');stopBtn.classList.add('hidden');sendBtn.disabled=false;streamController=null;inputBox.focus();
-  if(pendingFollowUp){pendingFollowUp=false;setTimeout(()=>sendMessage(true),200);}
 }
 stopBtn.addEventListener('click',()=>{streamController?.abort();streamController=null;isStreaming=false;sendBtn.classList.remove('hidden');stopBtn.classList.add('hidden');sendBtn.disabled=false});
 
