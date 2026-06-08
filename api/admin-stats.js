@@ -60,6 +60,16 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Incorrect password.' });
   }
 
+  // ── Set download floor manually ──
+  if (body.action === 'setFloor' && body.floor != null) {
+    const kvUrl = process.env.KV_REST_API_URL, kvTok = process.env.KV_REST_API_TOKEN;
+    if (kvUrl && kvTok) {
+      await kvSet(kvUrl, kvTok, 'aspen:download_floor', String(body.floor));
+      return res.status(200).json({ success: true, floor: body.floor });
+    }
+    return res.status(503).json({ error: 'KV not configured' });
+  }
+
   const out = { downloads: { total: 0, byRelease: [] }, visits: null, trial: null, notes: [] };
 
   // ── GitHub download counts (real) ──
