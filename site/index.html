@@ -401,7 +401,6 @@ fetch('/api/preorder-checkout',{method:'POST',headers:{'Content-Type':'applicati
   else{btn.textContent='Error, try again';btn.style.background='#DC3545';setTimeout(function(){btn.textContent='Reserve for $1 →';btn.style.background='';btn.disabled=false;},2500);}
 }).catch(function(){btn.textContent='Error, try again';btn.style.background='#DC3545';setTimeout(function(){btn.textContent='Reserve for $1 →';btn.style.background='';btn.disabled=false;},2500);});
 }
-}
 (function(){
 const c=document.getElementById('particles'),ctx=c.getContext('2d');
 let w,h,mx=-9e3,my=-9e3;const pts=[];const N=100;const R=150;
