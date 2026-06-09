@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useApp } from '../App';
 
-const COST_PER_EXCHANGE = 0.040;
+// Opus 4.6 pricing: $5/1M input, $25/1M output
+// Avg exchange: ~800 input tokens + ~600 output tokens
+// Cost: (800*5 + 600*25) / 1,000,000 = $0.019 ≈ $0.02
+const COST_PER_EXCHANGE = 0.019;
+const MODEL_LABEL = 'Claude Opus 4.6 API';
 
 export default function Home() {
   const { bridge, gatewayStatus, models, setPage } = useApp();
@@ -34,7 +38,22 @@ export default function Home() {
   const totalSaved = (totalExchanges * COST_PER_EXCHANGE).toFixed(2);
   const tunnelUrl = tunnelStatus?.url || null;
 
-  function copy(text, id) {
+  const [shared, setShared] = useState(false);
+  const [sharing, setSharing] = useState(false);
+
+  async function shareSavings() {
+    if (shared || sharing || totalExchanges < 1) return;
+    setSharing(true);
+    try {
+      await fetch('https://runonaspen.com/api/community-savings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ exchanges: totalExchanges, saved: parseFloat(totalSaved) }),
+      });
+      setShared(true);
+    } catch {}
+    setSharing(false);
+  }
     if (bridge?.clipboard?.write) bridge.clipboard.write(text);
     else navigator.clipboard.writeText(text).catch(() => {});
     setCopied(id); setTimeout(() => setCopied(null), 2000);
@@ -73,7 +92,10 @@ export default function Home() {
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--gold)', letterSpacing: '.05em', marginBottom: 6 }}>TOTAL SAVED VS CLOUD AI</div>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 48, fontWeight: 700, color: 'var(--earth)', lineHeight: 1 }}>${totalSaved}</div>
-            <div style={{ fontSize: 13, color: 'var(--text-light)', marginTop: 8 }}>{totalExchanges.toLocaleString()} exchanges · vs Claude Opus 4 API pricing</div>
+            <div style={{ fontSize: 13, color: 'var(--text-light)', marginTop: 8 }}>{totalExchanges.toLocaleString()} exchanges · vs {MODEL_LABEL}</div>
+            <button onClick={shareSavings} disabled={sharing || shared || totalExchanges < 1} style={{ marginTop: 12, padding: '6px 14px', background: shared ? 'var(--sage,#7a9e7e)' : 'var(--gold,#b8860b)', color: '#fff', border: 'none', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: totalExchanges < 1 ? 'default' : 'pointer', opacity: totalExchanges < 1 ? 0.4 : 1 }}>
+              {shared ? '✓ Shared with community' : sharing ? 'Sharing…' : '🌿 Share with Aspen Community'}
+            </button>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 160 }}>
             {[['Models installed', models.length, undefined], ['Gateway', gatewayStatus.running ? `Port ${gatewayStatus.port}` : 'Offline', gatewayStatus.running], ['Tunnel', tunnelStatus.connected ? 'Connected' : 'Connecting…', tunnelStatus.connected]].map(([label, value, ok]) => (

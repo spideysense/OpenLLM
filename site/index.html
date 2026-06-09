@@ -321,6 +321,37 @@ footer{border-top:1px solid var(--brd);padding:2rem 0}
 </div>
 </section>
 
+<!-- Community Savings Widget -->
+<section style="padding:4rem 0 3rem;background:var(--wh)">
+<div class="w" style="max-width:860px">
+  <div class="cn" style="margin-bottom:2rem">
+    <span class="tg rv">Aspen Community</span>
+    <h2 class="rv" style="margin-bottom:.5rem">Real savings, real people.</h2>
+    <p class="sb rv" style="max-width:460px;margin:.5rem auto 0">Aspen users anonymously share how much they've saved vs. paying for cloud AI. No names. Just the number.</p>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:2rem" id="savings-stats">
+    <div style="background:var(--bg);border:1px solid var(--brd);border-radius:16px;padding:1.75rem 2rem;text-align:center">
+      <div style="font-size:.7rem;font-weight:700;letter-spacing:.08em;color:var(--gd);text-transform:uppercase;margin-bottom:.5rem">Community Total Saved</div>
+      <div id="community-total" style="font-family:var(--ser);font-size:2.8rem;font-weight:400;color:var(--bk);line-height:1">$—</div>
+      <div id="community-exchanges" style="font-size:.78rem;color:var(--t3);margin-top:.4rem">loading…</div>
+    </div>
+    <div style="background:var(--bg);border:1px solid var(--brd);border-radius:16px;padding:1.75rem 2rem;text-align:center">
+      <div style="font-size:.7rem;font-weight:700;letter-spacing:.08em;color:var(--gd);text-transform:uppercase;margin-bottom:.5rem">People Sharing</div>
+      <div id="community-count" style="font-family:var(--ser);font-size:2.8rem;font-weight:400;color:var(--bk);line-height:1">—</div>
+      <div style="font-size:.78rem;color:var(--t3);margin-top:.4rem">Aspen users</div>
+    </div>
+  </div>
+  <!-- Recent savings stream -->
+  <div id="savings-feed" style="background:var(--bg);border:1px solid var(--brd);border-radius:16px;overflow:hidden">
+    <div style="padding:.75rem 1.25rem;border-bottom:1px solid var(--brd);font-size:.75rem;font-weight:600;color:var(--t3);letter-spacing:.06em;text-transform:uppercase">Recent shares</div>
+    <div id="savings-list" style="max-height:220px;overflow-y:auto">
+      <div style="padding:1.5rem;text-align:center;color:var(--t4);font-size:.85rem">Loading community data…</div>
+    </div>
+  </div>
+  <p style="text-align:center;font-size:.75rem;color:var(--t4);margin-top:1rem">Anonymous · No account needed · vs Claude Opus 4.6 API pricing</p>
+</div>
+</section>
+
 <section class="cta" id="preorder">
 <div class="w cn">
 <h2 class="rv">The last AI decision<br>you'll ever make.</h2>
@@ -371,6 +402,52 @@ function submitContact(e){
 
 <div class="modal" id="preorder-modal" onclick="if(event.target===this)this.style.display='none'"><div class="modal-box" style="position:relative"><button class="modal-close" onclick="this.closest('.modal').style.display='none'">&times;</button><h3>Pre-order Aspen</h3><p>Reserve your Aspen device with a <strong>$1 deposit</strong> — applied toward the full price at shipping. This filters out fake interest so we can focus on real customers.</p><input class="modal-input" id="po-name" placeholder="Full name" /><input class="modal-input" id="po-email" type="email" placeholder="Email address" /><button class="modal-submit" onclick="submitPreorder(this)">Reserve for $1 →</button><p style="font-size:11px;color:#999;margin-top:8px;text-align:center">Secure payment via Stripe. $1 deposit, applied toward your $10,000 order.</p></div></div>
 <script>
+// Community savings widget
+(function(){
+  function timeAgo(ts) {
+    var s = Math.floor((Date.now() - ts) / 1000);
+    if (s < 60) return 'just now';
+    if (s < 3600) return Math.floor(s/60) + 'm ago';
+    if (s < 86400) return Math.floor(s/3600) + 'h ago';
+    return Math.floor(s/86400) + 'd ago';
+  }
+  function animateCount(el, target, prefix, suffix, duration) {
+    var start = 0, startTime = null;
+    function step(ts) {
+      if (!startTime) startTime = ts;
+      var p = Math.min((ts - startTime) / duration, 1);
+      var ease = 1 - Math.pow(1 - p, 3);
+      el.textContent = prefix + (Math.floor(ease * target)).toLocaleString() + suffix;
+      if (p < 1) requestAnimationFrame(step);
+      else el.textContent = prefix + target.toLocaleString() + suffix;
+    }
+    requestAnimationFrame(step);
+  }
+  function render(data) {
+    var total = data.total || 0;
+    var count = data.count || 0;
+    var exchanges = data.totalExchanges || 0;
+    var recent = data.recent || [];
+    animateCount(document.getElementById('community-total'), Math.round(total), '$', '', 1200);
+    animateCount(document.getElementById('community-count'), count, '', '', 900);
+    document.getElementById('community-exchanges').textContent = exchanges.toLocaleString() + ' total exchanges';
+    var list = document.getElementById('savings-list');
+    if (!recent.length) { list.innerHTML = '<div style="padding:1.5rem;text-align:center;color:#AEAEB2;font-size:.85rem">No shares yet — be the first!</div>'; return; }
+    list.innerHTML = recent.map(function(e) {
+      return '<div style="display:flex;align-items:center;justify-content:space-between;padding:.65rem 1.25rem;border-bottom:1px solid rgba(0,0,0,.04);font-size:.85rem">'
+        + '<span style="color:#6E6E73">🌿 Saved <strong style="color:#1D1D1F">$' + e.saved.toFixed(2) + '</strong> across ' + e.exchanges.toLocaleString() + ' exchanges</span>'
+        + '<span style="font-size:.72rem;color:#AEAEB2">' + timeAgo(e.ts) + '</span>'
+        + '</div>';
+    }).join('');
+  }
+  fetch('/api/community-savings')
+    .then(function(r){return r.json();})
+    .then(render)
+    .catch(function(){
+      document.getElementById('savings-list').innerHTML = '<div style="padding:1.5rem;text-align:center;color:#AEAEB2;font-size:.85rem">Couldn\'t load data</div>';
+    });
+})();
+
 // OS detection — swap download button to match the visitor's platform
 (function(){
   var ua = navigator.userAgent;
