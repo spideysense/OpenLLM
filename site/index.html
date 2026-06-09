@@ -310,7 +310,7 @@ footer{border-top:1px solid var(--brd);padding:2rem 0}
 <h2 class="rv">The last AI decision<br>you'll ever make.</h2>
 <p class="sb rv">One machine. Private, powerful intelligence, on your hardware, in your home, forever.</p>
 <div class="cta-btns rv">
-<a href="#" onclick="document.getElementById('preorder-modal').style.display='flex';return false" class="nb nb-g nb-l">Pre-order Now: $10,000</a>
+<a href="#" onclick="document.getElementById('preorder-modal').style.display='flex';return false" class="nb nb-g nb-l">Pre-order — $1 deposit</a>
 </div>
 <p class="cta-or rv">or</p>
 <p class="cta-dl rv">Get started now for free. <a href="https://github.com/spideysense/OpenLLM/releases/latest/download/Aspen-mac.dmg">Download for Mac</a>, <a href="https://github.com/spideysense/OpenLLM/releases/latest/download/Aspen-win.exe">Windows</a>, or <a href="https://apps.apple.com/app/id6775307566">iPhone</a>.</p>
@@ -353,7 +353,7 @@ function submitContact(e){
 <ul class="ft-l"><li></li><li><a href="https://github.com/spideysense/OpenLLM">GitHub</a></li><li><a href="#privacy">Privacy</a></li><li><a href="#developers">API</a></li></ul>
 </div></div></footer>
 
-<div class="modal" id="preorder-modal" onclick="if(event.target===this)this.style.display='none'"><div class="modal-box" style="position:relative"><button class="modal-close" onclick="this.closest('.modal').style.display='none'">&times;</button><h3>Pre-order Aspen</h3><p>Reserve your Aspen device. We'll reach out when it's ready to ship.</p><input class="modal-input" id="po-name" placeholder="Full name" /><input class="modal-input" id="po-email" type="email" placeholder="Email address" /><button class="modal-submit" onclick="submitPreorder(this)">Reserve: $10,000</button></div></div>
+<div class="modal" id="preorder-modal" onclick="if(event.target===this)this.style.display='none'"><div class="modal-box" style="position:relative"><button class="modal-close" onclick="this.closest('.modal').style.display='none'">&times;</button><h3>Pre-order Aspen</h3><p>Reserve your Aspen device with a <strong>$1 deposit</strong> — applied toward the full price at shipping. This filters out fake interest so we can focus on real customers.</p><input class="modal-input" id="po-name" placeholder="Full name" /><input class="modal-input" id="po-email" type="email" placeholder="Email address" /><button class="modal-submit" onclick="submitPreorder(this)">Reserve for $1 →</button><p style="font-size:11px;color:#999;margin-top:8px;text-align:center">Secure payment via Stripe. $1 deposit, applied toward your $10,000 order.</p></div></div>
 <script>
 // Intel-Mac guard: Aspen's Mac build is Apple Silicon only (Intel Macs lack the
 // unified memory that makes local AI usable). Only warn when we're CONFIDENT the
@@ -392,14 +392,15 @@ document.querySelectorAll('.rv').forEach(el=>o.observe(el));
 function submitPreorder(btn){
 var n=document.getElementById('po-name').value.trim();
 var e=document.getElementById('po-email').value.trim();
-if(!n||!e){btn.textContent='Please fill in both fields';btn.style.background='#DC3545';setTimeout(function(){btn.textContent='Reserve: $10,000';btn.style.background=''},2000);return}
-btn.textContent='Reserving...';btn.disabled=true;
-fetch('/api/preorder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n,email:e})})
-.then(function(r){return r.json()})
+if(!n||!e){btn.textContent='Please fill in both fields';btn.style.background='#DC3545';setTimeout(function(){btn.textContent='Reserve for $1 →';btn.style.background=''},2000);return;}
+btn.textContent='Redirecting to payment...';btn.disabled=true;
+fetch('/api/preorder-checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n,email:e})})
+.then(function(r){return r.json();})
 .then(function(d){
-if(d.ok){btn.textContent='Reserved \u2713';btn.style.background='#28A745';setTimeout(function(){document.getElementById('preorder-modal').style.display='none';btn.textContent='Reserve: $10,000';btn.style.background='';btn.disabled=false;document.getElementById('po-name').value='';document.getElementById('po-email').value=''},2000)}
-else{btn.textContent='Error, try again';btn.style.background='#DC3545';setTimeout(function(){btn.textContent='Reserve: $10,000';btn.style.background='';btn.disabled=false},2500)}
-}).catch(function(){btn.textContent='Error, try again';btn.style.background='#DC3545';setTimeout(function(){btn.textContent='Reserve: $10,000';btn.style.background='';btn.disabled=false},2500)});
+  if(d.url){window.location.href=d.url;}
+  else{btn.textContent='Error, try again';btn.style.background='#DC3545';setTimeout(function(){btn.textContent='Reserve for $1 →';btn.style.background='';btn.disabled=false;},2500);}
+}).catch(function(){btn.textContent='Error, try again';btn.style.background='#DC3545';setTimeout(function(){btn.textContent='Reserve for $1 →';btn.style.background='';btn.disabled=false;},2500);});
+}
 }
 (function(){
 const c=document.getElementById('particles'),ctx=c.getContext('2d');
