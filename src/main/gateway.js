@@ -106,15 +106,28 @@ function start() {
     }
 
     if (req.url === '/publish-artifact' && req.method === 'POST') {
+      // SECURITY: require a valid API key to publish (prevents anonymous hosting/phishing)
+      const pubKeys = apikeys.listKeys();
+      if (pubKeys.length > 0) {
+        const pubToken = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '');
+        if (!apikeys.validateKey(pubToken)) {
+          res.writeHead(401, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Authentication required to publish' }));
+          return;
+        }
+      }
       let body = '';
-      req.on('data', c => { body += c; });
+      req.on('data', c => {
+        body += c;
+        // SECURITY: cap artifact size at 2MB to prevent disk-fill DoS
+        if (body.length > 2 * 1024 * 1024) { res.writeHead(413); res.end('{"error":"artifact too large"}'); req.destroy(); }
+      });
       req.on('end', () => {
         try {
           const { html } = JSON.parse(body);
-          if (!html) { res.writeHead(400); res.end('{"error":"html required"}'); return; }
+          if (!html || typeof html !== 'string') { res.writeHead(400); res.end('{"error":"html required"}'); return; }
           const id = require('crypto').randomBytes(4).toString('hex');
           artifacts.set(id, html);
-          // Persist to disk
           try { fs.writeFileSync(artifactsPath, JSON.stringify([...artifacts])); } catch {}
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ id, path: `/artifacts/${id}` }));
@@ -360,7 +373,7 @@ async function handleAgentChat(parsed, res) {
       // can detect+replace it. Kept minimal to avoid polluting the answer.
       res.write(`data: ${JSON.stringify({ ...baseChunk, choices: [{ index: 0, delta: { content: '' }, finish_reason: null }], aspen_status: 'searching' })}\n\n`);
 
-      const content = await agent.runAgent({ model, messages: parsed.messages });
+      const content = await agent.runAgent({ model, messages: parsed.messages, isOwner: apikeys.isOwnerKey(authToken) });
 
       // Stream the computed answer in word-sized pieces so it types out smoothly.
       const pieces = String(content).match(/\S+\s*/g) || [content];
@@ -372,7 +385,7 @@ async function handleAgentChat(parsed, res) {
       res.write('data: [DONE]\n\n');
       res.end();
     } else {
-      const content = await agent.runAgent({ model, messages: parsed.messages });
+      const content = await agent.runAgent({ model, messages: parsed.messages, isOwner: apikeys.isOwnerKey(authToken) });
       const payload = {
         id: 'chatcmpl-aspen',
         object: 'chat.completion',
