@@ -85,12 +85,12 @@ function getRelevantSkills(userMessage) {
   const msg = (userMessage || '').toLowerCase();
   const relevant = [];
 
-  if (/\b(git|clone|commit|push|repo|deploy)\b/.test(msg)) {
+  if (/\b(git|clone|commit|push|repo|deploy|token|pat_|ghp_)\b/.test(msg)) {
     const content = readSkill('git-workflow');
     if (content) relevant.push(content);
   }
 
-  if (/\b(html|web ?app|website|landing|page|game|quiz|artifact)\b/.test(msg)) {
+  if (/\b(html|web ?app|website|landing|page|game|quiz|artifact|dashboard|form|calculator|tool)\b/.test(msg)) {
     const content = readSkill('html-artifact');
     if (content) relevant.push(content);
   }
@@ -100,7 +100,28 @@ function getRelevantSkills(userMessage) {
     if (content) relevant.push(content);
   }
 
-  return relevant;
+  if (/\b(design|beautiful|polished|professional|ui|ux|style|css|layout|responsive|dark mode|theme|color|font|typography)\b/.test(msg)) {
+    const content = readSkill('frontend-design');
+    if (content) relevant.push(content);
+  }
+
+  if (/\b(full.?stack|next\.?js|react|api|database|auth|login|signup|saas|deploy|vercel|supabase|stripe|payment)\b/.test(msg)) {
+    const content = readSkill('full-stack-app');
+    if (content) relevant.push(content);
+  }
+
+  if (/\b(chart|graph|visuali|dashboard|data|analytics|kpi|metric|plot|bar chart|line chart|donut|pie chart)\b/.test(msg)) {
+    const content = readSkill('data-visualization');
+    if (content) relevant.push(content);
+  }
+
+  if (/\b(test|debug|refactor|review|code quality|best practice|architecture|clean code|security|performance)\b/.test(msg)) {
+    const content = readSkill('code-quality');
+    if (content) relevant.push(content);
+  }
+
+  // Limit to top 3 most relevant skills to avoid context overload
+  return relevant.slice(0, 3);
 }
 
 module.exports = {
