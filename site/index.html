@@ -156,10 +156,10 @@ footer{border-top:1px solid var(--brd);padding:2rem 0}
 <h1>Own your<br><em>intelligence.</em></h1>
 <p class="sb">Private AI that runs on your machine. No subscriptions. No cloud. No one reading your conversations. No terminal, no configuration. Just download, open, and ask.</p>
 <div class="hero-btns">
-<a href="https://github.com/spideysense/OpenLLM/releases/latest/download/Aspen-mac.dmg" class="nb nb-g nb-l" id="download-mac">Download Free for Mac</a>
+<a href="https://github.com/spideysense/OpenLLM/releases/latest/download/Aspen-mac.dmg" class="nb nb-g nb-l" id="download-primary">Download Free for Mac</a>
 <a href="#device" class="nb nb-o nb-l">See the Aspen device</a>
 </div>
-<p class="hero-note"><a href="https://github.com/spideysense/OpenLLM/releases/latest/download/Aspen-win.exe" id="download-win">Also available for Windows</a> &middot; <a href="https://apps.apple.com/app/id6775307566" id="download-ios">iPhone app on the App Store</a> &middot; Free &middot; No account required &middot; <a href="https://github.com/spideysense/OpenLLM/releases">Previous versions</a></p>
+<p class="hero-note"><span id="download-secondary-wrap"><a href="https://github.com/spideysense/OpenLLM/releases/latest/download/Aspen-win.exe" id="download-secondary">Also available for Windows</a> &middot; </span><a href="https://apps.apple.com/app/id6775307566" id="download-ios">iPhone app on the App Store</a> &middot; Free &middot; No account required &middot; <a href="https://github.com/spideysense/OpenLLM/releases">Previous versions</a></p>
 <p class="hero-note" style="margin-top:.5rem">The app is free forever on the devices you already own. The <a href="#device">Aspen device</a> is a separate, optional machine for running the biggest models, always on. You never need it to use Aspen.</p>
 <p class="hero-note" style="margin-top:.5rem">Not sure yet? <a href="/app">Try it free in your browser →</a></p>
 </div>
@@ -179,6 +179,10 @@ footer{border-top:1px solid var(--brd);padding:2rem 0}
 <div class="dev-spec"><div class="dev-spec-v">Silent</div><div class="dev-spec-l">Always on</div></div>
 </div>
 <p class="dev-dim rv">5.9&#x2033; &times; 5.9&#x2033; &times; 2&#x2033;</p>
+<div style="text-align:center;margin-top:2rem">
+  <a href="#" onclick="document.getElementById('preorder-modal').style.display='flex';return false" class="nb nb-g nb-l" style="font-size:1rem;padding:.75rem 2.2rem">Pre-order — $1 deposit</a>
+  <p style="font-size:.75rem;color:var(--t4);margin-top:.6rem">$1 deposit applied toward final price &middot; Shipping when ready</p>
+</div>
 </div>
 </section>
 
@@ -355,7 +359,27 @@ function submitContact(e){
 
 <div class="modal" id="preorder-modal" onclick="if(event.target===this)this.style.display='none'"><div class="modal-box" style="position:relative"><button class="modal-close" onclick="this.closest('.modal').style.display='none'">&times;</button><h3>Pre-order Aspen</h3><p>Reserve your Aspen device with a <strong>$1 deposit</strong> — applied toward the full price at shipping. This filters out fake interest so we can focus on real customers.</p><input class="modal-input" id="po-name" placeholder="Full name" /><input class="modal-input" id="po-email" type="email" placeholder="Email address" /><button class="modal-submit" onclick="submitPreorder(this)">Reserve for $1 →</button><p style="font-size:11px;color:#999;margin-top:8px;text-align:center">Secure payment via Stripe. $1 deposit, applied toward your $10,000 order.</p></div></div>
 <script>
-// Intel-Mac guard: Aspen's Mac build is Apple Silicon only (Intel Macs lack the
+// OS detection — swap download button to match the visitor's platform
+(function(){
+  var ua = navigator.userAgent;
+  var primary = document.getElementById('download-primary');
+  var secondary = document.getElementById('download-secondary');
+  var secondaryWrap = document.getElementById('download-secondary-wrap');
+  var MAC = /Mac/.test(ua) && !/iPhone|iPad/.test(ua);
+  var WIN = /Win/.test(ua);
+  var IOS = /iPhone|iPad/.test(ua);
+  if(WIN){
+    primary.href='https://github.com/spideysense/OpenLLM/releases/latest/download/Aspen-win.exe';
+    primary.textContent='Download Free for Windows';
+    secondary.href='https://github.com/spideysense/OpenLLM/releases/latest/download/Aspen-mac.dmg';
+    secondary.textContent='Also available for Mac';
+  } else if(IOS){
+    primary.href='https://apps.apple.com/app/id6775307566';
+    primary.textContent='Download on the App Store';
+    secondaryWrap.innerHTML='<a href="https://github.com/spideysense/OpenLLM/releases/latest/download/Aspen-mac.dmg">Mac</a> &middot; <a href="https://github.com/spideysense/OpenLLM/releases/latest/download/Aspen-win.exe">Windows</a> &middot; ';
+  }
+  // MAC: default, no changes needed
+})();
 // unified memory that makes local AI usable). Only warn when we're CONFIDENT the
 // machine is an Intel Mac — never risk a false warning on a valid M-series Mac.
 // Detection is best-effort; if uncertain/blocked, we stay silent and let download proceed.
