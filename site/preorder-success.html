@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Pre-order Confirmed — Aspen</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAFAF7;--bk:#1D1D1F;--t2:#6E6E73;--t4:#AEAEB2;
+    --gd:#B8860B;--gd2:#DAA520;--brd:rgba(0,0,0,.06);
+    --ser:'DM Serif Display',Georgia,serif;
+    --san:'Outfit',-apple-system,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-font-smoothing:antialiased}
+  body{font-family:var(--san);background:var(--bg);color:var(--bk);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem}
+
+  .card{
+    background:#fff;border:1px solid var(--brd);border-radius:24px;
+    padding:3rem 3.5rem;max-width:540px;width:100%;text-align:center;
+    box-shadow:0 4px 40px rgba(0,0,0,.06);
+  }
+
+  .icon{
+    width:72px;height:72px;border-radius:50%;
+    background:linear-gradient(135deg,#b8860b,#daa520);
+    display:flex;align-items:center;justify-content:center;
+    margin:0 auto 1.75rem;font-size:32px;
+  }
+
+  h1{
+    font-family:var(--ser);font-size:2rem;font-weight:400;
+    margin-bottom:.75rem;line-height:1.2;
+  }
+  h1 em{font-style:italic;color:var(--gd)}
+
+  .sub{
+    font-size:1rem;color:var(--t2);line-height:1.7;margin-bottom:2rem;
+  }
+
+  .details{
+    background:#FAFAF7;border:1px solid var(--brd);border-radius:12px;
+    padding:1.25rem 1.5rem;margin-bottom:2rem;text-align:left;
+  }
+  .details p{font-size:.85rem;color:var(--t2);line-height:1.8}
+  .details strong{color:var(--bk);font-weight:600}
+
+  .btn{
+    display:inline-block;background:linear-gradient(135deg,#b8860b,#daa520);
+    color:#fff;text-decoration:none;padding:.75rem 2rem;
+    border-radius:980px;font-size:.9rem;font-weight:500;
+    transition:opacity .2s;margin-bottom:.75rem;
+  }
+  .btn:hover{opacity:.88}
+
+  .secondary{font-size:.8rem;color:var(--t4)}
+  .secondary a{color:var(--gd);text-decoration:none}
+
+  .progress{margin:2.25rem 0 1rem}
+  .progress-label{display:flex;justify-content:space-between;font-size:.75rem;color:var(--t4);margin-bottom:.5rem}
+  .progress-bar{height:4px;background:var(--brd);border-radius:4px;overflow:hidden}
+  .progress-fill{height:100%;width:33%;background:linear-gradient(90deg,#b8860b,#daa520);border-radius:4px;animation:grow .8s cubic-bezier(.22,1,.36,1) forwards}
+  @keyframes grow{from{width:0}to{width:33%}}
+
+  .confetti{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0}
+  canvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none}
+
+  @media(max-width:480px){
+    .card{padding:2rem 1.5rem}
+    h1{font-size:1.6rem}
+  }
+</style>
+</head>
+<body>
+
+<canvas id="confetti-canvas"></canvas>
+
+<div class="card" style="position:relative;z-index:1">
+  <div class="icon">🌿</div>
+
+  <h1>You're in,<br><em id="greeting">early adopter.</em></h1>
+
+  <p class="sub">
+    Your $1 deposit confirms your Aspen device pre-order.
+    It'll be applied toward the full price — you're one of the first.
+  </p>
+
+  <div class="details">
+    <p><strong>What happens next</strong></p>
+    <p>Check your inbox for a confirmation email. We'll reach out personally when your device is ready to ship. In the meantime, download the free software and start running private AI today.</p>
+  </div>
+
+  <div class="progress">
+    <div class="progress-label"><span>Pre-order placed</span><span>Device ships</span></div>
+    <div class="progress-bar"><div class="progress-fill"></div></div>
+  </div>
+
+  <a href="https://github.com/spideysense/OpenLLM/releases/latest/download/Aspen-mac.dmg" class="btn">
+    Download Aspen Free for Mac →
+  </a>
+
+  <p class="secondary">
+    Windows? <a href="https://github.com/spideysense/OpenLLM/releases/latest/download/Aspen-win.exe">Get the Windows build</a>.
+    Questions? <a href="mailto:mayank.mehta@gmail.com">Email Mayank</a>.
+  </p>
+</div>
+
+<script>
+  // Personalise greeting from URL param
+  const params = new URLSearchParams(location.search);
+  const name = params.get('name');
+  if (name) {
+    document.getElementById('greeting').textContent = name.split(' ')[0] + '.';
+  }
+
+  // Confetti
+  const canvas = document.getElementById('confetti-canvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; });
+
+  const COLORS = ['#B8860B','#DAA520','#F5D060','#8B6914','#FAFAF7','#1D1D1F'];
+  const pieces = Array.from({length:120}, () => ({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height - canvas.height,
+    r: Math.random() * 6 + 3,
+    d: Math.random() * 80 + 20,
+    color: COLORS[Math.floor(Math.random() * COLORS.length)],
+    tilt: Math.random() * 10 - 10,
+    tiltAngle: 0,
+    tiltSpeed: Math.random() * .1 + .05,
+  }));
+
+  let frame = 0;
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    pieces.forEach(p => {
+      p.tiltAngle += p.tiltSpeed;
+      p.y += (Math.cos(frame / 20 + p.d) + 1 + p.r / 3) * .8;
+      p.tilt = Math.sin(p.tiltAngle) * 12;
+      if (p.y > canvas.height) { p.y = -10; p.x = Math.random() * canvas.width; }
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.tilt * Math.PI / 180);
+      ctx.fillStyle = p.color;
+      ctx.globalAlpha = .8;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, p.r, p.r / 2, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    });
+    frame++;
+    if (frame < 300) requestAnimationFrame(draw); // ~5 seconds then stop
+    else ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+  draw();
+</script>
+</body>
+</html>

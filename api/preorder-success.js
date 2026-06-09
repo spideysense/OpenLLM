@@ -71,7 +71,7 @@ export default async function handler(req, res) {
   }
 
   // Redirect to success page
-  return res.redirect(302, `/?preorder=success&name=${encodeURIComponent(decodeURIComponent(name))}`);
+  return res.redirect(302, `/preorder-success.html?name=${encodeURIComponent(decodeURIComponent(name))}`);
 }
 
 async function sendEmail(apiKey, payload) {
