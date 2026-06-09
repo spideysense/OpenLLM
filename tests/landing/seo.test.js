@@ -242,8 +242,10 @@ describe('Content: Calls to action', () => {
   });
 
   it('should detect user OS (mac/win/other)', () => {
-    expect(html).toContain('download-mac');
-    expect(html).toContain('download-win');
+    expect(html).toContain('download-primary');
+    expect(html).toContain('download-secondary');
+    expect(html).toContain('Aspen-mac.dmg');
+    expect(html).toContain('Aspen-win.exe');
   });
 
   it('should have GitHub Fork CTA', () => {
