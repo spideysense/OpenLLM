@@ -386,9 +386,13 @@ ipcMain.handle('chat:send', async (event, { model, messages }) => {
   // World model — prepend known facts about the user
   const wmPrefix = worldModel.getSystemPrefix();
 
+  // Custom instructions from Settings
+  const customInstructions = store.get('customInstructions') || '';
+  const ciPrefix = customInstructions ? `The user has set these custom instructions — follow them:\n${customInstructions}\n\n` : '';
+
   const SYSTEM_PROMPT = {
     role: 'system',
-    content: `${wmPrefix}You are a helpful AI assistant running locally inside Aspen on the user's own computer. All processing is 100% on this machine — nothing leaves the device. The current date is ${dateStr} and the time is ${timeStr}. When asked to build a web page or website, always produce ONE self-contained HTML file with all CSS inside a <style> tag and all JavaScript inside a <script> tag — never split into separate files and never use external <link rel="stylesheet"> or external script src references, so it previews correctly. Use a code fence labeled html. Be helpful, friendly, and concise.`,
+    content: `${wmPrefix}${ciPrefix}You are a helpful AI assistant running locally inside Aspen on the user's own computer. All processing is 100% on this machine — nothing leaves the device. The current date is ${dateStr} and the time is ${timeStr}. When asked to build a web page or website, always produce ONE self-contained HTML file with all CSS inside a <style> tag and all JavaScript inside a <script> tag — never split into separate files and never use external <link rel="stylesheet"> or external script src references, so it previews correctly. Use a code fence labeled html. Be helpful, friendly, and concise.`,
   };
 
   // Only prepend if there's no existing system message

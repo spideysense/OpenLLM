@@ -30,6 +30,9 @@ export default function Chat() {
   const [voiceSupported, setVoiceSupported] = useState(false);
   const [totalExchanges, setTotalExchanges] = useState(0);
   const [smallModelDismissed, setSmallModelDismissed] = useState(false);
+  const [showScrollBtn, setShowScrollBtn] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [editingTitle, setEditingTitle] = useState(null);
   const [connMenuOpen, setConnMenuOpen] = useState(false);
   const [connectorList, setConnectorList] = useState([]);
   const [connBusy, setConnBusy] = useState(null);
@@ -498,8 +501,12 @@ export default function Chat() {
           <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: 1 }}>Chats</span>
           <button onClick={newConvo} style={{ background: 'var(--pipe-yellow)', border: 'none', borderRadius: 6, padding: '3px 8px', fontSize: 13, fontWeight: 700, cursor: 'pointer', color: 'var(--earth)' }}>+</button>
         </div>
+        {/* Search */}
+        <div style={{ padding: '0 8px 6px' }}>
+          <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search chats..." style={{ width: '100%', padding: '5px 8px', border: '1px solid rgba(93,78,55,.12)', borderRadius: 6, fontSize: 11, background: 'var(--cloud, #fff)', color: 'var(--text-dark)' }} />
+        </div>
         <div style={{ flex: 1, overflowY: 'auto', padding: '0 6px 8px' }}>
-          {[...conversations].reverse().map((c) => (
+          {[...conversations].reverse().filter(c => !searchQuery || c.title?.toLowerCase().includes(searchQuery.toLowerCase()) || c.messages?.some(m => m.content?.toLowerCase().includes(searchQuery.toLowerCase()))).map((c) => (
             <div
               key={c.id}
               style={{
@@ -510,9 +517,17 @@ export default function Chat() {
               }}
               onClick={() => setActiveConvo(c.id)}
             >
-              <span style={{ fontSize: 12, color: 'var(--text-mid)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, fontWeight: c.id === activeConvo ? 700 : 400 }}>
-                {c.title || 'New Chat'}
-              </span>
+              {editingTitle === c.id ? (
+                <input autoFocus value={c.title || ''} onChange={e => setConversations(cs => cs.map(x => x.id === c.id ? { ...x, title: e.target.value } : x))}
+                  onBlur={() => setEditingTitle(null)} onKeyDown={e => { if (e.key === 'Enter') setEditingTitle(null); }}
+                  style={{ flex: 1, fontSize: 12, border: '1px solid var(--gold)', borderRadius: 4, padding: '1px 4px', background: '#fff', color: 'var(--text-dark)', outline: 'none' }}
+                  onClick={e => e.stopPropagation()} />
+              ) : (
+                <span onDoubleClick={(e) => { e.stopPropagation(); setEditingTitle(c.id); }} title="Double-click to rename"
+                  style={{ fontSize: 12, color: 'var(--text-mid)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, fontWeight: c.id === activeConvo ? 700 : 400 }}>
+                  {c.title || 'New Chat'}
+                </span>
+              )}
               {conversations.length > 1 && (
                 <button
                   onClick={(e) => { e.stopPropagation(); deleteConvo(c.id); }}
@@ -589,6 +604,7 @@ export default function Chat() {
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
+        onScroll={(e) => { const el = e.target; setShowScrollBtn(el.scrollHeight - el.scrollTop - el.clientHeight > 200); }}
         style={dragOver ? { outline: '2px dashed var(--gold)', outlineOffset: -4, background: 'rgba(184,134,11,0.04)' } : {}}
       >
         {messages.length === 0 && !streamBuffer && (
@@ -656,6 +672,21 @@ export default function Chat() {
                   : <div key={j} style={{ fontSize: 11, color: 'var(--text-light)', marginBottom: 6, padding: '4px 8px', background: 'rgba(93,78,55,.06)', borderRadius: 6 }}>📄 {a.name}</div>
               ))}
               <MessageContent content={msg.content} onOpenArtifact={openArtifact} />
+              {/* Message actions */}
+              {msg.role === 'assistant' && !isStreaming && (
+                <div style={{ display: 'flex', gap: 4, marginTop: 6, opacity: 0.4, transition: 'opacity .15s' }} onMouseEnter={e => e.currentTarget.style.opacity = 1} onMouseLeave={e => e.currentTarget.style.opacity = 0.4}>
+                  <button onClick={() => navigator.clipboard?.writeText(msg.content)} title="Copy" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, padding: '2px 6px', borderRadius: 4, color: 'var(--text-light)' }}>📋</button>
+                  {i === messages.length - 1 && (
+                    <button onClick={() => {
+                      setConversations(cs => cs.map(c => c.id === activeConvo ? { ...c, messages: c.messages.slice(0, -1) } : c));
+                      setTimeout(() => {
+                        const prev = messages[messages.length - 2];
+                        if (prev?.role === 'user') { setInput(prev.content); }
+                      }, 100);
+                    }} title="Retry" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, padding: '2px 6px', borderRadius: 4, color: 'var(--text-light)' }}>🔄</button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         ))}
@@ -685,6 +716,13 @@ export default function Chat() {
         )}
 
         <div ref={messagesEndRef} />
+        {/* Scroll to bottom button */}
+        {showScrollBtn && !isStreaming && (
+          <button onClick={() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); setShowScrollBtn(false); }}
+            style={{ position: 'sticky', bottom: 8, left: '50%', transform: 'translateX(-50%)', zIndex: 10, background: 'var(--earth, #333)', color: '#fff', border: 'none', borderRadius: 20, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,.2)' }}>
+            ↓ New messages
+          </button>
+        )}
       </div>
 
       {/* Attachment previews */}
@@ -1051,21 +1089,78 @@ function MessageContent({ content, onOpenArtifact }) {
 
 function InlineText({ text }) {
   if (!text || typeof text !== 'string') return null;
-  // Split on **bold**, `code`, $latex$, $$latex$$, URLs, and newlines
-  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`|\$\$[^$]+\$\$|\$[^$]+\$|https?:\/\/\S+|\n)/g);
-  return (
-    <>
-      {parts.filter(Boolean).map((p, i) => {
-        if (p.startsWith('**') && p.endsWith('**')) return <strong key={i}>{p.slice(2, -2)}</strong>;
-        if (p.startsWith('`') && p.endsWith('`')) return <code key={i}>{p.slice(1, -1)}</code>;
-        if (p.startsWith('$$') && p.endsWith('$$')) return <div key={i} style={{ fontFamily: 'var(--font-mono)', fontSize: 13, background: 'rgba(0,0,0,.04)', padding: '8px 12px', borderRadius: 6, margin: '4px 0', textAlign: 'center', overflowX: 'auto' }}>{p.slice(2, -2)}</div>;
-        if (p.startsWith('$') && p.endsWith('$') && p.length > 2) return <span key={i} style={{ fontFamily: 'var(--font-mono)', fontSize: 13, background: 'rgba(0,0,0,.04)', padding: '1px 4px', borderRadius: 3 }}>{p.slice(1, -1)}</span>;
-        if (p.match(/^https?:\/\//)) return <a key={i} href={p} target="_blank" rel="noopener" style={{ color: 'var(--gold)', textDecoration: 'underline' }}>{p.length > 50 ? p.slice(0, 47) + '...' : p}</a>;
-        if (p === '\n') return <br key={i} />;
-        return p;
-      })}
-    </>
-  );
+  // Split on **bold**, `code`, $latex$, $$latex$$, URLs, headers, lists, blockquotes, HR, and newlines
+  const lines = text.split('\n');
+  const elements = [];
+  let inList = false;
+  let listItems = [];
+  let inOrderedList = false;
+  let orderedItems = [];
+  let inTable = false;
+  let tableRows = [];
+
+  const flushList = () => { if (listItems.length) { elements.push(<ul key={`ul-${elements.length}`} style={{ margin: '8px 0', paddingLeft: 20 }}>{listItems.map((li, i) => <li key={i} style={{ marginBottom: 4 }}>{renderInline(li)}</li>)}</ul>); listItems = []; inList = false; } };
+  const flushOrderedList = () => { if (orderedItems.length) { elements.push(<ol key={`ol-${elements.length}`} style={{ margin: '8px 0', paddingLeft: 20 }}>{orderedItems.map((li, i) => <li key={i} style={{ marginBottom: 4 }}>{renderInline(li)}</li>)}</ol>); orderedItems = []; inOrderedList = false; } };
+  const flushTable = () => {
+    if (tableRows.length) {
+      const headers = tableRows[0];
+      const body = tableRows.slice(2); // skip separator row
+      elements.push(
+        <div key={`tbl-${elements.length}`} style={{ overflowX: 'auto', margin: '8px 0' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead><tr>{headers.map((h, i) => <th key={i} style={{ border: '1px solid rgba(0,0,0,.1)', padding: '6px 10px', background: 'rgba(0,0,0,.03)', fontWeight: 600, textAlign: 'left' }}>{renderInline(h.trim())}</th>)}</tr></thead>
+            <tbody>{body.map((row, ri) => <tr key={ri}>{row.map((cell, ci) => <td key={ci} style={{ border: '1px solid rgba(0,0,0,.1)', padding: '6px 10px' }}>{renderInline(cell.trim())}</td>)}</tr>)}</tbody>
+          </table>
+        </div>
+      );
+      tableRows = []; inTable = false;
+    }
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    // Table detection
+    if (line.includes('|') && line.trim().startsWith('|')) {
+      const cells = line.split('|').filter(Boolean);
+      if (!inTable) { inTable = true; flushList(); flushOrderedList(); }
+      tableRows.push(cells);
+      continue;
+    } else if (inTable) { flushTable(); }
+    // Unordered list
+    if (/^[\s]*[-*]\s/.test(line)) { flushOrderedList(); inList = true; listItems.push(line.replace(/^[\s]*[-*]\s/, '')); continue; }
+    else if (inList) { flushList(); }
+    // Ordered list
+    if (/^[\s]*\d+\.\s/.test(line)) { flushList(); inOrderedList = true; orderedItems.push(line.replace(/^[\s]*\d+\.\s/, '')); continue; }
+    else if (inOrderedList) { flushOrderedList(); }
+    // Headers
+    if (line.startsWith('### ')) { elements.push(<h4 key={`h-${i}`} style={{ fontSize: 14, fontWeight: 700, margin: '12px 0 4px', color: 'var(--earth)' }}>{renderInline(line.slice(4))}</h4>); continue; }
+    if (line.startsWith('## ')) { elements.push(<h3 key={`h-${i}`} style={{ fontSize: 15, fontWeight: 700, margin: '14px 0 6px', color: 'var(--earth)' }}>{renderInline(line.slice(3))}</h3>); continue; }
+    if (line.startsWith('# ')) { elements.push(<h2 key={`h-${i}`} style={{ fontSize: 17, fontWeight: 700, margin: '16px 0 8px', color: 'var(--earth)' }}>{renderInline(line.slice(2))}</h2>); continue; }
+    // Blockquote
+    if (line.startsWith('> ')) { elements.push(<blockquote key={`bq-${i}`} style={{ borderLeft: '3px solid var(--gold)', paddingLeft: 12, margin: '8px 0', color: 'var(--text-light)', fontStyle: 'italic' }}>{renderInline(line.slice(2))}</blockquote>); continue; }
+    // Horizontal rule
+    if (/^[-*_]{3,}$/.test(line.trim())) { elements.push(<hr key={`hr-${i}`} style={{ border: 'none', borderTop: '1px solid rgba(0,0,0,.1)', margin: '12px 0' }} />); continue; }
+    // Empty line
+    if (!line.trim()) { elements.push(<div key={`br-${i}`} style={{ height: 8 }} />); continue; }
+    // Regular paragraph
+    elements.push(<div key={`p-${i}`}>{renderInline(line)}</div>);
+  }
+  flushList(); flushOrderedList(); flushTable();
+  return <>{elements}</>;
+}
+
+function renderInline(text) {
+  if (!text) return null;
+  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`|\$\$[^$]+\$\$|\$[^$]+\$|https?:\/\/\S+|\[[^\]]+\]\([^)]+\))/g);
+  return parts.filter(Boolean).map((p, i) => {
+    if (p.startsWith('**') && p.endsWith('**')) return <strong key={i}>{p.slice(2, -2)}</strong>;
+    if (p.startsWith('`') && p.endsWith('`')) return <code key={i} style={{ background: 'rgba(0,0,0,.06)', padding: '1px 4px', borderRadius: 3, fontSize: '0.9em' }}>{p.slice(1, -1)}</code>;
+    if (p.startsWith('$$') && p.endsWith('$$')) return <div key={i} style={{ fontFamily: 'var(--font-mono)', fontSize: 13, background: 'rgba(0,0,0,.04)', padding: '8px 12px', borderRadius: 6, margin: '4px 0', textAlign: 'center', overflowX: 'auto' }}>{p.slice(2, -2)}</div>;
+    if (p.startsWith('$') && p.endsWith('$') && p.length > 2) return <span key={i} style={{ fontFamily: 'var(--font-mono)', fontSize: 13, background: 'rgba(0,0,0,.04)', padding: '1px 4px', borderRadius: 3 }}>{p.slice(1, -1)}</span>;
+    if (p.match(/^\[([^\]]+)\]\(([^)]+)\)$/)) { const m = p.match(/^\[([^\]]+)\]\(([^)]+)\)$/); return <a key={i} href={m[2]} target="_blank" rel="noopener" style={{ color: 'var(--gold)', textDecoration: 'underline' }}>{m[1]}</a>; }
+    if (p.match(/^https?:\/\//)) return <a key={i} href={p} target="_blank" rel="noopener" style={{ color: 'var(--gold)', textDecoration: 'underline' }}>{p.length > 50 ? p.slice(0, 47) + '...' : p}</a>;
+    return p;
+  });
 }
 
 // ─── Code artifact card: opens in the side panel (Claude-style) ───

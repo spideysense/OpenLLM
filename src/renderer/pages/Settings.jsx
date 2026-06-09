@@ -11,6 +11,12 @@ export default function Settings() {
   const [saved, setSaved] = useState(false);
   const [appVersion, setAppVersion] = useState('...');
   const [toolStates, setToolStates] = useState([]);
+  const [customInstructions, setCustomInstructions] = useState('');
+
+  // Load custom instructions
+  useEffect(() => {
+    if (bridge?.store) bridge.store.get('customInstructions').then(v => { if (v && typeof v === 'string') setCustomInstructions(v); }).catch(() => {});
+  }, [bridge]);
 
   useEffect(() => {
     if (bridge?.tools?.list) {
@@ -65,6 +71,18 @@ export default function Settings() {
   return (
     <div className="page">
       <div className="page-title">⚙️ Settings</div>
+
+      {/* Custom Instructions */}
+      <div className="card mb-6">
+        <div className="card-title">📝 Custom Instructions</div>
+        <div className="card-sub" style={{ marginBottom: 8 }}>Tell Aspen about yourself and how you'd like it to respond. These are prepended to every conversation.</div>
+        <textarea
+          value={customInstructions}
+          onChange={(e) => { setCustomInstructions(e.target.value); bridge?.store?.set('customInstructions', e.target.value); }}
+          placeholder="e.g., I'm a software engineer. Be technical and concise. Always include code examples. Respond in Spanish."
+          style={{ width: '100%', minHeight: 80, padding: 10, border: '1.5px solid rgba(93,78,55,.12)', borderRadius: 8, fontSize: 13, fontFamily: 'var(--font-body)', resize: 'vertical', background: 'var(--cloud)', color: 'var(--text-dark)', boxSizing: 'border-box' }}
+        />
+      </div>
       <div className="page-sub">Configure Aspen to work your way.</div>
       <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '2px solid rgba(93,78,55,0.1)', paddingBottom: 0 }}>
         {tabs.map(t => (
