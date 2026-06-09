@@ -379,7 +379,7 @@ select.settings-select{font-family:var(--san);font-size:.84rem;color:var(--bk);b
   <div class="app-layout">
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
-        <div class="sb-logo"><img src="/favicon.svg" alt="Aspen"><span>ASPEN</span></div>
+        <div class="sb-logo"><img src="/favicon.svg" alt="Aspen"><span>ASPEN</span><span style="font-size:9px;font-weight:700;background:var(--gd,#b8860b);color:#fff;padding:1px 5px;border-radius:4px;letter-spacing:.5px;margin-left:4px;vertical-align:middle">BETA</span></div>
         <button class="new-chat-btn" id="new-chat-btn">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>New chat
         </button>
@@ -399,6 +399,11 @@ select.settings-select{font-family:var(--san);font-size:.84rem;color:var(--bk);b
     </aside>
 
     <div class="chat-main">
+      <!-- BETA BANNER -->
+      <div id="beta-banner" style="background:linear-gradient(90deg,#b8860b,#daa520);color:#fff;padding:7px 16px;font-size:12.5px;text-align:center;display:flex;align-items:center;justify-content:center;gap:10px;flex-shrink:0">
+        <span>🌿 <strong>Aspen is in Beta.</strong> We'd love your feedback — <a href="mailto:mayank.mehta@gmail.com?subject=Aspen%20Beta%20Feedback" style="color:#fff;text-decoration:underline">tell us what you think</a>.</span>
+        <button onclick="document.getElementById('beta-banner').style.display='none'" style="background:rgba(255,255,255,.25);border:none;color:#fff;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:12px;line-height:1;flex-shrink:0" aria-label="Dismiss">×</button>
+      </div>
       <!-- CHAT PANEL -->
       <div class="panel active" id="panel-chat" style="flex-direction:column">
         <header class="chat-header">

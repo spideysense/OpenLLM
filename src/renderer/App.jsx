@@ -33,6 +33,7 @@ export default function App() {
   const [isOnboarded, setIsOnboarded] = useState(true);
   const [loading, setLoading] = useState(true);
   const [modelUpgrade, setModelUpgrade] = useState(null);
+  const [betaDismissed, setBetaDismissed] = useState(false);
 
   useEffect(() => {
     if (!bridge?.registry?.onUpgradeAvailable) return;
@@ -175,6 +176,16 @@ export default function App() {
       <div className="app-layout">
         <Sidebar />
         <main className="main-content">
+          {!betaDismissed && (
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+              padding: '7px 16px', background: 'linear-gradient(90deg,#b8860b,#daa520)',
+              color: '#fff', fontSize: 12.5, flexShrink: 0,
+            }}>
+              <span>🌿 <strong>Aspen is in Beta.</strong> We'd love your feedback — <a href="mailto:mayank.mehta@gmail.com?subject=Aspen%20Beta%20Feedback" style={{ color: '#fff', textDecoration: 'underline' }}>tell us what you think</a>.</span>
+              <button onClick={() => setBetaDismissed(true)} style={{ background: 'rgba(255,255,255,.25)', border: 'none', color: '#fff', width: 18, height: 18, borderRadius: '50%', cursor: 'pointer', fontSize: 12, lineHeight: 1, flexShrink: 0 }} aria-label="Dismiss">×</button>
+            </div>
+          )}
           {modelUpgrade && (
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
