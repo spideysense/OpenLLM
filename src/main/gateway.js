@@ -53,12 +53,36 @@ let currentPort = DEFAULT_PORT;
 // Gateway Server
 // ═══════════════════════════════════════════════════
 
+// ── Rate limiting (per IP) ──
+const rateLimitMap = new Map();
+const RATE_LIMIT = 60; // requests per minute
+const RATE_WINDOW = 60000;
+function checkRateLimit(ip) {
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+  if (!entry || now - entry.start > RATE_WINDOW) { rateLimitMap.set(ip, { start: now, count: 1 }); return true; }
+  entry.count++;
+  return entry.count <= RATE_LIMIT;
+}
+setInterval(() => { const now = Date.now(); for (const [ip, e] of rateLimitMap) { if (now - e.start > RATE_WINDOW * 2) rateLimitMap.delete(ip); } }, 300000);
+
 function start() {
   if (server) return;
 
   server = http.createServer(async (req, res) => {
+    // Rate limiting
+    const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown';
+    if (!checkRateLimit(clientIp)) {
+      res.writeHead(429, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Rate limited. Try again in a minute.' }));
+      return;
+    }
     // CORS headers
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    // CORS — restrict to known origins
+    const allowedOrigins = ['https://runonaspen.com', 'http://localhost:5173', 'http://localhost:3000', 'capacitor://localhost', 'ionic://localhost'];
+    const origin = req.headers.origin || '';
+    const corsOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
+    res.setHeader('Access-Control-Allow-Origin', corsOrigin);
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
@@ -105,7 +129,20 @@ function start() {
     if (keys.length > 0) {
       const authHeader = req.headers['authorization'] || '';
       authToken = authHeader.replace(/^Bearer\s+/i, '');
+
+      // Brute-force protection: lock out after 10 failed attempts
+      const failKey = `auth_fail:${clientIp}`;
+      const fails = rateLimitMap.get(failKey);
+      if (fails && fails.count >= 10 && Date.now() - fails.start < 900000) {
+        res.writeHead(403, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Too many failed attempts. Try again in 15 minutes.' }));
+        return;
+      }
+
       if (!apikeys.validateKey(authToken)) {
+        // Track failed auth
+        if (!fails || Date.now() - fails.start > 900000) rateLimitMap.set(failKey, { start: Date.now(), count: 1 });
+        else fails.count++;
         res.writeHead(401, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: { message: 'Invalid API key', type: 'authentication_error' } }));
         return;
