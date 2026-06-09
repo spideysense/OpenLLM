@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useApp } from '../App';
 
-// Opus 4.6 pricing: $5/1M input, $25/1M output
+// Fable 5 pricing (launched June 9, 2026): $10/1M input, $50/1M output
 // Avg exchange: ~800 input tokens + ~600 output tokens
-// Cost: (800*5 + 600*25) / 1,000,000 = $0.019 ≈ $0.02
-const COST_PER_EXCHANGE = 0.019;
-const MODEL_LABEL = 'Claude Opus 4.6 API';
+// Cost: (800×$10 + 600×$50) / 1,000,000 = $0.038/exchange
+const COST_PER_EXCHANGE = 0.038;
+const MODEL_LABEL = 'Claude Fable 5 API';
 
 export default function Home() {
   const { bridge, gatewayStatus, models, setPage } = useApp();
