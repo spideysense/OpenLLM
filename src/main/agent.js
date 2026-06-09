@@ -125,9 +125,16 @@ Call exactly the tool that fits, wait for its result, then answer using that res
   // Auto-inject relevant skills based on the user's latest message
   const userMsg = messages[messages.length - 1]?.content || '';
   const relevantSkills = skills.getRelevantSkills(userMsg);
-  const skillsBlock = relevantSkills.length > 0
-    ? '\n\n--- SKILLS (follow these instructions carefully) ---\n' + relevantSkills.join('\n\n---\n\n')
+  const allSkills = skills.listSkills();
+
+  // Hybrid approach: auto-inject top 2 matching skills + list all available
+  const autoInjected = relevantSkills.slice(0, 2);
+  const skillsTOC = allSkills.length > 0
+    ? `\n\nAvailable skills (read any with: run_command cat ${require('path').join(__dirname, '..', '..', 'skills')}/SKILLNAME.md):\n${allSkills.map(s => `  - ${s.name}`).join('\n')}`
     : '';
+  const skillsBlock = autoInjected.length > 0
+    ? '\n\n--- SKILLS (follow these instructions carefully) ---\n' + autoInjected.join('\n\n---\n\n') + skillsTOC
+    : skillsTOC;
 
   const convoBase = [...messages];
   if (convoBase[0]?.role === 'system') {
