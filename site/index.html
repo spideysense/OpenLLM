@@ -393,6 +393,7 @@ function submitPreorder(btn){
 var n=document.getElementById('po-name').value.trim();
 var e=document.getElementById('po-email').value.trim();
 if(!n||!e){btn.textContent='Please fill in both fields';btn.style.background='#DC3545';setTimeout(function(){btn.textContent='Reserve for $1 →';btn.style.background=''},2000);return;}
+if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)){btn.textContent='Please enter a valid email';btn.style.background='#DC3545';setTimeout(function(){btn.textContent='Reserve for $1 →';btn.style.background=''},2000);document.getElementById('po-email').focus();return;}
 btn.textContent='Redirecting to payment...';btn.disabled=true;
 fetch('/api/preorder-checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n,email:e})})
 .then(function(r){return r.json();})
