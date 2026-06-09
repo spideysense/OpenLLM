@@ -85,40 +85,35 @@ function getRelevantSkills(userMessage) {
   const msg = (userMessage || '').toLowerCase();
   const relevant = [];
 
-  if (/\b(git|clone|commit|push|repo|deploy|token|pat_|ghp_)\b/.test(msg)) {
-    const content = readSkill('git-workflow');
-    if (content) relevant.push(content);
-  }
+  const match = (pattern, skillName) => {
+    if (pattern.test(msg)) {
+      const content = readSkill(skillName);
+      if (content) relevant.push(content);
+    }
+  };
 
-  if (/\b(html|web ?app|website|landing|page|game|quiz|artifact|dashboard|form|calculator|tool)\b/.test(msg)) {
-    const content = readSkill('html-artifact');
-    if (content) relevant.push(content);
-  }
+  // Development
+  match(/(git|clone|commit|push|repo|deploy|token|pat_|ghp_)/, 'git-workflow');
+  match(/(html|web ?app|website|landing|page|game|quiz|artifact|calculator|tool|widget)/, 'html-artifact');
+  match(/(screenshot|recreate|rebuild|copy this|make this|looks like|photo of|image of)/, 'screenshot-to-app');
+  match(/(design|beautiful|polished|professional|ui|ux|style|css|layout|responsive|dark mode|theme|color|font|typography|mockup|wireframe)/, 'frontend-design');
+  match(/(full.?stack|next\.?js|react|api|database|auth|login|signup|saas|vercel|supabase|stripe|payment|backend)/, 'full-stack-app');
+  match(/(chart|graph|visuali|dashboard|data viz|kpi|metric|plot|bar chart|line chart|donut)/, 'data-visualization');
+  match(/(test|debug|refactor|review|code quality|best practice|architecture|clean code|lint|security|performance)/, 'code-quality');
 
-  if (/\b(screenshot|recreate|rebuild|copy this|make this|looks like|photo of|image of)\b/.test(msg)) {
-    const content = readSkill('screenshot-to-app');
-    if (content) relevant.push(content);
-  }
+  // Product & Operations
+  match(/(prd|product.*req|roadmap|prioriti|user stor|backlog|feature.*request|go.to.market|competitive|persona|jobs.to.be.done)/, 'product-management');
+  match(/(sprint|ticket|estimate|standup|retro|backlog|agile|scrum|kanban|jira|linear|epic)/, 'sprint-planning');
+  match(/(ci.?cd|pipeline|deploy|monitor|incident|devops|docker|infrastructure|kubernetes|terraform|staging|production|rollback)/, 'engineering-ops');
+  match(/(analytics|tracking|funnel|cohort|retention|churn|dau|mau|conversion|a.b test|experiment|north star)/, 'analytics');
 
-  if (/\b(design|beautiful|polished|professional|ui|ux|style|css|layout|responsive|dark mode|theme|color|font|typography)\b/.test(msg)) {
-    const content = readSkill('frontend-design');
-    if (content) relevant.push(content);
-  }
+  // Design & UX
+  match(/(ux|user research|usability|accessibility|a11y|wireframe|prototype|persona|user journey|information architecture|heuristic)/, 'ux-design');
 
-  if (/\b(full.?stack|next\.?js|react|api|database|auth|login|signup|saas|deploy|vercel|supabase|stripe|payment)\b/.test(msg)) {
-    const content = readSkill('full-stack-app');
-    if (content) relevant.push(content);
-  }
-
-  if (/\b(chart|graph|visuali|dashboard|data|analytics|kpi|metric|plot|bar chart|line chart|donut|pie chart)\b/.test(msg)) {
-    const content = readSkill('data-visualization');
-    if (content) relevant.push(content);
-  }
-
-  if (/\b(test|debug|refactor|review|code quality|best practice|architecture|clean code|security|performance)\b/.test(msg)) {
-    const content = readSkill('code-quality');
-    if (content) relevant.push(content);
-  }
+  // Documents & Content
+  match(/(document|report|memo|letter|invoice|resume|cv|cover letter|pdf|word|docx|spreadsheet|xlsx|slide|presentation|pptx|deck)/, 'documents');
+  match(/(ad |marketing|creative|campaign|landing page|email.*market|social media|seo|copy|headline|cta|brand)/, 'marketing-creative');
+  match(/(write|email|blog|article|essay|post|draft|tone|newsletter|copy)/, 'writing');
 
   // Limit to top 3 most relevant skills to avoid context overload
   return relevant.slice(0, 3);
