@@ -77,7 +77,11 @@
         "repo": "OpenLLM"
       }
     ],
-    "afterAllArtifactBuild": "scripts/staple-dmg.js"
+    "afterAllArtifactBuild": "scripts/staple-dmg.js",
+    "asarUnpack": [
+      "node_modules/robotjs/**/*"
+    ],
+    "npmRebuild": true
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
@@ -87,7 +91,8 @@
     "pdf-parse": "^2.4.5",
     "sharp": "^0.34.5",
     "xlsx": "^0.18.5",
-    "yauzl": "^3.3.1"
+    "yauzl": "^3.3.1",
+    "robotjs": "0.6.0"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.1.5",
@@ -105,7 +110,8 @@
     "uuid": "^13.0.0",
     "vite": "^5.0.12",
     "vitest": "^1.2.0",
-    "wait-on": "^7.2.0"
+    "wait-on": "^7.2.0",
+    "@electron/rebuild": "^3.6.0"
   },
   "author": {
     "name": "Aspen",

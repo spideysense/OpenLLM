@@ -109,6 +109,18 @@ function contentTypeFor(name) {
   console.log('▶ Building renderer...');
   execSync('npm run build:renderer', { cwd: ROOT, stdio: 'inherit' });
 
+  // Rebuild native modules against the exact Electron version before packaging.
+  // This ensures robotjs (and any future native modules) are compiled for the
+  // correct ABI and will work inside the distributed app.
+  console.log('▶ Rebuilding native modules for Electron...');
+  try {
+    execSync('npx @electron/rebuild -f', { cwd: ROOT, stdio: 'inherit' });
+    console.log('   ✅ Native modules rebuilt');
+  } catch (e) {
+    console.warn('   ⚠️ electron-rebuild failed — continuing without native modules:', e.message);
+    console.warn('   Computer Use will fall back to osascript (still works, less reliable)');
+  }
+
   console.log('▶ Smoke testing the built app (must boot + render)...');
   execSync('node scripts/smoke-test.js', { cwd: ROOT, stdio: 'inherit' });
 
