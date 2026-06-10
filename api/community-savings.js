@@ -17,14 +17,14 @@ async function kv(method, key, value) {
   if (method === 'GET') {
     const r = await fetch(`${KV_URL}/get/${encodeURIComponent(key)}`, { headers });
     const j = await r.json();
+    if (j.error) throw new Error(j.error);
     return j.result ?? null;
   }
   if (method === 'SET') {
-    // Upstash REST: POST /set with body ["key", "value"]
-    const r = await fetch(`${KV_URL}/set`, {
+    const r = await fetch(`${KV_URL}/set/${encodeURIComponent(key)}`, {
       method: 'POST',
       headers,
-      body: JSON.stringify([key, typeof value === 'string' ? value : JSON.stringify(value)]),
+      body: typeof value === 'string' ? value : JSON.stringify(value),
     });
     const j = await r.json();
     if (j.error) throw new Error(j.error);
@@ -41,7 +41,11 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     try {
       const raw = await kv('GET', 'community:savings:entries');
-      const entries = raw ? JSON.parse(raw) : [];
+      let entries = [];
+      if (raw) {
+        try { entries = typeof raw === 'string' ? JSON.parse(raw) : raw; } catch {}
+      }
+      if (!Array.isArray(entries)) entries = [];
       const total = entries.reduce((s, e) => s + (e.saved || 0), 0);
       const totalExchanges = entries.reduce((s, e) => s + (e.exchanges || 0), 0);
       return res.status(200).json({
@@ -78,7 +82,11 @@ export default async function handler(req, res) {
 
   try {
     const raw = await kv('GET', 'community:savings:entries');
-    const entries = raw ? JSON.parse(raw) : [];
+    let entries = [];
+    if (raw) {
+      try { entries = typeof raw === 'string' ? JSON.parse(raw) : raw; } catch {}
+    }
+    if (!Array.isArray(entries)) entries = [];
     entries.push({ saved: parseFloat(saved.toFixed(2)), exchanges: Math.floor(exchanges), ts: Date.now() });
     if (entries.length > 500) entries.splice(0, entries.length - 500);
     await kv('SET', 'community:savings:entries', JSON.stringify(entries));
