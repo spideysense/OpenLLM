@@ -18,6 +18,12 @@ const fs = require('fs');
 const path = require('path');
 const https = require('https');
 
+// Always discard package-lock.json local changes before pulling — it gets
+// modified by npm install and blocks git pull every time.
+try {
+  execSync('git checkout -- package-lock.json', { stdio: 'inherit' });
+} catch {}
+
 const ROOT = path.join(__dirname, '..');
 const DIST = path.join(ROOT, 'dist');
 const pkg = require(path.join(ROOT, 'package.json'));
