@@ -160,7 +160,7 @@ footer{border-top:1px solid var(--brd);padding:2rem 0}
 
 <nav><div class="nw">
 <a href="#" class="nl"><svg viewBox="0 0 28 34" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 33 L14 16" stroke="#B8860B" stroke-width="1.5" stroke-linecap="round"/><path d="M14 2 C14 2, 3 8, 3 17 C3 24, 8 28, 14 28 C20 28, 25 24, 25 17 C25 8, 14 2, 14 2Z" stroke="#B8860B" stroke-width="1.4" fill="none"/><path d="M14 6 L14 25" stroke="#B8860B" stroke-width="0.8" stroke-linecap="round"/><path d="M14 12 C11 14, 7 15, 5.5 16" stroke="#B8860B" stroke-width="0.7" fill="none" stroke-linecap="round"/><path d="M14 12 C17 14, 21 15, 22.5 16" stroke="#B8860B" stroke-width="0.7" fill="none" stroke-linecap="round"/><path d="M14 17 C11 19, 8 20, 6 21" stroke="#B8860B" stroke-width="0.7" fill="none" stroke-linecap="round"/><path d="M14 17 C17 19, 20 20, 22 21" stroke="#B8860B" stroke-width="0.7" fill="none" stroke-linecap="round"/></svg><span>ASPEN</span><span style="font-size:9px;font-weight:700;background:#b8860b;color:#fff;padding:1px 5px;border-radius:4px;letter-spacing:.5px;margin-left:5px;vertical-align:middle">BETA</span></a>
-<div class="nr"><a href="#software">Software</a><a href="#philosophy">Philosophy</a><a href="#privacy">Privacy</a><a href="#developers">Developers</a><a href="#faq">FAQ</a><a href="/app">Try Free</a><a href="#" onclick="document.getElementById('preorder-modal').style.display='flex';return false" class="nb nb-g">Pre-order</a></div>
+<div class="nr"><a href="#software">Software</a><a href="#philosophy">Philosophy</a><a href="#privacy">Privacy</a><a href="#developers">Developers</a><a href="#faq">FAQ</a><a href="/app">Try Free</a><a href="#" onclick="document.getElementById('preorder-modal').style.display='flex';selectPlan('full');return false" class="nb nb-g">Pre-order</a></div>
 </div></nav>
 
 <section class="hero">
@@ -192,8 +192,11 @@ footer{border-top:1px solid var(--brd);padding:2rem 0}
 </div>
 <p class="dev-dim rv">5.9&#x2033; &times; 5.9&#x2033; &times; 2&#x2033;</p>
 <div style="text-align:center;margin-top:2rem">
-  <a href="#" onclick="document.getElementById('preorder-modal').style.display='flex';return false" class="nb nb-g nb-l" style="font-size:1rem;padding:.75rem 2.2rem">Pre-order — $1 deposit</a>
-  <p style="font-size:.75rem;color:var(--t4);margin-top:.6rem">$1 deposit applied toward final price &middot; Shipping when ready</p>
+  <div style="display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap;margin-bottom:.5rem">
+    <a href="#" onclick="document.getElementById('preorder-modal').style.display='flex';selectPlan('full');return false" class="nb nb-g nb-l" style="font-size:1rem;padding:.75rem 2.2rem">Buy Now — $10,000</a>
+    <a href="#" onclick="document.getElementById('preorder-modal').style.display='flex';selectPlan('installments');return false" class="nb nb-o nb-l" style="font-size:1rem;padding:.75rem 2.2rem">$299/mo · 36 months</a>
+  </div>
+  <p style="font-size:.75rem;color:var(--t4);margin-top:.6rem">$1 deposit holds your spot · applied to first payment</p>
 </div>
 </div>
 </section>
@@ -356,8 +359,9 @@ footer{border-top:1px solid var(--brd);padding:2rem 0}
 <div class="w cn">
 <h2 class="rv">The last AI decision<br>you'll ever make.</h2>
 <p class="sb rv">One machine. Private, powerful intelligence, on your hardware, in your home, forever.</p>
-<div class="cta-btns rv">
-<a href="#" onclick="document.getElementById('preorder-modal').style.display='flex';return false" class="nb nb-g nb-l">Pre-order — $1 deposit</a>
+<div class="rv" style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin-bottom:1rem">
+  <a href="#" onclick="document.getElementById('preorder-modal').style.display='flex';selectPlan('full');return false" class="nb nb-g nb-l">Buy Now — $10,000</a>
+  <a href="#" onclick="document.getElementById('preorder-modal').style.display='flex';selectPlan('installments');return false" class="nb nb-o nb-l">$299/mo · 36 months</a>
 </div>
 <p class="cta-or rv">or</p>
 <p class="cta-dl rv">Get started now for free. <a href="https://github.com/spideysense/OpenLLM/releases/latest/download/Aspen-mac.dmg">Download for Mac</a>, <a href="https://github.com/spideysense/OpenLLM/releases/latest/download/Aspen-win.exe">Windows</a>, or <a href="https://apps.apple.com/app/id6775307566">iPhone</a>.</p>
@@ -400,7 +404,29 @@ function submitContact(e){
 <ul class="ft-l"><li></li><li><a href="https://github.com/spideysense/OpenLLM">GitHub</a></li><li><a href="#privacy">Privacy</a></li><li><a href="#developers">API</a></li></ul>
 </div></div></footer>
 
-<div class="modal" id="preorder-modal" onclick="if(event.target===this)this.style.display='none'"><div class="modal-box" style="position:relative"><button class="modal-close" onclick="this.closest('.modal').style.display='none'">&times;</button><h3>Pre-order Aspen</h3><p>Reserve your Aspen device with a <strong>$1 deposit</strong> — applied toward the full price at shipping. This filters out fake interest so we can focus on real customers.</p><input class="modal-input" id="po-name" placeholder="Full name" /><input class="modal-input" id="po-email" type="email" placeholder="Email address" /><button class="modal-submit" onclick="submitPreorder(this)">Reserve for $1 →</button><p style="font-size:11px;color:#999;margin-top:8px;text-align:center">Secure payment via Stripe. $1 deposit, applied toward your $10,000 order.</p></div></div>
+<div class="modal" id="preorder-modal" onclick="if(event.target===this)this.style.display='none'"><div class="modal-box" style="position:relative;max-width:480px"><button class="modal-close" onclick="this.closest('.modal').style.display='none'">&times;</button>
+<h3 style="margin-bottom:.25rem">Pre-order Aspen</h3>
+<p style="font-size:.85rem;color:#6E6E73;margin-bottom:1.25rem">Choose your payment plan. $1 deposit holds your spot — applied to your first payment.</p>
+
+<!-- Payment options -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:1.25rem">
+  <div id="opt-full" onclick="selectPlan('full')" style="border:2px solid #b8860b;border-radius:12px;padding:1rem;cursor:pointer;background:rgba(184,134,11,.04)">
+    <div style="font-size:.7rem;font-weight:700;letter-spacing:.06em;color:#b8860b;text-transform:uppercase;margin-bottom:.3rem">Pay in full</div>
+    <div style="font-size:1.5rem;font-weight:700;color:#1D1D1F;line-height:1">$10,000</div>
+    <div style="font-size:.75rem;color:#6E6E73;margin-top:.25rem">One payment</div>
+  </div>
+  <div id="opt-installments" onclick="selectPlan('installments')" style="border:2px solid #e5e5ea;border-radius:12px;padding:1rem;cursor:pointer">
+    <div style="font-size:.7rem;font-weight:700;letter-spacing:.06em;color:#6E6E73;text-transform:uppercase;margin-bottom:.3rem">Installments</div>
+    <div style="font-size:1.5rem;font-weight:700;color:#1D1D1F;line-height:1">$299<span style="font-size:.9rem;font-weight:400">/mo</span></div>
+    <div style="font-size:.75rem;color:#6E6E73;margin-top:.25rem">36 months · $10,764 total</div>
+  </div>
+</div>
+
+<input class="modal-input" id="po-name" placeholder="Full name" />
+<input class="modal-input" id="po-email" type="email" placeholder="Email address" />
+<button class="modal-submit" id="po-submit" onclick="submitPreorder(this)">Reserve with $1 deposit →</button>
+<p style="font-size:11px;color:#aaa;margin-top:8px;text-align:center">Secure payment via Stripe · $1 deposit applied to your first payment</p>
+</div></div>
 <script>
 // Community savings widget
 (function(){
@@ -522,13 +548,29 @@ function submitFeedback(btn){
   })
   .catch(function(){btn.textContent='Error, try again';btn.disabled=false;});
 }
+var selectedPlan='full';
+function selectPlan(plan){
+  selectedPlan=plan;
+  var full=document.getElementById('opt-full');
+  var inst=document.getElementById('opt-installments');
+  if(!full||!inst)return;
+  if(plan==='full'){
+    full.style.border='2px solid #b8860b';full.style.background='rgba(184,134,11,.04)';
+    inst.style.border='2px solid #e5e5ea';inst.style.background='';
+    document.getElementById('po-submit').textContent='Buy Now — $1 deposit →';
+  } else {
+    inst.style.border='2px solid #b8860b';inst.style.background='rgba(184,134,11,.04)';
+    full.style.border='2px solid #e5e5ea';full.style.background='';
+    document.getElementById('po-submit').textContent='Start installments — $1 deposit →';
+  }
+}
 function submitPreorder(btn){
 var n=document.getElementById('po-name').value.trim();
 var e=document.getElementById('po-email').value.trim();
-if(!n||!e){btn.textContent='Please fill in both fields';btn.style.background='#DC3545';setTimeout(function(){btn.textContent='Reserve for $1 →';btn.style.background=''},2000);return;}
-if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)){btn.textContent='Please enter a valid email';btn.style.background='#DC3545';setTimeout(function(){btn.textContent='Reserve for $1 →';btn.style.background=''},2000);document.getElementById('po-email').focus();return;}
+if(!n||!e){btn.textContent='Please fill in both fields';btn.style.background='#DC3545';setTimeout(function(){btn.textContent=selectedPlan==='full'?'Buy Now — $1 deposit →':'Start installments — $1 deposit →';btn.style.background=''},2000);return;}
+if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)){btn.textContent='Please enter a valid email';btn.style.background='#DC3545';setTimeout(function(){btn.textContent=selectedPlan==='full'?'Buy Now — $1 deposit →':'Start installments — $1 deposit →';btn.style.background=''},2000);document.getElementById('po-email').focus();return;}
 btn.textContent='Redirecting to payment...';btn.disabled=true;
-fetch('/api/preorder-checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n,email:e})})
+fetch('/api/preorder-checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n,email:e,plan:selectedPlan})})
 .then(function(r){return r.json();})
 .then(function(d){
   if(d.url){window.location.href=d.url;}

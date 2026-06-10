@@ -8,7 +8,8 @@
  */
 
 export default async function handler(req, res) {
-  const { name, email, session_id } = req.query;
+  const { name, email, session_id, plan = 'full' } = req.query;
+  const planLabel = plan === 'installments' ? '$299/month for 36 months' : '$10,000 one-time';
 
   if (!name || !email || !session_id) {
     return res.redirect(302, '/?preorder=error');
@@ -44,7 +45,7 @@ export default async function handler(req, res) {
         html: `
           <div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:520px;margin:0 auto;padding:40px 20px;color:#1D1D1F">
             <h1 style="font-size:24px;font-weight:600;margin-bottom:16px">You're on the list, ${escHtml(decodeURIComponent(name))}.</h1>
-            <p style="font-size:16px;line-height:1.7;color:#6E6E73">Your $1 deposit confirms your Aspen device pre-order. It'll be applied toward the full price when we're ready to ship. You're one of the first.</p>
+            <p style="font-size:16px;line-height:1.7;color:#6E6E73">Your $1 deposit confirms your Aspen device pre-order (<strong>${planLabel}</strong>). It'll be applied toward your first payment when we're ready to ship. You're one of the first.</p>
             <p style="font-size:16px;line-height:1.7;color:#6E6E73;margin-top:16px">In the meantime, <a href="https://runonaspen.com" style="color:#B8860B;text-decoration:none;font-weight:500">download the free Aspen software</a> and start running private AI on your current machine today.</p>
             <hr style="border:none;border-top:1px solid #E5E5E5;margin:32px 0">
             <p style="font-size:13px;color:#AEAEB2">Aspen &middot; Own your intelligence &middot; <a href="https://runonaspen.com" style="color:#B8860B;text-decoration:none">runonaspen.com</a></p>
@@ -60,7 +61,7 @@ export default async function handler(req, res) {
             <h2 style="font-size:18px;margin-bottom:12px">New $1 pre-order deposit</h2>
             <p><strong>Name:</strong> ${escHtml(decodeURIComponent(name))}</p>
             <p><strong>Email:</strong> ${escHtml(decodeURIComponent(email))}</p>
-            <p><strong>Stripe session:</strong> ${escHtml(session_id)}</p>
+            <p><strong>Plan:</strong> ${planLabel}</p>
             <p><strong>Time:</strong> ${new Date().toISOString()}</p>
             <p style="margin-top:16px"><a href="mailto:${escHtml(decodeURIComponent(email))}" style="color:#B8860B">Reply to ${escHtml(decodeURIComponent(name))}</a></p>
           </div>`,
