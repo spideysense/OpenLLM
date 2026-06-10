@@ -8,8 +8,8 @@
  * Rate-limited by IP: 1 submission per 24h.
  */
 
-const KV_URL = process.env.KV_REST_API_URL;
-const KV_TOK = process.env.KV_REST_API_TOKEN;
+const KV_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+const KV_TOK = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
 
 async function kv(method, key, value) {
   if (!KV_URL || !KV_TOK) throw new Error('KV not configured');

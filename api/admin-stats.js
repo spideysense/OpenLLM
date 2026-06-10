@@ -62,7 +62,7 @@ export default async function handler(req, res) {
 
   // ── Set download floor manually ──
   if (body.action === 'setFloor' && body.floor != null) {
-    const kvUrl = process.env.KV_REST_API_URL, kvTok = process.env.KV_REST_API_TOKEN;
+    const kvUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL, kvTok = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
     if (kvUrl && kvTok) {
       await kvSet(kvUrl, kvTok, 'aspen:download_floor', String(body.floor));
       return res.status(200).json({ success: true, floor: body.floor });
@@ -88,7 +88,7 @@ export default async function handler(req, res) {
       // Download floor — never show a number lower than the highest we've seen.
       // Re-publishing a release resets its GitHub download count, which makes the
       // total drop. We store the high-water mark in KV and use it as a floor.
-      const kvUrl = process.env.KV_REST_API_URL, kvTok = process.env.KV_REST_API_TOKEN;
+      const kvUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL, kvTok = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
       if (kvUrl && kvTok) {
         const floor = parseInt(await kvGet(kvUrl, kvTok, 'aspen:download_floor')) || 0;
         if (out.downloads.total > floor) {
@@ -103,7 +103,7 @@ export default async function handler(req, res) {
   } catch { out.notes.push('GitHub download data unavailable.'); }
 
   // ── Site visits (from visits KV) ──
-  const vUrl = process.env.KV_REST_API_URL, vTok = process.env.KV_REST_API_TOKEN;
+  const vUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL, vTok = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
   if (vUrl && vTok) {
     const v = parseInt(await kvGet(vUrl, vTok, 'aspen:visits')) || 0;
     out.visits = v + parseInt(process.env.VISIT_SEED || '847', 10);
