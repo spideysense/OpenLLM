@@ -100,6 +100,19 @@ function contentTypeFor(name) {
 (async () => {
   if (!GH_TOKEN) { console.error('Missing GH_TOKEN'); process.exit(1); }
 
+  // Commit the version bump so the Windows workflow checks out the right version.
+  // Without this, the Windows runner sees the old committed version and creates
+  // a stale release that GitHub marks as "latest", breaking auto-updates.
+  console.log(`▶ Committing version bump to ${VERSION}...`);
+  try {
+    execSync(`git add package.json`, { cwd: ROOT, stdio: 'inherit' });
+    execSync(`git commit -m "chore: bump version to ${VERSION}"`, { cwd: ROOT, stdio: 'inherit' });
+    execSync(`git push origin main`, { cwd: ROOT, stdio: 'inherit' });
+    console.log(`   ✅ Version ${VERSION} committed and pushed`);
+  } catch (e) {
+    console.warn('   ⚠️ Could not commit version bump:', e.message);
+  }
+
   // 1. Build the renderer, then SMOKE TEST it before packaging anything. The
   //    smoke test boots the real Electron app against the built renderer and
   //    fails if the main process crashes, the renderer fails to load, the console
