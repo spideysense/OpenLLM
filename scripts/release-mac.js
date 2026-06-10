@@ -20,6 +20,11 @@ const https = require('https');
 
 // Always discard package-lock.json local changes before pulling — it gets
 // modified by npm install and blocks git pull every time.
+// Read the desired version BEFORE any git operations so the user's
+// `npm version X.Y.Z --no-git-tag-version` call is respected.
+const _localPkg = require(path.join(__dirname, '../package.json'));
+const DESIRED_VERSION = _localPkg.version;
+
 try {
   execSync('git checkout -- package-lock.json package.json', { stdio: 'inherit' });
 } catch {}
@@ -27,7 +32,7 @@ try {
 const ROOT = path.join(__dirname, '..');
 const DIST = path.join(ROOT, 'dist');
 const pkg = require(path.join(ROOT, 'package.json'));
-const VERSION = pkg.version;
+const VERSION = DESIRED_VERSION; // set from user's npm version call above
 const TAG = `v${VERSION}`;
 const OWNER = 'spideysense';
 const REPO = 'OpenLLM';
@@ -99,6 +104,11 @@ function contentTypeFor(name) {
 
 (async () => {
   if (!GH_TOKEN) { console.error('Missing GH_TOKEN'); process.exit(1); }
+
+  // Re-apply the desired version (git checkout above reset it to the committed version).
+  execSync(`npm version ${DESIRED_VERSION} --no-git-tag-version --allow-same-version`, { cwd: ROOT, stdio: 'inherit' });
+  // Clear require cache so VERSION reads the bumped value.
+  delete require.cache[require.resolve(path.join(ROOT, 'package.json'))];
 
   // Commit the version bump so the Windows workflow checks out the right version.
   // Without this, the Windows runner sees the old committed version and creates
