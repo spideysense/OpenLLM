@@ -13,14 +13,21 @@ const KV_TOK = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_T
 
 async function kv(method, key, value) {
   if (!KV_URL || !KV_TOK) throw new Error('KV not configured');
-  const opts = { headers: { Authorization: `Bearer ${KV_TOK}`, 'Content-Type': 'application/json' } };
+  const headers = { Authorization: `Bearer ${KV_TOK}`, 'Content-Type': 'application/json' };
   if (method === 'GET') {
-    const r = await fetch(`${KV_URL}/get/${encodeURIComponent(key)}`, opts);
+    const r = await fetch(`${KV_URL}/get/${encodeURIComponent(key)}`, { headers });
     const j = await r.json();
     return j.result ?? null;
   }
   if (method === 'SET') {
-    await fetch(`${KV_URL}/set/${encodeURIComponent(key)}`, { ...opts, method: 'POST', body: JSON.stringify(value) });
+    // Upstash REST: POST /set with body ["key", "value"]
+    const r = await fetch(`${KV_URL}/set`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify([key, typeof value === 'string' ? value : JSON.stringify(value)]),
+    });
+    const j = await r.json();
+    if (j.error) throw new Error(j.error);
   }
 }
 
@@ -73,12 +80,12 @@ export default async function handler(req, res) {
     const raw = await kv('GET', 'community:savings:entries');
     const entries = raw ? JSON.parse(raw) : [];
     entries.push({ saved: parseFloat(saved.toFixed(2)), exchanges: Math.floor(exchanges), ts: Date.now() });
-    // Keep last 500 entries
     if (entries.length > 500) entries.splice(0, entries.length - 500);
     await kv('SET', 'community:savings:entries', JSON.stringify(entries));
     await kv('SET', ipKey, String(Date.now()));
     return res.status(200).json({ ok: true });
   } catch (err) {
-    return res.status(500).json({ error: 'Failed to save' });
+    console.error('[community-savings] KV error:', err.message);
+    return res.status(500).json({ error: 'Failed to save', detail: err.message });
   }
 }
