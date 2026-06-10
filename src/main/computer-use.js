@@ -1,203 +1,163 @@
 /**
- * Aspen Computer Use — lets the local AI see and control the screen.
+ * Aspen Computer Use — see and control the screen.
  *
- * Architecture:
- *   1. screenshot()  — captures the full screen as a base64 PNG
- *   2. click(x, y)   — moves mouse and clicks at coordinates
- *   3. type(text)    — types text via keyboard
- *   4. key(combo)    — presses a key combination (e.g. "cmd+c")
- *   5. scroll(x, y, direction, amount) — scrolls at position
- *   6. runComputerLoop(goal, model) — the agent loop:
- *        screenshot → send to model with goal → model decides action
- *        → execute action → screenshot again → repeat until done
- *
- * Uses Electron's desktopCapturer for screenshots and robotjs for
- * mouse/keyboard. robotjs is a native module — requires rebuild for
- * the current Electron version.
- *
- * Tool schema (registers with tools.js):
- *   computer_screenshot  — take a screenshot, returns base64 PNG
- *   computer_click       — click at x,y
- *   computer_type        — type text
- *   computer_key         — press key combo
- *   computer_scroll      — scroll at position
+ * Uses ONLY built-in OS capabilities — zero native modules, zero npm install.
+ * Screenshots via Electron desktopCapturer.
+ * Mouse/keyboard via osascript (macOS) or PowerShell (Windows).
+ * macOS will prompt once for Accessibility permission — that's it.
  */
 
-const { desktopCapturer, screen, nativeImage } = require('electron');
-const path = require('path');
+const { desktopCapturer, screen } = require('electron');
+const { execSync } = require('child_process');
+const os = require('os');
 
-// ── robotjs for mouse/keyboard control ──
-// Optional — gracefully degrade if not installed
-let robot = null;
-try {
-  robot = require('robotjs');
-} catch {
-  console.warn('[ComputerUse] robotjs not available — install with: npm install robotjs');
-}
+const isMac = os.platform() === 'darwin';
+const isWin = os.platform() === 'win32';
 
-// ── Screenshot via Electron desktopCapturer ──
+// ── Screenshot ──
 async function screenshot() {
+  const { width, height } = screen.getPrimaryDisplay().workAreaSize;
   const sources = await desktopCapturer.getSources({
     types: ['screen'],
-    thumbnailSize: { width: 1280, height: 800 },
+    thumbnailSize: { width, height },
   });
-
   if (!sources.length) throw new Error('No screen sources found');
-
-  const source = sources[0];
-  const image = source.thumbnail;
-  const png = image.toPNG();
+  const png = sources[0].thumbnail.toPNG();
   return `data:image/png;base64,${png.toString('base64')}`;
 }
 
-// ── Mouse control ──
+// ── Mouse/keyboard via OS built-ins ──
+function run(cmd) {
+  execSync(cmd, { stdio: 'pipe', timeout: 5000 });
+}
+
 function click(x, y, button = 'left', double = false) {
-  if (!robot) throw new Error('robotjs not installed — run: npm install robotjs');
-  robot.moveMouse(Math.round(x), Math.round(y));
-  if (double) {
-    robot.mouseClick(button, true);
-  } else {
-    robot.mouseClick(button);
+  x = Math.round(x); y = Math.round(y);
+  if (isMac) {
+    const btn = button === 'right' ? 'right' : 'left';
+    if (double) {
+      run(`osascript -e 'tell application "System Events" to double click at {${x}, ${y}}'`);
+    } else if (btn === 'right') {
+      run(`osascript -e 'tell application "System Events" to right click at {${x}, ${y}}'`);
+    } else {
+      run(`osascript -e 'tell application "System Events" to click at {${x}, ${y}}'`);
+    }
+  } else if (isWin) {
+    run(`powershell -Command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.Cursor]::Position = New-Object System.Drawing.Point(${x},${y}); Add-Type -TypeDefinition 'using System;using System.Runtime.InteropServices;public class M{[DllImport(\\"user32.dll\\")]public static extern void mouse_event(int f,int x,int y,int d,int e);}'; [M]::mouse_event(2,0,0,0,0); [M]::mouse_event(4,0,0,0,0)"`);
   }
 }
 
-function rightClick(x, y) {
-  if (!robot) throw new Error('robotjs not installed');
-  robot.moveMouse(Math.round(x), Math.round(y));
-  robot.mouseClick('right');
-}
-
-function scroll(x, y, direction = 'down', amount = 3) {
-  if (!robot) throw new Error('robotjs not installed');
-  robot.moveMouse(Math.round(x), Math.round(y));
-  const d = direction === 'up' ? -amount : amount;
-  robot.scrollMouse(0, d);
-}
-
-// ── Keyboard control ──
 function typeText(text) {
-  if (!robot) throw new Error('robotjs not installed');
-  // robotjs typeString is fast but doesn't handle special chars well
-  // Split on newlines and handle Enter separately
-  const parts = text.split('\n');
-  parts.forEach((part, i) => {
-    if (part) robot.typeString(part);
-    if (i < parts.length - 1) robot.keyTap('enter');
-  });
+  if (isMac) {
+    // Escape for AppleScript
+    const escaped = text.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+    run(`osascript -e 'tell application "System Events" to keystroke "${escaped}"'`);
+  } else if (isWin) {
+    const escaped = text.replace(/"/g, '`"');
+    run(`powershell -Command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('${escaped}')"`);
+  }
 }
 
 function pressKey(combo) {
-  if (!robot) throw new Error('robotjs not installed');
-  // combo like "cmd+c", "ctrl+a", "enter", "escape", "tab"
-  const parts = combo.toLowerCase().split('+');
-  const key = parts[parts.length - 1];
-  const modifiers = parts.slice(0, -1);
-  if (modifiers.length > 0) {
-    robot.keyTap(key, modifiers);
-  } else {
-    robot.keyTap(key);
+  if (isMac) {
+    // Parse "cmd+c" → key "c" using {command down}
+    const MAP = { cmd: 'command', ctrl: 'control', alt: 'option', shift: 'shift', meta: 'command' };
+    const parts = combo.toLowerCase().split('+');
+    const key = parts[parts.length - 1];
+    const mods = parts.slice(0, -1).map(m => MAP[m] || m);
+
+    // Special keys
+    const SPECIAL = { enter: 'return', esc: 'escape', backspace: 'delete', tab: 'tab',
+      space: 'space', up: 'up arrow', down: 'down arrow', left: 'left arrow', right: 'right arrow' };
+    const appleKey = SPECIAL[key] || key;
+
+    if (mods.length > 0) {
+      const modStr = mods.map(m => `${m} down`).join(', ');
+      run(`osascript -e 'tell application "System Events" to key code (key code of key "${appleKey}") using {${modStr}}'`);
+      // Simpler form that works for most combos:
+      run(`osascript -e 'tell application "System Events" to keystroke "${appleKey === key ? key : ''}" using {${modStr}}'`);
+    } else {
+      run(`osascript -e 'tell application "System Events" to key code (key code of key "${appleKey}")'`);
+    }
+  } else if (isWin) {
+    const MAP = { cmd: '^', ctrl: '^', alt: '%', shift: '+' };
+    const parts = combo.toLowerCase().split('+');
+    const key = parts[parts.length - 1];
+    const mods = parts.slice(0, -1).map(m => MAP[m] || '');
+    run(`powershell -Command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('${mods.join('')}${key}')"`);
   }
 }
 
-// ── Screen info ──
-function getScreenSize() {
-  const { width, height } = screen.getPrimaryDisplay().workAreaSize;
-  return { width, height };
+function scroll(x, y, direction = 'down', amount = 3) {
+  if (isMac) {
+    const delta = direction === 'up' ? amount : -amount;
+    run(`osascript -e 'tell application "System Events" to scroll at {${Math.round(x)}, ${Math.round(y)}} by ${delta}'`);
+  }
 }
 
-// ── Tool definitions for agent.js ──
+// ── Tool definitions ──
 const COMPUTER_TOOLS = [
   {
     name: 'computer_screenshot',
-    description: 'Take a screenshot of the current screen. Returns a base64 PNG image. Always take a screenshot before deciding what to click or type.',
-    input_schema: {
-      type: 'object',
-      properties: {},
-      required: [],
-    },
+    description: 'Take a screenshot of the current screen. Always do this first before clicking or typing so you can see what\'s on screen.',
+    input_schema: { type: 'object', properties: {}, required: [] },
   },
   {
     name: 'computer_click',
-    description: 'Click at a specific (x, y) coordinate on the screen. Use computer_screenshot first to see what\'s on screen and identify coordinates.',
+    description: 'Click at (x, y) on screen. Take a screenshot first to find the right coordinates.',
     input_schema: {
       type: 'object',
       properties: {
-        x: { type: 'number', description: 'X coordinate (pixels from left)' },
-        y: { type: 'number', description: 'Y coordinate (pixels from top)' },
+        x: { type: 'number', description: 'X coordinate' },
+        y: { type: 'number', description: 'Y coordinate' },
         button: { type: 'string', enum: ['left', 'right'], description: 'Mouse button (default: left)' },
-        double: { type: 'boolean', description: 'Double-click (default: false)' },
+        double: { type: 'boolean', description: 'Double-click?' },
       },
       required: ['x', 'y'],
     },
   },
   {
     name: 'computer_type',
-    description: 'Type text at the current cursor position. Click on a text field first using computer_click.',
+    description: 'Type text at the current cursor position. Click a text field first.',
     input_schema: {
       type: 'object',
-      properties: {
-        text: { type: 'string', description: 'Text to type' },
-      },
+      properties: { text: { type: 'string', description: 'Text to type' } },
       required: ['text'],
     },
   },
   {
     name: 'computer_key',
-    description: 'Press a keyboard key or combination. Examples: "enter", "escape", "tab", "cmd+c", "cmd+v", "ctrl+a", "cmd+space".',
+    description: 'Press a key or combination: "enter", "escape", "tab", "cmd+c", "cmd+v", "cmd+space", "ctrl+a".',
     input_schema: {
       type: 'object',
-      properties: {
-        combo: { type: 'string', description: 'Key or combo to press (e.g. "enter", "cmd+c", "ctrl+z")' },
-      },
+      properties: { combo: { type: 'string', description: 'Key combo to press' } },
       required: ['combo'],
     },
   },
   {
     name: 'computer_scroll',
-    description: 'Scroll at a specific position on screen.',
+    description: 'Scroll at a position on screen.',
     input_schema: {
       type: 'object',
       properties: {
-        x: { type: 'number', description: 'X coordinate to scroll at' },
-        y: { type: 'number', description: 'Y coordinate to scroll at' },
-        direction: { type: 'string', enum: ['up', 'down'], description: 'Scroll direction' },
-        amount: { type: 'number', description: 'Scroll amount (default: 3)' },
+        x: { type: 'number' }, y: { type: 'number' },
+        direction: { type: 'string', enum: ['up', 'down'] },
+        amount: { type: 'number', description: 'How much to scroll (default: 3)' },
       },
       required: ['x', 'y'],
     },
   },
 ];
 
-// ── Execute a computer tool call ──
-async function executeTool(toolName, args) {
-  switch (toolName) {
-    case 'computer_screenshot':
-      return await screenshot();
-    case 'computer_click':
-      click(args.x, args.y, args.button || 'left', args.double || false);
-      return `Clicked at (${args.x}, ${args.y})`;
-    case 'computer_type':
-      typeText(args.text);
-      return `Typed: ${args.text.slice(0, 50)}${args.text.length > 50 ? '...' : ''}`;
-    case 'computer_key':
-      pressKey(args.combo);
-      return `Pressed: ${args.combo}`;
-    case 'computer_scroll':
-      scroll(args.x, args.y, args.direction || 'down', args.amount || 3);
-      return `Scrolled ${args.direction || 'down'} at (${args.x}, ${args.y})`;
-    default:
-      throw new Error(`Unknown computer tool: ${toolName}`);
+async function executeTool(name, args) {
+  switch (name) {
+    case 'computer_screenshot': return await screenshot();
+    case 'computer_click': click(args.x, args.y, args.button, args.double); return `Clicked at (${args.x}, ${args.y})`;
+    case 'computer_type': typeText(args.text); return `Typed: ${args.text.slice(0, 60)}`;
+    case 'computer_key': pressKey(args.combo); return `Pressed: ${args.combo}`;
+    case 'computer_scroll': scroll(args.x, args.y, args.direction, args.amount); return `Scrolled ${args.direction || 'down'}`;
+    default: throw new Error(`Unknown computer tool: ${name}`);
   }
 }
 
-module.exports = {
-  screenshot,
-  click,
-  rightClick,
-  scroll,
-  typeText,
-  pressKey,
-  getScreenSize,
-  COMPUTER_TOOLS,
-  executeTool,
-};
+module.exports = { screenshot, click, typeText, pressKey, scroll, COMPUTER_TOOLS, executeTool };
