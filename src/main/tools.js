@@ -429,7 +429,7 @@ function getToolDefinitions(enabledNames) {
     .filter(([name]) => enabledNames.includes(name))
     .map(([, t]) => t.definition);
   // Computer use tools — only on desktop (Electron), always owner-only
-  const computerTools = enabledNames.includes('computer_use')
+  const computerTools = enabledNames.includes('computer_use') && computerUse
     ? computerUse.COMPUTER_TOOLS
     : [];
   return [...builtins, ...computerTools, ...mcpToolDefinitions()];
@@ -456,6 +456,9 @@ async function executeTool(name, args) {
   }
 }
 
-const ALL_TOOL_NAMES = Object.keys(TOOLS);
+const ALL_TOOL_NAMES = [
+  ...Object.keys(TOOLS),
+  'computer_use', // expands to computer_screenshot, computer_click, computer_type, computer_key, computer_scroll
+];
 
 module.exports = { getToolDefinitions, executeTool, ALL_TOOL_NAMES, runFetchUrl };
