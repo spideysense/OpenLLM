@@ -54,6 +54,8 @@ export default function Home() {
     } catch {}
     setSharing(false);
   }
+
+  function copy(text, id) {
     if (bridge?.clipboard?.write) bridge.clipboard.write(text);
     else navigator.clipboard.writeText(text).catch(() => {});
     setCopied(id); setTimeout(() => setCopied(null), 2000);
