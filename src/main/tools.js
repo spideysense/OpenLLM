@@ -400,6 +400,9 @@ const TOOLS = {
 let mcpClient = null;
 try { mcpClient = require('./mcp-client'); } catch { /* optional */ }
 
+let computerUse = null;
+try { computerUse = require('./computer-use'); } catch { computerUse = { COMPUTER_TOOLS: [], executeTool: async () => 'Computer use not available' }; }
+
 function mcpToolDefinitions() {
   if (!mcpClient) return [];
   return mcpClient.listAllTools().map((t) => ({
@@ -425,8 +428,11 @@ function getToolDefinitions(enabledNames) {
   const builtins = Object.entries(TOOLS)
     .filter(([name]) => enabledNames.includes(name))
     .map(([, t]) => t.definition);
-  // MCP/connector tools are always offered when their server is connected.
-  return [...builtins, ...mcpToolDefinitions()];
+  // Computer use tools — only on desktop (Electron), always owner-only
+  const computerTools = enabledNames.includes('computer_use')
+    ? computerUse.COMPUTER_TOOLS
+    : [];
+  return [...builtins, ...computerTools, ...mcpToolDefinitions()];
 }
 
 // Execute a tool call by name. Always returns a string (never throws).
@@ -435,6 +441,11 @@ async function executeTool(name, args) {
   if (name.includes('__') && mcpClient) {
     try { return await runMcpTool(name, args); }
     catch (e) { return `Tool ${name} error: ${e.message}`; }
+  }
+  // Computer use tools
+  if (name.startsWith('computer_')) {
+    try { return await computerUse.executeTool(name, args || {}); }
+    catch (e) { return `Computer tool ${name} error: ${e.message}`; }
   }
   const tool = TOOLS[name];
   if (!tool) return `Unknown tool: ${name}`;

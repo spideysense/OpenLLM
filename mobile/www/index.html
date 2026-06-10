@@ -761,9 +761,8 @@ function showApp(){
   try{const h=new URL(config.tunnelUrl).hostname;tunnelDisplay.textContent=h;settingsTunnel.textContent=h;}catch{tunnelDisplay.textContent=config.tunnelUrl}
   try{chats=JSON.parse(localStorage.getItem(CHATS_KEY)||'{}')||{};}catch{chats={}}
   renderChatList();
-  const ids=Object.keys(chats);
-  if(ids.length>0){activeChatId=ids[ids.length-1];renderMessages();chatTitle.textContent=chats[activeChatId]?.title||'New chat';}
-  else newChat();
+  // Always open a fresh new chat on load
+  newChat();
   loadModels();startStatusCheck();
   $('memory-btn').style.display='inline-block';
 }

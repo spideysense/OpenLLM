@@ -39,6 +39,7 @@ export default function Settings() {
     get_datetime: { icon: '🕐', title: 'Date & Time', desc: 'Tell the assistant the current date, time, and timezone.' },
     fetch_url: { icon: '🌐', title: 'Read Web Page', desc: 'Fetch and read the text of a specific URL — from your machine.' },
     run_command: { icon: '💻', title: 'Run Commands', desc: 'Execute shell commands — clone repos, read/write files, run scripts. Works best with 12B+ models.' },
+    computer_use: { icon: '🖥️', title: 'Computer Use', desc: 'Let Aspen see your screen and control your mouse and keyboard to complete tasks autonomously. Owner key only.' },
     deep_research: { icon: '🔬', title: 'Deep Research', desc: 'Multi-step web search + synthesis for thorough research on any topic.' },
   };
 

@@ -55,7 +55,7 @@ async function runAgent({ model, messages, retryCount = 0, isOwner = true }) {
   // SECURITY: dangerous tools (shell execution) are owner-only. Trial/shared
   // users connecting through the tunnel must NEVER be able to run shell commands
   // on the owner's machine. This prevents remote code execution.
-  const DANGEROUS_TOOLS = ['run_command'];
+  const DANGEROUS_TOOLS = ['run_command', 'computer_screenshot', 'computer_click', 'computer_type', 'computer_key', 'computer_scroll'];
   if (!isOwner) {
     enabled = enabled.filter(t => !DANGEROUS_TOOLS.includes(t));
   }
@@ -125,7 +125,7 @@ You have access to tools. Use them whenever they apply — do not answer from me
 - For the current date or time, call "get_datetime".
 - To read a specific web page, call "fetch_url".
 - To run terminal/shell commands on the user's machine, call "run_command". This includes ALL of: git clone, git add, git commit, git push, reading files (cat), writing files (use heredoc: cat > file.html << 'EOF' ... EOF), creating directories (mkdir), running scripts, installing packages, listing files (ls). You MUST use run_command for these — NEVER tell the user to run commands themselves. NEVER say "I cannot execute commands" — you CAN, via run_command. When writing code to a file, use run_command with a heredoc, then use run_command again to git add, commit, and push. Do the FULL workflow without asking.
-- When the user provides a git repo URL with a token (e.g. https://TOKEN@github.com/user/repo.git), use it directly in run_command. Clone, make changes, commit, push — the full cycle. No questions asked.
+- When the user asks you to do something on screen, control an app, or automate a task on their computer, use the computer_* tools: always start with computer_screenshot to see the current state, then click/type/key as needed, then screenshot again to verify. Keep going until the task is complete. Never ask the user to do things themselves if you can do it via computer use.
 Call exactly the tool that fits, wait for its result, then answer using that result. Always answer in English.`;
 
   // Prepend/merge the directive into the system message.

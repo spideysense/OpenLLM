@@ -23,7 +23,7 @@ export const useApp = () => useContext(AppContext);
 const bridge = typeof window !== 'undefined' && window.aspen ? window.aspen : null;
 
 export default function App() {
-  const [page, setPage] = useState('chat');
+  const [page, setPage] = useState('home');
   const [ollamaStatus, setOllamaStatus] = useState({ installed: false, running: false });
   const [systemInfo, setSystemInfo] = useState(null);
   const [hardwareTier, setHardwareTier] = useState('medium');
