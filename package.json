@@ -110,8 +110,5 @@
   "author": {
     "name": "Aspen",
     "email": "hello@runonaspen.com"
-  },
-  "optionalDependencies": {
-    "robotjs": "0.6.0"
   }
 }
