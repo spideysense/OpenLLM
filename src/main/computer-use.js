@@ -14,13 +14,17 @@
  * Accessibility → Aspen). macOS prompts automatically on first use.
  */
 
-const { desktopCapturer, screen } = require('electron');
 const { execSync } = require('child_process');
 const os = require('os');
-const path = require('path');
 
 const isMac = os.platform() === 'darwin';
 const isWin = os.platform() === 'win32';
+
+// Lazy-load Electron APIs — only available inside the Electron main process,
+// and only after the app is ready. Requiring at module load time can throw.
+function getElectron() {
+  return require('electron');
+}
 
 // ── Load robotjs (bundled in DMG via asarUnpack) ──
 let robot = null;
@@ -39,6 +43,7 @@ function loadRobot() {
 
 // ── Screenshot ──
 async function screenshot() {
+  const { desktopCapturer, screen } = getElectron();
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
   const sources = await desktopCapturer.getSources({
     types: ['screen'],
