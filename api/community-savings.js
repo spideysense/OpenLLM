@@ -1,8 +1,7 @@
 /**
- * Community Savings API — simple, no restrictions.
- * POST: append your savings to the feed and running total.
+ * Community Savings API — no restrictions, pure append.
+ * POST: add your savings to the running total.
  * GET:  return total + recent feed.
- * No rate limiting. No IP tracking. Share as often as you want.
  */
 
 const KV_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
@@ -13,14 +12,14 @@ async function kvGet(key) {
     headers: { Authorization: `Bearer ${KV_TOK}` },
   });
   const j = await r.json();
+  if (j.error) throw new Error(j.error);
   return j.result ?? null;
 }
 
 async function kvSet(key, value) {
-  const r = await fetch(`${KV_URL}/set/${encodeURIComponent(key)}`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${KV_TOK}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(value),
+  // Upstash REST API: value goes in the URL path, not the body
+  const r = await fetch(`${KV_URL}/set/${encodeURIComponent(key)}/${encodeURIComponent(value)}`, {
+    headers: { Authorization: `Bearer ${KV_TOK}` },
   });
   const j = await r.json();
   if (j.error) throw new Error(j.error);
@@ -37,6 +36,8 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(204).end();
 
+  if (!KV_URL || !KV_TOK) return res.status(503).json({ error: 'KV not configured' });
+
   if (req.method === 'GET') {
     try {
       const [totalsRaw, recentRaw] = await Promise.all([
@@ -52,6 +53,7 @@ export default async function handler(req, res) {
         recent: Array.isArray(recent) ? recent : [],
       });
     } catch (err) {
+      console.error('[savings GET]', err.message);
       return res.status(200).json({ total: 0, totalExchanges: 0, count: 0, recent: [] });
     }
   }
@@ -85,6 +87,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ ok: true, total: totals.total });
   } catch (err) {
+    console.error('[savings POST]', err.message);
     return res.status(500).json({ error: err.message });
   }
 }

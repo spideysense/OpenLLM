@@ -2,6 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 
+process.env.KV_REST_API_URL = 'https://fake-kv.upstash.io';
+process.env.KV_REST_API_TOKEN = 'fake-token';
+
 describe('Community Sharing — app side', () => {
   it('Home.jsx sends saved + exchanges to community-savings', () => {
     const src = fs.readFileSync(path.resolve('src/renderer/pages/Home.jsx'), 'utf8');
@@ -25,15 +28,16 @@ describe('Community Sharing — app side', () => {
 
 // POST/GET roundtrip — separate describe so handler import is at top level
 let kvStore = {};
-const kvFetch = vi.fn(async (url, opts) => {
+const kvFetch = vi.fn(async (url) => {
   const u = String(url);
   if (u.includes('/get/')) {
     const key = decodeURIComponent(u.split('/get/')[1].split('?')[0]);
     return { json: async () => ({ result: kvStore[key] ?? null }) };
   }
-  if (opts?.method === 'POST' && u.includes('/set/')) {
-    const key = decodeURIComponent(u.split('/set/')[1].split('?')[0]);
-    try { kvStore[key] = JSON.parse(opts.body); } catch { kvStore[key] = opts.body; }
+  if (u.includes('/set/')) {
+    const after = u.split('/set/')[1];
+    const slash = after.indexOf('/');
+    if (slash !== -1) kvStore[decodeURIComponent(after.slice(0, slash))] = decodeURIComponent(after.slice(slash + 1));
     return { json: async () => ({ result: 'OK' }) };
   }
   return { json: async () => ({}) };

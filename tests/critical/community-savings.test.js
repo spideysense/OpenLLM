@@ -1,18 +1,24 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-// KV mock: simulates Upstash REST API (one JSON layer unwrap on SET, raw return on GET)
+process.env.KV_REST_API_URL = 'https://fake-kv.upstash.io';
+process.env.KV_REST_API_TOKEN = 'fake-token';
+
+// Mock: GET /get/<key>  →  return stored value
+//       GET /set/<key>/<value>  →  store value (Upstash URL-path format)
 let kvStore = {};
 function makeFetch() {
-  return vi.fn(async (url, opts) => {
+  return vi.fn(async (url) => {
     const u = String(url);
     if (u.includes('/get/')) {
       const key = decodeURIComponent(u.split('/get/')[1].split('?')[0]);
       return { json: async () => ({ result: kvStore[key] ?? null }) };
     }
-    if (opts?.method === 'POST' && u.includes('/set/')) {
-      const key = decodeURIComponent(u.split('/set/')[1].split('?')[0]);
-      // Upstash parses body JSON and stores the inner value
-      try { kvStore[key] = JSON.parse(opts.body); } catch { kvStore[key] = opts.body; }
+    if (u.includes('/set/')) {
+      const after = u.split('/set/')[1];
+      const slash = after.indexOf('/');
+      if (slash !== -1) {
+        kvStore[decodeURIComponent(after.slice(0, slash))] = decodeURIComponent(after.slice(slash + 1));
+      }
       return { json: async () => ({ result: 'OK' }) };
     }
     return { json: async () => ({}) };
@@ -35,6 +41,7 @@ describe('Community Savings', () => {
 
   it('GET returns zeros with empty store', async () => {
     const r = res(); await handler(req('GET'), r);
+    expect(r._status).toBe(200);
     expect(r._body).toMatchObject({ total: 0, totalExchanges: 0, count: 0 });
   });
 
