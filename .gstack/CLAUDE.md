@@ -1,129 +1,113 @@
-# OpenLLM — Development Guide
+# Aspen — Developer Guide for AI Assistants
 
-## Commands
+Read ASPEN_HANDOFF.md first. This file covers the tactical workflow.
+
+---
+
+## MANDATORY PRE-WORK (do before touching any code)
+
+1. Read `ASPEN_HANDOFF.md` — architecture, known bugs, critical patterns
+2. Read `tests/critical/` — understand what must never regress
+3. Run `npx vitest run tests/critical/` — baseline must be green before you start
+
+---
+
+## COMMANDS
 
 ```bash
-npm install          # install dependencies
-npm run dev          # run in dev mode (Electron + Vite hot reload)
-npm run build:mac    # build Mac .dmg
-npm run build:win    # build Windows .exe
-npm test             # run test suite (Vitest)
-npm run test:watch   # watch mode tests
-```
-
-**Prerequisites:** Node.js 20+, Ollama installed locally.
-
----
-
-## Project Structure
-
-```
-OpenLLM/
-├── src/
-│   ├── main/          # Electron main process (Node.js, full system access)
-│   │   ├── index.js   # Entry point, window management, IPC handlers
-│   │   ├── ollama.js  # Ollama lifecycle (install, start, stop, chat)
-│   │   ├── models.js  # Model management (list, pull, delete, recommend)
-│   │   ├── system.js  # Hardware detection (GPU, RAM, tier classification)
-│   │   ├── gateway.js # API gateway on :4000 (auth, aliasing, proxy)
-│   │   ├── apikeys.js # API key generation + validation
-│   │   ├── aliases.js # Model alias resolution (gpt-4 → local model)
-│   │   ├── registry.js# Fetch + compare curated model registry
-│   │   └── store.js   # Persistent local JSON storage
-│   ├── preload/
-│   │   └── index.js   # IPC bridge (contextBridge) — runs in isolated context
-│   └── renderer/      # React UI (browser context, no Node.js)
-│       ├── App.jsx    # Router, state management, layout
-│       ├── styles.css # Aspen global theme
-│       ├── components/
-│       └── pages/
-├── registry/
-│   └── models.json    # Curated model registry + alias defaults
-├── cloud/             # Cloud proxy + billing backend (Vercel)
-├── mcp/               # MCP server for AI tool access
-├── site/              # Landing page (aspen.com)
-├── tests/             # Test suite (Vitest)
-├── PLAN.md            # Full project plan
-└── DESIGN.md          # Aspen design spec
+npm install                           # install deps
+npm run dev                           # Electron + Vite hot reload
+npm run build:renderer                # build renderer only
+npx vitest run tests/critical/        # critical regression suite
+npx vitest run                        # all tests
+npm run release:mac -- 0.4.XX        # cut a Mac release (pass version as arg)
 ```
 
 ---
 
-## IPC Architecture (IMPORTANT)
-
-Electron has three contexts — they cannot call each other directly:
-
-| Context | File(s) | Access |
-|---|---|---|
-| Main process | `src/main/` | Full Node.js + OS |
-| Preload | `src/preload/index.js` | Bridge only |
-| Renderer | `src/renderer/` | Browser APIs only |
-
-**Rule:** Every capability from the main process must be explicitly exposed through `contextBridge` in preload. Renderer calls `window.api.doThing()`. If it's not in preload, renderer can't use it.
-
----
-
-## Commit Style
-
-**Always bisect commits.** Every commit = one logical change. When you've made multiple changes, split them before pushing. Each commit should be independently understandable and revertable.
-
-Good bisection examples:
-- IPC handler additions separate from UI changes
-- New model registry entries separate from model logic refactors
-- UI component additions separate from page wiring
-
----
-
-## Testing
+## RELEASE PROCESS (do it right)
 
 ```bash
-npm test             # run before every commit
+cd ~/aspen
+git pull && npm install
+export APPLE_ID="mayank.mehta@gmail.com"
+export APPLE_APP_SPECIFIC_PASSWORD="<app-specific-pw>"
+export APPLE_TEAM_ID="S6UBG93XBS"
+export GH_TOKEN="<GitHub PAT>"
+npm run release:mac -- 0.4.XX
 ```
 
-Tests live in `tests/`. Structure mirrors `src/`:
-- `tests/main/`     — main process unit tests
-- `tests/renderer/` — React component tests
-- `tests/cloud/`    — cloud backend tests
-- `tests/mcp/`      — MCP server tests
+**Rules:**
+- Pass version as CLI arg to `release:mac` — do NOT run `npm version` manually first
+- Never create a GitHub release manually for a version the Windows workflow will also create
+- After a release, delete any rogue releases (wrong version) immediately — they break auto-updates
+- The script staples BEFORE upload. If stapling fails, do not upload.
 
 ---
 
-## Before Every Push: Review Checklist
+## BEFORE EVERY PUSH
 
-Run yourself through `.gstack/skills/review-checklist.md` before pushing. Specifically:
-1. Is the IPC bridge complete for every new capability? (No renderer reaching for Node APIs directly)
-2. Are Ollama lifecycle calls guarded against errors? (Model not found, Ollama not running, download interrupted)
-3. Does hardware detection have a fallback for unknown GPU/RAM configs?
-4. Are API keys validated before any gateway call?
-5. Does the new code survive Mayank challenging it?
-
----
-
-## CHANGELOG Style
-
-After every user-facing feature or fix, add an entry to `CHANGELOG.md`:
-- Feature name in plain English
-- User benefit (what they can now do)
-- Date in YYYY-MM-DD format
-
-Written for users, not contributors. "You can now..." not "Refactored the..."
+1. `npx vitest run tests/critical/` — all 108 must pass
+2. If you changed gateway.js CORS: verify www.runonaspen.com AND runonaspen.com are both allowed
+3. If you added a new persistent setting: add its key to STORE_ALLOWLIST in src/main/index.js
+4. If you changed a chat feature: verify it works in ALL THREE surfaces (desktop React, site/app/index.html, mobile/www/index.html)
+5. If you changed api/*.js: verify no double JSON.stringify in Upstash calls
+6. Write a test for any bug you fixed — add it to tests/critical/regressions.test.js
 
 ---
 
-## Design Constraints
+## ARCHITECTURE RULES
 
-- **Bear mascot is the guide** — every confusing moment is the bear speaking, not a raw error
-- **Zero jargon** — "Get this model" not "Pull the 7B GGUF"
-- **No dark mode by default** — sunshine and bears, not hacker terminals
-- **Playful but not childish** — Baloo 2 / Nunito fonts, warm palette
-- See `DESIGN.md` for full spec
+### IPC (Electron)
+Three isolated contexts. Renderer cannot call Node APIs directly.
+- Main process (`src/main/`) — full Node.js
+- Preload (`src/preload/index.js`) — exposes IPC via contextBridge
+- Renderer (`src/renderer/`) — browser only
+
+Every new capability: add IPC handler in `src/main/index.js` + expose in `src/preload/index.js`.
+
+### Gateway vs Desktop agent
+- Desktop agent (`agent.js`) — uses Electron APIs (desktopCapturer, electron-store). Only runs in desktop app.
+- Gateway agent (`gateway-agent.js`) — zero Electron deps. Uses CLI screencapture. Powers web+mobile tool use via `/v1/agent`.
+- NEVER import electron in gateway-agent.js or any file the gateway uses.
+
+### Tool definition formats
+- Regular tools: OpenAI format `{type:'function', function:{name, description, parameters}}`
+- Computer tools in `computer-use.js`: Anthropic format `{name, input_schema}` — desktop only
+- Computer tools in `gateway-agent.js`: OpenAI format — required for Ollama
+- Do not mix these formats.
+
+### Vercel streaming
+ReadableStream `start()` must be SYNCHRONOUS. Flush `': connected\n\n'` immediately. Real work goes in a detached `(async()=>{})()`. 8s heartbeat comments. See `api/agent.js` for the reference implementation.
 
 ---
 
-## gstack Ethos
+## THINGS THAT LOOK SAFE BUT AREN'T
 
-Read `ETHOS.md`. The three principles that apply every day on this project:
+- `bridge.store.set(key, val)` — silently fails if key not in STORE_ALLOWLIST
+- `git checkout -- package.json` in release script discards local version bump (fixed — script now uses CLI arg)
+- Upstash `body: JSON.stringify(value)` when value is already a JSON string — double-encodes
+- `sendBtn.addEventListener('click', sendMessage)` — passes MouseEvent as `autoRespond`, breaks input
+- `desktopCapturer` — only available in Electron main process, not gateway
+- `skills.js` and `tool-settings.js` — require Electron, don't use in gateway-agent
+- CORS only allowing `https://runonaspen.com` without www — breaks web+mobile entirely
 
-1. **Boil the Lake** — completeness is cheap with AI. Do the complete thing.
-2. **Search Before Building** — check what exists before designing a solution.
-3. **User Sovereignty** — AI recommends. User decides. Never act on a user's behalf without an explicit ask.
+---
+
+## COMMIT STYLE
+
+One logical change per commit. Good commit message: `Fix: <what broke> (<why>)` or `feat: <what it does>`.
+
+After any user-facing change, also update:
+- `ASPEN_HANDOFF.md` — if architecture or patterns changed
+- `site/index.html` + `site/llms.txt` — from user-value POV
+- `CHANGELOG.md` (if it exists) — feature name, user benefit, date
+
+---
+
+## ETHOS
+
+Read `ETHOS.md`. The critical ones for this project:
+1. **Boil the lake** — write the test, fix all three surfaces, handle the edge case. Shortcuts become production bugs.
+2. **Look it up** — never guess at API formats, verify with actual docs. Half the bugs in this codebase came from guessing.
+3. **Check the whole stack** — a fix in the Electron app doesn't fix the web app. A fix in the Vercel proxy doesn't fix the gateway. Think about all three surfaces and both compute locations (Vercel + local machine).
