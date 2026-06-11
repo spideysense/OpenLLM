@@ -587,7 +587,7 @@ function isNative() {
 function apiBase() {
   const proto = window.location.protocol;
   if (isNative() || proto === 'capacitor:' || proto === 'file:' || window.location.hostname === 'localhost') {
-    return 'https://runonaspen.com';
+    return 'https://www.runonaspen.com';
   }
   return '';
 }
@@ -605,7 +605,7 @@ $('trial-btn').addEventListener('click',async()=>{
   const btn=$('trial-btn');
   btn.disabled=true;btn.textContent='Starting...';
   try{
-    const res=await fetch('https://runonaspen.com/api/trial',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'start'})});
+    const res=await fetch('https://www.runonaspen.com/api/trial',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'start'})});
     const data=await res.json();
     if(data.error){pairErr.textContent=data.error;btn.disabled=false;btn.textContent='Try Free — 20 messages';return}
     trialMode=true;trialToken=data.token;trialMsgsLeft=data.messagesLeft??20;

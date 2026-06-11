@@ -45,7 +45,7 @@ export default function Home() {
     if (shared || sharing || totalExchanges < 1) return;
     setSharing(true);
     try {
-      await fetch('https://runonaspen.com/api/community-savings', {
+      await fetch('https://www.runonaspen.com/api/community-savings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ exchanges: totalExchanges, saved: parseFloat(totalSaved) }),
@@ -74,7 +74,7 @@ export default function Home() {
     if (!inviteeEmail || !key || !tunnelUrl) return;
     setInviteSending(true); setInviteResult(null);
     try {
-      const res = await fetch('https://runonaspen.com/api/invite', {
+      const res = await fetch('https://www.runonaspen.com/api/invite', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ inviteeName, inviteeEmail, tunnelUrl, apiKey: key.secret, inviterName: 'Mayank' }),
       });

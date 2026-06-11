@@ -154,3 +154,27 @@ describe('BUG: gateway.js SyntaxError — for await in non-async callback (crash
     }
   });
 });
+
+describe('BUG: 307 redirect drops POST body (non-www → www on api calls)', () => {
+  it('desktop app posts savings to www.runonaspen.com (not non-www)', () => {
+    const src = fs.readFileSync(path.resolve('src/renderer/pages/Home.jsx'), 'utf8');
+    // Must use www to avoid the 307 redirect that drops the POST body
+    expect(src).toContain('www.runonaspen.com/api/community-savings');
+    expect(src).not.toMatch(/fetch\('https:\/\/runonaspen\.com\/api\/community-savings'/);
+  });
+
+  it('mobile app API base uses www.runonaspen.com', () => {
+    const src = fs.readFileSync(path.resolve('mobile/www/index.html'), 'utf8');
+    // apiBase() for native must return www to avoid POST-body-dropping redirects
+    expect(src).not.toMatch(/return 'https:\/\/runonaspen\.com';/);
+  });
+
+  it('no surface POSTs to bare runonaspen.com/api (would 307 and lose body)', () => {
+    for (const f of ['src/renderer/pages/Home.jsx', 'mobile/www/index.html']) {
+      const src = fs.readFileSync(path.resolve(f), 'utf8');
+      // POST calls must go to www. or relative /api — never bare https://runonaspen.com/api
+      const badPosts = [...src.matchAll(/fetch\('https:\/\/runonaspen\.com\/api[^']*'/g)];
+      expect(badPosts.length).toBe(0);
+    }
+  });
+});
