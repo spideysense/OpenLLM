@@ -28,16 +28,15 @@ describe('Community Sharing — app side', () => {
 
 // POST/GET roundtrip — separate describe so handler import is at top level
 let kvStore = {};
-const kvFetch = vi.fn(async (url) => {
+const kvFetch = vi.fn(async (url, opts) => {
   const u = String(url);
   if (u.includes('/get/')) {
     const key = decodeURIComponent(u.split('/get/')[1].split('?')[0]);
     return { json: async () => ({ result: kvStore[key] ?? null }) };
   }
-  if (u.includes('/set/')) {
-    const after = u.split('/set/')[1];
-    const slash = after.indexOf('/');
-    if (slash !== -1) kvStore[decodeURIComponent(after.slice(0, slash))] = decodeURIComponent(after.slice(slash + 1));
+  if (u.includes('/set/') && opts?.method === 'POST') {
+    const key = decodeURIComponent(u.split('/set/')[1].split('?')[0]);
+    try { kvStore[key] = JSON.parse(opts.body); } catch { kvStore[key] = opts.body; }
     return { json: async () => ({ result: 'OK' }) };
   }
   return { json: async () => ({}) };

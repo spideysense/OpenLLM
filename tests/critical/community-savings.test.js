@@ -3,22 +3,19 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 process.env.KV_REST_API_URL = 'https://fake-kv.upstash.io';
 process.env.KV_REST_API_TOKEN = 'fake-token';
 
-// Mock: GET /get/<key>  →  return stored value
-//       GET /set/<key>/<value>  →  store value (Upstash URL-path format)
+// Mock: GET /get/<key>  and  POST /set/<key> with JSON body
 let kvStore = {};
 function makeFetch() {
-  return vi.fn(async (url) => {
+  return vi.fn(async (url, opts) => {
     const u = String(url);
     if (u.includes('/get/')) {
       const key = decodeURIComponent(u.split('/get/')[1].split('?')[0]);
       return { json: async () => ({ result: kvStore[key] ?? null }) };
     }
-    if (u.includes('/set/')) {
-      const after = u.split('/set/')[1];
-      const slash = after.indexOf('/');
-      if (slash !== -1) {
-        kvStore[decodeURIComponent(after.slice(0, slash))] = decodeURIComponent(after.slice(slash + 1));
-      }
+    if (u.includes('/set/') && opts?.method === 'POST') {
+      const key = decodeURIComponent(u.split('/set/')[1].split('?')[0]);
+      // Upstash stores the inner value (one JSON parse from what we sent)
+      try { kvStore[key] = JSON.parse(opts.body); } catch { kvStore[key] = opts.body; }
       return { json: async () => ({ result: 'OK' }) };
     }
     return { json: async () => ({}) };

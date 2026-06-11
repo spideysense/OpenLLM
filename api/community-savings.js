@@ -17,9 +17,11 @@ async function kvGet(key) {
 }
 
 async function kvSet(key, value) {
-  // Upstash REST API: value goes in the URL path, not the body
-  const r = await fetch(`${KV_URL}/set/${encodeURIComponent(key)}/${encodeURIComponent(value)}`, {
-    headers: { Authorization: `Bearer ${KV_TOK}` },
+  // Upstash REST: POST body must be the JSON-encoded value (string wrapped in quotes)
+  const r = await fetch(`${KV_URL}/set/${encodeURIComponent(key)}`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${KV_TOK}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(value), // value is already a JSON string → double-encode to store correctly
   });
   const j = await r.json();
   if (j.error) throw new Error(j.error);

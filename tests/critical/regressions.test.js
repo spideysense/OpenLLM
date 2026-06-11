@@ -122,3 +122,21 @@ describe('BUG: send button in web/mobile sent previous message instead of curren
     expect(src).not.toMatch(/sendBtn\.addEventListener\('click',\s*sendMessage\s*\)/);
   });
 });
+
+describe('BUG: Computer Use onboarding modal appeared every launch (key blocked by store allowlist)', () => {
+  it('computerUseOnboarded is in the store allowlist', () => {
+    const src = fs.readFileSync(path.resolve('src/main/index.js'), 'utf8');
+    expect(src).toContain('computerUseOnboarded');
+    expect(src).toMatch(/STORE_ALLOWLIST[\s\S]*computerUseOnboarded/);
+  });
+});
+
+describe('BUG: community savings 500 (wrong Upstash SET format)', () => {
+  it('kvSet uses POST body not URL-path (handles long JSON values)', () => {
+    const src = fs.readFileSync(path.resolve('api/community-savings.js'), 'utf8');
+    expect(src).toContain("method: 'POST'");
+    expect(src).toContain('Content-Type');
+    // Must NOT use URL-path format (breaks with long JSON)
+    expect(src).not.toMatch(/\/set\/.*encodeURIComponent\(key\).*encodeURIComponent\(value\)/);
+  });
+});
