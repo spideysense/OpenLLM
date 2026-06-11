@@ -5,7 +5,7 @@ import ReplaceWizard from './ReplaceWizard';
 
 export default function Settings() {
   const [section, setSection] = useState('system');
-  const { bridge, systemInfo, hardwareTier, ollamaStatus, gatewayStatus, models, activeModel } = useApp();
+  const { bridge, systemInfo, hardwareTier, ollamaStatus, gatewayStatus, models, activeModel, modelCaps } = useApp();
   const [aliases, setAliases] = useState({});
   const [editingAlias, setEditingAlias] = useState(null);
   const [saved, setSaved] = useState(false);
@@ -100,34 +100,37 @@ export default function Settings() {
           <p style={{ fontSize: 13, color: 'var(--text-light)', marginBottom: 16, lineHeight: 1.5 }}>
             Tools let your local model do things — search the web, do math, read pages.
             Everything runs on this machine; nothing is sent to Aspen's servers.
-            All tools are on by default.
           </p>
 
-          {/* Model-quality warning — dynamic based on active model */}
-          {(() => {
-            const m = (activeModel || '').toLowerCase();
-            const isSmall = m.includes('e4b') || m.includes('e2b') || m.includes(':3b') || m.includes(':1b') || m.includes(':7b') || m.includes(':8b');
-            const isRecommended = m.includes(':12b') || m.includes(':14b') || m.includes(':26b') || m.includes(':32b') || m.includes('scout');
-            if (isSmall) return (
-              <div style={{ background: 'rgba(220,53,69,0.10)', border: '1px solid rgba(220,53,69,0.35)', borderRadius: 8, padding: '10px 14px', marginBottom: 18, fontSize: 12.5, color: '#8b1a2b', lineHeight: 1.5 }}>
-                ⚠️ Your current model <strong>{activeModel}</strong> is too small for reliable tool use. The model may refuse to call tools or make things up instead.
-                Switch to <strong>Gemma 4 12B</strong> or <strong>Qwen 3 14B</strong> in the Models tab for tools to work properly.
+          {/* Capability-based model status */}
+          {activeModel && (() => {
+            if (!modelCaps?.tools) return (
+              <div style={{ background: 'rgba(220,53,69,0.08)', border: '1px solid rgba(220,53,69,0.25)', borderRadius: 8, padding: '10px 14px', marginBottom: 18, fontSize: 12.5, color: '#8b1a2b', lineHeight: 1.5 }}>
+                ⚠️ <strong>{activeModel}</strong> doesn't support tool calling — all tools are disabled.
+                Switch to <strong>qwen2.5</strong>, <strong>llama3</strong>, or <strong>gemma3</strong> in the Models tab.
               </div>
             );
+            const hasVision = modelCaps?.vision;
             return (
-              <div style={{ background: isRecommended ? 'rgba(40,167,69,0.10)' : 'rgba(212,160,23,0.12)', border: `1px solid ${isRecommended ? 'rgba(40,167,69,0.35)' : 'rgba(212,160,23,0.35)'}`, borderRadius: 8, padding: '10px 14px', marginBottom: 18, fontSize: 12.5, color: isRecommended ? '#155724' : 'var(--earth)', lineHeight: 1.5 }}>
-                {isRecommended ? '✅' : '⚠️'} {isRecommended
-                  ? `${activeModel} — good choice for tool calling.`
-                  : `Tool use works best with 12B+ models. Your current model may occasionally skip a tool. Try a bigger model in the Models tab if results feel unreliable.`}
+              <div style={{ background: 'rgba(40,167,69,0.08)', border: '1px solid rgba(40,167,69,0.25)', borderRadius: 8, padding: '10px 14px', marginBottom: 18, fontSize: 12.5, color: '#155724', lineHeight: 1.6 }}>
+                ✅ <strong>{activeModel}</strong> supports tools.
+                {hasVision ? ' 👁 Vision enabled — Computer Use available.' : ' (No vision — Computer Use requires a vision model like llama3.2-vision or qwen2.5vl.)'}
               </div>
             );
           })()}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {toolStates.map((t) => {
+            {toolStates
+              .filter((t) => {
+                // Hide computer_use toggle if model doesn't support vision
+                if (t.name === 'computer_use' && !modelCaps?.vision) return false;
+                return true;
+              })
+              .map((t) => {
               const meta = TOOL_LABELS[t.name] || { icon: '🔧', title: t.name, desc: '' };
+              const disabled = !modelCaps?.tools;
               return (
-                <div key={t.name} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, padding: '12px 14px', background: 'rgba(93,78,55,0.04)', borderRadius: 8 }}>
+                <div key={t.name} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, padding: '12px 14px', background: 'rgba(93,78,55,0.04)', borderRadius: 8, opacity: disabled ? 0.5 : 1 }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--earth)', marginBottom: 2 }}>
                       {meta.icon} {meta.title}
@@ -135,16 +138,18 @@ export default function Settings() {
                     <div style={{ fontSize: 12.5, color: 'var(--text-light)', lineHeight: 1.4 }}>{meta.desc}</div>
                   </div>
                   <button
-                    onClick={() => toggleTool(t.name, !t.enabled)}
+                    onClick={() => !disabled && toggleTool(t.name, !t.enabled)}
                     aria-label={`Toggle ${meta.title}`}
+                    disabled={disabled}
                     style={{
-                      flexShrink: 0, width: 44, height: 26, borderRadius: 13, border: 'none', cursor: 'pointer',
-                      background: t.enabled ? 'var(--pipe-yellow)' : 'rgba(93,78,55,0.25)',
+                      flexShrink: 0, width: 44, height: 26, borderRadius: 13, border: 'none',
+                      cursor: disabled ? 'not-allowed' : 'pointer',
+                      background: (t.enabled && !disabled) ? 'var(--pipe-yellow)' : 'rgba(93,78,55,0.25)',
                       position: 'relative', transition: 'background 0.15s',
                     }}
                   >
                     <span style={{
-                      position: 'absolute', top: 3, left: t.enabled ? 21 : 3, width: 20, height: 20,
+                      position: 'absolute', top: 3, left: (t.enabled && !disabled) ? 21 : 3, width: 20, height: 20,
                       borderRadius: '50%', background: '#fff', transition: 'left 0.15s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
                     }} />
                   </button>

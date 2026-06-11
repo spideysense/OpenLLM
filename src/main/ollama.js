@@ -399,7 +399,39 @@ async function ensureCurrent(onProgress, { force = false } = {}) {
 // ═══════════════════════════════════════════════════
 // Known vision-capable model families on Ollama. Matched as a prefix on the
 // model name (before any ':tag'). Kept conservative to avoid false positives.
-const VISION_MODELS = ['llava', 'llava-llama3', 'llava-phi3', 'bakllava', 'moondream', 'llama3.2-vision', 'llama4', 'gemma3', 'qwen2-vl', 'qwen2.5-vl', 'minicpm-v'];
+const VISION_MODELS = ['llava', 'llava-llama3', 'llava-phi3', 'bakllava', 'moondream', 'llama3.2-vision', 'llama4', 'gemma3', 'qwen2-vl', 'qwen2.5-vl', 'minicpm-v', 'gemma4'];
+
+// Known tool-capable model families (used as fallback if /api/show doesn't return capabilities)
+const TOOL_MODELS = ['llama3', 'llama3.1', 'llama3.2', 'llama3.3', 'qwen2.5', 'qwen2', 'mistral', 'mixtral', 'gemma3', 'gemma4', 'phi4', 'phi3', 'command-r', 'deepseek', 'hermes', 'functionary', 'firefunction', 'xwin-moe', 'nous-hermes', 'smollm2'];
+
+// Fetch model capabilities from Ollama /api/show.
+// Returns { tools: bool, vision: bool }
+async function getModelCapabilities(modelName) {
+  if (!modelName) return { tools: false, vision: false };
+  try {
+    const res = await fetch(`${OLLAMA_HOST}/api/show`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: modelName }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const caps = Array.isArray(data.capabilities) ? data.capabilities : [];
+      if (caps.length > 0) {
+        return {
+          tools: caps.includes('tools'),
+          vision: caps.includes('vision'),
+        };
+      }
+    }
+  } catch { /* fall through to heuristic */ }
+  // Fallback: name-based heuristic
+  const base = String(modelName).split(':')[0].toLowerCase();
+  return {
+    tools: TOOL_MODELS.some((t) => base === t || base.startsWith(t)),
+    vision: VISION_MODELS.some((v) => base === v || base.startsWith(v)),
+  };
+}
 // The model we offer to pull on one tap — small, well-supported, Apache-2.0.
 const RECOMMENDED_VISION_MODEL = 'llava';
 
@@ -554,6 +586,6 @@ module.exports = {
   isRunning, isInstalled, getStatus, install, ensureRunning,
   ensureCurrent, isCurrentEnough, getRunningVersion,
   chat, abortChat, getOllamaPath, getBundledPath, getDownloadedPath,
-  isVisionModel, hasVisionModel, listModels, pullModel, abortPull,
+  isVisionModel, hasVisionModel, listModels, pullModel, abortPull, getModelCapabilities,
   RECOMMENDED_VISION_MODEL,
 };

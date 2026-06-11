@@ -292,6 +292,9 @@ ipcMain.handle('files:extractText', async (event, payload) => {
 });
 
 // ── Vision (multimodal) ──
+ipcMain.handle('ollama:getModelCapabilities', async (event, modelName) => {
+  return ollama.getModelCapabilities(modelName);
+});
 ipcMain.handle('ollama:hasVisionModel', async () => {
   return ollama.hasVisionModel();
 });

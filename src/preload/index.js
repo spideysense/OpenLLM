@@ -26,6 +26,7 @@ contextBridge.exposeInMainWorld('aspen', {
     install: () => ipcRenderer.invoke('ollama:install'),
     hasVisionModel: () => ipcRenderer.invoke('ollama:hasVisionModel'),
     isVisionModel: (model) => ipcRenderer.invoke('ollama:isVisionModel', model),
+    getModelCapabilities: (model) => ipcRenderer.invoke('ollama:getModelCapabilities', model),
     recommendedVisionModel: () => ipcRenderer.invoke('ollama:recommendedVisionModel'),
     pullModel: (model) => ipcRenderer.invoke('ollama:pullModel', model),
     abortPull: () => ipcRenderer.invoke('ollama:abortPull'),

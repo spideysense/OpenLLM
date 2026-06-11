@@ -29,6 +29,8 @@ export default function App() {
   const [hardwareTier, setHardwareTier] = useState('medium');
   const [models, setModels] = useState([]);
   const [activeModel, setActiveModel] = useState(null);
+  const [modelCaps, setModelCaps] = useState({ tools: false, vision: false });
+  const [showComputerUseOnboarding, setShowComputerUseOnboarding] = useState(false);
   const [gatewayStatus, setGatewayStatus] = useState({ running: false, port: 4000, url: 'http://localhost:4000/v1' });
   const [isOnboarded, setIsOnboarded] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -87,7 +89,24 @@ export default function App() {
     init();
   }, []);
 
-  // ─── Refresh models ───
+  // ─── Fetch model capabilities whenever active model changes ───
+  useEffect(() => {
+    if (!bridge?.ollama?.getModelCapabilities || !activeModel) return;
+    bridge.ollama.getModelCapabilities(activeModel).then(async (caps) => {
+      setModelCaps(caps);
+      // If model supports computer use (tools + vision), check if we need to onboard
+      if (caps.tools && caps.vision) {
+        const onboarded = await bridge.store.get('computerUseOnboarded');
+        if (!onboarded) setShowComputerUseOnboarding(true);
+      }
+      // Auto-enable/disable computer_use tool based on capability
+      if (bridge?.tools?.setEnabled) {
+        await bridge.tools.setEnabled('computer_use', caps.tools && caps.vision);
+      }
+    }).catch(() => {});
+  }, [activeModel]);
+
+
   const refreshModels = useCallback(async () => {
     if (!bridge) return;
     const modelList = await bridge.models.list();
@@ -145,6 +164,7 @@ export default function App() {
     systemInfo, hardwareTier,
     models, refreshModels,
     activeModel, selectModel,
+    modelCaps,
     gatewayStatus,
     isOnboarded, completeOnboarding,
   };
@@ -173,6 +193,64 @@ export default function App() {
   return (
     <AppContext.Provider value={ctx}>
       <div className="titlebar-drag" />
+
+      {/* ── Computer Use Onboarding Modal ── */}
+      {showComputerUseOnboarding && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 9999, padding: 24,
+        }}>
+          <div style={{
+            background: 'var(--bg-card, #fff)', borderRadius: 16, padding: 32,
+            maxWidth: 480, width: '100%', boxShadow: '0 24px 60px rgba(0,0,0,0.25)',
+          }}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>🖥️</div>
+            <h2 style={{ margin: '0 0 8px', fontSize: 20 }}>Aspen can control your computer</h2>
+            <p style={{ color: 'var(--text-light, #6e6e73)', fontSize: 14, lineHeight: 1.6, margin: '0 0 20px' }}>
+              Your model supports <strong>Computer Use</strong> — Aspen can take screenshots,
+              move your mouse, click, and type to complete tasks on your behalf.
+              Ask it to "open Safari and search for X" or "fill out this form" and it'll do it.
+            </p>
+            <div style={{ background: 'rgba(184,134,11,0.07)', borderRadius: 10, padding: '12px 16px', marginBottom: 20, fontSize: 13, lineHeight: 1.6 }}>
+              <strong>⚠️ This requires one permission:</strong><br/>
+              macOS will ask you to grant <em>Accessibility access</em> to Aspen the first time it tries to control your screen.
+              This is a standard macOS privacy prompt — click Allow when it appears.
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <button
+                style={{
+                  background: 'linear-gradient(135deg,#b8860b,#daa520)', color: '#fff',
+                  border: 'none', borderRadius: 10, padding: '12px 20px',
+                  fontSize: 15, fontWeight: 600, cursor: 'pointer',
+                }}
+                onClick={async () => {
+                  await bridge.tools.setEnabled('computer_use', true);
+                  await bridge.store.set('computerUseOnboarded', true);
+                  setShowComputerUseOnboarding(false);
+                }}
+              >
+                Enable Computer Use
+              </button>
+              <button
+                style={{
+                  background: 'transparent', color: 'var(--text-light, #6e6e73)',
+                  border: '1px solid var(--border, #e5e5ea)', borderRadius: 10,
+                  padding: '10px 20px', fontSize: 14, cursor: 'pointer',
+                }}
+                onClick={async () => {
+                  await bridge.tools.setEnabled('computer_use', false);
+                  await bridge.store.set('computerUseOnboarded', true);
+                  setShowComputerUseOnboarding(false);
+                }}
+              >
+                Not now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="app-layout">
         <Sidebar />
         <main className="main-content">
@@ -186,6 +264,21 @@ export default function App() {
               <button onClick={() => setBetaDismissed(true)} style={{ background: 'rgba(255,255,255,.25)', border: 'none', color: '#fff', width: 18, height: 18, borderRadius: '50%', cursor: 'pointer', fontSize: 12, lineHeight: 1, flexShrink: 0 }} aria-label="Dismiss">×</button>
             </div>
           )}
+
+          {/* ── No-tools warning banner ── */}
+          {activeModel && !modelCaps.tools && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '8px 16px', background: 'rgba(255,59,48,0.08)',
+              borderBottom: '1px solid rgba(255,59,48,0.15)',
+              fontSize: 12.5, color: '#c0392b', flexShrink: 0,
+            }}>
+              <span>⚠️</span>
+              <span><strong>{activeModel}</strong> doesn't support tools — web search, calculator, and computer use are disabled. Switch to a model like <strong>qwen2.5</strong>, <strong>llama3</strong>, or <strong>gemma3</strong> for full features.</span>
+              <button onClick={() => setPage('settings')} style={{ marginLeft: 'auto', flexShrink: 0, background: 'rgba(255,59,48,0.1)', border: '1px solid rgba(255,59,48,0.3)', color: '#c0392b', borderRadius: 6, padding: '3px 10px', fontSize: 12, cursor: 'pointer' }}>Switch model</button>
+            </div>
+          )}
+
           {modelUpgrade && (
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
