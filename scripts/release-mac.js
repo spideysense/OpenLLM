@@ -11,12 +11,37 @@
  *      The afterAllArtifactBuild hook notarizes + staples the DMG locally.
  *   2. THEN upload the already-stapled artifacts to a fresh GitHub release.
  *
- * Required env: APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID, GH_TOKEN
+ * Usage:  npm run release:mac -- 0.4.38
+ *
+ * Credentials: stored in ~/.aspen-release-env (auto-created on first run).
+ * You never need to paste export lines again.
  */
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
+const os = require('os');
+
+// ── Load credentials from ~/.aspen-release-env ──
+const envFile = path.join(os.homedir(), '.aspen-release-env');
+if (fs.existsSync(envFile)) {
+  for (const line of fs.readFileSync(envFile, 'utf8').split('\n')) {
+    const m = line.match(/^\s*([A-Z_]+)\s*=\s*(.+)\s*$/);
+    if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^["']|["']$/g, '');
+  }
+  console.log('▶ Loaded credentials from ~/.aspen-release-env');
+} else {
+  // Create the file with placeholders so the user only has to fill it once
+  const template = `# Aspen release credentials — fill these in once, never paste exports again
+APPLE_ID=mayank.mehta@gmail.com
+APPLE_APP_SPECIFIC_PASSWORD=
+APPLE_TEAM_ID=S6UBG93XBS
+GH_TOKEN=
+`;
+  fs.writeFileSync(envFile, template, { mode: 0o600 });
+  console.log(`▶ Created ${envFile} — fill in your credentials, then re-run.`);
+  process.exit(1);
+}
 
 // Version comes from CLI arg: npm run release:mac -- 0.4.35
 // Falls back to what's in package.json if no arg given.
