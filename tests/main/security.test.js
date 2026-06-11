@@ -48,7 +48,8 @@ describe('Security: dangerous tool gating', () => {
     const gwSrc = require('fs').readFileSync(
       require('path').join(__dirname, '..', '..', 'src', 'main', 'gateway.js'), 'utf8'
     );
-    expect(gwSrc).toMatch(/allowedOrigins/);
+    expect(gwSrc).toMatch(/corsAllowed/);
+    expect(gwSrc).toMatch(/runonaspen\.com/);
     expect(gwSrc).not.toMatch(/Access-Control-Allow-Origin['"],\s*['"]\*['"]/);
   });
 
