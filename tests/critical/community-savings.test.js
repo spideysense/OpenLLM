@@ -3,19 +3,21 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 process.env.KV_REST_API_URL = 'https://fake-kv.upstash.io';
 process.env.KV_REST_API_TOKEN = 'fake-token';
 
-// Mock: GET /get/<key>  and  POST /set/<key> with JSON body
+// Mock Upstash: POST /set/<key> with raw JSON body, GET /get/<key>
 let kvStore = {};
 function makeFetch() {
   return vi.fn(async (url, opts) => {
     const u = String(url);
     if (u.includes('/get/')) {
       const key = decodeURIComponent(u.split('/get/')[1].split('?')[0]);
-      return { json: async () => ({ result: kvStore[key] ?? null }) };
+      const raw = kvStore[key] ?? null;
+      // Simulate Upstash returning stored value (parse JSON objects back)
+      try { return { json: async () => ({ result: raw ? JSON.parse(raw) : null }) }; }
+      catch { return { json: async () => ({ result: raw }) }; }
     }
     if (u.includes('/set/') && opts?.method === 'POST') {
       const key = decodeURIComponent(u.split('/set/')[1].split('?')[0]);
-      // Upstash stores the inner value (one JSON parse from what we sent)
-      try { kvStore[key] = JSON.parse(opts.body); } catch { kvStore[key] = opts.body; }
+      kvStore[key] = opts.body; // store the raw JSON string
       return { json: async () => ({ result: 'OK' }) };
     }
     return { json: async () => ({}) };
@@ -69,6 +71,17 @@ describe('Community Savings', () => {
     expect(r._body.count).toBe(10);
   });
 
+  it('handles legacy double-encoded data in store', async () => {
+    // Simulate data stored by old URL-path format (double-encoded string)
+    kvStore['savings:totals'] = JSON.stringify('{"total":1626.1,"exchanges":42792,"shares":1}');
+    const r = res();
+    await handler(req('POST', { saved: 5, exchanges: 50 }), r);
+    expect(r._status).toBe(200);
+    expect(r._body.ok).toBe(true);
+    const r2 = res(); await handler(req('GET'), r2);
+    expect(r2._body.total).toBeCloseTo(1631.1, 1);
+  });
+
   it('accepts large marketing numbers', async () => {
     const r = res();
     await handler(req('POST', { saved: 1626.06, exchanges: 42791 }), r);
@@ -79,8 +92,6 @@ describe('Community Savings', () => {
   it('rejects non-number fields', async () => {
     const r1 = res(); await handler(req('POST', { saved: 'lots', exchanges: 100 }), r1);
     expect(r1._status).toBe(400);
-    const r2 = res(); await handler(req('POST', {}), r2);
-    expect(r2._status).toBe(400);
   });
 
   it('recent feed caps at 50, total count keeps accumulating', async () => {

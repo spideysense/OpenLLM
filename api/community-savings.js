@@ -17,19 +17,31 @@ async function kvGet(key) {
 }
 
 async function kvSet(key, value) {
-  // Upstash REST: POST body must be the JSON-encoded value (string wrapped in quotes)
+  // Send value directly as JSON body — not double-encoded
   const r = await fetch(`${KV_URL}/set/${encodeURIComponent(key)}`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${KV_TOK}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(value), // value is already a JSON string → double-encode to store correctly
+    body: value, // value is already a valid JSON string, send it as-is
   });
   const j = await r.json();
   if (j.error) throw new Error(j.error);
 }
 
 function parse(raw, fallback) {
-  if (!raw) return fallback;
-  try { return typeof raw === 'string' ? JSON.parse(raw) : raw; } catch { return fallback; }
+  // Handle: null, object (already parsed by Upstash), string, double-encoded string
+  if (raw === null || raw === undefined) return fallback;
+  if (typeof raw === 'object') return raw;
+  if (typeof raw === 'string') {
+    try {
+      const v = JSON.parse(raw);
+      // If still a string (was double-encoded), parse again
+      if (typeof v === 'string') {
+        try { return JSON.parse(v); } catch { return fallback; }
+      }
+      return v;
+    } catch { return fallback; }
+  }
+  return fallback;
 }
 
 export default async function handler(req, res) {
