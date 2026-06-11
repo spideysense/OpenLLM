@@ -1017,7 +1017,7 @@ async function sendText(text){
     const sys=worldModelSystemPrompt();
     const useStream=true;
     // Trial mode: use Vercel trial API; Connected mode: use tunnel proxy
-    const fetchUrl=trialMode?API_BASE+'/api/trial':API_BASE+'/api/proxy';
+    const fetchUrl=trialMode?API_BASE+'/api/trial':API_BASE+'/api/agent';
     const fetchBody=trialMode
       ?{action:'chat',token:trialToken,messages:sys?[{role:'system',content:sys},...history]:history,stream:useStream}
       :{tunnelUrl:config.tunnelUrl,apiKey:config.apiKey||'',model,messages:sys?[{role:'system',content:sys},...history]:history,stream:useStream};
@@ -1233,8 +1233,20 @@ async function sendVoiceMessage(text){
           const t=line.trim();if(!t.startsWith('data: '))continue;
           const d=t.slice(6);if(d==='[DONE]')continue;
           try{
-            const j=JSON.parse(d);const delta=j.choices&&j.choices[0]&&j.choices[0].delta&&j.choices[0].delta.content;
-            if(delta){fullText+=delta;sentBuf+=delta;bubble.innerHTML=formatMessage(fullText)+'<span class="cursor"></span>';scrollToBottom();trySpeakSentence();}
+            const j=JSON.parse(d);
+            if(j.aspen_status||j.aspen_tool){
+              const statusEl=bubble.querySelector('.agent-status');
+              const msg=j.aspen_status||'';
+              if(statusEl){statusEl.textContent=msg;}
+              else if(msg){bubble.innerHTML=`<span class="agent-status" style="color:var(--t3);font-size:.8rem;font-style:italic">${msg}</span>`;bubble._fullText='';scrollToBottom();}
+              continue;
+            }
+            const delta=j.choices&&j.choices[0]&&j.choices[0].delta&&j.choices[0].delta.content;
+            if(delta){
+              const statusEl=bubble.querySelector('.agent-status');
+              if(statusEl){bubble.innerHTML='';bubble._fullText='';}
+              fullText+=delta;sentBuf+=delta;bubble.innerHTML=formatMessage(fullText)+'<span class="cursor"></span>';scrollToBottom();trySpeakSentence();
+            }
           }catch(e2){}
         }
       }

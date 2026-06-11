@@ -1,0 +1,459 @@
+/**
+ * Gateway Agent — self-contained agent loop for the HTTP gateway.
+ *
+ * Identical semantics to agent.js but with ZERO Electron dependencies:
+ *   - Screenshots via `screencapture` CLI (Mac) / PowerShell (Win) / scrot (Linux)
+ *   - Tool settings inferred from auth (no electron-store)
+ *   - Skills read from built-in path only (no app.getPath)
+ *
+ * This is what powers tool use from the web app and phone app.
+ * Called from gateway.js → POST /v1/agent
+ */
+
+'use strict';
+
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+const { execSync, execFileSync } = require('child_process');
+const tools = require('./tools');
+const system = require('./system');
+
+const OLLAMA_HOST = '127.0.0.1';
+const OLLAMA_PORT = 11434;
+const MAX_TOOL_ROUNDS = 4;
+
+const isMac = os.platform() === 'darwin';
+const isWin = os.platform() === 'win32';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tool availability
+// Safe tools: anyone with a valid API key can use them.
+// Dangerous tools: owner key only.
+// ─────────────────────────────────────────────────────────────────────────────
+const SAFE_TOOLS = ['web_search', 'calculate', 'get_datetime', 'fetch_url', 'deep_research'];
+const DANGEROUS_TOOLS = ['run_command', 'computer_screenshot', 'computer_click', 'computer_type', 'computer_key', 'computer_scroll'];
+
+// Computer tool definitions in OpenAI/Ollama format (tools.js uses Anthropic
+// input_schema format for desktop; here we use the parameters format that
+// Ollama actually understands).
+const GATEWAY_COMPUTER_TOOL_DEFS = [
+  {
+    type: 'function',
+    function: {
+      name: 'computer_screenshot',
+      description: "Capture the current screen. ALWAYS call this first to see what is on screen before clicking or typing.",
+      parameters: { type: 'object', properties: {} },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'computer_click',
+      description: 'Click at screen coordinates (x, y). Call computer_screenshot first to identify coordinates. Top-left is (0,0).',
+      parameters: {
+        type: 'object',
+        properties: {
+          x: { type: 'number', description: 'Pixels from the left edge' },
+          y: { type: 'number', description: 'Pixels from the top edge' },
+          button: { type: 'string', enum: ['left', 'right'], description: 'Mouse button, default: left' },
+          double: { type: 'boolean', description: 'Double-click? Default: false' },
+        },
+        required: ['x', 'y'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'computer_type',
+      description: 'Type text at the current cursor position. Click a text field first.',
+      parameters: {
+        type: 'object',
+        properties: { text: { type: 'string', description: 'The text to type' } },
+        required: ['text'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'computer_key',
+      description: 'Press a key or key combination. Examples: "enter", "escape", "tab", "cmd+c", "cmd+v", "ctrl+z".',
+      parameters: {
+        type: 'object',
+        properties: { combo: { type: 'string', description: 'Key or combo, e.g. "enter" or "cmd+c"' } },
+        required: ['combo'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'computer_scroll',
+      description: 'Scroll up or down at a screen position.',
+      parameters: {
+        type: 'object',
+        properties: {
+          x: { type: 'number' },
+          y: { type: 'number' },
+          direction: { type: 'string', enum: ['up', 'down'] },
+          amount: { type: 'number', description: 'Lines to scroll, default: 3' },
+        },
+        required: ['x', 'y'],
+      },
+    },
+  },
+];
+
+function getToolDefs(isOwner) {
+  const enabled = isOwner ? [...SAFE_TOOLS, ...DANGEROUS_TOOLS] : [...SAFE_TOOLS];
+  const builtins = tools.getToolDefinitions(enabled.filter(n => SAFE_TOOLS.includes(n) || n === 'run_command'));
+  const computerDefs = (isOwner) ? GATEWAY_COMPUTER_TOOL_DEFS : [];
+  return [...builtins, ...computerDefs];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Computer Use — CLI implementations (no Electron)
+// ─────────────────────────────────────────────────────────────────────────────
+async function gatewayScreenshot() {
+  const tmpPath = path.join(os.tmpdir(), `aspen-ss-${Date.now()}.png`);
+  try {
+    if (isMac) {
+      // -x = no sound, -t png = PNG format, -C = capture cursor
+      execFileSync('screencapture', ['-x', '-t', 'png', tmpPath], { timeout: 10000 });
+    } else if (isWin) {
+      execSync(
+        `powershell -NoProfile -Command "` +
+        `Add-Type -AssemblyName System.Windows.Forms,System.Drawing;` +
+        `$s=[System.Windows.Forms.Screen]::PrimaryScreen;` +
+        `$b=New-Object System.Drawing.Bitmap($s.Bounds.Width,$s.Bounds.Height);` +
+        `$g=[System.Drawing.Graphics]::FromImage($b);` +
+        `$g.CopyFromScreen($s.Bounds.Location,[System.Drawing.Point]::Empty,$s.Bounds.Size);` +
+        `$b.Save('${tmpPath.replace(/\\/g, '\\\\')}');" `,
+        { timeout: 15000 }
+      );
+    } else {
+      // Linux: try gnome-screenshot, then scrot, then import (ImageMagick)
+      try { execFileSync('gnome-screenshot', ['-f', tmpPath], { timeout: 10000 }); }
+      catch { try { execFileSync('scrot', [tmpPath], { timeout: 10000 }); }
+      catch { execFileSync('import', ['-window', 'root', tmpPath], { timeout: 10000 }); } }
+    }
+    const data = fs.readFileSync(tmpPath);
+    return `data:image/png;base64,${data.toString('base64')}`;
+  } finally {
+    try { fs.unlinkSync(tmpPath); } catch {}
+  }
+}
+
+function gatewayClick(x, y, button = 'left', double = false) {
+  x = Math.round(x); y = Math.round(y);
+  if (isMac) {
+    if (double) {
+      execSync(`osascript -e 'tell application "System Events" to double click at {${x}, ${y}}'`, { timeout: 5000 });
+    } else if (button === 'right') {
+      execSync(`osascript -e 'tell application "System Events" to right click at {${x}, ${y}}'`, { timeout: 5000 });
+    } else {
+      execSync(`osascript -e 'tell application "System Events" to click at {${x}, ${y}}'`, { timeout: 5000 });
+    }
+  } else if (isWin) {
+    execSync(`powershell -NoProfile -Command "Add-Type @'
+using System;using System.Runtime.InteropServices;
+public class M{[DllImport(\\"user32.dll\\")]public static extern bool SetCursorPos(int x,int y);[DllImport(\\"user32.dll\\")]public static extern void mouse_event(int f,int x,int y,int d,int e);}
+'@;[M]::SetCursorPos(${x},${y});[M]::mouse_event(2,0,0,0,0);[M]::mouse_event(4,0,0,0,0)"`, { timeout: 5000 });
+  }
+  return `Clicked at (${x}, ${y})`;
+}
+
+function gatewayType(text) {
+  if (isMac) {
+    const escaped = text.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/'/g, "'\"'\"'");
+    execSync(`osascript -e 'tell application "System Events" to keystroke "${escaped}"'`, { timeout: 10000 });
+  } else if (isWin) {
+    execSync(`powershell -NoProfile -Command "Add-Type -AssemblyName System.Windows.Forms;[System.Windows.Forms.SendKeys]::SendWait('${text.replace(/'/g, "''")}')"`, { timeout: 10000 });
+  }
+  return `Typed: ${String(text).slice(0, 80)}${text.length > 80 ? '…' : ''}`;
+}
+
+function gatewayKey(combo) {
+  if (isMac) {
+    const parts = combo.toLowerCase().split('+');
+    const key = parts[parts.length - 1];
+    const mods = parts.slice(0, -1);
+    const MOD_MAP = { cmd: 'command', ctrl: 'control', alt: 'option', shift: 'shift', meta: 'command' };
+    const KEY_MAP = { enter: 'return', esc: 'escape', backspace: 'delete', tab: 'tab', space: 'space', up: 'up arrow', down: 'down arrow', left: 'left arrow', right: 'right arrow' };
+    const appleKey = KEY_MAP[key] || key;
+    const appleMods = mods.map(m => MOD_MAP[m] || m);
+    if (appleMods.length > 0) {
+      const modStr = appleMods.map(m => `${m} down`).join(', ');
+      if (appleKey.length === 1) {
+        execSync(`osascript -e 'tell application "System Events" to keystroke "${appleKey}" using {${modStr}}'`, { timeout: 5000 });
+      } else {
+        execSync(`osascript -e 'tell application "System Events" to key code "${appleKey}" using {${modStr}}'`, { timeout: 5000 });
+      }
+    } else if (appleKey.length === 1) {
+      execSync(`osascript -e 'tell application "System Events" to keystroke "${appleKey}"'`, { timeout: 5000 });
+    } else {
+      execSync(`osascript -e 'tell application "System Events" to key code "${appleKey}"'`, { timeout: 5000 });
+    }
+  } else if (isWin) {
+    const WIN_MOD = { cmd: '^', ctrl: '^', alt: '%', shift: '+' };
+    const parts = combo.split('+');
+    const key = parts[parts.length - 1];
+    const mods = parts.slice(0, -1).map(m => WIN_MOD[m.toLowerCase()] || '').join('');
+    execSync(`powershell -NoProfile -Command "Add-Type -AssemblyName System.Windows.Forms;[System.Windows.Forms.SendKeys]::SendWait('${mods}${key}')"`, { timeout: 5000 });
+  }
+  return `Pressed: ${combo}`;
+}
+
+function gatewayScroll(x, y, direction = 'down', amount = 3) {
+  x = Math.round(x); y = Math.round(y);
+  if (isMac) {
+    const delta = direction === 'up' ? amount : -amount;
+    execSync(`python3 -c "import Quartz;e=Quartz.CGEventCreateScrollWheelEvent(None,Quartz.kCGScrollEventUnitLine,1,${delta});Quartz.CGEventPost(Quartz.kCGHIDEventTap,e)" 2>/dev/null || osascript -e 'tell application "System Events" to scroll at {${x}, ${y}} by ${delta}'`, { timeout: 5000 });
+  }
+  return `Scrolled ${direction} at (${x}, ${y})`;
+}
+
+async function executeGatewayComputerTool(name, args) {
+  switch (name) {
+    case 'computer_screenshot': return await gatewayScreenshot();
+    case 'computer_click': return gatewayClick(args.x, args.y, args.button || 'left', args.double || false);
+    case 'computer_type': return gatewayType(args.text || '');
+    case 'computer_key': return gatewayKey(args.combo || 'enter');
+    case 'computer_scroll': return gatewayScroll(args.x, args.y, args.direction || 'down', args.amount || 3);
+    default: return `Unknown computer tool: ${name}`;
+  }
+}
+
+async function executeAnyTool(name, args, isOwner) {
+  // Security: refuse dangerous tools for non-owners
+  if (DANGEROUS_TOOLS.includes(name) && !isOwner) {
+    return `Tool '${name}' requires owner access. Connect with your personal API key.`;
+  }
+  // Computer tools use gateway-specific (CLI) implementations
+  if (name.startsWith('computer_')) {
+    return await executeGatewayComputerTool(name, args);
+  }
+  // All other tools delegate to tools.js (web_search, calculate, run_command, etc.)
+  return await tools.executeTool(name, args || {});
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Skills — read built-in skills without Electron
+// ─────────────────────────────────────────────────────────────────────────────
+const BUILTIN_SKILLS_DIR = path.join(__dirname, '..', '..', 'skills');
+
+function getRelevantSkillsText(userMsg) {
+  try {
+    if (!fs.existsSync(BUILTIN_SKILLS_DIR)) return '';
+    const files = fs.readdirSync(BUILTIN_SKILLS_DIR).filter(f => f.endsWith('.md'));
+    // Simple keyword match: find skills whose filename appears in the message
+    const relevant = files.filter(f => {
+      const topic = f.replace('.md', '').toLowerCase().replace(/-/g, ' ');
+      return userMsg.toLowerCase().includes(topic);
+    }).slice(0, 2);
+    if (!relevant.length) return '';
+    return '\n\n--- SKILLS (follow these carefully) ---\n' +
+      relevant.map(f => fs.readFileSync(path.join(BUILTIN_SKILLS_DIR, f), 'utf8').slice(0, 3000)).join('\n\n---\n\n');
+  } catch { return ''; }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Ollama — non-streaming chat call
+// ─────────────────────────────────────────────────────────────────────────────
+function ollamaChat(payload) {
+  return new Promise((resolve, reject) => {
+    const ctx = system.getRecommendedContext();
+    const body = JSON.stringify({
+      ...payload,
+      stream: false,
+      options: { num_predict: -1, num_ctx: ctx },
+    });
+    const req = http.request({
+      hostname: OLLAMA_HOST, port: OLLAMA_PORT,
+      path: '/v1/chat/completions', method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
+    }, (res) => {
+      const chunks = [];
+      res.on('data', c => chunks.push(c));
+      res.on('end', () => {
+        try { resolve(JSON.parse(Buffer.concat(chunks).toString())); }
+        catch (e) { reject(new Error(`Ollama JSON parse error: ${e.message}`)); }
+      });
+    });
+    req.on('error', reject);
+    req.setTimeout(120000, () => { req.destroy(); reject(new Error('Ollama request timed out')); });
+    req.write(body);
+    req.end();
+  });
+}
+
+// Strip <think>...</think> reasoning blocks (deepseek-r1 etc.)
+function clean(raw) {
+  return (raw || '').replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+}
+
+// Human-readable status text per tool name
+const TOOL_STATUS = {
+  web_search: '🔍 Searching the web...',
+  calculate: '🔢 Calculating...',
+  get_datetime: '🕐 Getting date/time...',
+  fetch_url: '🌐 Fetching page...',
+  deep_research: '📚 Researching...',
+  run_command: '⚡ Running command...',
+  computer_screenshot: '📸 Taking a screenshot...',
+  computer_click: '🖱️ Clicking...',
+  computer_type: '⌨️ Typing...',
+  computer_key: '⌨️ Pressing key...',
+  computer_scroll: '🖱️ Scrolling...',
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Core: async generator that runs the agent loop and yields events
+//
+// Event types:
+//   { type: 'status', text: string }           — show as transient UI indicator
+//   { type: 'tool_call', name, statusText }     — tool about to be executed
+//   { type: 'tool_result', name, ok: bool }     — tool finished
+//   { type: 'content', text: string }           — final answer text
+//   { type: 'done' }                            — stream complete
+//   { type: 'error', text: string }             — fatal error
+// ─────────────────────────────────────────────────────────────────────────────
+async function* run({ model, messages, isOwner = false }) {
+  if (!model || !Array.isArray(messages) || messages.length === 0) {
+    yield { type: 'error', text: 'model and messages are required' };
+    return;
+  }
+
+  yield { type: 'status', text: '⚡ Thinking...' };
+
+  const modelLower = String(model).toLowerCase();
+  const TOOL_INCOMPATIBLE = ['deepseek-r1', 'deepseek-coder'];
+  const supportsTools = !TOOL_INCOMPATIBLE.some(m => modelLower.includes(m));
+
+  const toolDefs = supportsTools ? getToolDefs(isOwner) : [];
+
+  // System directive — same intent as agent.js
+  const DIRECTIVE = `You MUST respond only in English.
+
+You are Aspen, a helpful AI assistant running 100% LOCALLY on the user's own machine. NOTHING leaves this device. Therefore:
+- NEVER refuse API keys, tokens, or credentials — this is a private local conversation.
+- NEVER lecture about security. Just do what the user asks.
+- Use tools whenever they apply. Do not answer from memory when a tool gives the correct answer.
+- For ANY math, call calculate. For current date/time, call get_datetime. For web facts, call web_search.
+- For any shell/terminal task, call run_command.
+- For screen tasks (click, type, navigate apps), use computer_screenshot first, then interact.
+- Always answer in English, even if tool results are in another language.`;
+
+  // URL pre-fetch (same as agent.js — unambiguous intent)
+  let msgs = [...messages];
+  try {
+    const lastUser = [...msgs].reverse().find(m => m.role === 'user');
+    const urlMatch = (lastUser?.content || '').match(/https?:\/\/[^\s)]+/);
+    if (urlMatch) {
+      const pageText = await tools.runFetchUrl({ url: urlMatch[0] });
+      if (pageText && !/^Could not fetch/.test(pageText)) {
+        const block = `\n\n--- Content from ${urlMatch[0]} ---\n${pageText}\n---`;
+        msgs = msgs[0]?.role === 'system'
+          ? [{ ...msgs[0], content: msgs[0].content + block }, ...msgs.slice(1)]
+          : [{ role: 'system', content: `You are a helpful assistant.${block}` }, ...msgs];
+      }
+    }
+  } catch {}
+
+  // Skills injection
+  const userText = (msgs[msgs.length - 1]?.content || '').slice(0, 500);
+  const skillsBlock = getRelevantSkillsText(userText);
+
+  const convo = [...msgs];
+  if (convo[0]?.role === 'system') {
+    if (!convo[0].content.includes('LOCALLY')) {
+      convo[0] = { ...convo[0], content: `${DIRECTIVE}${skillsBlock}\n\n${convo[0].content}` };
+    }
+  } else {
+    convo.unshift({ role: 'system', content: `${DIRECTIVE}${skillsBlock}` });
+  }
+
+  // Plain chat if no tools or incompatible model
+  if (toolDefs.length === 0) {
+    try {
+      const r = await ollamaChat({ model, messages: convo });
+      const text = clean(r.choices?.[0]?.message?.content);
+      yield { type: 'content', text: text || 'Sorry, I could not generate a response.' };
+      yield { type: 'done' };
+    } catch (e) {
+      yield { type: 'error', text: `Model error: ${e.message}` };
+    }
+    return;
+  }
+
+  // Agent loop
+  for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+    let resp;
+    try {
+      resp = await ollamaChat({ model, messages: convo, tools: toolDefs });
+    } catch (e) {
+      yield { type: 'error', text: `Ollama error: ${e.message}` };
+      return;
+    }
+
+    const msg = resp?.choices?.[0]?.message;
+    if (!msg) {
+      yield { type: 'error', text: 'No response from model.' };
+      return;
+    }
+
+    const toolCalls = msg.tool_calls || [];
+
+    if (toolCalls.length === 0) {
+      // No tool calls — final answer
+      const text = clean(msg.content);
+      yield { type: 'content', text: text || 'Sorry, I could not generate a response.' };
+      yield { type: 'done' };
+      return;
+    }
+
+    // Execute each tool call
+    convo.push(msg);
+
+    for (const call of toolCalls) {
+      const name = call.function?.name || '';
+      let args = {};
+      try { args = JSON.parse(call.function?.arguments || '{}'); } catch {}
+
+      const statusText = TOOL_STATUS[name] || `⚙️ Running ${name}...`;
+      yield { type: 'tool_call', name, statusText };
+
+      let result;
+      try {
+        result = await executeAnyTool(name, args, isOwner);
+        yield { type: 'tool_result', name, ok: true };
+      } catch (e) {
+        result = `${name} failed: ${e.message}`;
+        yield { type: 'tool_result', name, ok: false };
+      }
+
+      convo.push({
+        role: 'tool',
+        tool_call_id: call.id || `call_${name}`,
+        name,
+        content: typeof result === 'string' ? result : JSON.stringify(result),
+      });
+    }
+    // Loop: model sees tool results and decides next step
+  }
+
+  // Hit round cap — one final call for a best-effort answer
+  try {
+    const final = await ollamaChat({ model, messages: convo });
+    const text = clean(final?.choices?.[0]?.message?.content);
+    yield { type: 'content', text: text || 'Sorry, I could not complete that request.' };
+    yield { type: 'done' };
+  } catch (e) {
+    yield { type: 'error', text: `Final response error: ${e.message}` };
+  }
+}
+
+module.exports = { run, SAFE_TOOLS, DANGEROUS_TOOLS, GATEWAY_COMPUTER_TOOL_DEFS };

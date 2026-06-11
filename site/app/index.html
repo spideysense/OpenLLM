@@ -1090,7 +1090,7 @@ async function sendMessage(autoRespond){
           body:JSON.stringify({action:'chat',token:trialToken,messages:fullMsgs}),
           signal:streamController.signal,
         })
-      : await fetch('/api/proxy',{
+      : await fetch('/api/agent',{
           method:'POST',headers:{'Content-Type':'application/json'},
           body:JSON.stringify({tunnelUrl:config.tunnelUrl,apiKey:config.apiKey||'',model,messages:fullMsgs}),
           signal:streamController.signal,
@@ -1113,7 +1113,25 @@ async function sendMessage(autoRespond){
         if(trialMode&&t.startsWith(': messagesLeft=')){trialMsgsLeft=parseInt(t.slice(15))||0;checkStatus();continue;}
         if(!t.startsWith('data: '))continue;
         const d=t.slice(6);if(d==='[DONE]')continue;
-        try{const j=JSON.parse(d);if(j.error){throw new Error(j.error);}const delta=j.choices?.[0]?.delta?.content;if(delta){fullText+=delta;bubble._fullText=fullText;bubble.innerHTML=formatMessage(fullText)+'<span class="cursor"></span>';scrollToBottom()}}catch(err){if(err.message&&err.message!=='Unexpected end of JSON input'&&!d.startsWith('{')){/*surface real upstream errors*/}}
+        try{
+          const j=JSON.parse(d);
+          if(j.error){throw new Error(j.error);}
+          // Tool status indicator from the agent loop
+          if(j.aspen_status||j.aspen_tool){
+            const statusEl=bubble.querySelector('.agent-status');
+            const msg=j.aspen_status||'';
+            if(statusEl){statusEl.textContent=msg;}
+            else if(msg){bubble.innerHTML=`<span class="agent-status" style="color:var(--t3);font-size:.8rem;font-style:italic">${escHtml(msg)}</span>`;bubble._fullText='';scrollToBottom();}
+            continue;
+          }
+          const delta=j.choices?.[0]?.delta?.content;
+          if(delta){
+            // Clear status indicator once real content arrives
+            const statusEl=bubble.querySelector('.agent-status');
+            if(statusEl){bubble.innerHTML='';bubble._fullText='';}
+            fullText+=delta;bubble._fullText=fullText;bubble.innerHTML=formatMessage(fullText)+'<span class="cursor"></span>';scrollToBottom();
+          }
+        }catch(err){if(err.message&&err.message!=='Unexpected end of JSON input'&&!d.startsWith('{')){/*surface real upstream errors*/}}
       }
     }
   }catch(e){

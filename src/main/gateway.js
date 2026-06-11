@@ -4,6 +4,7 @@ const path = require('path');
 const apikeys = require('./apikeys');
 const aliases = require('./aliases');
 const agent = require('./agent');
+const gatewayAgent = require('./gateway-agent');
 const system = require('./system');
 
 // ── Published artifacts (persisted across restarts) ──
@@ -262,6 +263,135 @@ You are Aspen, a helpful AI assistant running 100% LOCALLY on the user's own com
       if (req.url === '/v1/models' && req.method === 'GET') {
         handleListModels(res);
         return;
+      }
+
+      // ── /v1/agent — full agent loop with tool execution ──
+      // Runs on THIS machine: web/mobile clients get web_search, calculate,
+      // computer use, run_command, etc. Owner key gates the dangerous tools.
+      if (req.url === '/v1/agent' && req.method === 'POST') {
+        let parsed;
+        try { parsed = JSON.parse(body); } catch {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Invalid JSON' }));
+          return;
+        }
+
+        const agentModel = parsed.model || 'llama3';
+        const agentMsgs = parsed.messages;
+        if (!Array.isArray(agentMsgs) || agentMsgs.length === 0) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'messages array required' }));
+          return;
+        }
+
+        const isOwner = apikeys.isOwnerKey(authToken);
+        const wantStream = parsed.stream !== false;
+
+        if (!wantStream) {
+          // Non-streaming: collect full response
+          let fullText = '';
+          try {
+            for await (const event of gatewayAgent.run({ model: agentModel, messages: agentMsgs, isOwner })) {
+              if (event.type === 'content') fullText += event.text;
+              if (event.type === 'error') throw new Error(event.text);
+            }
+          } catch (e) {
+            res.writeHead(502, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: { message: e.message, type: 'agent_error' } }));
+            return;
+          }
+          const payload = {
+            id: 'chatcmpl-aspen-agent', object: 'chat.completion',
+            created: Math.floor(Date.now() / 1000), model: agentModel,
+            choices: [{ index: 0, message: { role: 'assistant', content: fullText }, finish_reason: 'stop' }],
+          };
+          const buf = Buffer.from(JSON.stringify(payload));
+          res.writeHead(200, { 'Content-Type': 'application/json', 'Content-Length': String(buf.length) });
+          res.end(buf);
+          return;
+        }
+
+        // Streaming: SSE with heartbeat so long tool chains don't time out
+        res.writeHead(200, {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+          'X-Accel-Buffering': 'no',
+        });
+
+        const base = {
+          id: 'chatcmpl-aspen-agent', object: 'chat.completion.chunk',
+          created: Math.floor(Date.now() / 1000), model: agentModel,
+        };
+        const send = (delta, extra = {}) => {
+          if (res.writableEnded) return;
+          try {
+            res.write(`data: ${JSON.stringify({
+              ...base,
+              choices: [{ index: 0, delta, finish_reason: null }],
+              ...extra,
+            })}\n\n`);
+          } catch {}
+        };
+        const done = () => {
+          if (res.writableEnded) return;
+          try {
+            res.write(`data: ${JSON.stringify({ ...base, choices: [{ index: 0, delta: {}, finish_reason: 'stop' }] })}\n\n`);
+            res.write('data: [DONE]\n\n');
+            res.end();
+          } catch {}
+        };
+
+        // Open stream immediately so the client sees a response
+        send({ role: 'assistant' });
+
+        // Heartbeat — prevents Vercel/nginx from closing a slow tool execution
+        const heartbeat = setInterval(() => {
+          if (res.writableEnded) { clearInterval(heartbeat); return; }
+          try { res.write(': keep-alive\n\n'); } catch { clearInterval(heartbeat); }
+        }, 8000);
+
+        (async () => {
+          try {
+            for await (const event of gatewayAgent.run({ model: agentModel, messages: agentMsgs, isOwner })) {
+              if (res.writableEnded) break;
+              switch (event.type) {
+                case 'status':
+                  send({}, { aspen_status: event.text });
+                  break;
+                case 'tool_call':
+                  send({}, { aspen_status: event.statusText, aspen_tool: event.name });
+                  break;
+                case 'tool_result':
+                  // Brief pause after tool result before the model continues
+                  await new Promise(r => setTimeout(r, 50));
+                  break;
+                case 'content': {
+                  // Stream word by word for a smooth typing feel
+                  const words = String(event.text).match(/\S+\s*/g) || [event.text];
+                  for (const word of words) {
+                    if (res.writableEnded) break;
+                    send({ content: word });
+                    await new Promise(r => setTimeout(r, 20));
+                  }
+                  break;
+                }
+                case 'error':
+                  send({ content: `\n\nError: ${event.text}` });
+                  break;
+                case 'done':
+                  break;
+              }
+            }
+          } catch (e) {
+            if (!res.writableEnded) send({ content: `\n\nError: ${e.message}` });
+          } finally {
+            clearInterval(heartbeat);
+            done();
+          }
+        })();
+
+        return; // don't fall through to Ollama proxy
       }
 
       // Gateway always streams directly through Ollama for reliable real-time
