@@ -18,21 +18,28 @@ const fs = require('fs');
 const path = require('path');
 const https = require('https');
 
-// Always discard package-lock.json local changes before pulling — it gets
-// modified by npm install and blocks git pull every time.
-// Read the desired version BEFORE any git operations so the user's
-// `npm version X.Y.Z --no-git-tag-version` call is respected.
-const _localPkg = require(path.join(__dirname, '../package.json'));
-const DESIRED_VERSION = _localPkg.version;
+// Version comes from CLI arg: npm run release:mac -- 0.4.35
+// Falls back to what's in package.json if no arg given.
+const cliVersion = process.argv[2];
 
 try {
   execSync('git checkout -- package-lock.json package.json', { stdio: 'inherit' });
 } catch {}
 
+// Pull latest code
+try {
+  execSync('git pull', { cwd: path.join(__dirname, '..'), stdio: 'inherit' });
+} catch {}
+
 const ROOT = path.join(__dirname, '..');
 const DIST = path.join(ROOT, 'dist');
-const pkg = require(path.join(ROOT, 'package.json'));
-const VERSION = DESIRED_VERSION; // set from user's npm version call above
+
+// Apply the version to package.json
+const VERSION = cliVersion || require(path.join(ROOT, 'package.json')).version;
+execSync(`npm version ${VERSION} --no-git-tag-version --allow-same-version`, { cwd: ROOT, stdio: 'inherit' });
+// Clear require cache so anything downstream reads the right version
+delete require.cache[require.resolve(path.join(ROOT, 'package.json'))];
+
 const TAG = `v${VERSION}`;
 const OWNER = 'spideysense';
 const REPO = 'OpenLLM';
@@ -105,14 +112,7 @@ function contentTypeFor(name) {
 (async () => {
   if (!GH_TOKEN) { console.error('Missing GH_TOKEN'); process.exit(1); }
 
-  // Re-apply the desired version (git checkout above reset it to the committed version).
-  execSync(`npm version ${DESIRED_VERSION} --no-git-tag-version --allow-same-version`, { cwd: ROOT, stdio: 'inherit' });
-  // Clear require cache so VERSION reads the bumped value.
-  delete require.cache[require.resolve(path.join(ROOT, 'package.json'))];
-
-  // Commit the version bump so the Windows workflow checks out the right version.
-  // Without this, the Windows runner sees the old committed version and creates
-  // a stale release that GitHub marks as "latest", breaking auto-updates.
+  // Commit + push the version bump so the Windows workflow uses the right version.
   console.log(`▶ Committing version bump to ${VERSION}...`);
   try {
     execSync(`git add package.json`, { cwd: ROOT, stdio: 'inherit' });
