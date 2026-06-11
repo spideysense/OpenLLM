@@ -77,11 +77,15 @@ function start() {
       res.end(JSON.stringify({ error: 'Rate limited. Try again in a minute.' }));
       return;
     }
-    // CORS headers
-    // CORS — restrict to known origins
-    const allowedOrigins = ['https://runonaspen.com', 'http://localhost:5173', 'http://localhost:3000', 'capacitor://localhost', 'ionic://localhost'];
+    // CORS headers — allow runonaspen.com, www.runonaspen.com, any subdomain (tunnel URLs), and local dev
     const origin = req.headers.origin || '';
-    const corsOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
+    const corsAllowed = origin === 'https://runonaspen.com'
+      || origin === 'https://www.runonaspen.com'
+      || (origin.startsWith('https://') && origin.endsWith('.runonaspen.com'))
+      || origin.startsWith('http://localhost')
+      || origin === 'capacitor://localhost'
+      || origin === 'ionic://localhost';
+    const corsOrigin = corsAllowed ? origin : 'https://runonaspen.com';
     res.setHeader('Access-Control-Allow-Origin', corsOrigin);
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
