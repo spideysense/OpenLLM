@@ -46,9 +46,12 @@ const TOOL_TRIGGERS = [
   /\b(calculate|compute|what'?s|whats)\b[^?]*[\d+\-*/^%]/i,
   /\b(search|google|look up|find out|research)\b/i,
   /\b(run|execute|command|terminal|shell|bash)\b/i,
-  // Computer use triggers (owner only, but detect here)
-  /\b(screenshot|screen shot|my screen|click|type|open (safari|chrome|app|finder))\b/i,
+  // Computer use / browsing triggers (owner only, but detect here)
+  /\b(screenshot|screen shot|my screen|click|scroll)\b/i,
   /\bwhat'?s on (my |the )?screen\b/i,
+  /\b(open|go to|navigate to|visit|browse|pull up|launch)\b.*\b([a-z0-9-]+\.(com|org|net|io|co|app|store)|safari|chrome|firefox|finder|app|website|browser)/i,
+  /\b(buy|shop|order|purchase|add to cart|find me a|look for a)\b/i,
+  /\b(fill (out|in)|type into|enter into)\b/i,
   /https?:\/\/[^\s]+/i, // URLs need fetching
 ];
 

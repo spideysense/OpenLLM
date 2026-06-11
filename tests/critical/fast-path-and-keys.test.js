@@ -92,3 +92,15 @@ describe('World Model sync (owner-only)', () => {
     expect(src).toContain('owner key');
   });
 });
+
+describe('Browsing/shopping triggers route to tool path', () => {
+  it('"open amazon.com" triggers tools', () => {
+    const src = fs.readFileSync(path.resolve('src/main/gateway-agent.js'), 'utf8');
+    // The open-website regex must handle bare domains like amazon.com
+    expect(src).toMatch(/open\|go to\|navigate to\|visit\|browse/);
+  });
+  it('"buy a skateboard" triggers tools', () => {
+    const src = fs.readFileSync(path.resolve('src/main/gateway-agent.js'), 'utf8');
+    expect(src).toMatch(/buy\|shop\|order\|purchase/);
+  });
+});
