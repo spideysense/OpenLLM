@@ -7,6 +7,13 @@
   <atom:link href="https://runonaspen.com/blog/feed.xml" rel="self" type="application/rss+xml"/>
   
   <item>
+    <title><![CDATA[Why I Stopped Using ChatGPT and Built My]]></title>
+    <link>https://runonaspen.com/blog/why-i-stopped-using-chatgpt-and-built-my-own-ai.html</link>
+    <description><![CDATA[Discover the shift from cloud-dependent AI to digital sovereignty and why running your own local LLM is the ultimate way to reclaim your privacy and agency.]]></description>
+    <pubDate>Thu, 11 Jun 2026 00:00:00 GMT</pubDate>
+    <guid>https://runonaspen.com/blog/why-i-stopped-using-chatgpt-and-built-my-own-ai.html</guid>
+  </item>
+  <item>
     <title><![CDATA[The Easiest Way to Run AI on Your Own Computer]]></title>
     <link>https://runonaspen.com/blog/the-easiest-way-to-run-ai-on-your-own-computer.html</link>
     <description><![CDATA[Learn how to bypass the cloud and run powerful, private AI models directly on your Mac or PC without complex coding or monthly subscriptions.]]></description>
