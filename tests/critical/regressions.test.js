@@ -107,3 +107,18 @@ describe('BUG: tunnel stable URL not persisted (users lost tunnel on restart)', 
     expect(tunnel).toContain("store.get('tunnelUrl')");
   });
 });
+
+describe('BUG: send button in web/mobile sent previous message instead of current input', () => {
+  it('web app send button uses arrow function wrapper (not direct sendMessage reference)', () => {
+    const src = fs.readFileSync(path.resolve('site/app/index.html'), 'utf8');
+    // Must be ()=>sendMessage() not sendMessage — direct ref passes MouseEvent as autoRespond arg
+    expect(src).toContain("addEventListener('click',()=>sendMessage())");
+    expect(src).not.toMatch(/sendBtn\.addEventListener\('click',\s*sendMessage\s*\)/);
+  });
+
+  it('mobile app send button uses arrow function wrapper', () => {
+    const src = fs.readFileSync(path.resolve('mobile/www/index.html'), 'utf8');
+    expect(src).toContain("addEventListener('click',()=>sendMessage())");
+    expect(src).not.toMatch(/sendBtn\.addEventListener\('click',\s*sendMessage\s*\)/);
+  });
+});

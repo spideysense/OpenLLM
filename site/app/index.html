@@ -994,7 +994,7 @@ function scrollToBottom(force){
 }
 
 // Send
-sendBtn.addEventListener('click',sendMessage);
+sendBtn.addEventListener('click',()=>sendMessage());
 inputBox.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage()}});
 inputBox.addEventListener('input',()=>{inputBox.style.height='auto';inputBox.style.height=Math.min(inputBox.scrollHeight,140)+'px'});
 document.querySelectorAll('.starter').forEach(btn=>{
