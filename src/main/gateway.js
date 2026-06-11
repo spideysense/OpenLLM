@@ -288,26 +288,28 @@ You are Aspen, a helpful AI assistant running 100% LOCALLY on the user's own com
         const wantStream = parsed.stream !== false;
 
         if (!wantStream) {
-          // Non-streaming: collect full response
-          let fullText = '';
-          try {
-            for await (const event of gatewayAgent.run({ model: agentModel, messages: agentMsgs, isOwner })) {
-              if (event.type === 'content') fullText += event.text;
-              if (event.type === 'error') throw new Error(event.text);
+          // Non-streaming: collect full response in async IIFE
+          (async () => {
+            let fullText = '';
+            try {
+              for await (const event of gatewayAgent.run({ model: agentModel, messages: agentMsgs, isOwner })) {
+                if (event.type === 'content') fullText += event.text;
+                if (event.type === 'error') throw new Error(event.text);
+              }
+            } catch (e) {
+              res.writeHead(502, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ error: { message: e.message, type: 'agent_error' } }));
+              return;
             }
-          } catch (e) {
-            res.writeHead(502, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: { message: e.message, type: 'agent_error' } }));
-            return;
-          }
-          const payload = {
-            id: 'chatcmpl-aspen-agent', object: 'chat.completion',
-            created: Math.floor(Date.now() / 1000), model: agentModel,
-            choices: [{ index: 0, message: { role: 'assistant', content: fullText }, finish_reason: 'stop' }],
-          };
-          const buf = Buffer.from(JSON.stringify(payload));
-          res.writeHead(200, { 'Content-Type': 'application/json', 'Content-Length': String(buf.length) });
-          res.end(buf);
+            const payload = {
+              id: 'chatcmpl-aspen-agent', object: 'chat.completion',
+              created: Math.floor(Date.now() / 1000), model: agentModel,
+              choices: [{ index: 0, message: { role: 'assistant', content: fullText }, finish_reason: 'stop' }],
+            };
+            const buf = Buffer.from(JSON.stringify(payload));
+            res.writeHead(200, { 'Content-Type': 'application/json', 'Content-Length': String(buf.length) });
+            res.end(buf);
+          })();
           return;
         }
 

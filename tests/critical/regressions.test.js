@@ -140,3 +140,17 @@ describe('BUG: community savings 500 (wrong Upstash SET format)', () => {
     expect(src).not.toMatch(/\/set\/.*encodeURIComponent\(key\).*encodeURIComponent\(value\)/);
   });
 });
+
+describe('BUG: gateway.js SyntaxError — for await in non-async callback (crashed main process)', () => {
+  it('gateway.js has no bare for-await outside an async function', () => {
+    const src = fs.readFileSync(path.resolve('src/main/gateway.js'), 'utf8');
+    // Every for await must be inside an async IIFE: (async () => { for await ... })()
+    // A bare "for await" at the non-async req.on('end', () => {}) level is a SyntaxError
+    const forAwaits = [...src.matchAll(/for\s+await\s*\(/g)];
+    for (const match of forAwaits) {
+      // Find the surrounding context — should have async before the for await
+      const before = src.slice(Math.max(0, match.index - 200), match.index);
+      expect(before).toMatch(/async/);
+    }
+  });
+});
