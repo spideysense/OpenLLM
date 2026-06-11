@@ -262,25 +262,63 @@ function getRelevantSkillsText(userMsg) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Ollama — non-streaming chat call
+//
+// Uses /v1/chat/completions (OpenAI format) normally. But when any message
+// carries an `images` array (vision — e.g. a screenshot), it switches to the
+// native /api/chat endpoint, because the OpenAI-compat endpoint does not accept
+// Ollama's `images` field. The native response is normalized to OpenAI shape so
+// callers don't care which path was used.
 // ─────────────────────────────────────────────────────────────────────────────
+function hasImages(messages) {
+  return Array.isArray(messages) && messages.some(m => Array.isArray(m.images) && m.images.length > 0);
+}
+
 function ollamaChat(payload) {
+  const useNative = hasImages(payload.messages);
   return new Promise((resolve, reject) => {
     const ctx = system.getRecommendedContext();
-    const body = JSON.stringify({
-      ...payload,
-      stream: false,
-      options: { num_predict: -1, num_ctx: ctx },
-    });
+
+    let path, body;
+    if (useNative) {
+      // Native /api/chat — supports images[] and tools
+      body = JSON.stringify({
+        model: payload.model,
+        messages: payload.messages,
+        tools: payload.tools,
+        stream: false,
+        options: { num_predict: -1, num_ctx: ctx },
+      });
+      path = '/api/chat';
+    } else {
+      body = JSON.stringify({ ...payload, stream: false, options: { num_predict: -1, num_ctx: ctx } });
+      path = '/v1/chat/completions';
+    }
+
     const req = http.request({
       hostname: OLLAMA_HOST, port: OLLAMA_PORT,
-      path: '/v1/chat/completions', method: 'POST',
+      path, method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
     }, (res) => {
       const chunks = [];
       res.on('data', c => chunks.push(c));
       res.on('end', () => {
-        try { resolve(JSON.parse(Buffer.concat(chunks).toString())); }
-        catch (e) { reject(new Error(`Ollama JSON parse error: ${e.message}`)); }
+        try {
+          const data = JSON.parse(Buffer.concat(chunks).toString());
+          if (useNative) {
+            // Normalize native /api/chat response → OpenAI shape
+            resolve({
+              choices: [{
+                message: {
+                  role: 'assistant',
+                  content: data.message?.content || '',
+                  tool_calls: data.message?.tool_calls || [],
+                },
+              }],
+            });
+          } else {
+            resolve(data);
+          }
+        } catch (e) { reject(new Error(`Ollama JSON parse error: ${e.message}`)); }
       });
     });
     req.on('error', reject);
@@ -427,20 +465,42 @@ You are Aspen, a helpful AI assistant running 100% LOCALLY on the user's own mac
       yield { type: 'tool_call', name, statusText };
 
       let result;
+      let isScreenshot = false;
       try {
         result = await executeAnyTool(name, args, isOwner);
+        isScreenshot = (name === 'computer_screenshot' && typeof result === 'string' && result.startsWith('data:image'));
         yield { type: 'tool_result', name, ok: true };
       } catch (e) {
         result = `${name} failed: ${e.message}`;
         yield { type: 'tool_result', name, ok: false };
       }
 
-      convo.push({
-        role: 'tool',
-        tool_call_id: call.id || `call_${name}`,
-        name,
-        content: typeof result === 'string' ? result : JSON.stringify(result),
-      });
+      if (isScreenshot) {
+        // A base64 image is meaningless as tool-text — a vision model needs it
+        // in the images[] array. Acknowledge the tool call with a short text
+        // result, then add a SEPARATE user message carrying the actual image so
+        // Ollama's vision pipeline can see it.
+        convo.push({
+          role: 'tool',
+          tool_call_id: call.id || `call_${name}`,
+          name,
+          content: 'Screenshot captured. The image is provided below for analysis.',
+        });
+        // Ollama native vision format: images is an array of raw base64 (no data: prefix)
+        const rawBase64 = result.replace(/^data:image\/[a-z]+;base64,/, '');
+        convo.push({
+          role: 'user',
+          content: 'Here is the screenshot you just captured. Analyze it and answer my original request.',
+          images: [rawBase64],
+        });
+      } else {
+        convo.push({
+          role: 'tool',
+          tool_call_id: call.id || `call_${name}`,
+          name,
+          content: typeof result === 'string' ? result : JSON.stringify(result),
+        });
+      }
     }
     // Loop: model sees tool results and decides next step
   }

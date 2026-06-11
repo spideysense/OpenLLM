@@ -182,3 +182,31 @@ describe('Web and mobile apps use /api/agent', () => {
     expect(src).toContain('agent-status');
   });
 });
+
+describe('Screenshot vision handling', () => {
+  it('screenshot result is fed as image, not base64 text', () => {
+    const src = fs.readFileSync(path.resolve('src/main/gateway-agent.js'), 'utf8');
+    // Must detect screenshot results and push them as images[], not text content
+    expect(src).toContain('isScreenshot');
+    expect(src).toContain('images:');
+    expect(src).toContain("data:image");
+  });
+
+  it('strips data: prefix before sending to Ollama images array', () => {
+    const src = fs.readFileSync(path.resolve('src/main/gateway-agent.js'), 'utf8');
+    expect(src).toMatch(/replace\(\/\^data:image/);
+  });
+
+  it('ollamaChat switches to native /api/chat when images present', () => {
+    const src = fs.readFileSync(path.resolve('src/main/gateway-agent.js'), 'utf8');
+    expect(src).toContain('hasImages');
+    expect(src).toContain('/api/chat');
+    expect(src).toContain('useNative');
+  });
+
+  it('normalizes native response back to OpenAI shape', () => {
+    const src = fs.readFileSync(path.resolve('src/main/gateway-agent.js'), 'utf8');
+    expect(src).toContain('choices: [{');
+    expect(src).toContain('data.message?.content');
+  });
+});
