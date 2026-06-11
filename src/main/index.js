@@ -463,8 +463,8 @@ ipcMain.handle('apikeys:list', async () => {
   return apikeys.listKeys();
 });
 
-ipcMain.handle('apikeys:create', async (event, label) => {
-  return apikeys.createKey(label);
+ipcMain.handle('apikeys:create', async (event, label, opts) => {
+  return apikeys.createKey(label, { owner: !!(opts && opts.owner) });
 });
 
 ipcMain.handle('apikeys:revoke', async (event, keyId) => {

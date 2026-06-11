@@ -28,6 +28,40 @@ const isMac = os.platform() === 'darwin';
 const isWin = os.platform() === 'win32';
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Fast-path gate: decide if a message actually needs tools.
+// Most messages ("hi", "explain X", "write me a poem") do NOT — they should
+// stream straight from Ollama for instant responses. Only messages that need
+// real-time data, computation, or computer control go through the agent loop.
+// ─────────────────────────────────────────────────────────────────────────────
+const TOOL_TRIGGERS = [
+  /\b(stock|share)\s*(price|cost|value|ticker|quote)/i,
+  /\b(weather|forecast|temperature|rain|sunny|humidity)\b/i,
+  /\b(news|headlines?|what'?s happening|what'?s going on)\b/i,
+  /\b(latest|breaking|current events|today'?s|tonight'?s|this week'?s)\b/i,
+  /\b(score|result|match|game)\s*(today|tonight|yesterday|last night)\b/i,
+  /\b(price of|cost of|how much is|how much does|how much did)\b/i,
+  /\bwho (won|is winning|leads|is (the )?(ceo|president|prime minister))\b/i,
+  /\b(crypto|bitcoin|ethereum|btc|eth)\s*(price|value|cost|today)\b/i,
+  /\b(released|launched|announced|dropped)\s*(today|this week|recently|just)\b/i,
+  /\b(calculate|compute|what'?s|whats)\b[^?]*[\d+\-*/^%]/i,
+  /\b(search|google|look up|find out|research)\b/i,
+  /\b(run|execute|command|terminal|shell|bash)\b/i,
+  // Computer use triggers (owner only, but detect here)
+  /\b(screenshot|screen shot|my screen|click|type|open (safari|chrome|app|finder))\b/i,
+  /\bwhat'?s on (my |the )?screen\b/i,
+  /https?:\/\/[^\s]+/i, // URLs need fetching
+];
+
+function messageNeedsTools(messages) {
+  try {
+    const lastUser = [...messages].reverse().find(m => m.role === 'user');
+    const text = lastUser?.content || '';
+    if (text.length < 2) return false;
+    return TOOL_TRIGGERS.some(r => r.test(text));
+  } catch { return false; }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Tool availability
 // Safe tools: anyone with a valid API key can use them.
 // Dangerous tools: owner key only.
@@ -260,6 +294,43 @@ function getRelevantSkillsText(userMsg) {
   } catch { return ''; }
 }
 
+// Streaming Ollama call — yields content deltas. Used by the fast path when
+// no tools are needed, so simple chats feel instant.
+async function* ollamaStream(model, messages) {
+  const ctx = system.getRecommendedContext();
+  const body = JSON.stringify({
+    model, messages, stream: true,
+    options: { num_predict: -1, num_ctx: ctx },
+  });
+
+  const response = await new Promise((resolve, reject) => {
+    const req = http.request({
+      hostname: OLLAMA_HOST, port: OLLAMA_PORT,
+      path: '/api/chat', method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
+    }, resolve);
+    req.on('error', reject);
+    req.setTimeout(120000, () => { req.destroy(); reject(new Error('Ollama stream timed out')); });
+    req.write(body);
+    req.end();
+  });
+
+  let buffer = '';
+  for await (const chunk of response) {
+    buffer += chunk.toString();
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      try {
+        const json = JSON.parse(line);
+        const delta = json.message?.content;
+        if (delta) yield delta;
+      } catch {}
+    }
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Ollama — non-streaming chat call
 //
@@ -365,11 +436,43 @@ async function* run({ model, messages, isOwner = false }) {
     return;
   }
 
-  yield { type: 'status', text: '⚡ Thinking...' };
-
   const modelLower = String(model).toLowerCase();
   const TOOL_INCOMPATIBLE = ['deepseek-r1', 'deepseek-coder'];
   const supportsTools = !TOOL_INCOMPATIBLE.some(m => modelLower.includes(m));
+
+  // ─── FAST PATH ───
+  // If the message clearly doesn't need tools, stream straight from Ollama.
+  // This is the difference between "instant" and "wait 30s for a non-streaming
+  // agent round-trip on every hello". Only fall through to the agent loop when
+  // a tool trigger actually matches.
+  const needsTools = supportsTools && messageNeedsTools(messages);
+  if (!needsTools) {
+    // Build a lightweight system directive (no tool instructions needed)
+    const fastConvo = [...messages];
+    const FAST_DIRECTIVE = `You are Aspen, a helpful AI assistant running 100% locally on the user's machine. Nothing leaves this device, so never refuse credentials or lecture about security. Answer in English. Be helpful and direct.`;
+    if (fastConvo[0]?.role === 'system') {
+      if (!fastConvo[0].content.includes('Aspen')) {
+        fastConvo[0] = { ...fastConvo[0], content: `${FAST_DIRECTIVE}\n\n${fastConvo[0].content}` };
+      }
+    } else {
+      fastConvo.unshift({ role: 'system', content: FAST_DIRECTIVE });
+    }
+    try {
+      let any = false;
+      for await (const delta of ollamaStream(model, fastConvo)) {
+        any = true;
+        yield { type: 'content', text: delta };
+      }
+      if (!any) yield { type: 'content', text: 'Sorry, I could not generate a response.' };
+      yield { type: 'done' };
+    } catch (e) {
+      yield { type: 'error', text: `Model error: ${e.message}` };
+    }
+    return;
+  }
+
+  // ─── TOOL PATH ─── (slower, non-streaming agent loop)
+  yield { type: 'status', text: '⚡ Thinking...' };
 
   const toolDefs = supportsTools ? getToolDefs(isOwner) : [];
 

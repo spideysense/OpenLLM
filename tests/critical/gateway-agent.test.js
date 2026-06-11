@@ -69,8 +69,9 @@ describe('Agent event contract', () => {
     for await (const e of run({ model: '', messages: [{ role: 'user', content: 'hi' }], isOwner: false })) events.push(e);
     expect(events[0].type).toBe('error');
   });
-  it('first event for valid input is status', async () => {
-    const gen = run({ model: 'llama3', messages: [{ role: 'user', content: 'hi' }], isOwner: false });
+  it('a tool-triggering message yields status first (agent path)', async () => {
+    // "what is the weather" matches a tool trigger → agent path → status first
+    const gen = run({ model: 'llama3', messages: [{ role: 'user', content: 'what is the weather today' }], isOwner: false });
     const first = await gen.next();
     expect(first.value.type).toBe('status');
   });

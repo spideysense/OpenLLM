@@ -265,6 +265,23 @@ You are Aspen, a helpful AI assistant running 100% LOCALLY on the user's own com
         return;
       }
 
+      // ── /v1/world-model — owner-only memory sync ──
+      // Lets web/mobile owner-key clients read the World Model that lives on
+      // this machine. Guest keys get an empty model (no access to memory).
+      if (req.url === '/v1/world-model' && req.method === 'GET') {
+        if (!apikeys.isOwnerKey(authToken)) {
+          // Guests don't see the owner's memory — return empty, not an error
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ facts: [], owner: false }));
+          return;
+        }
+        const worldModel = require('./world-model');
+        const facts = worldModel.getFacts();
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ facts, owner: true }));
+        return;
+      }
+
       // ── /v1/agent — full agent loop with tool execution ──
       // Runs on THIS machine: web/mobile clients get web_search, calculate,
       // computer use, run_command, etc. Owner key gates the dangerous tools.
@@ -369,13 +386,10 @@ You are Aspen, a helpful AI assistant running 100% LOCALLY on the user's own com
                   await new Promise(r => setTimeout(r, 50));
                   break;
                 case 'content': {
-                  // Stream word by word for a smooth typing feel
-                  const words = String(event.text).match(/\S+\s*/g) || [event.text];
-                  for (const word of words) {
-                    if (res.writableEnded) break;
-                    send({ content: word });
-                    await new Promise(r => setTimeout(r, 20));
-                  }
+                  // Content events are already token/delta-sized from the
+                  // streaming fast path — pass straight through with no delay.
+                  // (The agent path emits one big block; still fine to send whole.)
+                  if (!res.writableEnded) send({ content: event.text });
                   break;
                 }
                 case 'error':

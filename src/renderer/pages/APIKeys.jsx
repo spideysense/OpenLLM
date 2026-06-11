@@ -5,6 +5,7 @@ export default function APIKeys() {
   const { bridge, gatewayStatus } = useApp();
   const [keys, setKeys] = useState([]);
   const [newLabel, setNewLabel] = useState('');
+  const [newKeyType, setNewKeyType] = useState('guest');
   const [showSecret, setShowSecret] = useState({});
   const [copied, setCopied] = useState(null);
   const [tunnelStatus, setTunnelStatus] = useState({ connected: false, url: null });
@@ -35,8 +36,9 @@ export default function APIKeys() {
   async function createKey() {
     if (!bridge) return;
     const label = newLabel.trim() || 'My API Key';
-    const created = await bridge.apikeys.create(label);
+    const created = await bridge.apikeys.create(label, { owner: newKeyType === 'owner' });
     setNewLabel('');
+    setNewKeyType('guest');
     setNewlyCreatedKey(created);   // ← show the full secret immediately
     loadKeys();
   }
@@ -192,6 +194,30 @@ export default function APIKeys() {
             Generate Key
           </button>
         </div>
+
+        {/* ── Owner vs Guest selection ── */}
+        <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', padding: '10px 14px', borderRadius: 8, border: `1.5px solid ${newKeyType === 'owner' ? 'var(--pipe-yellow)' : 'rgba(93,78,55,0.15)'}`, background: newKeyType === 'owner' ? 'rgba(212,160,23,0.06)' : 'transparent' }}>
+            <input type="radio" name="keyType" checked={newKeyType === 'owner'} onChange={() => setNewKeyType('owner')} style={{ marginTop: 3 }} />
+            <div>
+              <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--earth)' }}>👑 Owner key</div>
+              <div style={{ fontSize: 12.5, color: 'var(--text-light)', lineHeight: 1.5, marginTop: 2 }}>
+                Full access: computer use (screen control), shared memory (your World Model), and all tools.
+                Only give this to devices that are <strong>you</strong> — anyone with it can control your machine.
+              </div>
+            </div>
+          </label>
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', padding: '10px 14px', borderRadius: 8, border: `1.5px solid ${newKeyType === 'guest' ? 'var(--pipe-yellow)' : 'rgba(93,78,55,0.15)'}`, background: newKeyType === 'guest' ? 'rgba(212,160,23,0.06)' : 'transparent' }}>
+            <input type="radio" name="keyType" checked={newKeyType === 'guest'} onChange={() => setNewKeyType('guest')} style={{ marginTop: 3 }} />
+            <div>
+              <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--earth)' }}>👤 Guest key</div>
+              <div style={{ fontSize: 12.5, color: 'var(--text-light)', lineHeight: 1.5, marginTop: 2 }}>
+                Reasoning engine only: chat and safe tools (web search, calculator).
+                No computer use, no access to your memory or chat history. Safe to share.
+              </div>
+            </div>
+          </label>
+        </div>
       </div>
 
       {/* ── Key list ── */}
@@ -214,6 +240,13 @@ export default function APIKeys() {
                 <div>
                   <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, color: 'var(--earth)' }}>
                     {key.label}
+                  </span>
+                  <span style={{
+                    fontSize: 11, fontWeight: 600, marginLeft: 10, padding: '2px 8px', borderRadius: 10,
+                    background: key.owner ? 'rgba(212,160,23,0.15)' : 'rgba(93,78,55,0.1)',
+                    color: key.owner ? '#9a7d0a' : 'var(--text-light)',
+                  }}>
+                    {key.owner ? '👑 Owner' : '👤 Guest'}
                   </span>
                   <span style={{ fontSize: 12, color: 'var(--text-light)', marginLeft: 12 }}>
                     Created {new Date(key.created).toLocaleDateString()}

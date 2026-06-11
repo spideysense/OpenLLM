@@ -81,7 +81,7 @@ contextBridge.exposeInMainWorld('aspen', {
   // ── API Keys ──
   apikeys: {
     list: () => ipcRenderer.invoke('apikeys:list'),
-    create: (label) => ipcRenderer.invoke('apikeys:create', label),
+    create: (label, opts) => ipcRenderer.invoke('apikeys:create', label, opts),
     revoke: (id) => ipcRenderer.invoke('apikeys:revoke', id),
   },
 

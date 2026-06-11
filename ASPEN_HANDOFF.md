@@ -288,3 +288,21 @@ Stripe checkout: `api/preorder-checkout.js`
 - $10K full price OR $299/mo × 36 months
 - Both require $1 deposit at checkout
 - Success handler: `api/preorder-success.js` (sends confirmation email with plan details)
+
+---
+
+## OWNER vs GUEST KEYS (added 2026-06-10)
+
+API keys now have two types, chosen via radio at creation (`src/renderer/pages/APIKeys.jsx`):
+- **Owner key** (`owner: true`): computer use (screen control), shared memory (World Model), all tools. The Default key is always owner.
+- **Guest key** (`owner: false`): reasoning engine + safe tools (web search, calculator) only. No computer use, no memory access, ephemeral.
+
+Enforced in `gateway-agent.js` (`executeAnyTool` checks `isOwner` for DANGEROUS_TOOLS) and `gateway.js` `/v1/world-model` route (guests get `{facts:[], owner:false}`).
+
+## FAST PATH (added 2026-06-10)
+
+`gateway-agent.js` `run()` has a fast path: `messageNeedsTools()` checks the message against `TOOL_TRIGGERS` regexes. If no tool is needed (most messages), it streams straight from Ollama via `ollamaStream()` — instant. Only tool-triggering messages go through the slower non-streaming agent loop. This fixed the "every web/mobile message is wicked slow" problem (previously every message did a non-streaming agent round-trip).
+
+## WORLD MODEL SYNC (added 2026-06-10)
+
+The World Model (memory) lives on the Aspen machine. Web/mobile owner-key clients read it via `/api/world-model` (Vercel) → `/v1/world-model` (gateway). Owner-gated: guests get empty. Chat history is still local per-device (deferred — see git history for the scope decision). Memory was previously blank in the web app because it fetched the wrong URL (`/world-model` instead of `/v1/world-model`) and bypassed the proxy.

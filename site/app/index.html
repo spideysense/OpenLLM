@@ -749,11 +749,15 @@ async function showMemory(){
   modal.style.display='flex';
   factsEl.innerHTML='<em style="color:var(--t3)">Loading...</em>';
   try{
-    const tunnelUrl=(config?.tunnelUrl||'').replace(/\/+$/,'');
-    const res=await fetch(tunnelUrl+'/world-model',{headers:{'Authorization':'Bearer '+(config?.apiKey||'')}});
+    const res=await fetch('/api/world-model',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({tunnelUrl:config?.tunnelUrl||'',apiKey:config?.apiKey||''}),
+    });
     const data=await res.json();
-    if(data.facts&&data.facts.length>0){
-      factsEl.innerHTML=data.facts.map(f=>'<div style="display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-bottom:1px solid rgba(0,0,0,.06)"><span style="color:var(--gd);flex-shrink:0">•</span><span>'+escHtml(f)+'</span></div>').join('');
+    if(data.owner===false){
+      factsEl.innerHTML='<div style="text-align:center;padding:20px;color:var(--t3)"><div style="font-size:1.5rem;margin-bottom:6px">🔒</div>Memory is only available with an <strong>owner key</strong>. This is a guest key — it can chat but can\'t access your saved memory.</div>';
+    }else if(data.facts&&data.facts.length>0){
+      factsEl.innerHTML=data.facts.map(f=>'<div style="display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-bottom:1px solid rgba(0,0,0,.06)"><span style="color:var(--gd);flex-shrink:0">•</span><span>'+escHtml(typeof f==='string'?f:(f.text||JSON.stringify(f)))+'</span></div>').join('');
     }else{
       factsEl.innerHTML='<div style="text-align:center;padding:20px;color:var(--t3)"><div style="font-size:1.5rem;margin-bottom:6px">🌱</div>Nothing yet. Chat with Aspen and it will start learning about you.</div>';
     }
