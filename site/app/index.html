@@ -157,6 +157,14 @@ body.is-mobile .chat-delete{opacity:.4!important}
 .msg-bubble ul,.msg-bubble ol{padding-left:1.4rem;margin:.35rem 0}
 .msg-bubble li{margin-bottom:.2rem}
 .cursor{display:inline-block;width:2px;height:1em;background:var(--gd);margin-left:2px;vertical-align:text-bottom;animation:blink .8s step-end infinite}
+.agent-steps{display:flex;flex-direction:column;gap:5px;margin-bottom:10px}
+.agent-steps.collapsed{opacity:.55;border-left:2px solid rgba(0,0,0,.08);padding-left:10px;margin-bottom:14px}
+.agent-steps.collapsed .step-line{font-size:.74rem}
+.step-line{display:flex;align-items:center;gap:8px;font-size:.82rem;color:var(--t3);font-style:italic;line-height:1.4;animation:stepIn .25s ease}
+@keyframes stepIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
+.step-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.step-dot.done{background:var(--gd);opacity:.5}
+.step-dot.pulse{background:var(--gd);animation:dotpulse 1s ease-in-out infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
 .msg-actions{display:flex;gap:.15rem;margin-top:.3rem;padding-left:.1rem}
 .msg-row.user .msg-actions{display:none}
@@ -984,6 +992,22 @@ function formatMessage(text){
   return h;
 }
 function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+
+// Render the agent activity trail (reasoning + tool steps).
+// active=true → live, last step pulsing. active=false → collapsed summary above the answer.
+function renderStepsHTML(steps,active){
+  if(!steps||!steps.length)return '';
+  const items=steps.map((s,i)=>{
+    const isLast=i===steps.length-1;
+    const dot=active&&isLast?'<span class="step-dot pulse"></span>':'<span class="step-dot done"></span>';
+    return `<div class="step-line">${dot}<span>${escHtml(s)}</span></div>`;
+  }).join('');
+  const cls=active?'agent-steps live':'agent-steps collapsed';
+  return `<div class="${cls}">${items}</div>`;
+}
+function renderSteps(bubble,active){
+  bubble.innerHTML=renderStepsHTML(bubble._steps,active);
+}
 // Auto-scroll only when the user is already near the bottom. The moment they
 // scroll up to read, streaming tokens stop yanking the view down; scrolling back
 // to the bottom re-enables it. Pass force=true for deliberate jumps (e.g. sending).
@@ -1120,20 +1144,25 @@ async function sendMessage(autoRespond){
         try{
           const j=JSON.parse(d);
           if(j.error){throw new Error(j.error);}
-          // Tool status indicator from the agent loop
+          // Accumulate agent activity (reasoning + tool steps) as a visible trail
           if(j.aspen_status||j.aspen_tool){
-            const statusEl=bubble.querySelector('.agent-status');
             const msg=j.aspen_status||'';
-            if(statusEl){statusEl.textContent=msg;}
-            else if(msg){bubble.innerHTML=`<span class="agent-status" style="color:var(--t3);font-size:.8rem;font-style:italic">${escHtml(msg)}</span>`;bubble._fullText='';scrollToBottom();}
+            if(msg){
+              if(!bubble._steps)bubble._steps=[];
+              // Avoid consecutive duplicates
+              if(bubble._steps[bubble._steps.length-1]!==msg)bubble._steps.push(msg);
+              renderSteps(bubble,true);
+              scrollToBottom();
+            }
             continue;
           }
           const delta=j.choices?.[0]?.delta?.content;
           if(delta){
-            // Clear status indicator once real content arrives
-            const statusEl=bubble.querySelector('.agent-status');
-            if(statusEl){bubble.innerHTML='';bubble._fullText='';}
-            fullText+=delta;bubble._fullText=fullText;bubble.innerHTML=formatMessage(fullText)+'<span class="cursor"></span>';scrollToBottom();
+            fullText+=delta;bubble._fullText=fullText;
+            // Keep the (now-finished) step trail collapsed above the answer
+            const trail=bubble._steps&&bubble._steps.length?renderStepsHTML(bubble._steps,false):'';
+            bubble.innerHTML=trail+formatMessage(fullText)+'<span class="cursor"></span>';
+            scrollToBottom();
           }
         }catch(err){if(err.message&&err.message!=='Unexpected end of JSON input'&&!d.startsWith('{')){/*surface real upstream errors*/}}
       }

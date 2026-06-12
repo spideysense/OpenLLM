@@ -175,12 +175,12 @@ describe('Web and mobile apps use /api/agent', () => {
   it('web app renders tool status', () => {
     const src = fs.readFileSync(path.resolve('site/app/index.html'), 'utf8');
     expect(src).toContain('aspen_status');
-    expect(src).toContain('agent-status');
+    expect(src).toContain('agent-steps');
   });
   it('mobile app renders tool status', () => {
     const src = fs.readFileSync(path.resolve('mobile/www/index.html'), 'utf8');
     expect(src).toContain('aspen_status');
-    expect(src).toContain('agent-status');
+    expect(src).toContain('agent-steps');
   });
 });
 
@@ -209,5 +209,29 @@ describe('Screenshot vision handling', () => {
     const src = fs.readFileSync(path.resolve('src/main/gateway-agent.js'), 'utf8');
     expect(src).toContain('choices: [{');
     expect(src).toContain('data.message?.content');
+  });
+});
+
+describe('Reasoning trail in web/mobile apps', () => {
+  it('web app accumulates steps into a trail', () => {
+    const src = fs.readFileSync(path.resolve('site/app/index.html'), 'utf8');
+    expect(src).toContain('renderStepsHTML');
+    expect(src).toContain('bubble._steps');
+    expect(src).toContain('agent-steps');
+  });
+  it('mobile app accumulates steps into a trail', () => {
+    const src = fs.readFileSync(path.resolve('mobile/www/index.html'), 'utf8');
+    expect(src).toContain('renderStepsHTML');
+    expect(src).toContain('bubble._steps');
+    expect(src).toContain('agent-steps');
+  });
+  it('steps collapse above the answer once content streams', () => {
+    const src = fs.readFileSync(path.resolve('site/app/index.html'), 'utf8');
+    expect(src).toContain('renderStepsHTML(bubble._steps,false)');
+  });
+  it('gateway forwards status and tool_call as aspen_status', () => {
+    const src = fs.readFileSync(path.resolve('src/main/gateway.js'), 'utf8');
+    expect(src).toContain('aspen_status: event.text');
+    expect(src).toContain('aspen_status: event.statusText');
   });
 });

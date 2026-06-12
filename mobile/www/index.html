@@ -194,6 +194,14 @@ body.is-mobile .chat-delete{opacity:.4!important}
 .msg-bubble ul,.msg-bubble ol{padding-left:1.4rem;margin:.35rem 0}
 .msg-bubble li{margin-bottom:.2rem}
 .cursor{display:inline-block;width:2px;height:1em;background:var(--gd);margin-left:2px;vertical-align:text-bottom;animation:blink .8s step-end infinite}
+.agent-steps{display:flex;flex-direction:column;gap:5px;margin-bottom:10px}
+.agent-steps.collapsed{opacity:.55;border-left:2px solid rgba(0,0,0,.08);padding-left:10px;margin-bottom:14px}
+.agent-steps.collapsed .step-line{font-size:.74rem}
+.step-line{display:flex;align-items:center;gap:8px;font-size:.82rem;color:var(--t3);font-style:italic;line-height:1.4;animation:stepIn .25s ease}
+@keyframes stepIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
+.step-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.step-dot.done{background:var(--gd);opacity:.5}
+.step-dot.pulse{background:var(--gd);animation:dotpulse 1s ease-in-out infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
 .empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem 1.5rem;text-align:center}
 .empty-icon{font-size:2.4rem;margin-bottom:.8rem}
@@ -954,6 +962,15 @@ function formatMessage(text){
   return h;
 }
 function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function renderStepsHTML(steps,active){
+  if(!steps||!steps.length)return '';
+  const items=steps.map((s,i)=>{
+    const isLast=i===steps.length-1;
+    const dot=active&&isLast?'<span class="step-dot pulse"></span>':'<span class="step-dot done"></span>';
+    return `<div class="step-line">${dot}<span>${escHtml(s)}</span></div>`;
+  }).join('');
+  return `<div class="agent-steps ${active?'live':'collapsed'}">${items}</div>`;
+}
 let stickToBottom=true;
 messagesEl.addEventListener('scroll',()=>{
   const gap=messagesEl.scrollHeight-messagesEl.scrollTop-messagesEl.clientHeight;
@@ -1235,17 +1252,20 @@ async function sendVoiceMessage(text){
           try{
             const j=JSON.parse(d);
             if(j.aspen_status||j.aspen_tool){
-              const statusEl=bubble.querySelector('.agent-status');
               const msg=j.aspen_status||'';
-              if(statusEl){statusEl.textContent=msg;}
-              else if(msg){bubble.innerHTML=`<span class="agent-status" style="color:var(--t3);font-size:.8rem;font-style:italic">${msg}</span>`;bubble._fullText='';scrollToBottom();}
+              if(msg){
+                if(!bubble._steps)bubble._steps=[];
+                if(bubble._steps[bubble._steps.length-1]!==msg)bubble._steps.push(msg);
+                bubble.innerHTML=renderStepsHTML(bubble._steps,true);
+                scrollToBottom();
+              }
               continue;
             }
             const delta=j.choices&&j.choices[0]&&j.choices[0].delta&&j.choices[0].delta.content;
             if(delta){
-              const statusEl=bubble.querySelector('.agent-status');
-              if(statusEl){bubble.innerHTML='';bubble._fullText='';}
-              fullText+=delta;sentBuf+=delta;bubble.innerHTML=formatMessage(fullText)+'<span class="cursor"></span>';scrollToBottom();trySpeakSentence();
+              fullText+=delta;sentBuf+=delta;
+              const trail=bubble._steps&&bubble._steps.length?renderStepsHTML(bubble._steps,false):'';
+              bubble.innerHTML=trail+formatMessage(fullText)+'<span class="cursor"></span>';scrollToBottom();trySpeakSentence();
             }
           }catch(e2){}
         }
