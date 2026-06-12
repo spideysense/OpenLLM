@@ -124,11 +124,21 @@ describe('API Keys', () => {
     expect(apikeys.validateKey('anything-goes')).toBe(true);
   });
 
-  it('should revoke keys', () => {
+  it('should revoke keys (and fail-closed: regenerate when revoking the last key)', () => {
+    // Two keys: revoking one leaves the other untouched.
+    const keep = apikeys.createKey('Keep', { owner: true });
     const key = apikeys.createKey('To Revoke');
+    expect(apikeys.listKeys()).toHaveLength(2);
+    const r1 = apikeys.revokeKey(key.id);
+    expect(r1.regenerated).toBeFalsy();
+    expect(apikeys.listKeys().map(k => k.id)).toEqual([keep.id]);
+
+    // Revoking the LAST key must NOT empty the store — that would drop the
+    // gateway into open mode. A fresh Default owner key is minted instead.
+    const r2 = apikeys.revokeKey(keep.id);
+    expect(r2.regenerated).toBe(true);
     expect(apikeys.listKeys()).toHaveLength(1);
-    apikeys.revokeKey(key.id);
-    expect(apikeys.listKeys()).toHaveLength(0);
+    expect(apikeys.listKeys()[0].secret).not.toBe(keep.secret);
   });
 
   it('should list all active keys', () => {

@@ -34,8 +34,18 @@ function createKey(label = 'Default', { owner = false, memory = false } = {}) {
 function revokeKey(keyId) {
   let keys = listKeys();
   keys = keys.filter((k) => k.id !== keyId);
+  // Fail-closed: never let the store become empty, because zero keys flips the
+  // gateway into open mode (validateKey returns true for any token). If the user
+  // revokes their last key, immediately mint a fresh Default owner key so the
+  // tunnel-facing gateway always requires authentication.
+  let regenerated = false;
+  if (keys.length === 0) {
+    store.set('apikeys', keys); // persist the empty list first
+    const fresh = createKey('Default', { owner: true });
+    return { success: true, regenerated: true, newKey: fresh };
+  }
   store.set('apikeys', keys);
-  return { success: true };
+  return { success: true, regenerated };
 }
 
 function validateKey(token) {

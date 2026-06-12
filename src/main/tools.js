@@ -10,13 +10,87 @@
 
 const https = require('https');
 const http = require('http');
+const dns = require('dns');
+const net = require('net');
+
+// ── SSRF guard ───────────────────────────────────────────────────────────────
+// fetch_url and web_search fetch attacker-influenceable URLs — any valid key,
+// including the lower-trust family/guest keys, can call fetch_url with an
+// arbitrary URL over the public tunnel. Without this guard those tools could be
+// pointed at the loopback interface, the local network, or the cloud metadata
+// endpoint (169.254.169.254) and return internal responses to a remote caller.
+// We block any URL whose host is — or resolves to — a private, loopback,
+// link-local, or otherwise reserved address, and we re-check on every redirect
+// hop and pin the validated address at connect time so DNS rebinding can't slip
+// past the check.
+function ipIsBlocked(ip) {
+  if (!ip) return true;
+  let v = ip;
+  const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/i.exec(v); // IPv4-mapped IPv6
+  if (mapped) v = mapped[1];
+  if (net.isIPv4(v)) {
+    const [a, b] = v.split('.').map(Number);
+    if (a === 0 || a === 127) return true;                 // this-host / loopback
+    if (a === 10) return true;                             // private
+    if (a === 172 && b >= 16 && b <= 31) return true;      // private
+    if (a === 192 && b === 168) return true;               // private
+    if (a === 169 && b === 254) return true;               // link-local + cloud metadata
+    if (a === 100 && b >= 64 && b <= 127) return true;     // CGNAT
+    if (a === 192 && b === 0) return true;                 // IETF protocol assignments
+    if (a === 198 && (b === 18 || b === 19)) return true;  // benchmarking
+    if (a >= 224) return true;                             // multicast + reserved
+    return false;
+  }
+  if (net.isIPv6(v)) {
+    const low = v.toLowerCase();
+    if (low === '::1' || low === '::') return true;        // loopback / unspecified
+    if (low.startsWith('fe80')) return true;               // link-local
+    if (low.startsWith('fc') || low.startsWith('fd')) return true; // unique-local fc00::/7
+    return false;
+  }
+  return true; // not a recognizable IP literal → treat as blocked
+}
+
+function hostIsBlocked(hostname) {
+  let h = String(hostname || '').toLowerCase().replace(/\.$/, '');
+  if (h.startsWith('[') && h.endsWith(']')) h = h.slice(1, -1); // bracketed IPv6
+  if (!h) return true;
+  if (h === 'localhost' || h.endsWith('.localhost')) return true;
+  if (h.endsWith('.local') || h.endsWith('.internal')) return true;
+  if (h === 'metadata.google.internal') return true;
+  if (net.isIP(h)) return ipIsBlocked(h); // literal IP host
+  return false; // hostname — validated again at lookup time
+}
+
+// Custom DNS lookup that rejects if ANY resolved address is blocked. Passed to
+// http(s).get so the address we validated is the address the socket connects to
+// (closes the resolve-then-connect rebinding window).
+function safeLookup(hostname, options, callback) {
+  const cb = typeof options === 'function' ? options : callback;
+  const opts = typeof options === 'function' ? {} : (options || {});
+  dns.lookup(hostname, { ...opts, all: true }, (err, addresses) => {
+    if (err) return cb(err);
+    const list = Array.isArray(addresses) ? addresses : [addresses];
+    for (const a of list) {
+      if (ipIsBlocked(a.address)) return cb(new Error('blocked address (private/loopback/link-local)'));
+    }
+    if (opts.all) return cb(null, list);
+    return cb(null, list[0].address, list[0].family);
+  });
+}
 
 // ── helper: fetch a URL (follows simple redirects), returns text ──
 function fetchText(url, { timeoutMs = 8000, maxBytes = 200000 } = {}) {
   return new Promise((resolve, reject) => {
-    let lib;
-    try { lib = url.startsWith('https') ? https : http; } catch { return reject(new Error('bad url')); }
+    let parsed;
+    try { parsed = new URL(url); } catch { return reject(new Error('bad url')); }
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return reject(new Error('unsupported protocol'));
+    }
+    if (hostIsBlocked(parsed.hostname)) return reject(new Error('blocked host (private/internal address)'));
+    const lib = parsed.protocol === 'https:' ? https : http;
     const req = lib.get(url, {
+      lookup: safeLookup,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8',
@@ -461,4 +535,4 @@ const ALL_TOOL_NAMES = [
   'computer_use', // expands to computer_screenshot, computer_click, computer_type, computer_key, computer_scroll
 ];
 
-module.exports = { getToolDefinitions, executeTool, ALL_TOOL_NAMES, runFetchUrl };
+module.exports = { getToolDefinitions, executeTool, ALL_TOOL_NAMES, runFetchUrl, hostIsBlocked, ipIsBlocked };

@@ -1,13 +1,36 @@
 /**
  * Debug endpoint — shows env vars, tunnel reachability, AND raw SSE output
  * so we can see exactly what Ollama returns and verify our parsing is correct.
+ *
+ * SECURITY: this endpoint reveals the tunnel base URL (the front door to the
+ * owner's machine) and proxies a live chat through it. It MUST be gated. It is
+ * locked behind ADMIN_PASSWORD (same secret as /api/admin-stats) and the base
+ * URL is redacted to a host suffix. Without the password it returns 401.
  */
+function redactUrl(u) {
+  if (!u) return '(not set)';
+  try { const h = new URL(u).host; return '***.' + h.split('.').slice(-2).join('.'); }
+  catch { return '(set)'; }
+}
+
 export default async function handler(req, res) {
+  res.setHeader('Cache-Control', 'no-store');
+
+  // ── Auth gate ──
+  const expected = process.env.ADMIN_PASSWORD;
+  if (!expected) return res.status(503).json({ error: 'Debug not configured (set ADMIN_PASSWORD).' });
+  const provided = req.headers['x-admin-password']
+    || (req.query && req.query.password)
+    || (() => { try { return (typeof req.body === 'object' ? req.body : JSON.parse(req.body || '{}')).password; } catch { return undefined; } })();
+  if (!provided || provided !== expected) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
   const baseUrl = process.env.MONET_BASE_URL;
   const apiKey  = process.env.MONET_API_KEY;
 
   const result = {
-    baseUrl: baseUrl || '(not set)',
+    baseUrl: redactUrl(baseUrl),
     hasKey: !!apiKey,
     region: process.env.VERCEL_REGION || 'unknown',
   };

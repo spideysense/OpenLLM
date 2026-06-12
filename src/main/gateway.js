@@ -71,8 +71,14 @@ function start() {
   if (server) return;
 
   server = http.createServer(async (req, res) => {
-    // Rate limiting
-    const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown';
+    // Rate limiting. Prefer Cloudflare's cf-connecting-ip — the tunnel sets the
+    // real client IP there and overwrites any client-supplied value. A plain
+    // x-forwarded-for is fully client-controlled, so relying on it alone would
+    // let an attacker rotate the header to defeat both the rate limit and the
+    // auth-fail lockout below. Fall back to the first XFF hop, then the socket.
+    const clientIp = req.headers['cf-connecting-ip']
+      || req.headers['x-forwarded-for']?.split(',')[0]?.trim()
+      || req.socket.remoteAddress || 'unknown';
     if (!checkRateLimit(clientIp)) {
       res.writeHead(429, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Rate limited. Try again in a minute.' }));
