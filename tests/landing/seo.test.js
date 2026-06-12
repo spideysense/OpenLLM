@@ -402,3 +402,17 @@ describe('Accessibility: ARIA and semantic markup', () => {
     expect(html).toContain('rel="sitemap"');
   });
 });
+
+describe('Windows install help', () => {
+  it('FAQ explains the Windows SmartScreen warning', () => {
+    expect(html).toMatch(/Windows protected your PC|protected your PC/);
+    expect(html).toContain('Run anyway');
+  });
+  it('shows a Windows-only note that is hidden by default', () => {
+    expect(html).toContain('id="win-note"');
+    expect(html).toMatch(/win-note[\s\S]{0,120}display:none/);
+  });
+  it('OS detection reveals the note on Windows', () => {
+    expect(html).toContain("winNote.style.display='block'");
+  });
+});

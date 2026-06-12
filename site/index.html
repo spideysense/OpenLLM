@@ -172,6 +172,7 @@ footer{border-top:1px solid var(--brd);padding:2rem 0}
 <a href="#device" class="nb nb-o nb-l">See the Aspen device</a>
 </div>
 <p class="hero-note"><span id="download-secondary-wrap"><a href="https://github.com/spideysense/OpenLLM/releases/latest/download/Aspen-win.exe" id="download-secondary">Also available for Windows</a> &middot; </span><a href="https://apps.apple.com/app/id6775307566" id="download-ios">iPhone app on the App Store</a> &middot; Free &middot; No account required &middot; <a href="https://github.com/spideysense/OpenLLM/releases">Previous versions</a></p>
+<p class="hero-note" id="win-note" style="display:none;font-size:.82rem;opacity:.75;margin-top:.4rem">Windows may show a "protected your PC" warning. Click <strong>More info</strong> &rarr; <strong>Run anyway</strong>. It is safe. <a href="#faq">Learn why</a>.</p>
 <p class="hero-note" style="margin-top:.5rem">The app is free forever on the devices you already own. The <a href="#device">Aspen device</a> is a separate, optional machine for running the biggest models, always on. You never need it to use Aspen.</p>
 <p class="hero-note" style="margin-top:.5rem">Not sure yet? <a href="/app">Try it free in your browser →</a></p>
 </div>
@@ -315,6 +316,7 @@ footer{border-top:1px solid var(--brd);padding:2rem 0}
 <details style="border-bottom:1px solid rgba(93,78,55,.12);padding:1.1rem 0"><summary style="font-weight:600;cursor:pointer;font-size:1.02rem">Does my data leave my computer?</summary><p style="margin:.7rem 0 0;color:#5d4e37;line-height:1.6">No. Everything runs on your own hardware. There is no cloud and no server in the middle. Your conversations are never sent anywhere and never used to train anyone's model.</p></details>
 <details style="border-bottom:1px solid rgba(93,78,55,.12);padding:1.1rem 0"><summary style="font-weight:600;cursor:pointer;font-size:1.02rem">Will it run well on my Mac or PC?</summary><p style="margin:.7rem 0 0;color:#5d4e37;line-height:1.6">On a modern Apple Silicon Mac or a capable PC, yes. Aspen detects your hardware and picks a model that fits it. The more memory and the newer the chip, the larger the models you can run and the faster they go. On older machines it still works, just with smaller models.</p></details>
 <details style="border-bottom:1px solid rgba(93,78,55,.12);padding:1.1rem 0"><summary style="font-weight:600;cursor:pointer;font-size:1.02rem">What models does Aspen run?</summary><p style="margin:.7rem 0 0;color:#5d4e37;line-height:1.6">The latest open models, including Llama, Qwen, DeepSeek, and Mistral. When a better one comes out, Aspen can update to it automatically.</p></details>
+<details style="border-bottom:1px solid rgba(93,78,55,.12);padding:1.1rem 0"><summary style="font-weight:600;cursor:pointer;font-size:1.02rem">Windows shows a "Windows protected your PC" warning. Is that normal?</summary><p style="margin:.7rem 0 0;color:#5d4e37;line-height:1.6">Yes, and it is safe. Windows shows this on any new app it has not seen many times yet, because we are an independent developer. To install: click <strong>More info</strong>, then <strong>Run anyway</strong>. If Windows Defender blocked the download, open your Downloads, right click the Aspen file, choose <strong>Properties</strong>, check <strong>Unblock</strong> at the bottom, then run it. We are rolling out Windows code signing to remove this warning entirely.</p></details>
 <details style="border-bottom:1px solid rgba(93,78,55,.12);padding:1.1rem 0"><summary style="font-weight:600;cursor:pointer;font-size:1.02rem">Is there an iPhone app?</summary><p style="margin:.7rem 0 0;color:#5d4e37;line-height:1.6">Yes. Aspen Local AI is free on the App Store. It connects to the AI running on your own computer, so you can chat with your private models from your phone, anywhere.</p></details>
 <details style="border-bottom:1px solid rgba(93,78,55,.12);padding:1.1rem 0"><summary style="font-weight:600;cursor:pointer;font-size:1.02rem">Can I use it as an API for my own apps?</summary><p style="margin:.7rem 0 0;color:#5d4e37;line-height:1.6">Yes. Aspen exposes an OpenAI-compatible API. Change the base_url and api_key, two lines of code, and your tools run against your own private AI. Works with the ChatGPT and Claude SDKs.</p></details>
 </div>
@@ -488,6 +490,8 @@ function submitContact(e){
     primary.textContent='Download Free for Windows';
     secondary.href='https://github.com/spideysense/OpenLLM/releases/latest/download/Aspen-mac.dmg';
     secondary.textContent='Also available for Mac';
+    var winNote = document.getElementById('win-note');
+    if(winNote) winNote.style.display='block';
   } else if(IOS){
     primary.href='https://apps.apple.com/app/id6775307566';
     primary.textContent='Download on the App Store';
