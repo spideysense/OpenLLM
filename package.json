@@ -14,7 +14,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "release:mac": "node scripts/release-mac.js",
-    "smoke": "npm run build:renderer && node scripts/smoke-test.js"
+    "smoke": "node scripts/smoke-behavioral.js"
   },
   "build": {
     "appId": "com.runonaspen.app",

@@ -365,6 +365,30 @@ API keys now have two types, chosen via radio at creation (`src/renderer/pages/A
 
 Enforced in `gateway-agent.js` (`executeAnyTool` checks `isOwner` for DANGEROUS_TOOLS) and `gateway.js` `/v1/world-model` route (guests get `{facts:[], owner:false}`).
 
+## BUILD RELIABILITY + BEHAVIORAL SMOKE (2026-06-12)
+
+Two layers stop the "fix-by-screenshot" treadmill:
+
+1. Release preflight (scripts/release-mac.js): before building, asserts the
+   INSTALLED electron + electron-builder majors match package.json. A failed
+   `npm install` (e.g. a stray "#" the interactive shell passes to npm ->
+   EINVALIDTAGNAME -> install aborts) leaves node_modules stale and would
+   silently package on the WRONG Electron. Now it aborts loudly with the fix.
+
+2. Behavioral smoke harness (scripts/smoke-behavioral.js, `npm run smoke`):
+   drives the REAL agent (gateway-agent.run) — not source greps — and asserts on
+   control flow, not model text.
+   - Deterministic layer (no Ollama): tool ROUTING (messageNeedsTools, now
+     exported) + capability TIERS. Always gates.
+   - Live layer (needs Ollama): plain chat completes; a heavy/reasoning prompt
+     completes with NO false timeout; a local lookup invokes web_search end to
+     end; a chat-tier model stays tool-free. Advisory in release
+     (SMOKE_LIVE_NONFATAL=1) so model nondeterminism can't block a ship; strict
+     via `npm run smoke`.
+   Caught a real bug on first run: "haiku about rain" falsely triggered search
+   (weather regex matched bare "rain") — fixed (weather needs intent/time ctx).
+   Release runs it after the boot smoke test.
+
 ## CAPABILITY TIERING — graceful degradation (2026-06-12)
 
 Goal: never compromise speed/experience; compromise FEATURES. Small/weak combos

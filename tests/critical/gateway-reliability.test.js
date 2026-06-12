@@ -44,6 +44,8 @@ describe('Tool triggers catch local & recommendation lookups', () => {
   it.each([
     'hello',
     'write me a poem about the ocean',
+    'write me a haiku about rain',
+    'i love the sound of rain',
     'explain how photosynthesis works',
     'thanks!',
     'can you help me debug this python function',

@@ -37,7 +37,9 @@ const isWin = os.platform() === 'win32';
 // ─────────────────────────────────────────────────────────────────────────────
 const TOOL_TRIGGERS = [
   /\b(stock|share)\s*(price|cost|value|ticker|quote)/i,
-  /\b(weather|forecast|temperature|rain|sunny|humidity)\b/i,
+  /\b(weather|forecast)\b/i,
+  /\b(will it|is it|gonna|going to)\b.{0,15}\b(rain|snow|sunny|hot|cold|warm|windy)\b/i,
+  /\b(temperature|how (hot|cold|warm)|rain|snow|sunny|humid|windy)\b.{0,25}\b(today|tonight|tomorrow|this (week|weekend)|right now|outside)\b/i,
   /\b(news|headlines?|what'?s happening|what'?s going on)\b/i,
   /\b(latest|breaking|current events|today'?s|tonight'?s|this week'?s)\b/i,
   /\b(score|result|match|game)\s*(today|tonight|yesterday|last night)\b/i,
@@ -677,4 +679,4 @@ You are Aspen, a helpful AI assistant running 100% LOCALLY on the user's own mac
   }
 }
 
-module.exports = { run, SAFE_TOOLS, DANGEROUS_TOOLS, GATEWAY_COMPUTER_TOOL_DEFS };
+module.exports = { run, messageNeedsTools, SAFE_TOOLS, DANGEROUS_TOOLS, GATEWAY_COMPUTER_TOOL_DEFS };

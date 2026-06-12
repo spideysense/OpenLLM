@@ -154,6 +154,38 @@ function contentTypeFor(name) {
   //    has errors, or the page renders blank. This is the gate that would have
   //    caught the v0.4.10 (MCP require crash) and v0.4.11 (blank screen) bugs
   //    BEFORE they shipped. A broken build cannot get past this point.
+  // 0. PREFLIGHT — the installed toolchain MUST match package.json. A failed
+  //    `npm install` leaves node_modules stale and we'd silently package on the
+  //    WRONG Electron (exactly what happened building 0.4.45: a stray '#' the
+  //    shell didn't treat as a comment got passed to npm → EINVALIDTAGNAME →
+  //    install aborted → build ran on Electron 28 / electron-builder 24, which
+  //    then rejected the notarize:true config). Catch it here, loudly.
+  console.log('▶ Preflight: verifying installed toolchain matches package.json...');
+  {
+    const pkg = require(path.join(ROOT, 'package.json'));
+    const wantMajor = (name) => String((pkg.devDependencies && pkg.devDependencies[name]) || (pkg.dependencies && pkg.dependencies[name]) || '').replace(/[^\d.]/g, '').split('.')[0];
+    const haveMajor = (name) => {
+      try { return String(require(path.join(ROOT, 'node_modules', name, 'package.json')).version).split('.')[0]; }
+      catch { return null; }
+    };
+    const mismatches = [];
+    for (const dep of ['electron', 'electron-builder']) {
+      const w = wantMajor(dep), h = haveMajor(dep);
+      if (!h) { mismatches.push(`${dep}: NOT INSTALLED (need ${w}.x)`); continue; }
+      if (w && h !== w) mismatches.push(`${dep}: installed ${h}.x, package.json wants ${w}.x`);
+    }
+    if (mismatches.length) {
+      console.error('\n❌ Toolchain mismatch — node_modules is stale, refusing to build:');
+      mismatches.forEach((m) => console.error('   • ' + m));
+      console.error('\n   Your last `npm install` likely failed. Run it cleanly — do NOT append a');
+      console.error('   "# comment" (interactive zsh can pass the # to npm as a package name) — then retry:\n');
+      console.error('     npm install');
+      console.error(`     npm run release:mac -- ${VERSION}\n`);
+      process.exit(1);
+    }
+    console.log(`   ✓ electron ${haveMajor('electron')}.x · electron-builder ${haveMajor('electron-builder')}.x match package.json`);
+  }
+
   console.log('▶ Building renderer...');
   execSync('npm run build:renderer', { cwd: ROOT, stdio: 'inherit' });
 
@@ -172,6 +204,19 @@ function contentTypeFor(name) {
 
   console.log('▶ Smoke testing the built app (must boot + render)...');
   execSync('node scripts/smoke-test.js', { cwd: ROOT, stdio: 'inherit' });
+
+  // Behavioral smoke — drives the REAL agent against the local Ollama. The
+  // deterministic layer (tool routing, capability tiers) gates the release; the
+  // live model layer is advisory here (model nondeterminism shouldn't block a
+  // ship), but prints loudly. Run `npm run smoke` for the strict version.
+  console.log('▶ Behavioral smoke test (agent routing + live model)...');
+  try {
+    execSync('node scripts/smoke-behavioral.js', { cwd: ROOT, stdio: 'inherit', env: { ...process.env, SMOKE_LIVE_NONFATAL: '1' } });
+  } catch (e) {
+    console.error('\n❌ Behavioral smoke test failed a DETERMINISTIC check — refusing to build.');
+    console.error('   (Run `npm run smoke` to see details. This is a real routing/capability regression.)');
+    process.exit(1);
+  }
 
   console.log('▶ Packaging DMG (no publish) — staple hook will notarize+staple...');
   execSync('electron-builder --mac --publish never', { cwd: ROOT, stdio: 'inherit' });
