@@ -209,6 +209,29 @@ Every bug below was found in production. Tests in `tests/critical/` guard agains
 **Fix:** `start()` must be synchronous. Flush `': connected\n\n'` immediately. Run the upstream fetch in a detached `(async()=>{...})()`. 8s heartbeat comments.
 **Applied in:** `api/proxy.js`, `api/agent.js`, `api/trial.js`
 
+### 12. SSRF via fetch_url / web_search (2026-06-12)
+**Symptom (latent):** any valid key — including low-trust family/guest keys — could call `fetch_url` over the public tunnel pointed at `169.254.169.254` (cloud metadata), `127.0.0.1`, or LAN addresses and read the internal response.
+**Cause:** `fetchText()` in `tools.js` fetched any URL with no address validation and followed redirects (so a public URL could redirect to an internal one).
+**Fix:** `hostIsBlocked()` rejects literal private/loopback/link-local/reserved hosts up front; a pinned `safeLookup()` DNS resolver rejects hostnames that *resolve* to those ranges and is re-checked on every redirect hop (closes the DNS-rebind window). Non-http(s) protocols rejected.
+**Tradeoff:** the owner can no longer fetch their own `localhost` dev server through the chat tools — use `run_command` + curl for that, or ask to add an owner-only allowlist.
+**Test:** `tests/critical/ssrf-and-auth.test.js`
+
+### 13. Revoking the last API key dropped the gateway into open mode (2026-06-12)
+**Symptom (latent):** `validateKey()` returns `true` for ANY token when zero keys exist ("open mode"). Revoking the last key via the UI therefore disabled authentication on the tunnel-facing gateway.
+**Cause:** `revokeKey()` could leave the key store empty; open mode is intended only for first-run-before-default-key.
+**Fix:** `revokeKey()` now fails closed — if removing a key would empty the store it mints a fresh Default owner key and returns `{ regenerated:true, newKey }`. Open-mode semantics (first run) are unchanged.
+**Test:** `tests/critical/ssrf-and-auth.test.js`, updated `tests/main/core.test.js`
+
+### 14. /api/debug.js leaked the tunnel base URL unauthenticated (2026-06-12)
+**Symptom (latent):** the public `api/debug.js` endpoint returned `MONET_BASE_URL` (the front door to the owner's machine) and proxied a live chat through it, with no auth.
+**Fix:** gated behind `ADMIN_PASSWORD` (header `x-admin-password`, query `?password=`, or JSON body); base URL redacted to a host suffix; 401 without the password.
+**Test:** `tests/critical/ssrf-and-auth.test.js`
+
+### 15. Brute-force lockout bypass via X-Forwarded-For rotation (2026-06-12)
+**Symptom (latent):** the per-IP rate limit and 10-fail auth lockout keyed off the client-controlled first `x-forwarded-for` value, so rotating that header defeated both.
+**Fix:** prefer Cloudflare's `cf-connecting-ip` (set by the tunnel, overwrites client values), then XFF, then socket.
+**Test:** `tests/critical/ssrf-and-auth.test.js`
+
 ---
 
 ## CRITICAL TESTS
@@ -230,6 +253,9 @@ Current: 108 tests across 8 files.
 | `stapling.test.js` | Staple before upload, version commit, CLI arg |
 | `tool-calling.test.js` | Tool registration, execution, security gating |
 | `sharing.test.js` | App sends right fields, no IP tracking, POST/GET roundtrip |
+| `ssrf-and-auth.test.js` | SSRF guard, fail-closed key revocation, debug auth gating, XFF-resistant rate limit, web↔mobile reasoning-trail parity |
+
+Full suite total: 529 passing (run `npx vitest run`, not just `tests/critical/`).
 
 ---
 
