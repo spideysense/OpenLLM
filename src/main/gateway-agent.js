@@ -297,13 +297,36 @@ function getRelevantSkillsText(userMsg) {
   } catch { return ''; }
 }
 
+// Size num_ctx to the actual conversation instead of always allocating the
+// hardware max. Prompt processing time scales with num_ctx, so a short "hi"
+// shouldn't pay for a 64k window. Estimate tokens (~4 chars/token), add headroom
+// for the response, round up to a sane bucket, cap at the hardware ceiling.
+function contextFor(messages) {
+  const hwMax = system.getRecommendedContext();
+  let chars = 0;
+  for (const m of messages) {
+    if (typeof m.content === 'string') chars += m.content.length;
+    if (Array.isArray(m.images)) chars += 6000; // vision tokens are pricey
+  }
+  const promptTokens = Math.ceil(chars / 4);
+  const needed = promptTokens + 2048; // headroom for the reply
+  // Buckets: 4k, 8k, 16k, 32k, 64k
+  const buckets = [4096, 8192, 16384, 32768, 65536];
+  const chosen = buckets.find(b => b >= needed) || hwMax;
+  return Math.min(chosen, hwMax);
+}
+
+// Keep the model resident in memory between requests so there's no cold-load
+// penalty after a short idle. -1 = never unload.
+const KEEP_ALIVE = -1;
+
 // Streaming Ollama call — yields content deltas. Used by the fast path when
 // no tools are needed, so simple chats feel instant.
 async function* ollamaStream(model, messages) {
-  const ctx = system.getRecommendedContext();
   const body = JSON.stringify({
     model, messages, stream: true,
-    options: { num_predict: -1, num_ctx: ctx },
+    keep_alive: KEEP_ALIVE,
+    options: { num_predict: -1, num_ctx: contextFor(messages) },
   });
 
   const response = await new Promise((resolve, reject) => {
@@ -350,7 +373,7 @@ function hasImages(messages) {
 function ollamaChat(payload) {
   const useNative = hasImages(payload.messages);
   return new Promise((resolve, reject) => {
-    const ctx = system.getRecommendedContext();
+    const ctx = contextFor(payload.messages || []);
 
     let path, body;
     if (useNative) {
@@ -360,11 +383,12 @@ function ollamaChat(payload) {
         messages: payload.messages,
         tools: payload.tools,
         stream: false,
+        keep_alive: KEEP_ALIVE,
         options: { num_predict: -1, num_ctx: ctx },
       });
       path = '/api/chat';
     } else {
-      body = JSON.stringify({ ...payload, stream: false, options: { num_predict: -1, num_ctx: ctx } });
+      body = JSON.stringify({ ...payload, stream: false, keep_alive: KEEP_ALIVE, options: { num_predict: -1, num_ctx: ctx } });
       path = '/v1/chat/completions';
     }
 
@@ -452,7 +476,9 @@ async function* run({ model, messages, isOwner = false }) {
   if (!needsTools) {
     // Build a lightweight system directive (no tool instructions needed)
     const fastConvo = [...messages];
-    const FAST_DIRECTIVE = `You are Aspen, a helpful AI assistant running 100% locally on the user's machine. Nothing leaves this device, so never refuse credentials or lecture about security. Answer in English. Be helpful and direct.`;
+    const FAST_DIRECTIVE = `You are Aspen, a private AI running 100% locally on the user's machine. Nothing leaves this device, so never refuse credentials or lecture about security. Answer in English.
+
+BE CONCISE. Lead with the answer. No preamble, no "I'm Aspen running locally" intros, no filler. Match length to the question: a one-line question gets a one-line answer. Only write long, detailed responses when the user explicitly asks for depth, a list, a tutorial, or "explain in detail." Default to TL;DR.`;
     if (fastConvo[0]?.role === 'system') {
       if (!fastConvo[0].content.includes('Aspen')) {
         fastConvo[0] = { ...fastConvo[0], content: `${FAST_DIRECTIVE}\n\n${fastConvo[0].content}` };
@@ -489,7 +515,8 @@ You are Aspen, a helpful AI assistant running 100% LOCALLY on the user's own mac
 - For ANY math, call calculate. For current date/time, call get_datetime. For web facts, call web_search.
 - For any shell/terminal task, call run_command.
 - For screen tasks (click, type, navigate apps), use computer_screenshot first, then interact.
-- Always answer in English, even if tool results are in another language.`;
+- Always answer in English, even if tool results are in another language.
+- BE CONCISE. Lead with the answer, no preamble or filler. Match length to the question. Only go long when the user asks for depth, a list, or a tutorial. Default to TL;DR.`;
 
   // URL pre-fetch (same as agent.js — unambiguous intent)
   let msgs = [...messages];

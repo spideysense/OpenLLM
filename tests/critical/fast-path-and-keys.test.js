@@ -104,3 +104,36 @@ describe('Browsing/shopping triggers route to tool path', () => {
     expect(src).toMatch(/buy\|shop\|order\|purchase/);
   });
 });
+
+describe('Speed optimizations', () => {
+  it('keep_alive keeps model resident (gateway-agent)', () => {
+    const src = fs.readFileSync(path.resolve('src/main/gateway-agent.js'), 'utf8');
+    expect(src).toContain('KEEP_ALIVE');
+    expect(src).toContain('keep_alive: KEEP_ALIVE');
+  });
+  it('keep_alive set on direct gateway streaming', () => {
+    const src = fs.readFileSync(path.resolve('src/main/gateway.js'), 'utf8');
+    expect(src).toContain('keep_alive = -1');
+  });
+  it('context sized dynamically, not always hardware max', () => {
+    const src = fs.readFileSync(path.resolve('src/main/gateway-agent.js'), 'utf8');
+    expect(src).toContain('contextFor');
+    expect(src).toContain('buckets');
+  });
+  it('gateway warms the model on start', () => {
+    const src = fs.readFileSync(path.resolve('src/main/gateway.js'), 'utf8');
+    expect(src).toContain('Warmed model');
+  });
+});
+
+describe('Brevity', () => {
+  it('fast directive instructs concise/TLDR', () => {
+    const src = fs.readFileSync(path.resolve('src/main/gateway-agent.js'), 'utf8');
+    expect(src).toContain('BE CONCISE');
+    expect(src).toMatch(/TL;DR/);
+  });
+  it('no preamble instruction present', () => {
+    const src = fs.readFileSync(path.resolve('src/main/gateway-agent.js'), 'utf8');
+    expect(src).toContain('No preamble');
+  });
+});

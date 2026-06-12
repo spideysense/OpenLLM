@@ -247,6 +247,8 @@ You are Aspen, a helpful AI assistant running 100% LOCALLY on the user's own com
             // Scale to hardware so the model has room for both prompt and response.
             if (!parsed.options) parsed.options = {};
             if (!parsed.options.num_ctx) parsed.options.num_ctx = ctx;
+            // Keep the model resident so there's no cold-load lag between messages
+            if (parsed.keep_alive === undefined) parsed.keep_alive = -1;
             changed = true;
           }
           if (changed) body = JSON.stringify(parsed);
@@ -478,6 +480,23 @@ function tryListen(port) {
   server.listen(port, '127.0.0.1', () => {
     currentPort = port;
     console.log(`[Aspen] API Gateway running on http://127.0.0.1:${port}`);
+    // Warm the active model so the first user message doesn't pay a cold-load
+    // penalty. Fire-and-forget; failure is harmless.
+    setTimeout(() => {
+      try {
+        const store = require('./store');
+        const activeModel = store.get('activeModel');
+        if (!activeModel) return;
+        const warmBody = JSON.stringify({ model: activeModel, messages: [{ role: 'user', content: 'hi' }], stream: false, keep_alive: -1, options: { num_predict: 1 } });
+        const warmReq = http.request({
+          hostname: '127.0.0.1', port: 11434, path: '/api/chat', method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(warmBody) },
+        }, (r) => { r.on('data', () => {}); r.on('end', () => console.log(`[Aspen] Warmed model: ${activeModel}`)); });
+        warmReq.on('error', () => {});
+        warmReq.write(warmBody);
+        warmReq.end();
+      } catch {}
+    }, 2000);
   });
 
   server.on('error', (err) => {
