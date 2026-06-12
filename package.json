@@ -58,9 +58,7 @@
           ]
         }
       ],
-      "notarize": {
-        "teamId": "S6UBG93XBS"
-      },
+      "notarize": true,
       "identity": "Mayank Mehta (S6UBG93XBS)"
     },
     "win": {

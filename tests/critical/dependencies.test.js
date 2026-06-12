@@ -43,7 +43,11 @@ describe('macOS Info.plist declares the permission usage strings', () => {
     expect(pkg.build.mac.extendInfo?.NSMicrophoneUsageDescription).toBeTruthy();
   });
   it('the mac signing/notarize config survived the edit', () => {
-    expect(pkg.build.mac.notarize?.teamId).toBe('S6UBG93XBS');
+    // electron-builder 26 requires mac.notarize to be a BOOLEAN (the old
+    // { teamId } object form fails schema validation and breaks ALL targets,
+    // including --win). teamId now comes from APPLE_TEAM_ID env + the identity.
+    expect(typeof pkg.build.mac.notarize).toBe('boolean');
+    expect(pkg.build.mac.identity).toMatch(/S6UBG93XBS/);
     expect(pkg.build.mac.hardenedRuntime).toBe(true);
     expect(pkg.build.mac.entitlements).toMatch(/entitlements\.mac\.plist/);
   });
