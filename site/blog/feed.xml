@@ -7,6 +7,13 @@
   <atom:link href="https://runonaspen.com/blog/feed.xml" rel="self" type="application/rss+xml"/>
   
   <item>
+    <title><![CDATA[How I Cut My Monthly AI Bills by $500 Using Local LLMs]]></title>
+    <link>https://runonaspen.com/blog/i-saved-500-this-year-by-running-ai-locally.html</link>
+    <description><![CDATA[Discover how switching from cloud-based AI subscriptions to running models locally with Aspen saved me $500 in annual subscription fees.]]></description>
+    <pubDate>Fri, 12 Jun 2026 00:00:00 GMT</pubDate>
+    <guid>https://runonaspen.com/blog/i-saved-500-this-year-by-running-ai-locally.html</guid>
+  </item>
+  <item>
     <title><![CDATA[Why I Stopped Using ChatGPT and Built My]]></title>
     <link>https://runonaspen.com/blog/why-i-stopped-using-chatgpt-and-built-my-own-ai.html</link>
     <description><![CDATA[Discover the shift from cloud-dependent AI to digital sovereignty and why running your own local LLM is the ultimate way to reclaim your privacy and agency.]]></description>
