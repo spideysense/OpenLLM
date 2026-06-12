@@ -158,15 +158,16 @@ function contentTypeFor(name) {
   execSync('npm run build:renderer', { cwd: ROOT, stdio: 'inherit' });
 
   // Rebuild native modules against the exact Electron version before packaging.
-  // This ensures robotjs (and any future native modules) are compiled for the
-  // correct ABI and will work inside the distributed app.
+  // This ensures shipped native modules (sharp, and any future ones) are compiled
+  // for the correct ABI and will work inside the distributed app. robotjs was
+  // removed in the Electron 42 upgrade — Computer Use is osascript/PowerShell now.
   console.log('▶ Rebuilding native modules for Electron...');
   try {
     execSync('npx @electron/rebuild -f', { cwd: ROOT, stdio: 'inherit' });
     console.log('   ✅ Native modules rebuilt');
   } catch (e) {
-    console.warn('   ⚠️ electron-rebuild failed — continuing without native modules:', e.message);
-    console.warn('   Computer Use will fall back to osascript (still works, less reliable)');
+    console.warn('   ⚠️ electron-rebuild failed — continuing:', e.message);
+    console.warn('   (Computer Use uses osascript/PowerShell and does not depend on native modules.)');
   }
 
   console.log('▶ Smoke testing the built app (must boot + render)...');

@@ -3,15 +3,18 @@
  *
  * Lets the local AI see and control your screen to complete tasks autonomously.
  *
- * Input method priority:
- *   1. robotjs  — compiled native module, bundled in the DMG, fastest + most reliable
- *   2. osascript — macOS built-in, zero install, slightly slower (fallback)
- *   3. PowerShell — Windows built-in (fallback on Win)
+ * Input method (no native modules — works out of the box):
+ *   - macOS:   osascript (System Events)
+ *   - Windows: PowerShell (user32 / SendKeys)
+ * Screenshots use Electron's desktopCapturer (main process only).
  *
- * Screenshots always use Electron's desktopCapturer — no external deps.
+ * robotjs was removed in the Electron 42 upgrade — it is abandoned and does not
+ * build against modern Electron/Node ABIs. The OS-native paths below are the
+ * single source of truth now.
  *
- * macOS requires Accessibility permission (System Preferences → Privacy →
- * Accessibility → Aspen). macOS prompts automatically on first use.
+ * macOS requires Accessibility permission (System Settings → Privacy →
+ * Accessibility → Aspen) and Screen Recording for screenshots. macOS prompts
+ * automatically on first use.
  */
 
 const { execSync } = require('child_process');
@@ -26,20 +29,10 @@ function getElectron() {
   return require('electron');
 }
 
-// ── Load robotjs (bundled in DMG via asarUnpack) ──
-let robot = null;
-function loadRobot() {
-  if (robot !== null) return robot;
-  try {
-    // In packaged app, native modules live in app.asar.unpacked
-    robot = require('robotjs');
-    console.log('[ComputerUse] robotjs loaded ✅');
-  } catch (e) {
-    console.warn('[ComputerUse] robotjs not available, using OS fallback:', e.message);
-    robot = false; // false = tried and failed, don't retry
-  }
-  return robot;
-}
+// robotjs has been removed. loadRobot() is kept as a no-op so existing call
+// sites fall through to the OS-native input paths without a failed require or a
+// confusing warning on every action.
+function loadRobot() { return false; }
 
 // ── Screenshot ──
 async function screenshot() {

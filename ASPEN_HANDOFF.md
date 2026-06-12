@@ -106,6 +106,30 @@ The desktop `computer-use.js` uses Anthropic `input_schema` format. The gateway 
 
 ## BUILD & RELEASE
 
+### ⚠️ Electron 42 upgrade (2026-06-12) — VERIFY ON THE MAC BEFORE SHIPPING
+Upgraded Electron 28 → 42 (Chromium M148, Node 24). Electron 28 had been EOL since
+Jun 2024 (no Chromium security backports). What changed:
+- `electron` ^28 → ^42.4.0, `electron-builder` ^24 → ^26.15.3, `@electron/rebuild`
+  ^3 → ^4.0.4, `electron-updater` ^6.8.3 → ^6.8.9, `better-sqlite3` (dev) → ^12.10.0.
+- **robotjs removed** (abandoned, won't build on E42/Node 24). Computer Use is now
+  osascript (Mac) / PowerShell (Win) only — the fallback paths that already existed.
+  `asarUnpack` for robotjs removed; `loadRobot()` is a no-op returning false.
+- **`NSMicrophoneUsageDescription` added** to the mac build via `extendInfo`. The app
+  calls `systemPreferences.askForMediaAccess('microphone')` on launch, which crashes
+  on modern macOS without this Info.plist string — a latent bug E42 would expose.
+- CI workflows bumped to Node 22.
+- **Why this was low-risk despite being 14 majors:** the app already uses the modern
+  setup (contextIsolation + preload + contextBridge), calls `desktopCapturer` in the
+  MAIN process (the big E17/E30 change doesn't apply), and uses no removed APIs. The
+  work was almost entirely dependency/build-tooling, not API rewrites.
+- **Still required (cannot be done in CI / sandbox):** on the Mac, `git pull && npm
+  install` (this downloads the E42 binary + rebuilds `sharp` for the new ABI), then
+  `npm run release:mac -- 0.4.43`. The release script's smoke test (boots the real
+  app, checks the renderer mounts) is the gate — if it passes, the runtime is healthy.
+  Sanity-check after launch: voice mic prompt appears (not a crash), Computer Use can
+  screenshot+click, auto-update still detects releases.
+- Guard tests: `tests/critical/dependencies.test.js`.
+
 ### Mac release (the only path — signing cert is on local Mac only)
 ```bash
 cd ~/aspen

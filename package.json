@@ -39,6 +39,11 @@
       "gatekeeperAssess": false,
       "entitlements": "assets/entitlements.mac.plist",
       "entitlementsInherit": "assets/entitlements.mac.plist",
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "Aspen uses the microphone for voice chat with your local AI. Audio is processed on your device and never leaves it.",
+        "NSCameraUsageDescription": "Aspen does not use the camera.",
+        "NSAudioCaptureUsageDescription": "Aspen captures screen content locally for Computer Use. Nothing leaves your device."
+      },
       "target": [
         {
           "target": "dmg",
@@ -78,15 +83,12 @@
       }
     ],
     "afterAllArtifactBuild": "scripts/staple-dmg.js",
-    "asarUnpack": [
-      "node_modules/robotjs/**/*"
-    ],
     "npmRebuild": true
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
     "electron-store": "^8.1.0",
-    "electron-updater": "^6.8.3",
+    "electron-updater": "^6.8.9",
     "mammoth": "^1.12.0",
     "pdf-parse": "^2.4.5",
     "sharp": "^0.34.5",
@@ -97,10 +99,10 @@
     "@testing-library/jest-dom": "^6.1.5",
     "@testing-library/react": "^14.1.2",
     "@vitejs/plugin-react": "^4.2.1",
-    "better-sqlite3": "^12.6.2",
+    "better-sqlite3": "^12.10.0",
     "concurrently": "^8.2.2",
-    "electron": "^28.1.0",
-    "electron-builder": "^24.9.1",
+    "electron": "^42.4.0",
+    "electron-builder": "^26.15.3",
     "jsdom": "^23.2.0",
     "jsonwebtoken": "^9.0.3",
     "react": "^18.2.0",
@@ -110,13 +112,10 @@
     "vite": "^5.0.12",
     "vitest": "^1.2.0",
     "wait-on": "^7.2.0",
-    "@electron/rebuild": "^3.6.0"
+    "@electron/rebuild": "^4.0.4"
   },
   "author": {
     "name": "Aspen",
     "email": "hello@runonaspen.com"
-  },
-  "optionalDependencies": {
-    "robotjs": "0.6.0"
   }
 }
