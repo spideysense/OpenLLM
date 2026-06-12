@@ -151,6 +151,7 @@ contextBridge.exposeInMainWorld('aspen', {
   updater: {
     check: () => ipcRenderer.invoke('updater:check'),
     install: () => ipcRenderer.invoke('updater:install'),
+    openReleases: () => ipcRenderer.invoke('updater:openReleases'),
     getStatus: () => ipcRenderer.invoke('updater:status'),
     onStatus: (cb) => {
       const handler = (event, data) => cb(data);

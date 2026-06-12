@@ -265,6 +265,13 @@ Every bug below was found in production. Tests in `tests/critical/` guard agains
 **Still required by the user:** macOS Screen Recording + Accessibility permissions (granted once in System Settings). Those can't be fixed in code.
 **Test:** `tests/critical/ssrf-and-auth.test.js` (OpenAI-format assertion)
 
+### 17. "Update ready" button did nothing — two updaters share one banner (2026-06-12)
+**Symptom:** clicking the "Update ready — click to restart & update" banner did nothing.
+**Cause:** TWO update systems push to the same banner — `updater.js` (full-app, electron-updater, `source:'app'`) and `hot-updater.js` (renderer-only via runonaspen.com, `source:'hot'`). The banner click was hardwired to `updater.install()`, which silently no-ops unless electron-updater itself downloaded a full build (`updateReady`). When the 'ready' came from the hot-updater (which already reloads the renderer in place), the click hit the wrong installer and did nothing — with zero feedback.
+**Fix:** tag each updater's status with `source`; the Sidebar dispatches the click — `hot` → `hotUpdater.reload()`, `app` → `updater.install()`. `installUpdate()` now returns a result; on not-downloaded/failure the Sidebar falls back to `updater.openReleasesPage()` (opens the latest GitHub release) so the click is never dead. Banner label is source-aware (reload vs restart).
+**Note:** a build already installed with the OLD code can't self-fix — install the new build manually once (from `/releases/latest`); updates work after that.
+**Test:** `tests/critical/update-button.test.js`
+
 ---
 
 ## CRITICAL TESTS

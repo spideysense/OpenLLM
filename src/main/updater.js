@@ -65,8 +65,32 @@ function checkForUpdates() {
 }
 
 function installUpdate() {
-  if (updateReady) {
+  // Returns a result so the renderer can give feedback instead of a dead click.
+  if (!updateReady) {
+    // No full-app update was downloaded by electron-updater. Re-check in case a
+    // release appeared since launch; the caller falls back to the download page.
+    checkForUpdates();
+    return { ok: false, reason: 'not-downloaded' };
+  }
+  try {
+    // isSilent=false (show the installer), isForceRunAfter=true (relaunch).
     autoUpdater.quitAndInstall(false, true);
+    return { ok: true };
+  } catch (err) {
+    console.error('[Updater] quitAndInstall failed:', err.message);
+    notify('error', { message: err.message });
+    return { ok: false, reason: 'install-failed', message: err.message };
+  }
+}
+
+// Guaranteed fallback: open the latest release so the user can grab the DMG by
+// hand when in-place install isn't possible (e.g. an unsigned/old running build).
+function openReleasesPage() {
+  try {
+    require('electron').shell.openExternal('https://github.com/spideysense/OpenLLM/releases/latest');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, message: err.message };
   }
 }
 
@@ -76,8 +100,10 @@ function getStatus() {
 
 function notify(status, data = {}) {
   if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('updater:status', { status, ...data });
+    // source:'app' distinguishes full-app updates from the renderer hot-updater,
+    // which shares the same banner. The renderer dispatches the click by source.
+    mainWindow.webContents.send('updater:status', { source: 'app', status, ...data });
   }
 }
 
-module.exports = { init, checkForUpdates, installUpdate, getStatus };
+module.exports = { init, checkForUpdates, installUpdate, openReleasesPage, getStatus };

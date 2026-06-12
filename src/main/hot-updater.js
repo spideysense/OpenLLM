@@ -128,7 +128,7 @@ async function extractZip(zipPath, destDir) {
   });
 }
 function notify(status, data = {}) {
-  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('hotUpdater:status', { status, ...data });
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('hotUpdater:status', { source: 'hot', status, ...data });
 }
 
 module.exports = { init, stop, resolveRendererPath, checkForUpdate, getCurrentVersion };

@@ -635,8 +635,11 @@ ipcMain.handle('updater:check', async () => {
 });
 
 ipcMain.handle('updater:install', async () => {
-  updater.installUpdate();
-  return true;
+  return updater.installUpdate();
+});
+
+ipcMain.handle('updater:openReleases', async () => {
+  return updater.openReleasesPage();
 });
 
 ipcMain.handle('updater:status', async () => {

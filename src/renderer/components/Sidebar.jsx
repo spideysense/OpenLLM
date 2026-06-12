@@ -4,6 +4,7 @@ import { useApp } from '../App';
 export default function Sidebar() {
   const { page, setPage, ollamaStatus, activeModel, gatewayStatus, bridge } = useApp();
   const [updateStatus, setUpdateStatus] = useState(null);
+  const [installMsg, setInstallMsg] = useState('');
   const [appVersion, setAppVersion] = useState('...');
 
   useEffect(() => {
@@ -37,8 +38,26 @@ export default function Sidebar() {
     { id: 'settings', icon: '⚙️', label: 'Settings' },
   ];
 
-  function handleInstallUpdate() {
-    if (bridge?.updater) bridge.updater.install();
+  async function handleInstallUpdate() {
+    // Two update systems share this banner. A renderer hot-update (source:'hot')
+    // is applied by reloading; a full-app update (source:'app') needs
+    // quitAndInstall. Dispatch by source, and ALWAYS leave the user with a
+    // working action — if in-place install isn't possible, open the download page.
+    if (updateStatus?.source === 'hot') {
+      if (bridge?.hotUpdater) { setInstallMsg('Reloading…'); await bridge.hotUpdater.reload(); }
+      return;
+    }
+    if (!bridge?.updater) return;
+    setInstallMsg('Updating…');
+    let res;
+    try { res = await bridge.updater.install(); } catch { res = { ok: false }; }
+    if (!res || res.ok === false) {
+      // Nothing staged to install (or an old/unsigned running build can't
+      // self-update). Send them to the latest release so the click is never dead.
+      setInstallMsg('Opening download page…');
+      try { await bridge.updater.openReleases(); } catch {}
+      setTimeout(() => setInstallMsg(''), 4000);
+    }
   }
 
   return (
@@ -68,7 +87,7 @@ export default function Sidebar() {
           <span>🎉</span>
           <div>
             <div style={{ fontWeight: 700, fontSize: 12 }}>Update ready</div>
-            <div style={{ fontSize: 11, opacity: 0.8 }}>v{updateStatus.version} — click to restart &amp; update</div>
+            <div style={{ fontSize: 11, opacity: 0.8 }}>{installMsg || (updateStatus.source === 'hot' ? `v${updateStatus.version} — click to reload` : `v${updateStatus.version} — click to restart & update`)}</div>
           </div>
         </button>
       )}
