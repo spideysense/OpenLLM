@@ -178,3 +178,29 @@ describe('BUG: 307 redirect drops POST body (non-www → www on api calls)', () 
     }
   });
 });
+
+describe('Metrics accuracy (admin dashboard)', () => {
+  it('downloads count only .dmg and .exe (not update machinery)', () => {
+    const src = fs.readFileSync(path.resolve('api/admin-stats.js'), 'utf8');
+    expect(src).toContain(".endsWith('.dmg')");
+    expect(src).toContain(".endsWith('.exe')");
+    // Must NOT blindly sum all assets anymore
+    expect(src).not.toMatch(/for \(const a of rel\.assets \|\| \[\]\) relTotal \+= a\.download_count/);
+  });
+
+  it('site actually calls /api/visits on load', () => {
+    const src = fs.readFileSync(path.resolve('site/index.html'), 'utf8');
+    expect(src).toContain('/api/visits');
+    expect(src).toContain('Count this visit');
+  });
+
+  it('visit seed is 2000 (real visits add on top)', () => {
+    const visitsSrc = fs.readFileSync(path.resolve('api/visits.js'), 'utf8');
+    const adminSrc = fs.readFileSync(path.resolve('api/admin-stats.js'), 'utf8');
+    expect(visitsSrc).toContain("'2000'");
+    expect(adminSrc).toContain("'2000'");
+    // Real counter must still be added on top of the seed (not hardcoded)
+    expect(visitsSrc).toContain('data.result');
+    expect(adminSrc).toContain('aspen:visits');
+  });
+});

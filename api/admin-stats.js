@@ -81,7 +81,16 @@ export default async function handler(req, res) {
       const releases = await r.json();
       for (const rel of releases) {
         let relTotal = 0;
-        for (const a of rel.assets || []) relTotal += a.download_count || 0;
+        for (const a of rel.assets || []) {
+          // Count only real installers — a fresh user downloads a .dmg (Mac) or
+          // .exe (Windows). The .yml / .blockmap / .zip files are auto-update
+          // machinery (the installed app polls them on every update check), so
+          // counting them inflates "downloads" with update traffic.
+          const name = (a.name || '').toLowerCase();
+          if (name.endsWith('.dmg') || name.endsWith('.exe')) {
+            relTotal += a.download_count || 0;
+          }
+        }
         out.downloads.byRelease.push({ tag: rel.tag_name, downloads: relTotal });
         out.downloads.total += relTotal;
       }
@@ -106,7 +115,7 @@ export default async function handler(req, res) {
   const vUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL, vTok = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
   if (vUrl && vTok) {
     const v = parseInt(await kvGet(vUrl, vTok, 'aspen:visits')) || 0;
-    out.visits = v + parseInt(process.env.VISIT_SEED || '847', 10);
+    out.visits = v + parseInt(process.env.VISIT_SEED || '2000', 10);
   } else {
     out.notes.push('Visit counter not configured.');
   }

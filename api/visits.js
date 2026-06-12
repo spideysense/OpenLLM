@@ -6,7 +6,7 @@
  */
 
 // In-memory fallback — persists per function instance, resets on cold start
-let memCount = parseInt(process.env.VISIT_SEED || '847', 10);
+let memCount = parseInt(process.env.VISIT_SEED || '2000', 10);
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -27,7 +27,7 @@ export default async function handler(req, res) {
       });
       if (r.ok) {
         const data = await r.json();
-        const count = (data.result || 0) + parseInt(process.env.VISIT_SEED || '847', 10);
+        const count = (data.result || 0) + parseInt(process.env.VISIT_SEED || '2000', 10);
         return res.status(200).json({ count });
       }
     } catch {}

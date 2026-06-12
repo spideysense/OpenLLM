@@ -413,6 +413,21 @@ function submitContact(e){
 <p style="font-size:11px;color:#999;margin-top:8px;text-align:center">Secure payment via Stripe · $1 deposit applied to your first payment</p>
 </div></div>
 <script>
+// Count this visit — fire-and-forget, increments the real KV counter.
+// One count per browser session (sessionStorage) so a reload doesn't double-count.
+(function(){
+  try {
+    if (!sessionStorage.getItem('aspen_counted')) {
+      sessionStorage.setItem('aspen_counted', '1');
+      fetch('/api/visits', { method: 'POST' }).catch(function(){});
+    }
+  } catch (e) {
+    // sessionStorage blocked (some incognito modes) — still count the visit
+    fetch('/api/visits', { method: 'POST' }).catch(function(){});
+  }
+})();
+</script>
+<script>
 // Community savings widget
 (function(){
   function timeAgo(ts) {
