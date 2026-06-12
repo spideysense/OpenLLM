@@ -11,7 +11,7 @@ function listKeys() {
   return store.get('apikeys') || [];
 }
 
-function createKey(label = 'Default', { owner = false } = {}) {
+function createKey(label = 'Default', { owner = false, memory = false } = {}) {
   const keys = listKeys();
   const id = crypto.randomUUID();
   const secret = KEY_PREFIX + crypto.randomBytes(24).toString('base64url');
@@ -20,6 +20,9 @@ function createKey(label = 'Default', { owner = false } = {}) {
     label,
     secret,
     owner,
+    // Owner keys always have memory. Named guest keys can opt in. Anonymous
+    // keys (memory:false) get no persistent memory.
+    memory: owner ? true : !!memory,
     created: new Date().toISOString(),
     lastUsed: null,
   };
@@ -60,4 +63,20 @@ function isOwnerKey(token) {
   return key?.owner === true;
 }
 
-module.exports = { listKeys, createKey, revokeKey, validateKey, touchKey, isOwnerKey };
+// Resolve the memory scope for a token:
+//   - owner key            → 'owner'  (the owner's shared memory)
+//   - named key w/ memory  → the key's id (that user's private memory)
+//   - anonymous / no memory → null  (no memory stored)
+function memoryKeyFor(token) {
+  if (!token) return null;
+  const keys = listKeys();
+  // Open mode (no keys configured) → treat as owner
+  if (keys.length === 0) return 'owner';
+  const key = keys.find(k => k.secret === token);
+  if (!key) return null;
+  if (key.owner) return 'owner';
+  if (key.memory) return key.id;
+  return null;
+}
+
+module.exports = { listKeys, createKey, revokeKey, validateKey, touchKey, isOwnerKey, memoryKeyFor };

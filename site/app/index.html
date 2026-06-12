@@ -754,8 +754,8 @@ async function showMemory(){
       body:JSON.stringify({tunnelUrl:config?.tunnelUrl||'',apiKey:config?.apiKey||''}),
     });
     const data=await res.json();
-    if(data.owner===false){
-      factsEl.innerHTML='<div style="text-align:center;padding:20px;color:var(--t3)"><div style="font-size:1.5rem;margin-bottom:6px">🔒</div>Memory is only available with an <strong>owner key</strong>. This is a guest key — it can chat but can\'t access your saved memory.</div>';
+    if(data.hasMemory===false){
+      factsEl.innerHTML='<div style="text-align:center;padding:20px;color:var(--t3)"><div style="font-size:1.5rem;margin-bottom:6px">🔒</div>This key doesn\'t have memory. Owner and member keys remember you across devices; anonymous guest keys don\'t store anything.</div>';
     }else if(data.facts&&data.facts.length>0){
       factsEl.innerHTML=data.facts.map(f=>'<div style="display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-bottom:1px solid rgba(0,0,0,.06)"><span style="color:var(--gd);flex-shrink:0">•</span><span>'+escHtml(typeof f==='string'?f:(f.text||JSON.stringify(f)))+'</span></div>').join('');
     }else{

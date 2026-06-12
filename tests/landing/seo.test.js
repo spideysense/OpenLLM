@@ -324,7 +324,7 @@ describe('Performance: Page structure', () => {
 
   it('should have minimal JavaScript at the end', () => {
     const scriptTags = html.match(/<script(?! type="application\/ld)/g) || [];
-    expect(scriptTags.length).toBeLessThanOrEqual(2); // Just the scroll observer
+    expect(scriptTags.length).toBeLessThanOrEqual(3); // scroll observer, savings widget, visit counter
   });
 
   it('should be a reasonable file size (under 50KB)', () => {

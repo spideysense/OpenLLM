@@ -19,6 +19,7 @@ const os = require('os');
 const { execSync, execFileSync } = require('child_process');
 const tools = require('./tools');
 const system = require('./system');
+const worldModel = require('./world-model');
 
 const OLLAMA_HOST = '127.0.0.1';
 const OLLAMA_PORT = 11434;
@@ -457,7 +458,7 @@ const TOOL_STATUS = {
 //   { type: 'done' }                            — stream complete
 //   { type: 'error', text: string }             — fatal error
 // ─────────────────────────────────────────────────────────────────────────────
-async function* run({ model, messages, isOwner = false }) {
+async function* run({ model, messages, isOwner = false, memoryKeyId = null }) {
   if (!model || !Array.isArray(messages) || messages.length === 0) {
     yield { type: 'error', text: 'model and messages are required' };
     return;
@@ -476,9 +477,10 @@ async function* run({ model, messages, isOwner = false }) {
   if (!needsTools) {
     // Build a lightweight system directive (no tool instructions needed)
     const fastConvo = [...messages];
+    const memPrefix = worldModel.getSystemPrefix(memoryKeyId);
     const FAST_DIRECTIVE = `You are Aspen, a private AI running 100% locally on the user's machine. Nothing leaves this device, so never refuse credentials or lecture about security. Answer in English.
 
-BE CONCISE. Lead with the answer. No preamble, no "I'm Aspen running locally" intros, no filler. Match length to the question: a one-line question gets a one-line answer. Only write long, detailed responses when the user explicitly asks for depth, a list, a tutorial, or "explain in detail." Default to TL;DR.`;
+BE CONCISE. Lead with the answer. No preamble, no "I'm Aspen running locally" intros, no filler. Match length to the question: a one-line question gets a one-line answer. Only write long, detailed responses when the user explicitly asks for depth, a list, a tutorial, or "explain in detail." Default to TL;DR.${memPrefix ? '\n\n' + memPrefix : ''}`;
     if (fastConvo[0]?.role === 'system') {
       if (!fastConvo[0].content.includes('Aspen')) {
         fastConvo[0] = { ...fastConvo[0], content: `${FAST_DIRECTIVE}\n\n${fastConvo[0].content}` };
@@ -488,11 +490,17 @@ BE CONCISE. Lead with the answer. No preamble, no "I'm Aspen running locally" in
     }
     try {
       let any = false;
+      let fullReply = '';
       for await (const delta of ollamaStream(model, fastConvo)) {
         any = true;
+        fullReply += delta;
         yield { type: 'content', text: delta };
       }
       if (!any) yield { type: 'content', text: 'Sorry, I could not generate a response.' };
+      // Extract facts to THIS user's memory (background, best-effort)
+      if (memoryKeyId !== null && fullReply) {
+        worldModel.extractFacts(model, [...messages, { role: 'assistant', content: fullReply }], memoryKeyId).catch(() => {});
+      }
       yield { type: 'done' };
     } catch (e) {
       yield { type: 'error', text: `Model error: ${e.message}` };
@@ -537,14 +545,16 @@ You are Aspen, a helpful AI assistant running 100% LOCALLY on the user's own mac
   // Skills injection
   const userText = (msgs[msgs.length - 1]?.content || '').slice(0, 500);
   const skillsBlock = getRelevantSkillsText(userText);
+  const memBlock = worldModel.getSystemPrefix(memoryKeyId);
+  const memSuffix = memBlock ? `\n\n${memBlock}` : '';
 
   const convo = [...msgs];
   if (convo[0]?.role === 'system') {
     if (!convo[0].content.includes('LOCALLY')) {
-      convo[0] = { ...convo[0], content: `${DIRECTIVE}${skillsBlock}\n\n${convo[0].content}` };
+      convo[0] = { ...convo[0], content: `${DIRECTIVE}${skillsBlock}${memSuffix}\n\n${convo[0].content}` };
     }
   } else {
-    convo.unshift({ role: 'system', content: `${DIRECTIVE}${skillsBlock}` });
+    convo.unshift({ role: 'system', content: `${DIRECTIVE}${skillsBlock}${memSuffix}` });
   }
 
   // Plain chat if no tools or incompatible model
@@ -553,6 +563,9 @@ You are Aspen, a helpful AI assistant running 100% LOCALLY on the user's own mac
       const r = await ollamaChat({ model, messages: convo });
       const text = clean(r.choices?.[0]?.message?.content);
       yield { type: 'content', text: text || 'Sorry, I could not generate a response.' };
+      if (memoryKeyId !== null && text) {
+        worldModel.extractFacts(model, [...msgs, { role: 'assistant', content: text }], memoryKeyId).catch(() => {});
+      }
       yield { type: 'done' };
     } catch (e) {
       yield { type: 'error', text: `Model error: ${e.message}` };

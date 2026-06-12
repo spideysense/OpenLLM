@@ -1,9 +1,13 @@
 /**
- * World Model engine — learns about the user from conversations.
+ * World Model engine — learns about each user from conversations.
  *
- * After each exchange, silently extracts new facts using the local model.
- * Before each new chat, prepends known facts as context.
- * Everything stays local — facts are stored in electron-store.
+ * Memory is PER-KEY: each API key (owner, Ashini, Anjali, Anoushka...) has its
+ * own isolated slice. The owner's memory lives at the legacy `worldModel` key
+ * for backward compatibility; named guest keys live at `worldModel:{keyId}`.
+ * Anonymous keys get no memory (keyId is null → no read/write).
+ *
+ * Everything stays local — facts are stored in electron-store on the Aspen
+ * machine. Nothing ever leaves the device.
  */
 
 const store = require('./store');
@@ -13,29 +17,42 @@ const OLLAMA_HOST = '127.0.0.1';
 const OLLAMA_PORT = 11434;
 const MAX_FACTS = 100; // Cap to keep context manageable
 
+// Resolve the storage key for a given identity.
+//   - 'owner' or undefined → legacy 'worldModel' (the owner's memory)
+//   - any other keyId      → 'worldModel:{keyId}' (that user's private memory)
+//   - null                 → null (anonymous, no memory)
+function storeKeyFor(keyId) {
+  if (keyId === null) return null;            // anonymous: no memory
+  if (!keyId || keyId === 'owner') return 'worldModel';
+  return `worldModel:${keyId}`;
+}
+
 /**
- * Get all known facts about the user.
+ * Get all known facts about a specific user (by key).
  */
-function getFacts() {
-  const wm = store.get('worldModel') || { facts: [] };
+function getFacts(keyId) {
+  const sk = storeKeyFor(keyId);
+  if (!sk) return [];
+  const wm = store.get(sk) || { facts: [] };
   return wm.facts || [];
 }
 
 /**
- * Build a system prompt prefix from the world model.
- * Prepended to every conversation so the model knows the user.
+ * Build a system prompt prefix from a user's world model.
  */
-function getSystemPrefix() {
-  const facts = getFacts();
+function getSystemPrefix(keyId) {
+  const facts = getFacts(keyId);
   if (facts.length === 0) return '';
   return `Here is what you know about the user from past conversations (use naturally, don't list back):\n${facts.map(f => `- ${f}`).join('\n')}\n\n`;
 }
 
 /**
- * Merge new facts into the world model, avoiding duplicates.
+ * Merge new facts into a user's world model, avoiding duplicates.
  */
-function mergeFacts(newFacts) {
-  const wm = store.get('worldModel') || { facts: [] };
+function mergeFacts(newFacts, keyId) {
+  const sk = storeKeyFor(keyId);
+  if (!sk) return 0; // anonymous: don't store anything
+  const wm = store.get(sk) || { facts: [] };
   const existing = new Set((wm.facts || []).map(f => f.toLowerCase().trim()));
   const added = [];
 
@@ -50,8 +67,8 @@ function mergeFacts(newFacts) {
   if (added.length === 0) return 0;
 
   const allFacts = [...(wm.facts || []), ...added].slice(-MAX_FACTS);
-  store.set('worldModel', { facts: allFacts, updatedAt: new Date().toISOString() });
-  console.log(`[WorldModel] Added ${added.length} new facts: ${added.join('; ')}`);
+  store.set(sk, { facts: allFacts, updatedAt: new Date().toISOString() });
+  console.log(`[WorldModel:${keyId || 'owner'}] Added ${added.length} new facts`);
   return added.length;
 }
 
@@ -59,7 +76,9 @@ function mergeFacts(newFacts) {
  * Extract facts from a conversation using the local model.
  * Runs in the background after each exchange — non-blocking.
  */
-async function extractFacts(model, messages) {
+async function extractFacts(model, messages, keyId) {
+  // Anonymous keys store no memory — skip extraction entirely.
+  if (storeKeyFor(keyId) === null) return;
   // Only extract if there's enough conversation (at least 2 exchanges)
   const userMsgs = messages.filter(m => m.role === 'user');
   if (userMsgs.length < 1) return;
@@ -128,7 +147,7 @@ Example output: ["User's name is Mayank", "User is building an AI app called Asp
     const cleaned = result.replace(/```json\n?/g, '').replace(/```/g, '').trim();
     const facts = JSON.parse(cleaned);
     if (Array.isArray(facts) && facts.length > 0) {
-      mergeFacts(facts);
+      mergeFacts(facts, keyId);
     }
   } catch (e) {
     // Silent failure — extraction is best-effort
@@ -136,9 +155,17 @@ Example output: ["User's name is Mayank", "User is building an AI app called Asp
   }
 }
 
+// Clear a user's memory. Uses this module's own store reference.
+function clearMemory(keyId) {
+  const sk = storeKeyFor(keyId);
+  if (sk) store.remove(sk);
+}
+
 module.exports = {
   getFacts,
   getSystemPrefix,
   mergeFacts,
   extractFacts,
+  storeKeyFor,
+  clearMemory,
 };

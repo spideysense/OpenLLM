@@ -306,3 +306,26 @@ Enforced in `gateway-agent.js` (`executeAnyTool` checks `isOwner` for DANGEROUS_
 ## WORLD MODEL SYNC (added 2026-06-10)
 
 The World Model (memory) lives on the Aspen machine. Web/mobile owner-key clients read it via `/api/world-model` (Vercel) → `/v1/world-model` (gateway). Owner-gated: guests get empty. Chat history is still local per-device (deferred — see git history for the scope decision). Memory was previously blank in the web app because it fetched the wrong URL (`/world-model` instead of `/v1/world-model`) and bypassed the proxy.
+
+---
+
+## PER-KEY MEMORY (added 2026-06-11)
+
+Each API key has its own isolated World Model (memory). The key IS the identity — memory follows the key across that user's devices (iPhone + web both see the same memory), stored server-side on the Aspen machine.
+
+**Three key types** (radio at creation in APIKeys.jsx):
+- **Owner** (`owner:true`): computer use + own memory + all tools. Default key is owner. Memory stored at legacy `worldModel` key.
+- **Family/Member** (`memory:true, owner:false`): own private memory (`worldModel:{keyId}`) + chat + safe tools. NO computer use. For Ashini/Anjali/Anoushka.
+- **Anonymous guest** (`memory:false`): reasoning + safe tools only. No memory, ephemeral.
+
+**Key functions:**
+- `world-model.js`: every fn takes optional `keyId`. `storeKeyFor(keyId)`: 'owner'/undefined→'worldModel' (back-compat), other→'worldModel:{keyId}', null→null (no memory).
+- `apikeys.js`: `memoryKeyFor(token)` → 'owner' | keyId | null. `createKey(label, {owner, memory})`.
+- `gateway-agent.js`: `run({memoryKeyId})` injects that user's memory into the system prompt (both fast + tool paths) and extracts facts to it after replies.
+- `gateway.js`: resolves `memoryKeyId = apikeys.memoryKeyFor(authToken)`, passes to agent. `/v1/world-model` returns the caller's OWN memory (`hasMemory` flag).
+
+**Computer use stays owner-only** — family members get memory but can't control the Mac Studio screen (enforced via `isOwner` gate in `executeAnyTool`).
+
+**Desktop app** = always owner (calls world-model without keyId → defaults to 'owner', back-compat preserved).
+
+**Testing note:** vitest can't reliably mock `world-model.js`'s CommonJS `require('./store')` from an ESM test (dual module instances). Tests use the real in-memory store and clear slices via `worldModel.clearMemory(keyId)`, which uses the same store instance world-model reads/writes.

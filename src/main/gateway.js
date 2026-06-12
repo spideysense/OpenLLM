@@ -267,20 +267,21 @@ You are Aspen, a helpful AI assistant running 100% LOCALLY on the user's own com
         return;
       }
 
-      // ── /v1/world-model — owner-only memory sync ──
-      // Lets web/mobile owner-key clients read the World Model that lives on
-      // this machine. Guest keys get an empty model (no access to memory).
+      // ── /v1/world-model — per-key memory sync ──
+      // Returns the CALLER's own memory. Owner sees the owner memory; named
+      // keys (Ashini/Anjali/Anoushka) see their own; anonymous keys get empty.
       if (req.url === '/v1/world-model' && req.method === 'GET') {
-        if (!apikeys.isOwnerKey(authToken)) {
-          // Guests don't see the owner's memory — return empty, not an error
+        const worldModel = require('./world-model');
+        const memKeyId = apikeys.memoryKeyFor(authToken);
+        if (memKeyId === null) {
+          // Anonymous / no-memory key — nothing to show
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ facts: [], owner: false }));
+          res.end(JSON.stringify({ facts: [], hasMemory: false }));
           return;
         }
-        const worldModel = require('./world-model');
-        const facts = worldModel.getFacts();
+        const facts = worldModel.getFacts(memKeyId);
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ facts, owner: true }));
+        res.end(JSON.stringify({ facts, hasMemory: true, owner: apikeys.isOwnerKey(authToken) }));
         return;
       }
 
@@ -304,6 +305,7 @@ You are Aspen, a helpful AI assistant running 100% LOCALLY on the user's own com
         }
 
         const isOwner = apikeys.isOwnerKey(authToken);
+        const memoryKeyId = apikeys.memoryKeyFor(authToken);
         const wantStream = parsed.stream !== false;
 
         if (!wantStream) {
@@ -311,7 +313,7 @@ You are Aspen, a helpful AI assistant running 100% LOCALLY on the user's own com
           (async () => {
             let fullText = '';
             try {
-              for await (const event of gatewayAgent.run({ model: agentModel, messages: agentMsgs, isOwner })) {
+              for await (const event of gatewayAgent.run({ model: agentModel, messages: agentMsgs, isOwner, memoryKeyId })) {
                 if (event.type === 'content') fullText += event.text;
                 if (event.type === 'error') throw new Error(event.text);
               }
@@ -374,7 +376,7 @@ You are Aspen, a helpful AI assistant running 100% LOCALLY on the user's own com
 
         (async () => {
           try {
-            for await (const event of gatewayAgent.run({ model: agentModel, messages: agentMsgs, isOwner })) {
+            for await (const event of gatewayAgent.run({ model: agentModel, messages: agentMsgs, isOwner, memoryKeyId })) {
               if (res.writableEnded) break;
               switch (event.type) {
                 case 'status':

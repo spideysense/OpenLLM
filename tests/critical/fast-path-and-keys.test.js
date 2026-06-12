@@ -48,11 +48,12 @@ describe('Owner vs Guest keys', () => {
     const src = fs.readFileSync(path.resolve('src/preload/index.js'), 'utf8');
     expect(src).toContain("create: (label, opts)");
   });
-  it('API Keys page has owner/guest radio', () => {
+  it('API Keys page has owner/member/guest radio', () => {
     const src = fs.readFileSync(path.resolve('src/renderer/pages/APIKeys.jsx'), 'utf8');
     expect(src).toContain('newKeyType');
     expect(src).toContain('Owner key');
-    expect(src).toContain('Guest key');
+    expect(src).toContain('Family / member');
+    expect(src).toContain('guest key');
   });
   it('API Keys page explains permissions for each type', () => {
     const src = fs.readFileSync(path.resolve('src/renderer/pages/APIKeys.jsx'), 'utf8');
@@ -66,18 +67,18 @@ describe('Owner vs Guest keys', () => {
   });
 });
 
-describe('World Model sync (owner-only)', () => {
+describe('World Model sync (per-key)', () => {
   it('gateway has /v1/world-model route', () => {
     const src = fs.readFileSync(path.resolve('src/main/gateway.js'), 'utf8');
     expect(src).toContain("'/v1/world-model'");
   });
-  it('world-model route is owner-gated', () => {
+  it('world-model route resolves per-key memory', () => {
     const src = fs.readFileSync(path.resolve('src/main/gateway.js'), 'utf8');
-    expect(src).toMatch(/world-model[\s\S]{0,300}isOwnerKey/);
+    expect(src).toMatch(/world-model[\s\S]{0,400}memoryKeyFor/);
   });
-  it('guests get empty facts and owner:false', () => {
+  it('anonymous keys get empty facts and hasMemory:false', () => {
     const src = fs.readFileSync(path.resolve('src/main/gateway.js'), 'utf8');
-    expect(src).toContain('owner: false');
+    expect(src).toContain('hasMemory: false');
   });
   it('api/world-model.js proxy exists', () => {
     expect(fs.existsSync(path.resolve('api/world-model.js'))).toBe(true);
@@ -86,10 +87,10 @@ describe('World Model sync (owner-only)', () => {
     const src = fs.readFileSync(path.resolve('api/world-model.js'), 'utf8');
     expect(src).toContain('/v1/world-model');
   });
-  it('web app fetches /api/world-model and handles owner:false', () => {
+  it('web app fetches /api/world-model and handles hasMemory:false', () => {
     const src = fs.readFileSync(path.resolve('site/app/index.html'), 'utf8');
     expect(src).toContain('/api/world-model');
-    expect(src).toContain('owner key');
+    expect(src).toContain('hasMemory');
   });
 });
 

@@ -36,7 +36,10 @@ export default function APIKeys() {
   async function createKey() {
     if (!bridge) return;
     const label = newLabel.trim() || 'My API Key';
-    const created = await bridge.apikeys.create(label, { owner: newKeyType === 'owner' });
+    const created = await bridge.apikeys.create(label, {
+      owner: newKeyType === 'owner',
+      memory: newKeyType === 'named',
+    });
     setNewLabel('');
     setNewKeyType('guest');
     setNewlyCreatedKey(created);   // ← show the full secret immediately
@@ -207,13 +210,24 @@ export default function APIKeys() {
               </div>
             </div>
           </label>
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', padding: '10px 14px', borderRadius: 8, border: `1.5px solid ${newKeyType === 'named' ? 'var(--pipe-yellow)' : 'rgba(93,78,55,0.15)'}`, background: newKeyType === 'named' ? 'rgba(212,160,23,0.06)' : 'transparent' }}>
+            <input type="radio" name="keyType" checked={newKeyType === 'named'} onChange={() => setNewKeyType('named')} style={{ marginTop: 3 }} />
+            <div>
+              <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--earth)' }}>🧑‍🤝‍🧑 Family / member key</div>
+              <div style={{ fontSize: 12.5, color: 'var(--text-light)', lineHeight: 1.5, marginTop: 2 }}>
+                For a specific person (e.g. Ashini, Anjali). Gets their <strong>own private memory</strong> that
+                follows them across their devices — chat + safe tools. No computer use, can't see your memory.
+                Use the label field above for their name.
+              </div>
+            </div>
+          </label>
           <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', padding: '10px 14px', borderRadius: 8, border: `1.5px solid ${newKeyType === 'guest' ? 'var(--pipe-yellow)' : 'rgba(93,78,55,0.15)'}`, background: newKeyType === 'guest' ? 'rgba(212,160,23,0.06)' : 'transparent' }}>
             <input type="radio" name="keyType" checked={newKeyType === 'guest'} onChange={() => setNewKeyType('guest')} style={{ marginTop: 3 }} />
             <div>
-              <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--earth)' }}>👤 Guest key</div>
+              <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--earth)' }}>👤 Anonymous guest key</div>
               <div style={{ fontSize: 12.5, color: 'var(--text-light)', lineHeight: 1.5, marginTop: 2 }}>
                 Reasoning engine only: chat and safe tools (web search, calculator).
-                No computer use, no access to your memory or chat history. Safe to share.
+                No memory, no computer use. Ephemeral — safe to share widely.
               </div>
             </div>
           </label>
@@ -243,10 +257,10 @@ export default function APIKeys() {
                   </span>
                   <span style={{
                     fontSize: 11, fontWeight: 600, marginLeft: 10, padding: '2px 8px', borderRadius: 10,
-                    background: key.owner ? 'rgba(212,160,23,0.15)' : 'rgba(93,78,55,0.1)',
-                    color: key.owner ? '#9a7d0a' : 'var(--text-light)',
+                    background: key.owner ? 'rgba(212,160,23,0.15)' : (key.memory ? 'rgba(90,140,90,0.15)' : 'rgba(93,78,55,0.1)'),
+                    color: key.owner ? '#9a7d0a' : (key.memory ? '#3c6b3c' : 'var(--text-light)'),
                   }}>
-                    {key.owner ? '👑 Owner' : '👤 Guest'}
+                    {key.owner ? '👑 Owner' : (key.memory ? '🧑‍🤝‍🧑 Member' : '👤 Guest')}
                   </span>
                   <span style={{ fontSize: 12, color: 'var(--text-light)', marginLeft: 12 }}>
                     Created {new Date(key.created).toLocaleDateString()}
