@@ -534,7 +534,7 @@ async function chat(model, messages, onChunk) {
     const res = await fetch(`${OLLAMA_HOST}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, messages: enrichedMessages, stream: true, options: { num_predict: -1, num_ctx: system.getRecommendedContext() } }),
+      body: JSON.stringify({ model, messages: enrichedMessages, stream: true, keep_alive: -1, options: { num_predict: -1, num_ctx: system.getRecommendedContext() } }),
       signal: chatController.signal,
     });
 
@@ -582,10 +582,25 @@ function abortChat() {
   return { success: false, error: 'No active chat' };
 }
 
+// Warm a model so the first real message doesn't pay the cold-load penalty.
+// keep_alive:-1 keeps it resident; num_predict:1 makes the ping nearly free.
+// Fire-and-forget — failure is harmless (the next real request still loads it).
+function warmModel(model) {
+  if (!model) return;
+  try {
+    fetch(`${OLLAMA_HOST}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model, messages: [{ role: 'user', content: 'hi' }], stream: false, keep_alive: -1, options: { num_predict: 1 } }),
+    }).then((r) => r.text()).then(() => console.log(`[Aspen] Warmed model: ${model}`)).catch(() => {});
+  } catch {}
+}
+
 module.exports = {
   isRunning, isInstalled, getStatus, install, ensureRunning,
   ensureCurrent, isCurrentEnough, getRunningVersion,
   chat, abortChat, getOllamaPath, getBundledPath, getDownloadedPath,
   isVisionModel, hasVisionModel, listModels, pullModel, abortPull, getModelCapabilities,
+  warmModel,
   RECOMMENDED_VISION_MODEL,
 };

@@ -541,7 +541,11 @@ ipcMain.handle('store:set', async (event, key, value) => {
     console.warn('[Security] Blocked store:set for non-allowlisted key:', key);
     return false;
   }
-  return store.set(key, value);
+  const result = store.set(key, value);
+  // When the user switches models, warm the new one immediately so the first
+  // message on it isn't a cold load (the startup warm-up only covered boot).
+  if (key === 'activeModel' && value) { try { ollama.warmModel(value); } catch {} }
+  return result;
 });
 
 // ── Tool settings (all tools ON by default) ──

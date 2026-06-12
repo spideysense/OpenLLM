@@ -365,6 +365,16 @@ API keys now have two types, chosen via radio at creation (`src/renderer/pages/A
 
 Enforced in `gateway-agent.js` (`executeAnyTool` checks `isOwner` for DANGEROUS_TOOLS) and `gateway.js` `/v1/world-model` route (guests get `{facts:[], owner:false}`).
 
+## COLD START — keep the model resident (2026-06-12)
+
+Ollama unloads a model after its idle timeout (default 5 min) and resets that
+timer to the default on ANY request that omits `keep_alive`. So every chat path
+must send `keep_alive: -1`, or one stray path silently brings cold starts back.
+Covered: gateway proxy (`gateway.js`), gateway-agent (`KEEP_ALIVE`), desktop
+streaming (`ollama.js`), desktop agent (`agent.js`). Warm triggers: startup
+(gateway `tryListen`) and model switch (`store:set` activeModel →
+`ollama.warmModel`). Guard: `tests/critical/cold-start.test.js`.
+
 ## FAST PATH (added 2026-06-10)
 
 `gateway-agent.js` `run()` has a fast path: `messageNeedsTools()` checks the message against `TOOL_TRIGGERS` regexes. If no tool is needed (most messages), it streams straight from Ollama via `ollamaStream()` — instant. Only tool-triggering messages go through the slower non-streaming agent loop. This fixed the "every web/mobile message is wicked slow" problem (previously every message did a non-streaming agent round-trip).

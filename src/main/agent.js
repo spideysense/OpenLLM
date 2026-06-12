@@ -22,7 +22,7 @@ const MAX_TOOL_ROUNDS = 4; // safety cap so a confused model can't loop forever
 function ollamaChat(payload) {
   return new Promise((resolve, reject) => {
     const ctx = system.getRecommendedContext();
-    const body = JSON.stringify({ ...payload, stream: false, max_tokens: ctx, options: { num_predict: -1, num_ctx: ctx } });
+    const body = JSON.stringify({ ...payload, stream: false, max_tokens: ctx, keep_alive: -1, options: { num_predict: -1, num_ctx: ctx } });
     const req = http.request(
       {
         hostname: OLLAMA_HOST,
