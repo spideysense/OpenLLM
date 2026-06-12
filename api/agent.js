@@ -24,9 +24,10 @@ function cors(origin) {
     ? origin : 'https://runonaspen.com';
   return {
     'Access-Control-Allow-Origin': allow,
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Vary': 'Origin',
+    'X-Aspen-Proxy': 'agent-v2',
   };
 }
 
@@ -39,6 +40,13 @@ function jsonErr(msg, status, origin) {
 export default async function handler(req) {
   const origin = req.headers.get('origin') || '';
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors(origin) });
+  // GET = health check. Visit runonaspen.com/api/agent in a browser to confirm
+  // THIS version is the one actually deployed (returns the marker below).
+  if (req.method === 'GET') {
+    return new Response(JSON.stringify({ ok: true, version: 'agent-v2', ts: Date.now() }), {
+      status: 200, headers: { ...cors(origin), 'Content-Type': 'application/json' },
+    });
+  }
   if (req.method !== 'POST') return jsonErr('POST only', 405, origin);
 
   // Whole body wrapped: this function must NEVER return an opaque
@@ -87,16 +95,10 @@ export default async function handler(req) {
     const streamBody = new ReadableStream({
       start(controller) {
         const enq = (s) => { try { controller.enqueue(encoder.encode(s)); } catch {} };
-        let alive = true;
-        let heartbeat = null;
-        try {
-          enq(': connected\n\n');
-          // Guard setInterval — if the runtime doesn't provide it, skip the
-          // heartbeat rather than throwing and killing the whole invocation.
-          if (typeof setInterval === 'function') {
-            heartbeat = setInterval(() => { if (alive) enq(': keep-alive\n\n'); }, 8000);
-          }
-        } catch { /* heartbeat is optional; never fatal */ }
+        // Flush a byte immediately so the response is "started". NO setInterval —
+        // it was the crash suspect and isn't needed: once the upstream agent
+        // streams, its own tokens keep the connection alive.
+        enq(': connected\n\n');
 
         (async () => {
           try {
@@ -117,8 +119,6 @@ export default async function handler(req) {
             enq(`data: ${JSON.stringify({ error: `Cannot reach tunnel: ${e && e.message ? e.message : e}` })}\n\n`);
             enq('data: [DONE]\n\n');
           } finally {
-            alive = false;
-            if (heartbeat) { try { clearInterval(heartbeat); } catch {} }
             try { controller.close(); } catch {}
           }
         })();
