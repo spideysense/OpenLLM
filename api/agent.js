@@ -1,14 +1,15 @@
 /**
- * /api/agent — routes chat through the gateway's agent loop.
+ * /api/agent — Node.js runtime (NOT edge).
  *
- * Unlike /api/proxy (which hits Ollama directly), this goes through
- * /v1/agent on the user's machine: web_search, calculate, run_command,
- * computer use, and every other tool all execute on the Aspen machine.
+ * The Edge runtime (edge-on-lambda) was crashing at the PLATFORM level
+ * (ProcessExitedPrematurelyError, /tmp/sources/config.capnp) — the edge child
+ * process exits before our code runs, so no try/catch in the handler could help.
+ * The standard Node runtime sidesteps the broken edge runtime entirely.
  *
- * The gateway enforces its own auth and owner-key checks — this Vercel
- * function is purely a streaming pass-through to the tunnel.
+ * Streams Server-Sent Events from the user's gateway (/v1/agent via the tunnel)
+ * straight through to the browser.
  */
-export const config = { runtime: 'edge' };
+export const config = { maxDuration: 60 };
 
 const ALLOWED_ORIGINS = [
   'https://runonaspen.com',
@@ -19,124 +20,94 @@ const ALLOWED_ORIGINS = [
   'https://localhost',
 ];
 
-function cors(origin) {
+function setCors(res, origin) {
   const allow = (ALLOWED_ORIGINS.includes(origin) || (origin && origin.endsWith('.runonaspen.com')))
     ? origin : 'https://runonaspen.com';
-  return {
-    'Access-Control-Allow-Origin': allow,
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Vary': 'Origin',
-    'X-Aspen-Proxy': 'agent-v2',
-  };
+  res.setHeader('Access-Control-Allow-Origin', allow);
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Vary', 'Origin');
+  res.setHeader('X-Aspen-Proxy', 'agent-node-v3');
 }
 
-function jsonErr(msg, status, origin) {
-  return new Response(JSON.stringify({ error: msg }), {
-    status, headers: { ...cors(origin), 'Content-Type': 'application/json' },
-  });
+function endJson(res, status, obj) {
+  res.statusCode = status;
+  res.setHeader('Content-Type', 'application/json');
+  res.end(JSON.stringify(obj));
 }
 
-export default async function handler(req) {
-  const origin = req.headers.get('origin') || '';
-  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors(origin) });
-  // GET = health check. Visit runonaspen.com/api/agent in a browser to confirm
-  // THIS version is the one actually deployed (returns the marker below).
-  if (req.method === 'GET') {
-    return new Response(JSON.stringify({ ok: true, version: 'agent-v2', ts: Date.now() }), {
-      status: 200, headers: { ...cors(origin), 'Content-Type': 'application/json' },
-    });
-  }
-  if (req.method !== 'POST') return jsonErr('POST only', 405, origin);
+export default async function handler(req, res) {
+  const origin = req.headers.origin || '';
+  setCors(res, origin);
 
-  // Whole body wrapped: this function must NEVER return an opaque
-  // FUNCTION_INVOCATION_FAILED. Any unexpected throw is caught and returned as a
-  // real, readable error the app can show (and we can debug).
-  try {
-    let body;
-    try { body = await req.json(); } catch { return jsonErr('Invalid JSON', 400, origin); }
+  if (req.method === 'OPTIONS') { res.statusCode = 204; res.end(); return; }
+  // GET = health check. Visit /api/agent in a browser to confirm the deployed
+  // version (returns the marker below) without DevTools.
+  if (req.method === 'GET') return endJson(res, 200, { ok: true, version: 'agent-node-v3', ts: Date.now() });
+  if (req.method !== 'POST') return endJson(res, 405, { error: 'POST only' });
 
-    const { tunnelUrl, apiKey, model, messages, stream = true } = body;
-    if (!tunnelUrl) return jsonErr('tunnelUrl required', 400, origin);
-
-    let parsed;
-    try { parsed = new URL(tunnelUrl); } catch { return jsonErr('Invalid tunnelUrl', 400, origin); }
-    if (!parsed.hostname.endsWith('.runonaspen.com') && parsed.hostname !== 'runonaspen.com') {
-      return jsonErr('tunnelUrl must be a runonaspen.com domain', 403, origin);
-    }
-
-    const upstream = `${tunnelUrl.replace(/\/+$/, '')}/v1/agent`;
-    const upHeaders = {
-      'Content-Type': 'application/json',
-      'User-Agent': 'Aspen-AgentProxy/1.0',
-      ...(apiKey ? { 'Authorization': `Bearer ${apiKey}` } : {}),
-    };
-    const upBody = JSON.stringify({ model, messages, stream });
-
-    // NON-STREAMING
-    if (!stream) {
-      let upRes;
-      try { upRes = await fetch(upstream, { method: 'POST', headers: upHeaders, body: upBody }); }
-      catch (e) { return jsonErr(`Cannot reach tunnel: ${e.message}`, 502, origin); }
-      if (!upRes.ok) {
-        const t = await upRes.text().catch(() => '');
-        return jsonErr(`Upstream ${upRes.status}: ${t.slice(0, 200)}`, upRes.status, origin);
+  // Body — Vercel usually pre-parses JSON, but read the raw stream if not.
+  let body = req.body;
+  if (!body || typeof body === 'string') {
+    try {
+      if (typeof body === 'string' && body.trim()) {
+        body = JSON.parse(body);
+      } else {
+        const chunks = [];
+        for await (const c of req) chunks.push(typeof c === 'string' ? Buffer.from(c) : c);
+        body = chunks.length ? JSON.parse(Buffer.concat(chunks).toString('utf8')) : {};
       }
-      return new Response(JSON.stringify(await upRes.json()), {
-        status: 200,
-        headers: { ...cors(origin), 'Content-Type': 'application/json' },
-      });
+    } catch { return endJson(res, 400, { error: 'Invalid JSON' }); }
+  }
+  body = body || {};
+
+  const { tunnelUrl, apiKey, model, messages } = body;
+  if (!tunnelUrl) return endJson(res, 400, { error: 'tunnelUrl required' });
+
+  let parsed;
+  try { parsed = new URL(tunnelUrl); } catch { return endJson(res, 400, { error: 'Invalid tunnelUrl' }); }
+  if (!parsed.hostname.endsWith('.runonaspen.com') && parsed.hostname !== 'runonaspen.com') {
+    return endJson(res, 403, { error: 'tunnelUrl must be a runonaspen.com domain' });
+  }
+
+  const upstream = `${tunnelUrl.replace(/\/+$/, '')}/v1/agent`;
+  const upHeaders = {
+    'Content-Type': 'application/json',
+    'User-Agent': 'Aspen-AgentProxy/1.0',
+    ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
+  };
+  const upBody = JSON.stringify({ model, messages, stream: true });
+
+  // Start the SSE stream immediately.
+  res.statusCode = 200;
+  res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.setHeader('Connection', 'keep-alive');
+  if (typeof res.flushHeaders === 'function') res.flushHeaders();
+  res.write(': connected\n\n');
+
+  try {
+    const upRes = await fetch(upstream, { method: 'POST', headers: upHeaders, body: upBody });
+    if (!upRes.ok || !upRes.body) {
+      const t = await upRes.text().catch(() => '');
+      res.write(`data: ${JSON.stringify({ error: `Upstream ${upRes.status}: ${t.slice(0, 200)}` })}\n\n`);
+      res.write('data: [DONE]\n\n');
+      res.end();
+      return;
     }
-
-    // STREAMING — open the response stream IMMEDIATELY so Vercel's first-byte
-    // window is satisfied before the agent loop runs. Every step here is
-    // defensive: a throw inside start() must emit an SSE error, never crash.
-    const encoder = new TextEncoder();
-    const streamBody = new ReadableStream({
-      start(controller) {
-        const enq = (s) => { try { controller.enqueue(encoder.encode(s)); } catch {} };
-        // Flush a byte immediately so the response is "started". NO setInterval —
-        // it was the crash suspect and isn't needed: once the upstream agent
-        // streams, its own tokens keep the connection alive.
-        enq(': connected\n\n');
-
-        (async () => {
-          try {
-            const upRes = await fetch(upstream, { method: 'POST', headers: upHeaders, body: upBody });
-            if (!upRes.ok || !upRes.body) {
-              const t = await upRes.text().catch(() => '');
-              enq(`data: ${JSON.stringify({ error: `Upstream ${upRes.status}: ${t.slice(0, 200)}` })}\n\n`);
-              enq('data: [DONE]\n\n');
-              return;
-            }
-            const reader = upRes.body.getReader();
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
-              try { controller.enqueue(value); } catch { break; }
-            }
-          } catch (e) {
-            enq(`data: ${JSON.stringify({ error: `Cannot reach tunnel: ${e && e.message ? e.message : e}` })}\n\n`);
-            enq('data: [DONE]\n\n');
-          } finally {
-            try { controller.close(); } catch {}
-          }
-        })();
-      },
-    });
-
-    return new Response(streamBody, {
-      status: 200,
-      headers: {
-        ...cors(origin),
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'X-Accel-Buffering': 'no',
-      },
-    });
+    const reader = upRes.body.getReader();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      res.write(Buffer.from(value));
+    }
+    res.end();
   } catch (e) {
-    // Last resort — turn an opaque FUNCTION_INVOCATION_FAILED into a readable
-    // error so the app shows something useful and we can see the real cause.
-    return jsonErr(`agent proxy error: ${e && e.message ? e.message : String(e)}`, 500, origin);
+    try {
+      res.write(`data: ${JSON.stringify({ error: `Cannot reach tunnel: ${e && e.message ? e.message : e}` })}\n\n`);
+      res.write('data: [DONE]\n\n');
+      res.end();
+    } catch {}
   }
 }
