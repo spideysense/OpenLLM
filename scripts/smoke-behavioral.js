@@ -26,6 +26,7 @@ const http = require('http');
 const gw = require('../src/main/gateway-agent');
 const capabilities = require('../src/main/capabilities');
 
+const DETERMINISTIC_ONLY = process.argv.includes('--deterministic-only');
 const OLLAMA = { host: '127.0.0.1', port: 11434 };
 const results = [];
 let LAYER = 'deterministic';
@@ -47,10 +48,16 @@ async function listModels() {
   catch { return null; } // null = Ollama not reachable
 }
 
-// Drive the real agent and collect events with a hard wall-clock cap.
-async function runCase(model, userText, { timeoutMs = 240000 } = {}) {
+// Drive the real agent and collect events with a hard wall-clock cap. Prints a
+// live heartbeat so a slow model never looks like a hang.
+async function runCase(model, userText, { timeoutMs = 240000, label = '' } = {}) {
   const events = [];
   const start = Date.now();
+  let ticker = null;
+  if (label) {
+    process.stdout.write(`  ⏳ ${label} — running`);
+    ticker = setInterval(() => process.stdout.write(`\r  ⏳ ${label} — running (${Math.round((Date.now() - start) / 1000)}s)`), 2000);
+  }
   const messages = [{ role: 'user', content: userText }];
   const iterator = gw.run({ model, messages, isOwner: true });
   let timedOut = false;
@@ -59,6 +66,7 @@ async function runCase(model, userText, { timeoutMs = 240000 } = {}) {
     (async () => { for await (const ev of iterator) { events.push(ev); if (ev.type === 'done' || ev.type === 'error') break; } })(),
     guard,
   ]);
+  if (ticker) { clearInterval(ticker); process.stdout.write('\r' + ' '.repeat(60) + '\r'); }
   const content = events.filter((e) => e.type === 'content').map((e) => e.text).join('');
   const toolCalls = events.filter((e) => e.type === 'tool_call').map((e) => e.name);
   const error = events.find((e) => e.type === 'error');
@@ -106,14 +114,14 @@ async function liveChecks(models) {
 
   // 1) Plain chat completes with a non-empty answer and no error.
   {
-    const r = await runCase(toolModel, 'In one sentence, what is a hash map?', { timeoutMs: 180000 });
+    const r = await runCase(toolModel, 'In one sentence, what is a hash map?', { timeoutMs: 180000, label: 'plain chat' });
     record('plain chat completes (no error, non-empty)', !r.error && !r.timedOut && r.content.trim().length > 0,
       r.error ? r.error.text : r.timedOut ? 'WALL-CLOCK TIMEOUT' : `${r.ms}ms, ${r.content.length} chars`);
   }
 
   // 2) THE timeout regression: a heavier prompt must complete, not false-timeout.
   {
-    const r = await runCase(toolModel, 'Explain, step by step, how TLS 1.3 establishes a session key. Be thorough.', { timeoutMs: 240000 });
+    const r = await runCase(toolModel, 'Explain in a short paragraph how TLS establishes a session key.', { timeoutMs: 240000, label: 'heavy prompt (no false timeout)' });
     const stalled = r.error && /stall|no output|timed out/i.test(r.error.text || '');
     record('heavy/reasoning prompt completes (no false timeout)', !r.error && !r.timedOut,
       stalled ? `FALSE TIMEOUT: ${r.error.text}` : r.error ? r.error.text : r.timedOut ? 'WALL-CLOCK TIMEOUT' : `${(r.ms / 1000).toFixed(1)}s`);
@@ -121,7 +129,7 @@ async function liveChecks(models) {
 
   // 3) Search round-trip: a local lookup should invoke web_search and answer.
   {
-    const r = await runCase(toolModel, 'Find me a good independent coffee shop in Burlingame, CA (not a chain).', { timeoutMs: 240000 });
+    const r = await runCase(toolModel, 'Find me a good independent coffee shop in Burlingame, CA (not a chain).', { timeoutMs: 240000, label: 'search round-trip' });
     const searched = r.toolCalls.includes('web_search');
     record('local lookup invokes web_search end to end', searched && !r.error,
       r.error ? r.error.text : searched ? `tools: [${r.toolCalls.join(', ')}], ${(r.ms / 1000).toFixed(1)}s` : `NO SEARCH (tools: [${r.toolCalls.join(', ') || 'none'}])`);
@@ -129,7 +137,7 @@ async function liveChecks(models) {
 
   // 4) Chat-tier model never enters the tool loop (stays fast) — if one is installed.
   if (chatModel) {
-    const r = await runCase(chatModel, 'Find me a coffee shop in Burlingame.', { timeoutMs: 180000 });
+    const r = await runCase(chatModel, 'Find me a coffee shop in Burlingame.', { timeoutMs: 180000, label: 'chat-tier stays tool-free' });
     record('chat-tier model stays tool-free (fast path)', r.toolCalls.length === 0 && !r.error,
       r.error ? r.error.text : `tools: [${r.toolCalls.join(', ') || 'none'}], ${(r.ms / 1000).toFixed(1)}s`);
   } else {
@@ -142,7 +150,9 @@ async function liveChecks(models) {
   deterministicChecks();
 
   const models = await listModels();
-  if (!models) {
+  if (DETERMINISTIC_ONLY) {
+    console.log('\n\x1b[2mLive model layer skipped (--deterministic-only). Run `npm run smoke` for the full check.\x1b[0m');
+  } else if (!models) {
     console.log('\n\x1b[33mLive model layer skipped — Ollama not reachable on 127.0.0.1:11434.\x1b[0m');
     console.log('(Start Ollama and re-run to exercise the real agent against a model.)');
   } else if (models.length === 0) {

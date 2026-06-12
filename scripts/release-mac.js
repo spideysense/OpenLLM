@@ -205,16 +205,16 @@ function contentTypeFor(name) {
   console.log('▶ Smoke testing the built app (must boot + render)...');
   execSync('node scripts/smoke-test.js', { cwd: ROOT, stdio: 'inherit' });
 
-  // Behavioral smoke — drives the REAL agent against the local Ollama. The
-  // deterministic layer (tool routing, capability tiers) gates the release; the
-  // live model layer is advisory here (model nondeterminism shouldn't block a
-  // ship), but prints loudly. Run `npm run smoke` for the strict version.
-  console.log('▶ Behavioral smoke test (agent routing + live model)...');
+  // Behavioral smoke — DETERMINISTIC layer only (tool routing + capability
+  // tiers). This is instant and gates the release. The live model layer is NOT
+  // run here: it takes minutes on a large model and would make releases look
+  // hung. Run `npm run smoke` (with Ollama up) to exercise the live agent.
+  console.log('▶ Behavioral smoke test (routing + capability tiers)...');
   try {
-    execSync('node scripts/smoke-behavioral.js', { cwd: ROOT, stdio: 'inherit', env: { ...process.env, SMOKE_LIVE_NONFATAL: '1' } });
+    execSync('node scripts/smoke-behavioral.js --deterministic-only', { cwd: ROOT, stdio: 'inherit' });
   } catch (e) {
-    console.error('\n❌ Behavioral smoke test failed a DETERMINISTIC check — refusing to build.');
-    console.error('   (Run `npm run smoke` to see details. This is a real routing/capability regression.)');
+    console.error('\n❌ Behavioral smoke test failed — refusing to build.');
+    console.error('   (A routing/capability regression. Run `npm run smoke` for details.)');
     process.exit(1);
   }
 
