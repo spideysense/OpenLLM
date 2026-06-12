@@ -25,6 +25,9 @@ export default function Chat() {
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamBuffer, setStreamBuffer] = useState('');
+  // Live reasoning trail (status + tool steps) for the in-progress message.
+  const [trail, setTrail] = useState([]);
+  const trailRef = useRef([]);
   const [attachments, setAttachments] = useState([]); // { type: 'image'|'text', name, data, preview }
   const [isListening, setIsListening] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(false);
@@ -231,8 +234,19 @@ export default function Chat() {
   useEffect(() => {
     if (!bridge) return;
     const unsub = bridge.chat.onStream((chunk) => {
+      // Reasoning-trail event (status / tool step) — accumulate, don't treat as
+      // answer content. Mirrors the web/mobile live trail.
+      if (chunk.aspen_status) {
+        const step = { status: chunk.aspen_status, tool: chunk.aspen_tool || null };
+        trailRef.current = [...trailRef.current, step];
+        setTrail(trailRef.current);
+        return;
+      }
       if (chunk.done) {
         setIsStreaming(false);
+        const finishedTrail = trailRef.current;
+        trailRef.current = [];
+        setTrail([]);
         // Read the accumulated buffer via the functional updater, capture it,
         // commit the assistant message in the SAME pass, then clear. The old code
         // assigned finalContent inside the updater and read it in a setTimeout
@@ -244,7 +258,7 @@ export default function Chat() {
               c.id === activeConvo
                 ? {
                     ...c,
-                    messages: [...c.messages, { role: 'assistant', content: finalContent }],
+                    messages: [...c.messages, { role: 'assistant', content: finalContent, trail: finishedTrail.length ? finishedTrail : undefined }],
                     title: c.messages.length === 0 ? (c.messages[0]?.content || 'Chat').slice(0, 40) : c.title,
                   }
                 : c
@@ -311,6 +325,8 @@ export default function Chat() {
     setAttachments([]);
     setIsStreaming(true);
     setStreamBuffer('');
+    trailRef.current = [];
+    setTrail([]);
 
     if (bridge) {
       // Pass messages without uiMsg extras (Ollama doesn't want attachmentPreviews)
@@ -671,6 +687,7 @@ export default function Chat() {
                   ? <img key={j} src={a.preview} alt={a.name} style={{ maxWidth: 240, maxHeight: 180, borderRadius: 8, marginBottom: 8, display: 'block' }} />
                   : <div key={j} style={{ fontSize: 11, color: 'var(--text-light)', marginBottom: 6, padding: '4px 8px', background: 'rgba(93,78,55,.06)', borderRadius: 6 }}>📄 {a.name}</div>
               ))}
+              {msg.role === 'assistant' && msg.trail && <ReasoningTrail steps={msg.trail} live={false} />}
               <MessageContent content={msg.content} onOpenArtifact={openArtifact} />
               {/* Message actions */}
               {msg.role === 'assistant' && !isStreaming && (
@@ -695,6 +712,7 @@ export default function Chat() {
           <div className="chat-message assistant">
             <div className="chat-avatar">🌿</div>
             <div className="chat-bubble">
+              {trail.length > 0 && <ReasoningTrail steps={trail} live={true} />}
               {isStreaming && !streamBuffer ? (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                   <svg viewBox="0 0 48 48" style={{ width: 22, height: 22, flexShrink: 0 }} aria-label="Thinking">
@@ -1004,6 +1022,34 @@ export default function Chat() {
 }
 
 // ─── Safe Markdown rendering — no dangerouslySetInnerHTML ───
+// Live / persisted reasoning trail — the accumulating list of agent steps
+// (status + tool calls), matching the web/mobile surfaces. When `live` it shows
+// expanded with a pulse; when finished it collapses to a clickable summary.
+function ReasoningTrail({ steps, live = false }) {
+  const [open, setOpen] = useState(live);
+  useEffect(() => { if (live) setOpen(true); }, [live]);
+  if (!steps || steps.length === 0) return null;
+  const last = steps[steps.length - 1];
+  return (
+    <div className="aspen-trail" style={{ marginBottom: 8, fontSize: 13, color: 'var(--text-light)' }}>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-light)', padding: 0, font: 'inherit' }}
+      >
+        <span style={{ opacity: live ? 1 : 0.7 }}>{live ? last.status : `Reasoning · ${steps.length} step${steps.length > 1 ? 's' : ''}`}</span>
+        <span style={{ fontSize: 10 }}>{open ? '▲' : '▼'}</span>
+      </button>
+      {open && (
+        <div style={{ marginTop: 6, paddingLeft: 10, borderLeft: '2px solid var(--border, #3a352f)', display: 'flex', flexDirection: 'column', gap: 3 }}>
+          {steps.map((s, i) => (
+            <div key={i} style={{ opacity: live && i === steps.length - 1 ? 1 : 0.65 }}>{s.status}</div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function MessageContent({ content, onOpenArtifact }) {
   if (!content) return null;
   const text = typeof content === 'string' ? content : String(content || '');

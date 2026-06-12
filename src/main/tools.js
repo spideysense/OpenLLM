@@ -502,9 +502,22 @@ function getToolDefinitions(enabledNames) {
   const builtins = Object.entries(TOOLS)
     .filter(([name]) => enabledNames.includes(name))
     .map(([, t]) => t.definition);
-  // Computer use tools — only on desktop (Electron), always owner-only
+  // Computer use tools — only on desktop (Electron), always owner-only.
+  // computer-use.js defines them in Anthropic `input_schema` shape, but Ollama
+  // (the desktop agent's backend) only understands the OpenAI function shape.
+  // Sending the raw Anthropic objects means the model never receives usable
+  // computer tools and silently can't drive the screen — so translate here.
   const computerTools = enabledNames.includes('computer_use') && computerUse
-    ? computerUse.COMPUTER_TOOLS
+    ? (computerUse.COMPUTER_TOOLS || []).map((t) => (
+        t.function ? t : {
+          type: 'function',
+          function: {
+            name: t.name,
+            description: t.description,
+            parameters: t.input_schema || t.parameters || { type: 'object', properties: {} },
+          },
+        }
+      ))
     : [];
   return [...builtins, ...computerTools, ...mcpToolDefinitions()];
 }

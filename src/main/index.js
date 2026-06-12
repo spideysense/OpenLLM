@@ -417,7 +417,21 @@ ipcMain.handle('chat:send', async (event, { model, messages }) => {
 
   if (agent.isEnabled()) {
     try {
-      const content = await agent.runAgent({ model, messages: fullMessages });
+      // Forward live reasoning-trail events (status + each tool call) to the
+      // renderer so the desktop shows the same accumulating trail as web/mobile.
+      // These carry aspen_status/aspen_tool and NO content, so the renderer must
+      // not append them to the answer buffer.
+      const onEvent = (e) => {
+        const statusText = e.type === 'tool_call' ? (e.statusText || e.name) : (e.text || '');
+        if (!statusText) return;
+        mainWindow?.webContents.send('chat:stream', {
+          aspen_status: statusText,
+          aspen_tool: e.name || null,
+          content: '',
+          done: false,
+        });
+      };
+      const content = await agent.runAgent({ model, messages: fullMessages, onEvent });
       mainWindow?.webContents.send('chat:stream', { content: content || '', done: false });
       mainWindow?.webContents.send('chat:stream', { content: '', done: true });
       // Extract facts from the completed conversation

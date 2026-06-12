@@ -22,6 +22,8 @@ Every chat feature must exist in **all three places**. Forgetting one is the mos
 2. **Web app:** `site/app/index.html` (vanilla JS, served at runonaspen.com/app)
 3. **Mobile (Capacitor):** `mobile/www/index.html` (vanilla JS)
 
+The live reasoning trail (status + tool steps) now exists on all three: web/mobile read `aspen_status`/`aspen_tool` off the gateway SSE; desktop gets them from `agent.runAgent({onEvent})` → `chat:send` IPC → `chat:stream` chunks carrying `aspen_status` → the `ReasoningTrail` component in Chat.jsx. Guarded by `tests/critical/ssrf-and-auth.test.js`.
+
 ### The Store Allowlist — Any New Store Keys Must Be Added
 `src/main/index.js` has `STORE_ALLOWLIST`. If a renderer tries to call `bridge.store.set(key, value)` and `key` is not in that set, the write is **silently blocked**. The symptom: settings that reset on every restart. **Before adding any new persistent setting, add its key to `STORE_ALLOWLIST`.**
 
@@ -231,6 +233,13 @@ Every bug below was found in production. Tests in `tests/critical/` guard agains
 **Symptom (latent):** the per-IP rate limit and 10-fail auth lockout keyed off the client-controlled first `x-forwarded-for` value, so rotating that header defeated both.
 **Fix:** prefer Cloudflare's `cf-connecting-ip` (set by the tunnel, overwrites client values), then XFF, then socket.
 **Test:** `tests/critical/ssrf-and-auth.test.js`
+
+### 16. Computer use silently dead on DESKTOP — wrong tool-def format (2026-06-12)
+**Symptom:** computer use never worked in the desktop app — the model never clicked/typed/screenshotted.
+**Cause:** `computer-use.js` defines `COMPUTER_TOOLS` in Anthropic `input_schema` shape. The desktop agent passes them straight to Ollama via `getToolDefinitions()`, but Ollama only understands the OpenAI `{type:'function', function:{name, parameters}}` shape. The malformed defs were ignored, so the model never received usable computer tools. (The gateway path worked only because it has its own `GATEWAY_COMPUTER_TOOL_DEFS` in OpenAI shape.)
+**Fix:** `getToolDefinitions()` now translates computer tools to OpenAI shape before returning. `executeTool` routing and the osascript/PowerShell fallbacks were already correct.
+**Still required by the user:** macOS Screen Recording + Accessibility permissions (granted once in System Settings). Those can't be fixed in code.
+**Test:** `tests/critical/ssrf-and-auth.test.js` (OpenAI-format assertion)
 
 ---
 

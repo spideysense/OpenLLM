@@ -161,23 +161,57 @@ describe('Debug endpoint is gated and does not leak the base URL', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 5. Reasoning-trail parity (web ↔ mobile)
-//    The live reasoning/tool-step trail ships on the two surfaces that share the
-//    gateway SSE path (web + mobile). The "forgetting one surface" footgun is the
-//    most common bug in this codebase, so guard that neither drops the signal.
-//    (Desktop uses the IPC→agent.js path and renders reasoning differently — it
-//    is intentionally excluded here.)
+// 5. Reasoning-trail parity (desktop ↔ web ↔ mobile)
+//    The live reasoning/tool-step trail now ships on all three surfaces. The
+//    "forgetting one surface" footgun is the most common bug in this codebase,
+//    so guard that none of them drops the aspen_status / aspen_tool signal.
 // ─────────────────────────────────────────────────────────────────────────────
-describe('Reasoning trail — web and mobile stay in sync', () => {
+describe('Reasoning trail — all three surfaces stay in sync', () => {
   const web = fs.readFileSync(path.resolve('site/app/index.html'), 'utf8');
   const mobile = fs.readFileSync(path.resolve('mobile/www/index.html'), 'utf8');
-  it('web app consumes the aspen_status / aspen_tool SSE signals', () => {
+  const desktop = fs.readFileSync(path.resolve('src/renderer/pages/Chat.jsx'), 'utf8');
+  const indexJs = fs.readFileSync(path.resolve('src/main/index.js'), 'utf8');
+
+  it('web app consumes the aspen_status / aspen_tool signals', () => {
     expect(web).toMatch(/aspen_status/);
     expect(web).toMatch(/aspen_tool/);
   });
-  it('mobile app consumes the aspen_status / aspen_tool SSE signals', () => {
+  it('mobile app consumes the aspen_status / aspen_tool signals', () => {
     expect(mobile).toMatch(/aspen_status/);
     expect(mobile).toMatch(/aspen_tool/);
+  });
+  it('desktop renderer consumes the aspen_status signal', () => {
+    expect(desktop).toMatch(/aspen_status/);
+    expect(desktop).toMatch(/ReasoningTrail/);
+  });
+  it('desktop main forwards agent trail events over chat:stream', () => {
+    expect(indexJs).toMatch(/aspen_status:/);
+    expect(indexJs).toMatch(/onEvent/);
+  });
+});
+
+describe('Desktop agent emits live trail events', () => {
+  it('runAgent accepts an onEvent callback and threads it through', () => {
+    const src = fs.readFileSync(path.resolve('src/main/agent.js'), 'utf8');
+    expect(src).toMatch(/onEvent/);
+    expect(src).toMatch(/type:\s*'tool_call'/);
+    expect(src).toMatch(/statusFor\(/);
+  });
+});
+
+// Computer tool definitions must reach Ollama in OpenAI shape on the desktop
+// path (the Anthropic input_schema shape silently disabled computer use).
+describe('Computer tools are emitted in OpenAI/Ollama format', () => {
+  it('getToolDefinitions wraps computer tools as {type:function}', async () => {
+    const tools = await import('../../src/main/tools.js');
+    const defs = tools.getToolDefinitions(['computer_use']);
+    const comp = defs.filter(d => d.function && String(d.function.name).startsWith('computer_'));
+    expect(comp.length).toBe(5);
+    for (const d of comp) {
+      expect(d.type).toBe('function');
+      expect(d.function.parameters).toBeDefined();
+      expect(d.input_schema).toBeUndefined(); // must NOT be the Anthropic shape
+    }
   });
 });
 
