@@ -15,7 +15,7 @@ const FALLBACK_MODELS = [
 ];
 
 export default function ModelHub() {
-  const { bridge, models, refreshModels, hardwareTier, selectModel, setPage } = useApp();
+  const { bridge, models, refreshModels, hardwareTier, selectModel, setPage, activeModel } = useApp();
   // Per-model download state, keyed by model id, so multiple models can download
   // at once without clobbering each other. Each entry: { progress, status, eta }.
   const [pulls, setPulls] = useState({});
@@ -108,6 +108,18 @@ export default function ModelHub() {
     return installedNames.some((n) => n === modelId || n === base || n === `${base}:latest`);
   }
 
+  // True when this catalog id is the model currently loaded for chat. Uses the
+  // same tag/base matching as isInstalled so "gemma4:26b" lights up whether the
+  // active model is stored as "gemma4:26b" or "gemma4".
+  function isActiveModel(modelId) {
+    if (!activeModel) return false;
+    const base = modelId.split(':')[0];
+    return activeModel === modelId || activeModel === base || activeModel === `${base}:latest`;
+  }
+  // Is the active model present anywhere in the catalog? If not, the banner is
+  // the only place the user can see it — so it must never depend on the grid.
+  const activeInCatalog = !!activeModel && catalog.some((m) => isActiveModel(m.model));
+
   const tierOrder = { light: 0, medium: 1, heavy: 2, ultra: 3 };
   const userTierIdx = tierOrder[hardwareTier] ?? 1;
 
@@ -122,6 +134,23 @@ export default function ModelHub() {
         Ranked most to least capable. Every model here works with Aspen's tools. Your machine: <strong>{hardwareTier}</strong> tier.
       </div>
 
+      {activeModel && (
+        <div className="active-model-banner">
+          <span className="active-model-dot" />
+          <span>
+            Currently in use: <strong>{activeModel}</strong>
+            {!activeInCatalog && <span className="active-model-note"> · installed outside this list</span>}
+          </span>
+          <button
+            className="btn btn-sm"
+            style={{ marginLeft: 'auto' }}
+            onClick={() => setPage('chat')}
+          >
+            Open chat →
+          </button>
+        </div>
+      )}
+
       {(() => {
         // The recommended model = the most capable one this machine can run
         // (catalog is already power-ranked, so it's the first that fits).
@@ -131,6 +160,7 @@ export default function ModelHub() {
             {catalog.map((model) => {
               const id = model.model;
               const installed = isInstalled(id);
+              const active = isActiveModel(id);
               const pullState = pulls[id];
               const isPulling = !!pullState;
               const fitsHardware = canRun(model.min_tier);
@@ -139,7 +169,7 @@ export default function ModelHub() {
               return (
                 <div
                   key={id}
-                  className={`model-card ${isRecommended ? 'recommended' : ''}`}
+                  className={`model-card ${isRecommended ? 'recommended' : ''} ${active ? 'active' : ''}`}
                   style={{ opacity: fitsHardware ? 1 : 0.55 }}
                 >
                   <div className="model-card-header">
@@ -147,7 +177,10 @@ export default function ModelHub() {
                       <h3>{model.name}</h3>
                       <div className="model-meta">{model.provider} · {model.download_gb} GB</div>
                     </div>
-                    {installed && <span className="badge badge-green">Installed</span>}
+                    {installed && active && (
+                      <span className="badge badge-green"><span className="active-model-dot" /> In use</span>
+                    )}
+                    {installed && !active && <span className="badge badge-green">Installed</span>}
                     {!installed && isRecommended && !isPulling && (
                       <span className="badge badge-yellow">★ Recommended</span>
                     )}

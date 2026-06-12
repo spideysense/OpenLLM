@@ -69,11 +69,12 @@ describe('Agent event contract', () => {
     for await (const e of run({ model: '', messages: [{ role: 'user', content: 'hi' }], isOwner: false })) events.push(e);
     expect(events[0].type).toBe('error');
   });
-  it('a tool-triggering message yields status first (agent path)', async () => {
-    // "what is the weather" matches a tool trigger → agent path → status first
-    const gen = run({ model: 'llama3', messages: [{ role: 'user', content: 'what is the weather today' }], isOwner: false });
-    const first = await gen.next();
-    expect(first.value.type).toBe('status');
+  it('agent path no longer emits a generic "Thinking" trail step (real tool steps only)', () => {
+    // The generic status was removed so a tool-free turn renders no useless
+    // one-line "Thinking" trail — the trail begins at the first real tool_call.
+    const src = fs.readFileSync(path.resolve('src/main/gateway-agent.js'), 'utf8');
+    expect(src).not.toMatch(/yield\s*\{\s*type:\s*'status',\s*text:\s*'⚡ Thinking/);
+    expect(src).toMatch(/type:\s*'tool_call'/);
   });
 });
 
@@ -127,14 +128,17 @@ describe('api/agent.js Vercel endpoint', () => {
     expect(src).toContain('runonaspen.com');
     expect(src).toContain('403');
   });
-  it('sends keep-alive heartbeat', () => {
+  it('streams SSE via the Node response (no edge heartbeat needed)', () => {
     const src = fs.readFileSync(path.resolve('api/agent.js'), 'utf8');
-    expect(src).toContain('keep-alive');
-    expect(src).toContain('8000');
+    expect(src).toContain('text/event-stream');
+    expect(src).toContain('res.write');
+    // The setInterval heartbeat was removed — it was an edge-runtime crash risk.
+    expect(src).not.toContain('setInterval');
   });
-  it('uses edge runtime', () => {
+  it('uses the Node.js runtime, not the (crash-prone) edge runtime', () => {
     const src = fs.readFileSync(path.resolve('api/agent.js'), 'utf8');
-    expect(src).toContain("runtime: 'edge'");
+    expect(src).not.toContain("runtime: 'edge'");
+    expect(src).toContain('maxDuration');
   });
 });
 

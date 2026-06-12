@@ -167,7 +167,9 @@ Call exactly the tool that fits, wait for its result, then answer using that res
 
   const convo = convoBase;
 
-  emit({ type: 'status', text: '⚡ Thinking...' });
+  // No generic "Thinking..." trail step here — the reasoning trail is for real
+  // tool/agent activity only. A pure chat or reasoning turn (no tool calls) shows
+  // the normal thinking indicator instead of a useless one-line "Thinking" trail.
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
     const resp = await ollamaChat({ model, messages: convo, tools: toolDefs });

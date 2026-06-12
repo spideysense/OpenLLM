@@ -336,6 +336,20 @@ function contextFor(messages) {
 // penalty after a short idle. -1 = never unload.
 const KEEP_ALIVE = -1;
 
+// A large model (e.g. a 20 GB 31B) can take minutes to load into RAM before it
+// emits its first token — especially if the machine is busy (e.g. downloading
+// another model). Give the FIRST token a long grace, then drop to a tighter
+// idle timeout once output is flowing so a genuine mid-stream stall is caught.
+const COLD_LOAD_MS = 300000; // 5 min for the model to load + produce first token
+const IDLE_MS = 120000;      // 2 min of zero output AFTER streaming starts = stalled
+
+// Build a friendly timeout error depending on whether any output arrived yet.
+function timeoutError(gotFirstByte) {
+  return new Error(gotFirstByte
+    ? 'The model stalled — no output for 2 minutes. Try again, or switch to a smaller model.'
+    : 'The model is taking too long to load (over 5 minutes). It may be too large for this machine, or the machine is busy (e.g. still downloading a model). Try a smaller model like qwen3:14b or gemma4:e4b.');
+}
+
 // Streaming Ollama call — yields content deltas. Used by the fast path when
 // no tools are needed, so simple chats feel instant.
 async function* ollamaStream(model, messages) {
@@ -352,13 +366,21 @@ async function* ollamaStream(model, messages) {
       headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
     }, resolve);
     req.on('error', reject);
-    req.setTimeout(180000, () => { req.destroy(); reject(new Error('Ollama produced no output for 180s — the model may be overloaded.')); });
+    // Cold-load grace until the first byte; tightened to IDLE_MS below once output flows.
+    req.on('timeout', () => { req.destroy(); reject(timeoutError(false)); });
+    req.setTimeout(COLD_LOAD_MS);
     req.write(body);
     req.end();
   });
 
+  let firstByte = false;
   let buffer = '';
   for await (const chunk of response) {
+    if (!firstByte) {
+      firstByte = true;
+      // First token arrived — drop to the tighter idle timeout for the rest.
+      response.req?.setTimeout?.(IDLE_MS);
+    }
     buffer += chunk.toString();
     const lines = buffer.split('\n');
     buffer = lines.pop() || '';
@@ -405,6 +427,7 @@ function ollamaChat(payload) {
     let toolCalls = [];
     let buffer = '';
     let settled = false;
+    let firstByte = false;
     const done = (fn) => { if (!settled) { settled = true; fn(); } };
 
     const req = http.request({
@@ -414,6 +437,7 @@ function ollamaChat(payload) {
     }, (res) => {
       res.setEncoding('utf8');
       res.on('data', (chunk) => {
+        if (!firstByte) { firstByte = true; req.setTimeout(IDLE_MS); }
         buffer += chunk;
         let nl;
         while ((nl = buffer.indexOf('\n')) >= 0) {
@@ -443,9 +467,10 @@ function ollamaChat(payload) {
       });
     });
     req.on('error', (e) => done(() => reject(e)));
-    // IDLE timeout — resets on every chunk, so it only fires if the model emits
-    // NOTHING for this long (a genuine stall), not during normal long thinking.
-    req.setTimeout(180000, () => { req.destroy(); done(() => reject(new Error('Ollama produced no output for 180s — the model may be overloaded. Try again or pick a smaller model.'))); });
+    // Cold-load grace until first byte, then a tighter idle timeout (set in the
+    // data handler). Only fires on a GENUINE stall, not during normal thinking.
+    req.on('timeout', () => { req.destroy(); done(() => reject(timeoutError(firstByte))); });
+    req.setTimeout(COLD_LOAD_MS);
     req.write(body);
     req.end();
   });
@@ -526,7 +551,8 @@ BE CONCISE. Lead with the answer. No preamble, no "I'm Aspen running locally" in
   }
 
   // ─── TOOL PATH ─── (slower, non-streaming agent loop)
-  yield { type: 'status', text: '⚡ Thinking...' };
+  // No generic "Thinking..." status — the trail shows real tool steps only, so a
+  // tool-free turn doesn't render a useless one-line "Thinking" trail.
 
   const toolDefs = supportsTools ? getToolDefs(isOwner, allowedTools) : [];
 

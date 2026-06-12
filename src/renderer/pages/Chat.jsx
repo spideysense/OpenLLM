@@ -1048,7 +1048,11 @@ function ReasoningTrail({ steps, live = false }) {
         onClick={() => setOpen((o) => !o)}
         style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-light)', padding: 0, font: 'inherit' }}
       >
-        <span style={{ opacity: live ? 1 : 0.7 }}>{live ? last.status : `Reasoning · ${steps.length} step${steps.length > 1 ? 's' : ''}`}</span>
+        <span style={{ opacity: live ? 1 : 0.7 }}>
+          {open
+            ? `${live ? 'Working' : 'Reasoning'} · ${steps.length} step${steps.length > 1 ? 's' : ''}`
+            : (live ? last.status : `Reasoning · ${steps.length} step${steps.length > 1 ? 's' : ''}`)}
+        </span>
         <span style={{ fontSize: 10 }}>{open ? '▲' : '▼'}</span>
       </button>
       {open && (

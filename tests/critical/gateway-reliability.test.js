@@ -64,9 +64,19 @@ describe('Agent inference streams so the idle timeout only fires on a real stall
   it('resolves the normalized OpenAI message shape so callers are unchanged', () => {
     expect(gwAgent).toMatch(/choices:\s*\[\{\s*message:\s*\{\s*role:\s*'assistant'/);
   });
-  it('the timeout message describes a stall, not a generic timeout', () => {
-    expect(gwAgent).toMatch(/no output for 180s/);
+  it('uses a long cold-load grace for the first token, then a tighter idle timeout', () => {
+    // A big model can take minutes to load before the first byte, so the initial
+    // grace is long; once output flows it drops to a shorter stall timeout.
+    expect(gwAgent).toMatch(/COLD_LOAD_MS\s*=\s*300000/);
+    expect(gwAgent).toMatch(/IDLE_MS\s*=\s*120000/);
+    // Both paths arm the cold grace first, then re-arm to IDLE_MS on first byte.
+    expect(gwAgent).toMatch(/setTimeout\(COLD_LOAD_MS\)/);
+    expect(gwAgent).toMatch(/setTimeout\(IDLE_MS\)/);
+  });
+  it('the timeout message tells the user to try a smaller model, not a generic timeout', () => {
+    expect(gwAgent).toMatch(/smaller model/);
     expect(gwAgent).not.toMatch(/Ollama request timed out/);
+    expect(gwAgent).not.toMatch(/no output for 180s/);
   });
 });
 
