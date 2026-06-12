@@ -372,6 +372,30 @@ function runCommand({ command, cwd }) {
 // ═══════════════════════════════════════════════════
 // Registry — definitions (sent to the model) + runners
 // ═══════════════════════════════════════════════════
+// Human-readable, ARG-AWARE status line for the reasoning trail. Says what the
+// model is actually doing ("Searching the web for X"), not just the tool name.
+// Shared by the desktop agent (agent.js) and the gateway agent (gateway-agent.js)
+// so all three chat surfaces narrate identically.
+function describeToolStatus(name, args = {}) {
+  const a = args || {};
+  const clip = (s, n = 60) => { s = String(s ?? '').replace(/\s+/g, ' ').trim(); return s.length > n ? s.slice(0, n - 1) + '…' : s; };
+  const host = (u) => { try { return new URL(/^https?:\/\//.test(u) ? u : 'https://' + u).hostname.replace(/^www\./, ''); } catch { return clip(u, 40); } };
+  switch (name) {
+    case 'web_search':       return a.query ? `🔍 Searching the web for “${clip(a.query, 50)}”` : '🔍 Searching the web…';
+    case 'deep_research':    return a.topic ? `📚 Researching “${clip(a.topic, 50)}”` : '📚 Researching…';
+    case 'fetch_url':        return a.url ? `🌐 Reading ${host(a.url)}` : '🌐 Reading the page…';
+    case 'calculate':        return a.expression ? `🔢 Calculating ${clip(a.expression, 40)}` : '🔢 Calculating…';
+    case 'get_datetime':     return '🕐 Checking the date & time';
+    case 'run_command':      return a.command ? `⚡ Running: ${clip(a.command, 50)}` : '⚡ Running a command…';
+    case 'computer_screenshot': return '📸 Taking a screenshot';
+    case 'computer_click':   return (a.x != null && a.y != null) ? `🖱️ Clicking (${Math.round(a.x)}, ${Math.round(a.y)})` : '🖱️ Clicking…';
+    case 'computer_type':    return a.text ? `⌨️ Typing “${clip(a.text, 40)}”` : '⌨️ Typing…';
+    case 'computer_key':     return a.combo ? `⌨️ Pressing ${a.combo}` : '⌨️ Pressing a key';
+    case 'computer_scroll':  return `🖱️ Scrolling ${a.direction || 'down'}`;
+    default:                 return `⚙️ ${String(name).replace(/__/g, ' · ').replace(/_/g, ' ')}…`;
+  }
+}
+
 const TOOLS = {
   web_search: {
     definition: {
@@ -548,4 +572,4 @@ const ALL_TOOL_NAMES = [
   'computer_use', // expands to computer_screenshot, computer_click, computer_type, computer_key, computer_scroll
 ];
 
-module.exports = { getToolDefinitions, executeTool, ALL_TOOL_NAMES, runFetchUrl, hostIsBlocked, ipIsBlocked };
+module.exports = { getToolDefinitions, executeTool, ALL_TOOL_NAMES, runFetchUrl, hostIsBlocked, ipIsBlocked, describeToolStatus };

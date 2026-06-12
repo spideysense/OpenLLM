@@ -432,21 +432,6 @@ function clean(raw) {
   return (raw || '').replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
 }
 
-// Human-readable status text per tool name
-const TOOL_STATUS = {
-  web_search: '🔍 Searching the web...',
-  calculate: '🔢 Calculating...',
-  get_datetime: '🕐 Getting date/time...',
-  fetch_url: '🌐 Fetching page...',
-  deep_research: '📚 Researching...',
-  run_command: '⚡ Running command...',
-  computer_screenshot: '📸 Taking a screenshot...',
-  computer_click: '🖱️ Clicking...',
-  computer_type: '⌨️ Typing...',
-  computer_key: '⌨️ Pressing key...',
-  computer_scroll: '🖱️ Scrolling...',
-};
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Core: async generator that runs the agent loop and yields events
 //
@@ -607,7 +592,7 @@ You are Aspen, a helpful AI assistant running 100% LOCALLY on the user's own mac
       let args = {};
       try { args = JSON.parse(call.function?.arguments || '{}'); } catch {}
 
-      const statusText = TOOL_STATUS[name] || `⚙️ Running ${name}...`;
+      const statusText = tools.describeToolStatus(name, args);
       yield { type: 'tool_call', name, statusText };
 
       let result;

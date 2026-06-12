@@ -54,21 +54,6 @@ function ollamaChat(payload) {
  *   It never changes the return value — callers that don't pass it (e.g. the
  *   gateway) are unaffected.
  */
-const TOOL_STATUS = {
-  web_search: '🔍 Searching the web...',
-  calculate: '🔢 Calculating...',
-  get_datetime: '🕐 Getting date/time...',
-  fetch_url: '🌐 Fetching page...',
-  deep_research: '📚 Researching...',
-  run_command: '⚡ Running command...',
-  computer_screenshot: '📸 Taking a screenshot...',
-  computer_click: '🖱️ Clicking...',
-  computer_type: '⌨️ Typing...',
-  computer_key: '⌨️ Pressing key...',
-  computer_scroll: '🖱️ Scrolling...',
-};
-function statusFor(name) { return TOOL_STATUS[name] || `⚙️ Running ${name}...`; }
-
 async function runAgent({ model, messages, retryCount = 0, isOwner = true, onEvent = null }) {
   const emit = (e) => { try { if (onEvent) onEvent(e); } catch {} };
   let enabled = toolSettings.getEnabledToolNames();
@@ -239,7 +224,7 @@ Call exactly the tool that fits, wait for its result, then answer using that res
       const name = call.function?.name;
       let args = {};
       try { args = JSON.parse(call.function?.arguments || '{}'); } catch {}
-      emit({ type: 'tool_call', name, statusText: statusFor(name) });
+      emit({ type: 'tool_call', name, statusText: tools.describeToolStatus(name, args) });
       const result = await tools.executeTool(name, args);
       convo.push({
         role: 'tool',

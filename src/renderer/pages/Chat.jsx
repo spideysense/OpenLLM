@@ -713,7 +713,7 @@ export default function Chat() {
             <div className="chat-avatar">🌿</div>
             <div className="chat-bubble">
               {trail.length > 0 && <ReasoningTrail steps={trail} live={true} />}
-              {isStreaming && !streamBuffer ? (
+              {isStreaming && !streamBuffer && trail.length === 0 ? (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                   <svg viewBox="0 0 48 48" style={{ width: 22, height: 22, flexShrink: 0 }} aria-label="Thinking">
                     <path className="aspen-leaf" d="M24 6 C32 14, 38 22, 24 42 C10 22, 16 14, 24 6 Z" fill="#B8860B" fillOpacity="0" stroke="#B8860B" strokeWidth="1.6" strokeLinejoin="round" pathLength="1" />

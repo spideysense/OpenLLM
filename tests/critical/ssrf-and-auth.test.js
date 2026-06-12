@@ -195,7 +195,26 @@ describe('Desktop agent emits live trail events', () => {
     const src = fs.readFileSync(path.resolve('src/main/agent.js'), 'utf8');
     expect(src).toMatch(/onEvent/);
     expect(src).toMatch(/type:\s*'tool_call'/);
-    expect(src).toMatch(/statusFor\(/);
+    expect(src).toMatch(/describeToolStatus\(/);
+  });
+});
+
+// Trail steps must narrate the ACTUAL work (with arguments), not just "Thinking".
+describe('Reasoning trail narrates real tool activity', () => {
+  it('describeToolStatus includes the actual query / url / command', async () => {
+    const tools = await import('../../src/main/tools.js');
+    expect(tools.describeToolStatus('web_search', { query: 'coffee shops' })).toMatch(/coffee shops/);
+    expect(tools.describeToolStatus('fetch_url', { url: 'https://www.yelp.com/x' })).toMatch(/yelp\.com/);
+    expect(tools.describeToolStatus('run_command', { command: 'git push' })).toMatch(/git push/);
+    expect(tools.describeToolStatus('computer_screenshot', {})).toMatch(/screenshot/i);
+    // never a bare "Thinking" for a real tool
+    expect(tools.describeToolStatus('web_search', { query: 'x' })).not.toMatch(/^Thinking/);
+  });
+  it('both agent paths use the shared describer (3-surface parity)', () => {
+    const agent = fs.readFileSync(path.resolve('src/main/agent.js'), 'utf8');
+    const gw = fs.readFileSync(path.resolve('src/main/gateway-agent.js'), 'utf8');
+    expect(agent).toMatch(/describeToolStatus\(name, args\)/);
+    expect(gw).toMatch(/describeToolStatus\(name, args\)/);
   });
 });
 
