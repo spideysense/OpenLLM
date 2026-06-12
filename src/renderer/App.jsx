@@ -30,6 +30,7 @@ export default function App() {
   const [models, setModels] = useState([]);
   const [activeModel, setActiveModel] = useState(null);
   const [modelCaps, setModelCaps] = useState({ tools: false, vision: false });
+  const [modelProfile, setModelProfile] = useState(null);
   const [showComputerUseOnboarding, setShowComputerUseOnboarding] = useState(false);
   const [gatewayStatus, setGatewayStatus] = useState({ running: false, port: 4000, url: 'http://localhost:4000/v1' });
   const [isOnboarded, setIsOnboarded] = useState(true);
@@ -89,19 +90,23 @@ export default function App() {
     init();
   }, []);
 
-  // ─── Fetch model capabilities whenever active model changes ───
+  // ─── Fetch the capability profile whenever the active model changes ───
+  // The profile (tier + per-feature gating from model size, tools/vision, and
+  // hardware) is the single source of truth for what the UI offers.
   useEffect(() => {
-    if (!bridge?.ollama?.getModelCapabilities || !activeModel) return;
-    bridge.ollama.getModelCapabilities(activeModel).then(async (caps) => {
-      setModelCaps(caps);
-      // If model supports computer use (tools + vision), check if we need to onboard
-      if (caps.tools && caps.vision) {
+    if (!bridge?.ollama?.getModelProfile || !activeModel) return;
+    bridge.ollama.getModelProfile(activeModel).then(async (profile) => {
+      if (!profile) return;
+      setModelProfile(profile);
+      // Back-compat: existing UI reads modelCaps {tools, vision}.
+      setModelCaps({ tools: !!profile.features?.webSearch, vision: !!profile.vision });
+      // Computer use is now a full capability decision (vision + size + hardware).
+      if (profile.features?.computerUse) {
         const onboarded = await bridge.store.get('computerUseOnboarded');
         if (!onboarded) setShowComputerUseOnboarding(true);
       }
-      // Auto-enable/disable computer_use tool based on capability
       if (bridge?.tools?.setEnabled) {
-        await bridge.tools.setEnabled('computer_use', caps.tools && caps.vision);
+        await bridge.tools.setEnabled('computer_use', !!profile.features?.computerUse);
       }
     }).catch(() => {});
   }, [activeModel]);
@@ -165,6 +170,7 @@ export default function App() {
     models, refreshModels,
     activeModel, selectModel,
     modelCaps,
+    modelProfile,
     gatewayStatus,
     isOnboarded, completeOnboarding,
   };

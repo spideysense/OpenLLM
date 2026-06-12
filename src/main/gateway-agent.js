@@ -20,6 +20,7 @@ const { execSync, execFileSync } = require('child_process');
 const tools = require('./tools');
 const system = require('./system');
 const worldModel = require('./world-model');
+const capabilities = require('./capabilities');
 
 const OLLAMA_HOST = '127.0.0.1';
 const OLLAMA_PORT = 11434;
@@ -145,10 +146,12 @@ const GATEWAY_COMPUTER_TOOL_DEFS = [
   },
 ];
 
-function getToolDefs(isOwner) {
-  const enabled = isOwner ? [...SAFE_TOOLS, ...DANGEROUS_TOOLS] : [...SAFE_TOOLS];
-  const builtins = tools.getToolDefinitions(enabled.filter(n => SAFE_TOOLS.includes(n) || n === 'run_command'));
-  const computerDefs = (isOwner) ? GATEWAY_COMPUTER_TOOL_DEFS : [];
+function getToolDefs(isOwner, allowed = null) {
+  let names = isOwner ? [...SAFE_TOOLS, ...DANGEROUS_TOOLS] : [...SAFE_TOOLS];
+  // Capability gate: drop any tool the model/machine can't reliably use.
+  if (Array.isArray(allowed)) names = names.filter((n) => allowed.includes(n));
+  const builtins = tools.getToolDefinitions(names.filter(n => SAFE_TOOLS.includes(n) || n === 'run_command'));
+  const computerDefs = (isOwner && (!Array.isArray(allowed) || allowed.includes('computer_use'))) ? GATEWAY_COMPUTER_TOOL_DEFS : [];
   return [...builtins, ...computerDefs];
 }
 
@@ -453,12 +456,20 @@ async function* run({ model, messages, isOwner = false, memoryKeyId = null }) {
   const TOOL_INCOMPATIBLE = ['deepseek-r1', 'deepseek-coder'];
   const supportsTools = !TOOL_INCOMPATIBLE.some(m => modelLower.includes(m));
 
+  // Capability gate (web/mobile share the same policy as desktop). A chat-tier
+  // model never enters the tool loop — it always streams (fast). Larger models
+  // get the subset of tools they can reliably use.
+  let capProfile = null;
+  try { capProfile = await capabilities.getProfile(model); } catch {}
+  const allowedTools = capProfile ? capProfile.allowedTools : null;
+  const chatTier = capProfile && capProfile.tier === 'chat';
+
   // ─── FAST PATH ───
   // If the message clearly doesn't need tools, stream straight from Ollama.
   // This is the difference between "instant" and "wait 30s for a non-streaming
   // agent round-trip on every hello". Only fall through to the agent loop when
   // a tool trigger actually matches.
-  const needsTools = supportsTools && messageNeedsTools(messages);
+  const needsTools = supportsTools && !chatTier && messageNeedsTools(messages);
   if (!needsTools) {
     // Build a lightweight system directive (no tool instructions needed)
     const fastConvo = [...messages];
@@ -496,7 +507,7 @@ BE CONCISE. Lead with the answer. No preamble, no "I'm Aspen running locally" in
   // ─── TOOL PATH ─── (slower, non-streaming agent loop)
   yield { type: 'status', text: '⚡ Thinking...' };
 
-  const toolDefs = supportsTools ? getToolDefs(isOwner) : [];
+  const toolDefs = supportsTools ? getToolDefs(isOwner, allowedTools) : [];
 
   // System directive — same intent as agent.js
   const DIRECTIVE = `You MUST respond only in English.

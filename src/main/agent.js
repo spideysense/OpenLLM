@@ -57,6 +57,16 @@ function ollamaChat(payload) {
 async function runAgent({ model, messages, retryCount = 0, isOwner = true, onEvent = null }) {
   const emit = (e) => { try { if (onEvent) onEvent(e); } catch {} };
   let enabled = toolSettings.getEnabledToolNames();
+  // Capability gate: a model/machine that can't reliably use a tool never gets
+  // offered it, so small/chat-tier models stay on the fast streaming path instead
+  // of stalling in failed tool loops. (See capabilities.js for the policy.)
+  try {
+    const capabilities = require('./capabilities');
+    const profile = await capabilities.getProfile(model);
+    if (profile && Array.isArray(profile.allowedTools)) {
+      enabled = enabled.filter((t) => profile.allowedTools.includes(t));
+    }
+  } catch {}
   // SECURITY: dangerous tools (shell execution) are owner-only. Trial/shared
   // users connecting through the tunnel must NEVER be able to run shell commands
   // on the owner's machine. This prevents remote code execution.

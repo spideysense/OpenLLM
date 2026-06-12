@@ -365,6 +365,29 @@ API keys now have two types, chosen via radio at creation (`src/renderer/pages/A
 
 Enforced in `gateway-agent.js` (`executeAnyTool` checks `isOwner` for DANGEROUS_TOOLS) and `gateway.js` `/v1/world-model` route (guests get `{facts:[], owner:false}`).
 
+## CAPABILITY TIERING — graceful degradation (2026-06-12)
+
+Goal: never compromise speed/experience; compromise FEATURES. Small/weak combos
+remove features that won't work or are too slow, instead of failing.
+
+Brain: `src/main/capabilities.js` (Electron-free — system.js + global fetch, so
+desktop + gateway + IPC all share it). `computeProfile({tools,vision,sizeB}, hw)`
+-> `{tier, label, tagline, features, allowedTools, reasons}`.
+Tiers (THRESHOLDS, billions): chat <5B or no-tools (pure chat); standard 5-13B
+(web/calc/fetch/memory/run_command); full 14B+ (+deep_research; +computer use if
+vision). Light hardware disables deep_research + computer use even on capable
+models. `getProfile(model)` is async + cached (own /api/show read of
+capabilities[] + details.parameter_size; heuristic fallback).
+
+Enforcement (speed guarantee): both agent paths intersect user-enabled tools with
+`profile.allowedTools` -> a chat-tier model gets ZERO tools -> always the fast
+streaming path. agent.js filters `enabled`; gateway-agent.js forces fast path on
+`chatTier` + `getToolDefs(isOwner, allowedTools)`.
+IPC `model:getProfile` -> preload `ollama.getModelProfile`. Cache cleared on model
+pull/delete. UI: App.jsx -> `modelProfile` in context (derives modelCaps for
+back-compat); Chat.jsx tier badge + chat-tier note; Settings.jsx tier summary +
+per-tool gating with `reasons`. Test: `tests/critical/capabilities.test.js`.
+
 ## COLD START — keep the model resident (2026-06-12)
 
 Ollama unloads a model after its idle timeout (default 5 min) and resets that

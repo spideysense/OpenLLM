@@ -295,6 +295,10 @@ ipcMain.handle('files:extractText', async (event, payload) => {
 ipcMain.handle('ollama:getModelCapabilities', async (event, modelName) => {
   return ollama.getModelCapabilities(modelName);
 });
+ipcMain.handle('model:getProfile', async (event, modelName) => {
+  const capabilities = require('./capabilities');
+  return capabilities.getProfile(modelName);
+});
 ipcMain.handle('ollama:hasVisionModel', async () => {
   return ollama.hasVisionModel();
 });
@@ -322,6 +326,7 @@ ipcMain.handle('models:list', async () => {
 });
 
 ipcMain.handle('models:pull', async (event, modelName) => {
+  try { require('./capabilities').clearCache(modelName); } catch {}
   const notify = (progress) => mainWindow?.webContents.send('models:pullProgress', { model: modelName, ...progress });
   const status = (msg) => notify({ status: msg, total: 0, completed: 0, percent: 0 });
 
@@ -363,6 +368,7 @@ ipcMain.handle('models:pull', async (event, modelName) => {
 });
 
 ipcMain.handle('models:delete', async (event, modelName) => {
+  try { require('./capabilities').clearCache(modelName); } catch {}
   return models.deleteModel(modelName);
 });
 

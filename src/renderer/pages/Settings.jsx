@@ -5,7 +5,7 @@ import ReplaceWizard from './ReplaceWizard';
 
 export default function Settings() {
   const [section, setSection] = useState('system');
-  const { bridge, systemInfo, hardwareTier, ollamaStatus, gatewayStatus, models, activeModel, modelCaps } = useApp();
+  const { bridge, systemInfo, hardwareTier, ollamaStatus, gatewayStatus, models, activeModel, modelCaps, modelProfile } = useApp();
   const [aliases, setAliases] = useState({});
   const [editingAlias, setEditingAlias] = useState(null);
   const [saved, setSaved] = useState(false);
@@ -102,19 +102,21 @@ export default function Settings() {
             Everything runs on this machine; nothing is sent to Aspen's servers.
           </p>
 
-          {/* Capability-based model status */}
-          {activeModel && (() => {
-            if (!modelCaps?.tools) return (
-              <div style={{ background: 'rgba(220,53,69,0.08)', border: '1px solid rgba(220,53,69,0.25)', borderRadius: 8, padding: '10px 14px', marginBottom: 18, fontSize: 12.5, color: '#8b1a2b', lineHeight: 1.5 }}>
-                ⚠️ <strong>{activeModel}</strong> doesn't support tool calling — all tools are disabled.
-                Switch to <strong>qwen2.5</strong>, <strong>llama3</strong>, or <strong>gemma3</strong> in the Models tab.
-              </div>
-            );
-            const hasVision = modelCaps?.vision;
+          {/* Capability profile — tier-aware summary */}
+          {activeModel && modelProfile && (() => {
+            const tone = modelProfile.tier === 'chat'
+              ? { bg: 'rgba(242,213,138,0.16)', bd: 'rgba(184,134,11,0.3)', fg: '#7a5e12' }
+              : { bg: 'rgba(40,167,69,0.08)', bd: 'rgba(40,167,69,0.25)', fg: '#155724' };
             return (
-              <div style={{ background: 'rgba(40,167,69,0.08)', border: '1px solid rgba(40,167,69,0.25)', borderRadius: 8, padding: '10px 14px', marginBottom: 18, fontSize: 12.5, color: '#155724', lineHeight: 1.6 }}>
-                ✅ <strong>{activeModel}</strong> supports tools.
-                {hasVision ? ' 👁 Vision enabled — Computer Use available.' : ' (No vision — Computer Use requires a vision model like llama3.2-vision or qwen2.5vl.)'}
+              <div style={{ background: tone.bg, border: `1px solid ${tone.bd}`, borderRadius: 8, padding: '10px 14px', marginBottom: 18, fontSize: 12.5, color: tone.fg, lineHeight: 1.6 }}>
+                <strong>{activeModel}</strong> · {modelProfile.label}
+                {modelProfile.sizeB ? ` (~${modelProfile.sizeB}B)` : ''} — {modelProfile.tagline}
+                {modelProfile.tier !== 'chat' && !modelProfile.features.computerUse && modelProfile.reasons?.computerUse && (
+                  <div style={{ marginTop: 4, opacity: 0.85 }}>Computer use: {modelProfile.reasons.computerUse}.</div>
+                )}
+                {modelProfile.tier !== 'chat' && !modelProfile.features.deepResearch && modelProfile.reasons?.deepResearch && (
+                  <div style={{ marginTop: 2, opacity: 0.85 }}>Deep research: {modelProfile.reasons.deepResearch}.</div>
+                )}
               </div>
             );
           })()}
@@ -122,13 +124,22 @@ export default function Settings() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {toolStates
               .filter((t) => {
-                // Hide computer_use toggle if model doesn't support vision
-                if (t.name === 'computer_use' && !modelCaps?.vision) return false;
+                // Hide computer_use entirely if the model has no vision at all.
+                if (t.name === 'computer_use' && !modelProfile?.vision && !modelCaps?.vision) return false;
                 return true;
               })
               .map((t) => {
               const meta = TOOL_LABELS[t.name] || { icon: '🔧', title: t.name, desc: '' };
-              const disabled = !modelCaps?.tools;
+              // Per-tool capability gate from the profile (falls back to modelCaps).
+              const allowed = modelProfile
+                ? modelProfile.allowedTools.includes(t.name)
+                : !!modelCaps?.tools;
+              const disabled = !allowed;
+              const reason = disabled && modelProfile
+                ? (t.name === 'computer_use' ? modelProfile.reasons?.computerUse
+                   : t.name === 'deep_research' ? modelProfile.reasons?.deepResearch
+                   : modelProfile.reasons?.tools)
+                : null;
               return (
                 <div key={t.name} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, padding: '12px 14px', background: 'rgba(93,78,55,0.04)', borderRadius: 8, opacity: disabled ? 0.5 : 1 }}>
                   <div style={{ flex: 1 }}>
@@ -136,6 +147,7 @@ export default function Settings() {
                       {meta.icon} {meta.title}
                     </div>
                     <div style={{ fontSize: 12.5, color: 'var(--text-light)', lineHeight: 1.4 }}>{meta.desc}</div>
+                    {reason && <div style={{ fontSize: 11.5, color: '#8a6d1b', marginTop: 3 }}>Unavailable — {reason}.</div>}
                   </div>
                   <button
                     onClick={() => !disabled && toggleTool(t.name, !t.enabled)}

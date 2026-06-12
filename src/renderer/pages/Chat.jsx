@@ -19,7 +19,7 @@ function isVisionModel(modelName) {
 }
 
 export default function Chat() {
-  const { bridge, activeModel, selectModel, models, setPage } = useApp();
+  const { bridge, activeModel, selectModel, models, setPage, modelProfile } = useApp();
   const [conversations, setConversations] = useState([{ id: 1, title: 'New Chat', messages: [] }]);
   const [activeConvo, setActiveConvo] = useState(1);
   const [input, setInput] = useState('');
@@ -588,6 +588,20 @@ export default function Chat() {
         <button onClick={() => setPage('worldmodel')} title="What Aspen knows about you"
           style={{ padding: '4px 8px', border: '1.5px solid rgba(93,78,55,0.12)', borderRadius: 'var(--radius-pill)', background: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--text-light)' }}>🧠 Memory</button>
 
+        {modelProfile && (() => {
+          const tierStyle = {
+            chat:     { bg: 'rgba(242,213,138,0.18)', bd: 'rgba(184,134,11,0.35)', fg: '#8a6d1b' },
+            standard: { bg: 'rgba(93,141,198,0.14)',  bd: 'rgba(58,107,168,0.3)',  fg: '#3a6ba8' },
+            full:     { bg: 'rgba(123,198,126,0.14)',  bd: 'rgba(74,166,81,0.3)',   fg: 'var(--grass-dark)' },
+          }[modelProfile.tier] || { bg: 'rgba(93,78,55,0.06)', bd: 'rgba(93,78,55,0.15)', fg: 'var(--text-light)' };
+          return (
+            <span title={modelProfile.tagline}
+              style={{ padding: '4px 10px', borderRadius: 'var(--radius-pill)', border: `1.5px solid ${tierStyle.bd}`, background: tierStyle.bg, color: tierStyle.fg, fontSize: 11, fontWeight: 700, letterSpacing: '.3px', whiteSpace: 'nowrap' }}>
+              {modelProfile.label}
+            </span>
+          );
+        })()}
+
         <select
           value={activeModel || ''}
           onChange={(e) => selectModel(e.target.value)}
@@ -602,15 +616,13 @@ export default function Chat() {
         <button className="btn btn-sm btn-secondary" onClick={newConvo} style={{ display: 'none' }}>+ New</button>
       </div>
 
-      {/* Small model warning — dismissible */}
+      {/* Capability note — shown only when the model is chat-tier (features removed) */}
       {(() => {
-        const m = (activeModel || '').toLowerCase();
-        const isSmall = m.includes('e4b') || m.includes('e2b') || m.includes(':3b') || m.includes(':1b') || m.includes(':7b') || m.includes(':8b');
-        if (!isSmall || smallModelDismissed) return null;
+        if (!modelProfile || modelProfile.tier !== 'chat' || smallModelDismissed) return null;
         return (
-          <div style={{ margin: '0 24px', padding: '10px 14px', background: 'rgba(220,53,69,0.08)', border: '1px solid rgba(220,53,69,0.25)', borderRadius: 10, fontSize: 13, color: '#8b1a2b', display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ flex: 1 }}>⚠️ <strong>{activeModel}</strong> is too small for reliable tool calling (web search, code execution). Switch to a 12B+ model for full capability.</span>
-            <button onClick={() => setSmallModelDismissed(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: '#8b1a2b', padding: '0 4px' }}>✕</button>
+          <div style={{ margin: '0 24px', padding: '10px 14px', background: 'rgba(242,213,138,0.14)', border: '1px solid rgba(184,134,11,0.3)', borderRadius: 10, fontSize: 13, color: '#7a5e12', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ flex: 1 }}>💬 <strong>{activeModel}</strong> runs as a fast chat model. Web search, code execution, research, and computer use need a larger model (5B+). Everything else works normally.</span>
+            <button onClick={() => setSmallModelDismissed(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: '#7a5e12', padding: '0 4px' }}>✕</button>
           </div>
         );
       })()}
