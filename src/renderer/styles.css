@@ -193,6 +193,46 @@ html, body, #root {
   .aspen-leaf, .aspen-stem, .aspen-tw { animation: none; fill-opacity: .18; stroke-dashoffset: 0; opacity: 1; }
 }
 
+/* Inline animated thinking indicator — shimmering text that swaps messages */
+.aspen-thinking { display: inline-flex; align-items: center; gap: 9px; }
+.aspen-thinking-leaf {
+  width: 18px; height: 18px; flex: 0 0 auto;
+  color: var(--gold, #B8860B);
+  animation: aspenThinkLeaf 2.4s ease-in-out infinite;
+}
+@keyframes aspenThinkLeaf {
+  0%   { transform: rotate(-7deg) scale(1);    opacity: .6; }
+  50%  { transform: rotate(7deg)  scale(1.08); opacity: 1; }
+  100% { transform: rotate(-7deg) scale(1);    opacity: .6; }
+}
+.aspen-thinking-text {
+  font-size: 14px; font-weight: 500; letter-spacing: .01em;
+  background: linear-gradient(90deg,
+    var(--text-light, #8a8275) 18%,
+    var(--text, #1D1D1F) 50%,
+    var(--text-light, #8a8275) 82%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+  animation: aspenShimmer 2.2s linear infinite, aspenThinkIn .42s ease both;
+}
+@keyframes aspenShimmer {
+  0%   { background-position: 160% 0; }
+  100% { background-position: -160% 0; }
+}
+@keyframes aspenThinkIn {
+  from { opacity: 0; transform: translateY(3px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .aspen-thinking-leaf { animation: none; opacity: .85; }
+  .aspen-thinking-text {
+    animation: none;
+    -webkit-text-fill-color: var(--text-light, #8a8275);
+    color: var(--text-light, #8a8275);
+  }
+}
+
 @keyframes voicePulse {
   0%, 100% { transform: scale(1); opacity: 1; }
   50% { transform: scale(1.08); opacity: 0.85; }

@@ -188,6 +188,13 @@ body.is-mobile .chat-delete{opacity:.4!important}
 @keyframes aspenStem{0%,20%{stroke-dasharray:1;stroke-dashoffset:1;opacity:0}45%{stroke-dashoffset:0;opacity:1}80%{opacity:1}100%{opacity:0}}
 @keyframes aspenWord{0%,100%{opacity:.45}50%{opacity:1}}
 @media(prefers-reduced-motion:reduce){.aspen-leaf,.aspen-stem,.aspen-think .tw{animation:none;fill-opacity:.18;stroke-dashoffset:0;opacity:1}}
+.aspen-thinking{display:inline-flex;align-items:center;gap:9px}
+.aspen-thinking-leaf{width:18px;height:18px;flex:0 0 auto;color:var(--gd);animation:aspenThinkLeaf 2.4s ease-in-out infinite}
+@keyframes aspenThinkLeaf{0%{transform:rotate(-7deg) scale(1);opacity:.6}50%{transform:rotate(7deg) scale(1.08);opacity:1}100%{transform:rotate(-7deg) scale(1);opacity:.6}}
+.aspen-thinking-text{font-size:.9rem;font-weight:500;letter-spacing:.01em;background:linear-gradient(90deg,var(--t3) 18%,var(--bk) 50%,var(--t3) 82%);background-size:220% 100%;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;animation:aspenShimmer 2.2s linear infinite,aspenThinkIn .42s ease both}
+@keyframes aspenShimmer{0%{background-position:160% 0}100%{background-position:-160% 0}}
+@keyframes aspenThinkIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.aspen-thinking-leaf{animation:none;opacity:.85}.aspen-thinking-text{animation:none;-webkit-text-fill-color:var(--t2);color:var(--t2)}}
 .empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem 1.5rem;text-align:center}
 .empty-icon{font-size:2.4rem;margin-bottom:.8rem}
 .empty-title{font-family:var(--ser);font-size:1.55rem;margin-bottom:.4rem}
@@ -899,11 +906,38 @@ function renderMessages(){
   emptyState.style.display='none';if(emptyState.parentNode===messagesEl)messagesEl.removeChild(emptyState);
   messagesEl.innerHTML='';chat.messages.forEach(m=>appendMessage(m.role,m.content,false));scrollToBottom();
 }
+// Inline animated thinking indicator — one line whose message changes as work
+// progresses (cycles phrases while reasoning; shows live tool status when tools
+// run), instead of a static word or a stacked trail.
+const THINK_PHRASES=['Thinking','Working it through','Gathering my thoughts','Connecting the dots','Putting it together','Almost there'];
+const THINK_SVG='<svg class="aspen-thinking-leaf" viewBox="0 0 48 48" aria-hidden="true"><path d="M24 6 C32 14, 38 22, 24 42 C10 22, 16 14, 24 6 Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><line x1="24" y1="6" x2="24" y2="42" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>';
+function setThinkText(bubble,txt){
+  const el=bubble._thinkText;if(!el)return;
+  el.textContent=txt+'…';
+  el.style.animation='none';void el.offsetHeight;el.style.animation='';
+}
+function startThinking(bubble){
+  bubble.innerHTML='<span class="aspen-thinking">'+THINK_SVG+'<span class="aspen-thinking-text">'+THINK_PHRASES[0]+'…</span></span>';
+  bubble._thinkText=bubble.querySelector('.aspen-thinking-text');
+  bubble._thinkLocked=false;let i=0;
+  bubble._thinkTimer=setInterval(()=>{
+    if(bubble._thinkLocked)return;
+    i=(i+1)%THINK_PHRASES.length;setThinkText(bubble,THINK_PHRASES[i]);
+  },2500);
+}
+function lockThinking(bubble,txt){
+  // A real tool status arrived — show it and stop cycling generic phrases.
+  if(!bubble._thinkText)return;
+  bubble._thinkLocked=true;
+  setThinkText(bubble,(txt||'Thinking').replace(/^[^\p{L}\p{N}]+/u,'').trim()||'Thinking');
+}
+function stopThinking(bubble){if(bubble&&bubble._thinkTimer){clearInterval(bubble._thinkTimer);bubble._thinkTimer=null;}}
 function appendMessage(role,content,stream=false){
   emptyState.style.display='none';if(emptyState.parentNode===messagesEl)messagesEl.removeChild(emptyState);
   const row=document.createElement('div');row.className=`msg-row ${role}`;
   const bubble=document.createElement('div');bubble.className='msg-bubble';
-  bubble.innerHTML=stream&&role==='assistant'?'<span class="aspen-think"><svg viewBox="0 0 48 48" aria-label="Thinking"><path class="aspen-leaf" d="M24 6 C32 14, 38 22, 24 42 C10 22, 16 14, 24 6 Z" fill="#B8860B" fill-opacity="0" stroke="#B8860B" stroke-width="1.6" stroke-linejoin="round" pathLength="1"/><line class="aspen-stem" x1="24" y1="6" x2="24" y2="42" stroke="#B8860B" stroke-width="1.1" stroke-linecap="round" pathLength="1"/></svg><span class="tw">Thinking</span></span>':formatMessage(content);
+  if(stream&&role==='assistant'){row.appendChild(bubble);messagesEl.appendChild(row);startThinking(bubble);scrollToBottom();return bubble;}
+  bubble.innerHTML=formatMessage(content);
   row.appendChild(bubble);messagesEl.appendChild(row);
   if(role==='assistant'&&!stream&&content)buildActions(row,content);
   scrollToBottom();return bubble;
@@ -1126,6 +1160,7 @@ async function sendMessage(autoRespond){
     if(!res.ok){
       const e=await res.json().catch(()=>({}));
       if(e.capped){
+        stopThinking(bubble);
         bubble.innerHTML=`<div style="font-size:.85rem;line-height:1.6">🌿 ${escHtml(e.error||"You've used your free messages.")}<br><br><a href="https://runonaspen.com" style="color:var(--gd);font-weight:600;text-decoration:none">Download Aspen — free →</a></div>`;
         isStreaming=false;sendBtn.classList.remove('hidden');stopBtn.classList.add('hidden');sendBtn.disabled=false;streamController=null;return;
       }
@@ -1151,13 +1186,16 @@ async function sendMessage(autoRespond){
               if(!bubble._steps)bubble._steps=[];
               // Avoid consecutive duplicates
               if(bubble._steps[bubble._steps.length-1]!==msg)bubble._steps.push(msg);
-              renderSteps(bubble,true);
+              // Drive the inline indicator with the live tool status (changes as
+              // each tool fires) rather than stacking a visible list.
+              lockThinking(bubble,msg);
               scrollToBottom();
             }
             continue;
           }
           const delta=j.choices?.[0]?.delta?.content;
           if(delta){
+            stopThinking(bubble);
             fullText+=delta;bubble._fullText=fullText;
             // Keep the (now-finished) step trail collapsed above the answer
             const trail=bubble._steps&&bubble._steps.length?renderStepsHTML(bubble._steps,false):'';
@@ -1168,11 +1206,13 @@ async function sendMessage(autoRespond){
       }
     }
   }catch(e){
+    stopThinking(bubble);
     if(e.name!=='AbortError'){
       bubble.innerHTML=`<div style="color:var(--danger);font-size:.82rem;line-height:1.5">⚠️ ${escHtml(e.message?.includes('Failed to fetch')?'Could not reach your Aspen. Is the tunnel running?':e.message||'Error')}</div>`;
       isStreaming=false;sendBtn.classList.remove('hidden');stopBtn.classList.add('hidden');sendBtn.disabled=false;streamController=null;return;
     }
   }
+  stopThinking(bubble);
   bubble.innerHTML=fullText?formatMessage(fullText):'<em style="color:var(--t3);font-size:.8rem">No response</em>';
   if(fullText){
     const c=chats[activeChatId];

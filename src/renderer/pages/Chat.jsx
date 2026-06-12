@@ -724,15 +724,8 @@ export default function Chat() {
           <div className="chat-message assistant">
             <div className="chat-avatar">🌿</div>
             <div className="chat-bubble">
-              {trail.length > 0 && <ReasoningTrail steps={trail} live={true} />}
-              {isStreaming && !streamBuffer && trail.length === 0 ? (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                  <svg viewBox="0 0 48 48" style={{ width: 22, height: 22, flexShrink: 0 }} aria-label="Thinking">
-                    <path className="aspen-leaf" d="M24 6 C32 14, 38 22, 24 42 C10 22, 16 14, 24 6 Z" fill="#B8860B" fillOpacity="0" stroke="#B8860B" strokeWidth="1.6" strokeLinejoin="round" pathLength="1" />
-                    <line className="aspen-stem" x1="24" y1="6" x2="24" y2="42" stroke="#B8860B" strokeWidth="1.1" strokeLinecap="round" pathLength="1" />
-                  </svg>
-                  <span className="aspen-tw" style={{ fontSize: 14, color: 'var(--text-light)' }}>Thinking</span>
-                </span>
+              {isStreaming && !streamBuffer ? (
+                <ThinkingIndicator toolSteps={trail} />
               ) : (
                 <>
                   <MessageContent content={streamBuffer || ''} onOpenArtifact={openArtifact} />
@@ -1037,6 +1030,46 @@ export default function Chat() {
 // Live / persisted reasoning trail — the accumulating list of agent steps
 // (status + tool calls), matching the web/mobile surfaces. When `live` it shows
 // expanded with a pulse; when finished it collapses to a clickable summary.
+// Inline "thinking" indicator — a single animated line whose message changes as
+// work progresses, instead of a static word or a stacked list. When real tool
+// activity is happening it shows the live tool status (which changes as each tool
+// fires); otherwise it cycles through evocative phrases so it always feels alive.
+const THINKING_PHRASES = [
+  'Thinking',
+  'Working it through',
+  'Gathering my thoughts',
+  'Connecting the dots',
+  'Putting it together',
+  'Almost there',
+];
+
+function ThinkingIndicator({ toolSteps }) {
+  const steps = toolSteps || [];
+  const hasTools = steps.length > 0;
+  const latest = hasTools ? steps[steps.length - 1].status : null;
+  const [idx, setIdx] = useState(0);
+
+  useEffect(() => {
+    if (hasTools) return; // real tool status drives the text — don't cycle over it
+    const id = setInterval(() => setIdx((i) => (i + 1) % THINKING_PHRASES.length), 2500);
+    return () => clearInterval(id);
+  }, [hasTools]);
+
+  // Strip any leading emoji/symbol (e.g. "⚡ ") so the text sits clean inline.
+  const raw = hasTools ? latest : THINKING_PHRASES[idx];
+  const text = ((raw || 'Thinking').replace(/^[^\p{L}\p{N}]+/u, '').trim()) || 'Thinking';
+
+  return (
+    <span className="aspen-thinking">
+      <svg className="aspen-thinking-leaf" viewBox="0 0 48 48" aria-hidden="true">
+        <path d="M24 6 C32 14, 38 22, 24 42 C10 22, 16 14, 24 6 Z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+        <line x1="24" y1="6" x2="24" y2="42" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      </svg>
+      <span key={text} className="aspen-thinking-text">{text}…</span>
+    </span>
+  );
+}
+
 function ReasoningTrail({ steps, live = false }) {
   const [open, setOpen] = useState(live);
   useEffect(() => { if (live) setOpen(true); }, [live]);
