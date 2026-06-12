@@ -343,6 +343,10 @@ const KEEP_ALIVE = -1;
 const COLD_LOAD_MS = 300000; // 5 min for the model to load + produce first token
 const IDLE_MS = 120000;      // 2 min of zero output AFTER streaming starts = stalled
 
+// Sentinel for "first token is taking a while" — used to surface a loading state.
+const SLOW_FIRST_TOKEN = Symbol('slow-first-token');
+const FIRST_TOKEN_NUDGE_MS = 6000; // if no token in this long, the model is loading
+
 // Build a friendly timeout error depending on whether any output arrived yet.
 function timeoutError(gotFirstByte) {
   return new Error(gotFirstByte
@@ -533,10 +537,27 @@ BE CONCISE. Lead with the answer. No preamble, no "I'm Aspen running locally" in
     try {
       let any = false;
       let fullReply = '';
-      for await (const delta of ollamaStream(model, fastConvo)) {
+      const iter = ollamaStream(model, fastConvo)[Symbol.asyncIterator]();
+
+      // Race the first token against a short timer. If the model is still loading
+      // into memory (common the first time on a large model), surface a clear
+      // "Loading…" state instead of leaving a frozen indicator that looks broken.
+      let pending = iter.next();
+      let nudgeTimer;
+      const nudge = new Promise((r) => { nudgeTimer = setTimeout(() => r(SLOW_FIRST_TOKEN), FIRST_TOKEN_NUDGE_MS); });
+      let step = await Promise.race([pending, nudge]);
+      if (step === SLOW_FIRST_TOKEN) {
+        yield { type: 'status', text: `Loading ${model} into memory`, transient: true };
+        step = await pending; // keep waiting for the real first token (cold-load grace applies)
+      } else {
+        clearTimeout(nudgeTimer);
+      }
+
+      while (!step.done) {
         any = true;
-        fullReply += delta;
-        yield { type: 'content', text: delta };
+        fullReply += step.value;
+        yield { type: 'content', text: step.value };
+        step = await iter.next();
       }
       if (!any) yield { type: 'content', text: 'Sorry, I could not generate a response.' };
       // Extract facts to THIS user's memory (background, best-effort)

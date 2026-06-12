@@ -1183,11 +1183,13 @@ async function sendMessage(autoRespond){
           if(j.aspen_status||j.aspen_tool){
             const msg=j.aspen_status||'';
             if(msg){
-              if(!bubble._steps)bubble._steps=[];
-              // Avoid consecutive duplicates
-              if(bubble._steps[bubble._steps.length-1]!==msg)bubble._steps.push(msg);
-              // Drive the inline indicator with the live tool status (changes as
-              // each tool fires) rather than stacking a visible list.
+              // Transient (e.g. "Loading model…") shows live but is never saved.
+              if(!j.aspen_transient){
+                if(!bubble._steps)bubble._steps=[];
+                if(bubble._steps[bubble._steps.length-1]!==msg)bubble._steps.push(msg);
+              }
+              // Drive the inline indicator with the live status (changes as work
+              // progresses) rather than stacking a visible list.
               lockThinking(bubble,msg);
               scrollToBottom();
             }

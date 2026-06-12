@@ -386,7 +386,7 @@ You are Aspen, a helpful AI assistant running 100% LOCALLY on the user's own com
               if (res.writableEnded) break;
               switch (event.type) {
                 case 'status':
-                  send({}, { aspen_status: event.text });
+                  send({}, { aspen_status: event.text, ...(event.transient ? { aspen_transient: true } : {}) });
                   break;
                 case 'tool_call':
                   send({}, { aspen_status: event.statusText, aspen_tool: event.name });

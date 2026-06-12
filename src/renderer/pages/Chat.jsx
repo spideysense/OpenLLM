@@ -237,14 +237,15 @@ export default function Chat() {
       // Reasoning-trail event (status / tool step) — accumulate, don't treat as
       // answer content. Mirrors the web/mobile live trail.
       if (chunk.aspen_status) {
-        const step = { status: chunk.aspen_status, tool: chunk.aspen_tool || null };
+        const step = { status: chunk.aspen_status, tool: chunk.aspen_tool || null, transient: !!chunk.aspen_transient };
         trailRef.current = [...trailRef.current, step];
         setTrail(trailRef.current);
         return;
       }
       if (chunk.done) {
         setIsStreaming(false);
-        const finishedTrail = trailRef.current;
+        // Transient steps (e.g. "Loading model…") are live-only — never saved.
+        const finishedTrail = trailRef.current.filter((s) => !s.transient);
         trailRef.current = [];
         setTrail([]);
         // Read the accumulated buffer via the functional updater, capture it,
