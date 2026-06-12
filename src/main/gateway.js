@@ -302,7 +302,7 @@ You are Aspen, a helpful AI assistant running 100% LOCALLY on the user's own com
           return;
         }
 
-        const agentModel = parsed.model || 'llama3';
+        const agentModel = parsed.model || store.get('activeModel') || 'llama3';
         const agentMsgs = parsed.messages;
         if (!Array.isArray(agentMsgs) || agentMsgs.length === 0) {
           res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -527,7 +527,7 @@ function stop() {
 // ═══════════════════════════════════════════════════
 async function handleAgentChat(parsed, res) {
   const wantStream = parsed.stream !== false;
-  const model = parsed.model || 'llama3';
+  const model = parsed.model || store.get('activeModel') || 'llama3';
   const baseChunk = {
     id: 'chatcmpl-aspen',
     object: 'chat.completion.chunk',

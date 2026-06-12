@@ -53,6 +53,16 @@ const TOOL_TRIGGERS = [
   /\bwhat'?s on (my |the )?screen\b/i,
   /\b(open|go to|navigate to|visit|browse|pull up|launch)\b.*\b([a-z0-9-]+\.(com|org|net|io|co|app|store)|safari|chrome|firefox|finder|app|website|browser)/i,
   /\b(buy|shop|order|purchase|add to cart|find me a|look for a)\b/i,
+  // Recommendations & local lookups — these almost always need real, current
+  // data, not the model's stale guesses. ("good place to get coffee in X",
+  // "best ramen near me", "where can I find a dentist") — the failure mode is a
+  // confidently wrong / hallucinated list, so bias toward searching.
+  /\b(recommend|recommendation|suggest a|suggestions for)\b/i,
+  /\b(best|top|good|great|cheap|nearest)\b.{0,40}\b(in|near|nearby|around|close to|by me|downtown)\b/i,
+  /\b(place|places|spot|spots|somewhere)\s+to\s+(get|grab|eat|drink|buy|go|stay|visit|see|work)\b/i,
+  /\b(coffee|cafe|caf\u00e9|restaurant|food|eat|breakfast|lunch|dinner|brunch|bar|pub|brewery|bakery|hotel|motel|gym|salon|barber|dentist|doctor|mechanic|plumber|store|shop)\b.{0,40}\b(in|near|nearby|around|close to|by me|downtown)\b/i,
+  /\b(near me|nearby|around here|close by|in my area|within walking distance|open now)\b/i,
+  /\bwhere (can|could|should|do|to|is|are|'?s)\b/i,
   /\b(fill (out|in)|type into|enter into)\b/i,
   /https?:\/\/[^\s]+/i, // URLs need fetching
 ];
@@ -340,7 +350,7 @@ async function* ollamaStream(model, messages) {
       headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
     }, resolve);
     req.on('error', reject);
-    req.setTimeout(120000, () => { req.destroy(); reject(new Error('Ollama stream timed out')); });
+    req.setTimeout(180000, () => { req.destroy(); reject(new Error('Ollama produced no output for 180s — the model may be overloaded.')); });
     req.write(body);
     req.end();
   });
@@ -370,61 +380,70 @@ async function* ollamaStream(model, messages) {
 // Ollama's `images` field. The native response is normalized to OpenAI shape so
 // callers don't care which path was used.
 // ─────────────────────────────────────────────────────────────────────────────
-function hasImages(messages) {
-  return Array.isArray(messages) && messages.some(m => Array.isArray(m.images) && m.images.length > 0);
-}
-
 function ollamaChat(payload) {
-  const useNative = hasImages(payload.messages);
+  // Stream from the native /api/chat endpoint and accumulate the full message.
+  // WHY STREAM for a "non-streaming" caller: a real non-streaming request sends
+  // zero bytes while the model thinks, so req.setTimeout (an IDLE timeout) fires
+  // even though the model is working — a reasoning model like qwen3 that takes
+  // >2min would falsely "time out". Streaming keeps the socket active token by
+  // token, so the timeout only trips on a GENUINE stall (no output at all).
+  // /api/chat handles tools AND images[], so it covers the vision path too.
   return new Promise((resolve, reject) => {
     const ctx = contextFor(payload.messages || []);
+    const body = JSON.stringify({
+      model: payload.model,
+      messages: payload.messages,
+      tools: payload.tools,
+      stream: true,
+      keep_alive: KEEP_ALIVE,
+      options: { num_predict: -1, num_ctx: ctx },
+    });
 
-    let path, body;
-    if (useNative) {
-      // Native /api/chat — supports images[] and tools
-      body = JSON.stringify({
-        model: payload.model,
-        messages: payload.messages,
-        tools: payload.tools,
-        stream: false,
-        keep_alive: KEEP_ALIVE,
-        options: { num_predict: -1, num_ctx: ctx },
-      });
-      path = '/api/chat';
-    } else {
-      body = JSON.stringify({ ...payload, stream: false, keep_alive: KEEP_ALIVE, options: { num_predict: -1, num_ctx: ctx } });
-      path = '/v1/chat/completions';
-    }
+    let content = '';
+    let toolCalls = [];
+    let buffer = '';
+    let settled = false;
+    const done = (fn) => { if (!settled) { settled = true; fn(); } };
 
     const req = http.request({
       hostname: OLLAMA_HOST, port: OLLAMA_PORT,
-      path, method: 'POST',
+      path: '/api/chat', method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
     }, (res) => {
-      const chunks = [];
-      res.on('data', c => chunks.push(c));
+      res.setEncoding('utf8');
+      res.on('data', (chunk) => {
+        buffer += chunk;
+        let nl;
+        while ((nl = buffer.indexOf('\n')) >= 0) {
+          const line = buffer.slice(0, nl).trim();
+          buffer = buffer.slice(nl + 1);
+          if (!line) continue;
+          try {
+            const json = JSON.parse(line);
+            if (json.error) { done(() => reject(new Error(`Ollama error: ${json.error}`))); req.destroy(); return; }
+            if (json.message?.content) content += json.message.content;
+            if (Array.isArray(json.message?.tool_calls) && json.message.tool_calls.length) {
+              toolCalls = toolCalls.concat(json.message.tool_calls);
+            }
+          } catch { /* ignore partial/non-JSON lines */ }
+        }
+      });
       res.on('end', () => {
-        try {
-          const data = JSON.parse(Buffer.concat(chunks).toString());
-          if (useNative) {
-            // Normalize native /api/chat response → OpenAI shape
-            resolve({
-              choices: [{
-                message: {
-                  role: 'assistant',
-                  content: data.message?.content || '',
-                  tool_calls: data.message?.tool_calls || [],
-                },
-              }],
-            });
-          } else {
-            resolve(data);
-          }
-        } catch (e) { reject(new Error(`Ollama JSON parse error: ${e.message}`)); }
+        const tail = buffer.trim();
+        if (tail) {
+          try {
+            const json = JSON.parse(tail);
+            if (json.message?.content) content += json.message.content;
+            if (Array.isArray(json.message?.tool_calls)) toolCalls = toolCalls.concat(json.message.tool_calls);
+          } catch {}
+        }
+        done(() => resolve({ choices: [{ message: { role: 'assistant', content, tool_calls: toolCalls } }] }));
       });
     });
-    req.on('error', reject);
-    req.setTimeout(120000, () => { req.destroy(); reject(new Error('Ollama request timed out')); });
+    req.on('error', (e) => done(() => reject(e)));
+    // IDLE timeout — resets on every chunk, so it only fires if the model emits
+    // NOTHING for this long (a genuine stall), not during normal long thinking.
+    req.setTimeout(180000, () => { req.destroy(); done(() => reject(new Error('Ollama produced no output for 180s — the model may be overloaded. Try again or pick a smaller model.'))); });
     req.write(body);
     req.end();
   });

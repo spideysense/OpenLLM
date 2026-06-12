@@ -198,17 +198,17 @@ describe('Screenshot vision handling', () => {
     expect(src).toMatch(/replace\(\/\^data:image/);
   });
 
-  it('ollamaChat switches to native /api/chat when images present', () => {
+  it('ollamaChat uses native /api/chat (handles images[] and tools)', () => {
     const src = fs.readFileSync(path.resolve('src/main/gateway-agent.js'), 'utf8');
-    expect(src).toContain('hasImages');
     expect(src).toContain('/api/chat');
-    expect(src).toContain('useNative');
+    // streams so the idle timeout only fires on a genuine stall
+    expect(src).toMatch(/stream:\s*true/);
   });
 
-  it('normalizes native response back to OpenAI shape', () => {
+  it('normalizes the streamed native response back to OpenAI shape', () => {
     const src = fs.readFileSync(path.resolve('src/main/gateway-agent.js'), 'utf8');
     expect(src).toContain('choices: [{');
-    expect(src).toContain('data.message?.content');
+    expect(src).toMatch(/json\.message\?\.content/);
   });
 });
 
