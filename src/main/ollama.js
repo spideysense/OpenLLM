@@ -21,12 +21,14 @@ let ollamaProcess = null;
 function getBundledPath() {
   const ext = process.platform === 'win32' ? '.exe' : '';
   const name = `ollama${ext}`;
-  if (app.isPackaged) {
-    const p = path.join(process.resourcesPath, 'vendor', 'ollama', name);
-    if (fs.existsSync(p)) return p;
+  const roots = [];
+  if (app.isPackaged) roots.push(path.join(process.resourcesPath, 'vendor', 'ollama'));
+  roots.push(path.join(__dirname, '..', '..', 'vendor', 'ollama'));
+  for (const root of roots) {
+    for (const p of [path.join(root, name), path.join(root, 'bin', name)]) {
+      if (fs.existsSync(p)) return p;
+    }
   }
-  const dev = path.join(__dirname, '..', '..', 'vendor', 'ollama', name);
-  if (fs.existsSync(dev)) return dev;
   return null;
 }
 
@@ -44,8 +46,13 @@ function getSystemPath() {
 
 function getDownloadedPath() {
   const ext = process.platform === 'win32' ? '.exe' : '';
-  const p = path.join(BIN_DIR, `ollama${ext}`);
-  if (fs.existsSync(p) && fs.statSync(p).size > 1_000_000) return p;
+  const candidates = [
+    path.join(BIN_DIR, `ollama${ext}`),
+    path.join(BIN_DIR, 'bin', `ollama${ext}`),
+  ];
+  for (const p of candidates) {
+    if (fs.existsSync(p) && fs.statSync(p).size > 1_000_000) return p;
+  }
   return null;
 }
 
@@ -65,11 +72,10 @@ const DOWNLOAD_URLS = {
     'https://github.com/ollama/ollama/releases/latest/download/ollama-darwin-arm64.tgz',
     'https://github.com/ollama/ollama/releases/latest/download/ollama-darwin-arm64',
   ],
-  // arm64 (e.g. NVIDIA Grace / GB10): prefer the JetPack CUDA builds so the GPU is used;
-  // fall back jetpack6 -> jetpack5 -> generic arm64 (CPU). x64 uses the standard amd64 build.
+  // Base arm64 ships CPU + cuda_v12 + cuda_v13 runtimes. The GB10 (Blackwell, sm_121,
+  // CUDA-13 driver) is served by the bundled cuda_v13 — verified on-device (121 GiB iGPU).
+  // The jetpack overlays are libs-only (no binary) and weren't selected, so base is all we need.
   linux: process.arch === 'arm64' ? [
-    'https://github.com/ollama/ollama/releases/latest/download/ollama-linux-arm64-jetpack6.tar.zst',
-    'https://github.com/ollama/ollama/releases/latest/download/ollama-linux-arm64-jetpack5.tar.zst',
     'https://github.com/ollama/ollama/releases/latest/download/ollama-linux-arm64.tar.zst',
   ] : [
     'https://github.com/ollama/ollama/releases/latest/download/ollama-linux-amd64.tar.zst',
@@ -126,14 +132,15 @@ async function downloadOllama(notify, { force = false } = {}) {
 
         try { fs.unlinkSync(archivePath); } catch {}
 
-        // Find the ollama binary in the extracted files
-        const candidates = [destPath, path.join(BIN_DIR, 'ollama'), path.join(BIN_DIR, 'bin', 'ollama')];
+        // Run the binary from where it extracted. Modern Ollama ships bin/ollama with a
+        // sibling lib/ollama (CPU + CUDA runtimes) it loads via $ORIGIN/../lib rpath, so we
+        // must NOT relocate the binary out of that tree.
+        const candidates = [path.join(BIN_DIR, 'ollama'), path.join(BIN_DIR, 'bin', 'ollama')];
         for (const c of candidates) {
           if (fs.existsSync(c) && fs.statSync(c).size > 1_000_000) {
-            if (c !== destPath) fs.renameSync(c, destPath);
-            if (process.platform !== 'win32') { try { fs.chmodSync(destPath, 0o755); } catch {} }
-            if (process.platform === 'darwin') { try { execSync(`xattr -cr "${destPath}"`, { stdio: 'pipe' }); } catch {} }
-            return destPath;
+            if (process.platform !== 'win32') { try { fs.chmodSync(c, 0o755); } catch {} }
+            if (process.platform === 'darwin') { try { execSync(`xattr -cr "${c}"`, { stdio: 'pipe' }); } catch {} }
+            return c;
           }
         }
       } else {
