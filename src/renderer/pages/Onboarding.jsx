@@ -70,7 +70,7 @@ export default function Onboarding() {
   }
 
   const aspenStates = {
-    welcome: '🌿',
+    welcome: '',
     detect: '🔍',
     recommend: '⭐',
     download: '📦',
@@ -199,7 +199,7 @@ export default function Onboarding() {
 
           <div className="flex gap-3">
             <button className="btn btn-primary" onClick={completeOnboarding}>
-              Start Chatting 🌿
+              Start Chatting 
             </button>
           </div>
         </>

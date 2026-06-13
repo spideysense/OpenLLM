@@ -2,10 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../App';
 
 export default function Sidebar() {
-  const { page, setPage, ollamaStatus, activeModel, gatewayStatus, bridge } = useApp();
+  const { page, setPage, ollamaStatus, activeModel, gatewayStatus, bridge,
+    conversations, activeConvo, setActiveConvo, setConversations, newConvo, deleteConvo } = useApp();
   const [updateStatus, setUpdateStatus] = useState(null);
   const [installMsg, setInstallMsg] = useState('');
   const [appVersion, setAppVersion] = useState('...');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [editingTitle, setEditingTitle] = useState(null);
 
   useEffect(() => {
     if (bridge?.app?.getVersion) {
@@ -29,8 +32,8 @@ export default function Sidebar() {
 
   const nav = [
     { id: 'home', icon: '🏠', label: 'Home' },
-    { id: 'chat', icon: '💬', label: 'Chat' },
     { id: 'settings', icon: '⚙️', label: 'Settings' },
+    { id: 'chat', icon: '💬', label: 'Chat' },
   ];
 
   async function handleInstallUpdate() {
@@ -73,7 +76,58 @@ export default function Sidebar() {
         </button>
       ))}
 
-      <div className="nav-spacer" />
+      <div className="sidebar-chats">
+        <div className="sidebar-chats-head">
+          <span className="sidebar-chats-title">Chats</span>
+          <button className="sidebar-newchat" onClick={newConvo} title="New chat">+</button>
+        </div>
+        <input
+          className="sidebar-search"
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search chats..."
+        />
+        <div className="sidebar-chats-list">
+          {[...(conversations || [])].reverse()
+            .filter((c) => !searchQuery
+              || c.title?.toLowerCase().includes(searchQuery.toLowerCase())
+              || c.messages?.some((m) => m.content?.toLowerCase().includes(searchQuery.toLowerCase())))
+            .map((c) => (
+              <div
+                key={c.id}
+                className={`chat-item ${c.id === activeConvo ? 'active' : ''}`}
+                onClick={() => { setActiveConvo(c.id); setPage('chat'); }}
+              >
+                {editingTitle === c.id ? (
+                  <input
+                    autoFocus
+                    className="chat-item-rename"
+                    value={c.title || ''}
+                    onChange={(e) => setConversations((cs) => cs.map((x) => x.id === c.id ? { ...x, title: e.target.value } : x))}
+                    onBlur={() => setEditingTitle(null)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') setEditingTitle(null); }}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                ) : (
+                  <span
+                    className="chat-item-title"
+                    title="Double-click to rename"
+                    onDoubleClick={(e) => { e.stopPropagation(); setEditingTitle(c.id); }}
+                  >
+                    {c.title || 'New Chat'}
+                  </span>
+                )}
+                {conversations.length > 1 && (
+                  <button
+                    className="chat-item-del"
+                    onClick={(e) => { e.stopPropagation(); deleteConvo(c.id); }}
+                  >✕</button>
+                )}
+              </div>
+            ))}
+        </div>
+      </div>
 
       {/* Update notification — quiet, no countdowns */}
       {updateStatus?.status === 'ready' && (

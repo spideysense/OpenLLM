@@ -19,9 +19,8 @@ function isVisionModel(modelName) {
 }
 
 export default function Chat() {
-  const { bridge, activeModel, selectModel, models, setPage, modelProfile } = useApp();
-  const [conversations, setConversations] = useState([{ id: 1, title: 'New Chat', messages: [] }]);
-  const [activeConvo, setActiveConvo] = useState(1);
+  const { bridge, activeModel, selectModel, models, setPage, modelProfile,
+    conversations, setConversations, activeConvo, setActiveConvo, newConvo, deleteConvo } = useApp();
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamBuffer, setStreamBuffer] = useState('');
@@ -34,8 +33,6 @@ export default function Chat() {
   const [totalExchanges, setTotalExchanges] = useState(0);
   const [smallModelDismissed, setSmallModelDismissed] = useState(false);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [editingTitle, setEditingTitle] = useState(null);
   const [connMenuOpen, setConnMenuOpen] = useState(false);
   const [connectorList, setConnectorList] = useState([]);
   const [connBusy, setConnBusy] = useState(null);
@@ -153,27 +150,6 @@ export default function Chat() {
   }, []);
 
   const moneySaved = (totalExchanges * COST_PER_EXCHANGE).toFixed(2);
-
-  // Load saved conversations on mount
-  useEffect(() => {
-    if (!bridge?.conversations) return;
-    bridge.conversations.load().then((saved) => {
-      if (saved && saved.length > 0) {
-        setConversations(saved);
-        setActiveConvo(saved[saved.length - 1].id);
-      }
-    }).catch(() => {});
-  }, [bridge]);
-
-  // Save conversations whenever they change (debounced)
-  useEffect(() => {
-    if (!bridge?.conversations || conversations.length === 0) return;
-    clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => {
-      bridge.conversations.save(conversations).catch(() => {});
-    }, 800);
-    return () => clearTimeout(saveTimer.current);
-  }, [bridge, conversations]);
 
   // Check voice support
   useEffect(() => {
@@ -467,27 +443,6 @@ export default function Chat() {
 
   const removeAttachment = (idx) => setAttachments((prev) => prev.filter((_, i) => i !== idx));
 
-  const newConvo = () => {
-    const id = Date.now();
-    const newC = { id, title: 'New Chat', messages: [] };
-    setConversations((prev) => [...prev, newC]);
-    setActiveConvo(id);
-  };
-
-  const deleteConvo = (id) => {
-    setConversations((prev) => {
-      const remaining = prev.filter((c) => c.id !== id);
-      if (remaining.length === 0) {
-        const fresh = { id: Date.now(), title: 'New Chat', messages: [] };
-        setActiveConvo(fresh.id);
-        return [fresh];
-      }
-      if (id === activeConvo) setActiveConvo(remaining[remaining.length - 1].id);
-      return remaining;
-    });
-    bridge?.conversations.delete(id).catch(() => {});
-  };
-
   const stopStreaming = () => {
     if (bridge) bridge.chat.stop();
     setIsStreaming(false);
@@ -509,54 +464,7 @@ export default function Chat() {
 
   return (
     <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
-      {/* Conversation history panel */}
-      <div style={{
-        width: 200, flexShrink: 0, borderRight: '1.5px solid rgba(0,0,0,.08)',
-        display: 'flex', flexDirection: 'column', background: 'rgba(0,0,0,.02)', overflow: 'hidden',
-      }}>
-        <div style={{ padding: '12px 12px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: 1 }}>Chats</span>
-          <button onClick={newConvo} style={{ background: 'var(--pipe-yellow)', border: 'none', borderRadius: 6, padding: '3px 8px', fontSize: 13, fontWeight: 700, cursor: 'pointer', color: 'var(--earth)' }}>+</button>
-        </div>
-        {/* Search */}
-        <div style={{ padding: '0 8px 6px' }}>
-          <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search chats..." style={{ width: '100%', padding: '5px 8px', border: '1px solid rgba(0,0,0,.12)', borderRadius: 6, fontSize: 11, background: 'var(--cloud, #fff)', color: 'var(--text-dark)' }} />
-        </div>
-        <div style={{ flex: 1, overflowY: 'auto', padding: '0 6px 8px' }}>
-          {[...conversations].reverse().filter(c => !searchQuery || c.title?.toLowerCase().includes(searchQuery.toLowerCase()) || c.messages?.some(m => m.content?.toLowerCase().includes(searchQuery.toLowerCase()))).map((c) => (
-            <div
-              key={c.id}
-              style={{
-                borderRadius: 8, padding: '7px 10px', marginBottom: 2, cursor: 'pointer',
-                background: c.id === activeConvo ? 'rgba(245,166,35,.15)' : 'transparent',
-                border: c.id === activeConvo ? '1.5px solid rgba(245,166,35,.3)' : '1.5px solid transparent',
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4,
-              }}
-              onClick={() => setActiveConvo(c.id)}
-            >
-              {editingTitle === c.id ? (
-                <input autoFocus value={c.title || ''} onChange={e => setConversations(cs => cs.map(x => x.id === c.id ? { ...x, title: e.target.value } : x))}
-                  onBlur={() => setEditingTitle(null)} onKeyDown={e => { if (e.key === 'Enter') setEditingTitle(null); }}
-                  style={{ flex: 1, fontSize: 12, border: '1px solid var(--gold)', borderRadius: 4, padding: '1px 4px', background: '#fff', color: 'var(--text-dark)', outline: 'none' }}
-                  onClick={e => e.stopPropagation()} />
-              ) : (
-                <span onDoubleClick={(e) => { e.stopPropagation(); setEditingTitle(c.id); }} title="Double-click to rename"
-                  style={{ fontSize: 12, color: 'var(--text-mid)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, fontWeight: c.id === activeConvo ? 700 : 400 }}>
-                  {c.title || 'New Chat'}
-                </span>
-              )}
-              {conversations.length > 1 && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); deleteConvo(c.id); }}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-light)', fontSize: 12, padding: '0 2px', lineHeight: 1, opacity: 0.5, flexShrink: 0 }}
-                >✕</button>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Main chat area */}
+      {/* Main chat area (chat list now lives in the left sidebar, Ollama-style) */}
       <div className="chat-container" style={{ flex: 1, minWidth: 0 }}>
       {/* Header */}
       <div className="chat-header">

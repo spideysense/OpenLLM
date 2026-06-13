@@ -1,4 +1,4 @@
-import React, { useState, useEffect, createContext, useContext, useCallback } from 'react';
+import React, { useState, useEffect, useRef, createContext, useContext, useCallback } from 'react';
 import Sidebar from './components/Sidebar';
 import Onboarding from './pages/Onboarding';
 import Chat from './pages/Chat';
@@ -37,6 +37,10 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [modelUpgrade, setModelUpgrade] = useState(null);
   const [betaDismissed, setBetaDismissed] = useState(false);
+  // Conversations live here (lifted from Chat) so the sidebar can own the list, Ollama-style.
+  const [conversations, setConversations] = useState([{ id: 1, title: 'New Chat', messages: [] }]);
+  const [activeConvo, setActiveConvo] = useState(1);
+  const saveTimer = useRef(null);
 
   useEffect(() => {
     if (!bridge?.registry?.onUpgradeAvailable) return;
@@ -161,6 +165,47 @@ export default function App() {
     await refreshModels();
   }, [refreshModels]);
 
+  // ─── Conversations: load once on mount, persist on change (debounced) ───
+  useEffect(() => {
+    if (!bridge?.conversations) return;
+    bridge.conversations.load().then((saved) => {
+      if (saved && saved.length > 0) {
+        setConversations(saved);
+        setActiveConvo(saved[saved.length - 1].id);
+      }
+    }).catch(() => {});
+  }, [bridge]);
+
+  useEffect(() => {
+    if (!bridge?.conversations || conversations.length === 0) return;
+    clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      bridge.conversations.save(conversations).catch(() => {});
+    }, 800);
+    return () => clearTimeout(saveTimer.current);
+  }, [bridge, conversations]);
+
+  const newConvo = useCallback(() => {
+    const id = Date.now();
+    setConversations((prev) => [...prev, { id, title: 'New Chat', messages: [] }]);
+    setActiveConvo(id);
+    setPage('chat');
+  }, []);
+
+  const deleteConvo = useCallback((id) => {
+    setConversations((prev) => {
+      const remaining = prev.filter((c) => c.id !== id);
+      if (remaining.length === 0) {
+        const fresh = { id: Date.now(), title: 'New Chat', messages: [] };
+        setActiveConvo(fresh.id);
+        return [fresh];
+      }
+      setActiveConvo((cur) => (id === cur ? remaining[remaining.length - 1].id : cur));
+      return remaining;
+    });
+    bridge?.conversations?.delete(id).catch(() => {});
+  }, [bridge]);
+
   // ─── Context value ───
   const ctx = {
     bridge,
@@ -173,13 +218,16 @@ export default function App() {
     modelProfile,
     gatewayStatus,
     isOnboarded, completeOnboarding,
+    conversations, setConversations,
+    activeConvo, setActiveConvo,
+    newConvo, deleteConvo,
   };
 
   // ─── Loading ───
   if (loading) {
     return (
       <div className="onboarding">
-        <div className="onboarding-icon">🌿</div>
+        <div className="onboarding-icon"></div>
         <p style={{ color: 'var(--text-light)' }}>Waking up Aspen...</p>
       </div>
     );
@@ -266,7 +314,7 @@ export default function App() {
               padding: '7px 16px', background: 'linear-gradient(90deg,#171717,#daa520)',
               color: '#fff', fontSize: 12.5, flexShrink: 0,
             }}>
-              <span>🌿 <strong>Aspen is in Beta.</strong> We'd love your feedback — <a href="mailto:mayank.mehta@gmail.com?subject=Aspen%20Beta%20Feedback" style={{ color: '#fff', textDecoration: 'underline' }}>tell us what you think</a>.</span>
+              <span><strong>Aspen is in Beta.</strong> We'd love your feedback — <a href="mailto:mayank.mehta@gmail.com?subject=Aspen%20Beta%20Feedback" style={{ color: '#fff', textDecoration: 'underline' }}>tell us what you think</a>.</span>
               <button onClick={() => setBetaDismissed(true)} style={{ background: 'rgba(255,255,255,.25)', border: 'none', color: '#fff', width: 18, height: 18, borderRadius: '50%', cursor: 'pointer', fontSize: 12, lineHeight: 1, flexShrink: 0 }} aria-label="Dismiss">×</button>
             </div>
           )}
@@ -292,7 +340,7 @@ export default function App() {
               background: 'rgba(0,0,0,0.08)', border: '1px solid rgba(0,0,0,0.25)',
               fontSize: 13, color: 'var(--bk, #1D1D1F)',
             }}>
-              <span>🌿 {modelUpgrade.message} — better for your machine.</span>
+              <span>{modelUpgrade.message} — better for your machine.</span>
               <span style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
                 <button className="btn btn-sm btn-primary" onClick={() => { setPage('settings'); setModelUpgrade(null); }}>
                   View

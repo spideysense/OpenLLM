@@ -96,7 +96,7 @@ export default function Home() {
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 48, fontWeight: 700, color: 'var(--earth)', lineHeight: 1 }}>${totalSaved}</div>
             <div style={{ fontSize: 13, color: 'var(--text-light)', marginTop: 8 }}>{totalExchanges.toLocaleString()} exchanges · vs {MODEL_LABEL}</div>
             <button onClick={shareSavings} disabled={sharing || shared || totalExchanges < 1} style={{ marginTop: 12, padding: '6px 14px', background: shared ? 'var(--sage,#7a9e7e)' : 'var(--gold,#171717)', color: '#fff', border: 'none', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: totalExchanges < 1 ? 'default' : 'pointer', opacity: totalExchanges < 1 ? 0.4 : 1 }}>
-              {shared ? '✓ Shared with community' : sharing ? 'Sharing…' : '🌿 Share with Aspen Community'}
+              {shared ? '✓ Shared with community' : sharing ? 'Sharing…' : 'Share with Aspen Community'}
             </button>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 160 }}>
