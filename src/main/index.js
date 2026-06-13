@@ -26,11 +26,15 @@ let tray = null;
 // ═══════════════════════════════════════════════════
 
 function createWindow() {
+  const kioskMode = process.env.ASPEN_KIOSK === '1';
   mainWindow = new BrowserWindow({
     width: 1100,
     height: 750,
     minWidth: 480,
     minHeight: 600,
+    fullscreen: kioskMode,
+    kiosk: kioskMode,
+    autoHideMenuBar: kioskMode,
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 16, y: 16 },
     backgroundColor: '#E8F4F8',
