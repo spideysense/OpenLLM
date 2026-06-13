@@ -30,11 +30,6 @@ export default function Sidebar() {
   const nav = [
     { id: 'home', icon: '🏠', label: 'Home' },
     { id: 'chat', icon: '💬', label: 'Chat' },
-    { id: 'templates', icon: '📋', label: 'Templates' },
-    { id: 'worldmodel', icon: '🧠', label: 'World Model' },
-    { id: 'apikeys', icon: '🔑', label: 'API Keys' },
-    { id: 'appsetup', icon: '📱', label: 'App Setup' },
-    { id: 'connectors', icon: '🔌', label: 'Connectors' },
     { id: 'settings', icon: '⚙️', label: 'Settings' },
   ];
 
@@ -107,23 +102,11 @@ export default function Sidebar() {
           fontSize: '12px',
           color: 'var(--text-light)',
           borderRadius: 'var(--radius-sm)',
-          background: 'rgba(93,78,55,0.04)',
         }}>
-          <div style={{ fontWeight: 700, color: 'var(--bk, #1D1D1F)', marginBottom: 2 }}>
-            Active Model
-          </div>
-          <div className="truncate">{activeModel}</div>
+          <div className="truncate" title={activeModel}>{activeModel}</div>
         </div>
       )}
 
-      <div className={`nav-status ${ollamaStatus.running ? '' : 'offline'}`}>
-        <span className="dot" />
-        {ollamaStatus.running ? (
-          <span>Running locally · :{gatewayStatus.port}</span>
-        ) : (
-          <span>AI engine offline</span>
-        )}
-      </div>
       <div style={{ padding: '6px 14px', fontSize: 10, color: 'var(--t4, #AEAEB2)', letterSpacing: '.02em' }}>v{appVersion}</div>
     </aside>
   );

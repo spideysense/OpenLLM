@@ -254,6 +254,39 @@ html, body, #root {
   animation: fadeIn 0.3s ease;
 }
 
+/* ─── Settings: one long scroll with a sticky jump-nav ─── */
+.settings-scroll { padding-bottom: 64px; animation: fadeIn 0.3s ease; }
+.settings-nav {
+  position: sticky; top: 0; z-index: 20;
+  background: color-mix(in srgb, var(--bg) 90%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+}
+.settings-nav-inner {
+  display: flex; align-items: center; gap: 16px;
+  max-width: 860px; margin: 0 auto; padding: 13px 32px;
+}
+.settings-nav-title {
+  font-family: var(--font-display); font-size: 20px; color: var(--text);
+  flex-shrink: 0;
+}
+.settings-nav-links { display: flex; gap: 2px; flex-wrap: wrap; }
+.settings-nav-links button {
+  padding: 5px 12px; border: none; background: transparent;
+  font-family: var(--font-body); font-size: 13px; font-weight: 600;
+  color: var(--text-light); cursor: pointer; border-radius: var(--radius-pill);
+  white-space: nowrap; transition: background .15s, color .15s;
+}
+.settings-nav-links button:hover { background: var(--gold-soft); color: var(--text); }
+.settings-section { scroll-margin-top: 72px; }
+.settings-section > .page { padding-top: 22px; padding-bottom: 22px; }
+.settings-pad { padding: 22px 32px; max-width: 860px; margin: 0 auto; }
+.settings-h3 {
+  font-family: var(--font-display); font-size: 17px; font-weight: 700;
+  color: var(--earth); margin-bottom: 12px;
+}
+
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
@@ -478,10 +511,10 @@ html, body, #root {
 .chat-message.user .chat-avatar { background: var(--black); color: var(--bg); font-size: 13px; }
 
 .chat-bubble {
-  padding: 10px 14px;
+  padding: 11px 15px;
   border-radius: var(--radius);
-  font-size: 14px;
-  line-height: 1.65;
+  font-size: 15.5px;
+  line-height: 1.7;
   word-break: break-word;
   min-width: 0;
   overflow: hidden;

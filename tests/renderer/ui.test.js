@@ -240,18 +240,21 @@ describe('Story: User views settings', () => {
     expect(source).toContain('RAM');
   });
 
-  it('should allow inline alias editing', async () => {
+  it('settings is one scrolling page with anchored jump-nav sections', async () => {
     const fs = await import('fs');
     const source = fs.readFileSync('src/renderer/pages/Settings.jsx', 'utf8');
-    expect(source).toContain('editingAlias');
-    expect(source).toContain('saveAlias');
+    expect(source).toContain('settings-nav');      // sticky jump-nav
+    expect(source).toContain('settings-section');  // anchored sections
+    expect(source).not.toContain('editingAlias');  // model aliases removed
   });
 
-  it('should show service status badges', async () => {
+  it('settings composes the former standalone pages as sections', async () => {
     const fs = await import('fs');
     const source = fs.readFileSync('src/renderer/pages/Settings.jsx', 'utf8');
-    expect(source).toContain('Running');
-    expect(source).toContain('Offline');
+    expect(source).toContain('<WorldModel');
+    expect(source).toContain('<AppSetup');
+    expect(source).toContain('<Connectors');
+    expect(source).toContain('<APIKeys');
   });
 });
 

@@ -563,19 +563,11 @@ export default function Chat() {
         <span style={{ fontSize: 24 }}>🌿</span>
         <h2>Chat</h2>
 
-        {/* Savings counter */}
-        {totalExchanges > 0 && (
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            background: 'rgba(123,198,126,0.12)', border: '1.5px solid rgba(74,166,81,0.2)',
-            borderRadius: 'var(--radius-pill)', padding: '4px 12px',
-            fontSize: 12, fontWeight: 700, color: 'var(--grass-dark)',
-          }}>
-            💰 ${moneySaved} saved vs Claude Opus
-          </div>
-        )}
-
         <div style={{ flex: 1 }} />
+
+        <button onClick={() => setPage('templates')} title="Start from a template"
+          style={{ padding: '4px 10px', border: '1.5px solid rgba(93,78,55,0.12)', borderRadius: 'var(--radius-pill)', background: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--text-light)' }}>📋 Templates</button>
+
 
         {messages.length > 0 && (
           <button onClick={() => {
@@ -588,20 +580,6 @@ export default function Chat() {
 
         <button onClick={() => setPage('worldmodel')} title="What Aspen knows about you"
           style={{ padding: '4px 8px', border: '1.5px solid rgba(93,78,55,0.12)', borderRadius: 'var(--radius-pill)', background: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--text-light)' }}>🧠 Memory</button>
-
-        {modelProfile && (() => {
-          const tierStyle = {
-            chat:     { bg: 'rgba(242,213,138,0.18)', bd: 'rgba(184,134,11,0.35)', fg: '#8a6d1b' },
-            standard: { bg: 'rgba(93,141,198,0.14)',  bd: 'rgba(58,107,168,0.3)',  fg: '#3a6ba8' },
-            full:     { bg: 'rgba(123,198,126,0.14)',  bd: 'rgba(74,166,81,0.3)',   fg: 'var(--grass-dark)' },
-          }[modelProfile.tier] || { bg: 'rgba(93,78,55,0.06)', bd: 'rgba(93,78,55,0.15)', fg: 'var(--text-light)' };
-          return (
-            <span title={modelProfile.tagline}
-              style={{ padding: '4px 10px', borderRadius: 'var(--radius-pill)', border: `1.5px solid ${tierStyle.bd}`, background: tierStyle.bg, color: tierStyle.fg, fontSize: 11, fontWeight: 700, letterSpacing: '.3px', whiteSpace: 'nowrap' }}>
-              {modelProfile.label}
-            </span>
-          );
-        })()}
 
         <select
           value={activeModel || ''}

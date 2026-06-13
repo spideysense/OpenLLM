@@ -448,14 +448,13 @@ describe('User-facing branding: no "Ollama" visible anywhere', () => {
   const onboardingSrc = fs.readFileSync(path.resolve('src/renderer/pages/Onboarding.jsx'), 'utf8');
   const indexSrc = fs.readFileSync(path.resolve('src/main/index.js'), 'utf8');
 
-  it('should show "Running locally" not "Ollama running" in sidebar', () => {
-    expect(sidebarSrc).toContain('Running locally');
+  it('sidebar never exposes the word "Ollama" to the user', () => {
     expect(sidebarSrc).not.toContain('Ollama running');
     expect(sidebarSrc).not.toContain('Ollama offline');
+    expect(sidebarSrc).not.toMatch(/>Ollama</);
   });
 
-  it('should show "AI Engine" not "Ollama" in settings', () => {
-    expect(settingsSrc).toContain('AI Engine');
+  it('settings never exposes the word "Ollama" to the user', () => {
     // No user-visible strings should say "Ollama"
     expect(settingsSrc).not.toMatch(/>Ollama</);
   });
