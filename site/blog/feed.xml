@@ -7,6 +7,13 @@
   <atom:link href="https://runonaspen.com/blog/feed.xml" rel="self" type="application/rss+xml"/>
   
   <item>
+    <title><![CDATA[Cloud AI Pricing is a Trap—Here’s How to Escape the Subscription Spiral]]></title>
+    <link>https://runonaspen.com/blog/cloud-ai-pricing-is-a-trap-here-s-the-escape.html</link>
+    <description><![CDATA[Stop paying for every token. Discover why cloud AI costs are skyrocketing and how moving to local-first AI can save you thousands.]]></description>
+    <pubDate>Sat, 13 Jun 2026 00:00:00 GMT</pubDate>
+    <guid>https://runonaspen.com/blog/cloud-ai-pricing-is-a-trap-here-s-the-escape.html</guid>
+  </item>
+  <item>
     <title><![CDATA[How I Cut My Monthly AI Bills by $500 Using Local LLMs]]></title>
     <link>https://runonaspen.com/blog/i-saved-500-this-year-by-running-ai-locally.html</link>
     <description><![CDATA[Discover how switching from cloud-based AI subscriptions to running models locally with Aspen saved me $500 in annual subscription fees.]]></description>
