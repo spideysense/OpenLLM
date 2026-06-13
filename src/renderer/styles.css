@@ -936,3 +936,8 @@ html, body, #root {
 .chat-item-del { background: none; border: none; cursor: pointer; color: var(--text-3); font-size: 12px; line-height: 1; padding: 0 2px; opacity: 0; flex-shrink: 0; }
 .chat-item:hover .chat-item-del { opacity: .6; }
 .chat-item-del:hover { opacity: 1; color: var(--text); }
+
+/* ---- Monochrome nav icons + Aspen logo mark ---- */
+.sidebar-logo-mark { color: var(--text); flex-shrink: 0; }
+.nav-icon { display: inline-flex; align-items: center; justify-content: center; width: 22px; }
+.nav-icon svg { display: block; }
