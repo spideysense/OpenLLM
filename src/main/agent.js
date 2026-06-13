@@ -109,6 +109,18 @@ async function runAgent({ model, messages, retryCount = 0, isOwner = true, onEve
     return t;
   };
 
+  // Reasoning models (gemma, deepseek-r1, qwen3...) return their final answer in
+  // `content` and their chain-of-thought in a separate `reasoning` field. On heavy
+  // prompts these models sometimes pour everything into `reasoning` and leave
+  // `content` empty — which previously surfaced as "Sorry, I could not generate a
+  // response." Fall back to `reasoning` so the user always gets the model's output.
+  const pickText = (m) => {
+    if (!m) return '';
+    const c = clean(m.content);
+    if (c) return c;
+    return clean(m.reasoning) || '';
+  };
+
   // No tools enabled, or model can't use tools → plain chat call.
   if (toolDefs.length === 0 || !supportsTools) {
     const msgs = [...messages];
@@ -119,7 +131,7 @@ async function runAgent({ model, messages, retryCount = 0, isOwner = true, onEve
       msgs.unshift({ role: 'system', content: ENGLISH });
     }
     const r = await ollamaChat({ model, messages: msgs });
-    const out = clean(r.choices?.[0]?.message?.content);
+    const out = pickText(r.choices?.[0]?.message);
     return out || 'Sorry, I could not generate a response.';
   }
 
@@ -178,7 +190,7 @@ Call exactly the tool that fits, wait for its result, then answer using that res
 
     const toolCalls = msg.tool_calls || [];
     if (toolCalls.length === 0) {
-      const out = clean(msg.content);
+      const out = pickText(msg);
 
       // ── Refusal override ──
       // Small/medium models sometimes refuse to call run_command due to safety
@@ -227,7 +239,7 @@ Call exactly the tool that fits, wait for its result, then answer using that res
 
       if (out) return out;
       const r = await ollamaChat({ model, messages });
-      return clean(r.choices?.[0]?.message?.content) || 'Sorry, I could not generate a response.';
+      return pickText(r.choices?.[0]?.message) || 'Sorry, I could not generate a response.';
     }
 
     // Record the assistant's tool-call turn, then execute each call locally.
@@ -250,7 +262,7 @@ Call exactly the tool that fits, wait for its result, then answer using that res
 
   // Hit the round cap — make one final plain call so the user still gets an answer.
   const final = await ollamaChat({ model, messages: convo });
-  return clean(final.choices?.[0]?.message?.content) || 'Sorry, I could not complete that request.';
+  return pickText(final.choices?.[0]?.message) || 'Sorry, I could not complete that request.';
 }
 
 // Whether the agent loop should handle this request (any tools on).

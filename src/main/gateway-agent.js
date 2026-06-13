@@ -373,6 +373,8 @@ async function* ollamaStream(model, messages) {
 
   let firstByte = false;
   let buffer = '';
+  let yieldedContent = false;
+  let reasoning = '';
   for await (const chunk of response) {
     if (!firstByte) {
       firstByte = true;
@@ -387,10 +389,15 @@ async function* ollamaStream(model, messages) {
       try {
         const json = JSON.parse(line);
         const delta = json.message?.content;
-        if (delta) yield delta;
+        if (delta) { yieldedContent = true; yield delta; }
+        else if (json.message?.reasoning) { reasoning += json.message.reasoning; }
       } catch {}
     }
   }
+  // Reasoning models sometimes pour the whole answer into a separate `reasoning`
+  // field and leave `content` empty. If nothing streamed as content, surface the
+  // reasoning so the user gets the answer instead of "Sorry, I could not generate".
+  if (!yieldedContent && reasoning.trim()) yield reasoning.trim();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -422,6 +429,7 @@ function ollamaChat(payload) {
     });
 
     let content = '';
+    let reasoning = '';
     let toolCalls = [];
     let buffer = '';
     let settled = false;
@@ -446,6 +454,7 @@ function ollamaChat(payload) {
             const json = JSON.parse(line);
             if (json.error) { done(() => reject(new Error(`Ollama error: ${json.error}`))); req.destroy(); return; }
             if (json.message?.content) content += json.message.content;
+            if (json.message?.reasoning) reasoning += json.message.reasoning;
             if (Array.isArray(json.message?.tool_calls) && json.message.tool_calls.length) {
               toolCalls = toolCalls.concat(json.message.tool_calls);
             }
@@ -458,10 +467,11 @@ function ollamaChat(payload) {
           try {
             const json = JSON.parse(tail);
             if (json.message?.content) content += json.message.content;
+            if (json.message?.reasoning) reasoning += json.message.reasoning;
             if (Array.isArray(json.message?.tool_calls)) toolCalls = toolCalls.concat(json.message.tool_calls);
           } catch {}
         }
-        done(() => resolve({ choices: [{ message: { role: 'assistant', content, tool_calls: toolCalls } }] }));
+        done(() => resolve({ choices: [{ message: { role: 'assistant', content, reasoning, tool_calls: toolCalls } }] }));
       });
     });
     req.on('error', (e) => done(() => reject(e)));
@@ -619,7 +629,8 @@ You are Aspen, a helpful AI assistant running 100% LOCALLY on the user's own mac
   if (toolDefs.length === 0) {
     try {
       const r = await ollamaChat({ model, messages: convo });
-      const text = clean(r.choices?.[0]?.message?.content);
+      const rm = r.choices?.[0]?.message;
+      const text = clean(rm?.content) || clean(rm?.reasoning);
       yield { type: 'content', text: text || 'Sorry, I could not generate a response.' };
       if (memoryKeyId !== null && text) {
         worldModel.extractFacts(model, [...msgs, { role: 'assistant', content: text }], memoryKeyId).catch(() => {});
@@ -712,7 +723,8 @@ You are Aspen, a helpful AI assistant running 100% LOCALLY on the user's own mac
   // Hit round cap — one final call for a best-effort answer
   try {
     const final = await ollamaChat({ model, messages: convo });
-    const text = clean(final?.choices?.[0]?.message?.content);
+    const fm = final?.choices?.[0]?.message;
+    const text = clean(fm?.content) || clean(fm?.reasoning);
     yield { type: 'content', text: text || 'Sorry, I could not complete that request.' };
     yield { type: 'done' };
   } catch (e) {
