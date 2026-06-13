@@ -65,9 +65,14 @@ const DOWNLOAD_URLS = {
     'https://github.com/ollama/ollama/releases/latest/download/ollama-darwin-arm64.tgz',
     'https://github.com/ollama/ollama/releases/latest/download/ollama-darwin-arm64',
   ],
-  linux: [
-    'https://github.com/ollama/ollama/releases/latest/download/ollama-linux-amd64.tgz',
-    'https://github.com/ollama/ollama/releases/latest/download/ollama-linux-amd64',
+  // arm64 (e.g. NVIDIA Grace / GB10): prefer the JetPack CUDA builds so the GPU is used;
+  // fall back jetpack6 -> jetpack5 -> generic arm64 (CPU). x64 uses the standard amd64 build.
+  linux: process.arch === 'arm64' ? [
+    'https://github.com/ollama/ollama/releases/latest/download/ollama-linux-arm64-jetpack6.tar.zst',
+    'https://github.com/ollama/ollama/releases/latest/download/ollama-linux-arm64-jetpack5.tar.zst',
+    'https://github.com/ollama/ollama/releases/latest/download/ollama-linux-arm64.tar.zst',
+  ] : [
+    'https://github.com/ollama/ollama/releases/latest/download/ollama-linux-amd64.tar.zst',
   ],
   win32: [
     'https://github.com/ollama/ollama/releases/latest/download/ollama-windows-amd64.zip',
@@ -96,10 +101,11 @@ async function downloadOllama(notify, { force = false } = {}) {
   for (const url of urls) {
     try {
       const isTgz = url.endsWith('.tgz');
+      const isZst = url.endsWith('.tar.zst');
       const isZip = url.endsWith('.zip');
 
-      if (isTgz || isZip) {
-        const archiveExt = isTgz ? '.tgz' : '.zip';
+      if (isTgz || isZst || isZip) {
+        const archiveExt = isTgz ? '.tgz' : isZst ? '.tar.zst' : '.zip';
         const archivePath = path.join(BIN_DIR, `ollama-download${archiveExt}`);
 
         notify('Downloading AI engine...');
@@ -109,6 +115,8 @@ async function downloadOllama(notify, { force = false } = {}) {
 
         if (isTgz) {
           execSync(`tar -xzf "${archivePath}" -C "${BIN_DIR}"`, { stdio: 'pipe' });
+        } else if (isZst) {
+          execSync(`tar --zstd -xf "${archivePath}" -C "${BIN_DIR}"`, { stdio: 'pipe' });
         } else {
           execSync(
             `powershell -command "Expand-Archive -Path '${archivePath}' -DestinationPath '${BIN_DIR}' -Force"`,
