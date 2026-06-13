@@ -9,7 +9,7 @@
  * Streams Server-Sent Events from the user's gateway (/v1/agent via the tunnel)
  * straight through to the browser.
  */
-export const config = { maxDuration: 60 };
+export const config = { maxDuration: 300 };
 
 const ALLOWED_ORIGINS = [
   'https://runonaspen.com',
@@ -27,7 +27,7 @@ function setCors(res, origin) {
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   res.setHeader('Vary', 'Origin');
-  res.setHeader('X-Aspen-Proxy', 'agent-node-v3');
+  res.setHeader('X-Aspen-Proxy', 'agent-node-v4');
 }
 
 function endJson(res, status, obj) {
@@ -43,7 +43,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') { res.statusCode = 204; res.end(); return; }
   // GET = health check. Visit /api/agent in a browser to confirm the deployed
   // version (returns the marker below) without DevTools.
-  if (req.method === 'GET') return endJson(res, 200, { ok: true, version: 'agent-node-v3', ts: Date.now() });
+  if (req.method === 'GET') return endJson(res, 200, { ok: true, version: 'agent-node-v4', ts: Date.now() });
   if (req.method !== 'POST') return endJson(res, 405, { error: 'POST only' });
 
   // Body — Vercel usually pre-parses JSON, but read the raw stream if not.

@@ -4,7 +4,7 @@
  * Search logic is INLINED here — no self-HTTP call to /api/search.
  * That was causing "Host not in allowlist" 403s on Vercel.
  */
-export const config = { maxDuration: 60 };
+export const config = { maxDuration: 300 };
 
 // ── Search triggers (regex) ──────────────────────────────
 const SEARCH_TRIGGERS = [
@@ -163,7 +163,7 @@ export default async function handler(req, res) {
   setCors(res, origin);
 
   if (req.method === 'OPTIONS') { res.statusCode = 204; res.end(); return; }
-  if (req.method === 'GET') return endJson(res, 200, { ok: true, version: 'proxy-node-v1', ts: Date.now() });
+  if (req.method === 'GET') return endJson(res, 200, { ok: true, version: 'proxy-node-v2', ts: Date.now() });
   if (req.method !== 'POST') return endJson(res, 405, { error: 'POST only' });
 
   // Body — Vercel usually pre-parses JSON; read the raw stream if not.
@@ -197,7 +197,7 @@ export default async function handler(req, res) {
     ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
   };
 
-  // NON-STREAMING (world-model extraction): Node gives up to maxDuration (60s)
+  // NON-STREAMING (world-model extraction): Node gives up to maxDuration (300s)
   // instead of the edge runtime's ~25s ceiling — that ceiling was the 504 cause.
   if (!stream) {
     try {
@@ -272,5 +272,5 @@ function setCors(res, origin) {
   res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   res.setHeader('Vary', 'Origin');
-  res.setHeader('X-Aspen-Proxy', 'proxy-node-v1');
+  res.setHeader('X-Aspen-Proxy', 'proxy-node-v2');
 }
