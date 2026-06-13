@@ -495,7 +495,7 @@ function tryListen(port) {
         const store = require('./store');
         const activeModel = store.get('activeModel');
         if (!activeModel) return;
-        const warmBody = JSON.stringify({ model: activeModel, messages: [{ role: 'user', content: 'hi' }], stream: false, keep_alive: -1, options: { num_predict: 1 } });
+        const warmBody = JSON.stringify({ model: activeModel, messages: [{ role: 'user', content: 'hi' }], stream: false, keep_alive: -1, options: { num_predict: 1, num_ctx: system.getRecommendedContext() } });
         const warmReq = http.request({
           hostname: '127.0.0.1', port: 11434, path: '/api/chat', method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(warmBody) },

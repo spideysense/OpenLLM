@@ -318,18 +318,12 @@ function getRelevantSkillsText(userMsg) {
 // shouldn't pay for a 64k window. Estimate tokens (~4 chars/token), add headroom
 // for the response, round up to a sane bucket, cap at the hardware ceiling.
 function contextFor(messages) {
-  const hwMax = system.getRecommendedContext();
-  let chars = 0;
-  for (const m of messages) {
-    if (typeof m.content === 'string') chars += m.content.length;
-    if (Array.isArray(m.images)) chars += 6000; // vision tokens are pricey
-  }
-  const promptTokens = Math.ceil(chars / 4);
-  const needed = promptTokens + 2048; // headroom for the reply
-  // Buckets: 4k, 8k, 16k, 32k, 64k
-  const buckets = [4096, 8192, 16384, 32768, 65536];
-  const chosen = buckets.find(b => b >= needed) || hwMax;
-  return Math.min(chosen, hwMax);
+  // A FIXED context per machine — deliberately NOT message-dependent. Ollama keys
+  // a loaded model by its options (num_ctx included), so a context that changed
+  // with conversation length would unload + reload the 19 GB model every time the
+  // bucket flipped. One stable value (shared with the desktop path and the
+  // background fact-extractor) keeps the model resident and warm.
+  return system.getRecommendedContext();
 }
 
 // Keep the model resident in memory between requests so there's no cold-load

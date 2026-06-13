@@ -591,7 +591,7 @@ function warmModel(model) {
     fetch(`${OLLAMA_HOST}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, messages: [{ role: 'user', content: 'hi' }], stream: false, keep_alive: -1, options: { num_predict: 1 } }),
+      body: JSON.stringify({ model, messages: [{ role: 'user', content: 'hi' }], stream: false, keep_alive: -1, options: { num_predict: 1, num_ctx: system.getRecommendedContext() } }),
     }).then((r) => r.text()).then(() => console.log(`[Aspen] Warmed model: ${model}`)).catch(() => {});
   } catch {}
 }

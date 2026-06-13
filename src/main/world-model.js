@@ -12,6 +12,7 @@
 
 const store = require('./store');
 const http = require('http');
+const system = require('./system');
 
 const OLLAMA_HOST = '127.0.0.1';
 const OLLAMA_PORT = 11434;
@@ -117,7 +118,12 @@ Example output: ["User's name is Mayank", "User is building an AI app called Asp
       model,
       messages: extractionPrompt,
       stream: false,
-      options: { num_predict: 500, temperature: 0.1 },
+      // Match the chat path EXACTLY (num_ctx + keep_alive). If this background
+      // call used different options, Ollama would unload the chat model and
+      // reload it with this config — then reload again on the next message. That
+      // churn was the "Loading model into memory" on every single turn.
+      keep_alive: -1,
+      options: { num_predict: 500, temperature: 0.1, num_ctx: system.getRecommendedContext() },
     });
 
     const result = await new Promise((resolve, reject) => {

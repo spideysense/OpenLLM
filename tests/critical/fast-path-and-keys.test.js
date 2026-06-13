@@ -116,10 +116,18 @@ describe('Speed optimizations', () => {
     const src = fs.readFileSync(path.resolve('src/main/gateway.js'), 'utf8');
     expect(src).toContain('keep_alive = -1');
   });
-  it('context sized dynamically, not always hardware max', () => {
+  it('context is a single stable value so the model stays resident (no reload churn)', () => {
     const src = fs.readFileSync(path.resolve('src/main/gateway-agent.js'), 'utf8');
     expect(src).toContain('contextFor');
-    expect(src).toContain('buckets');
+    // Must NOT vary context by message length — that unloaded/reloaded the model
+    // every time the bucket changed. One fixed value, shared with all other paths.
+    expect(src).not.toContain('buckets');
+    expect(src).toMatch(/function contextFor[\s\S]{0,800}return system\.getRecommendedContext\(\)/);
+  });
+  it('background fact extraction matches chat options so it does not evict the model', () => {
+    const wm = fs.readFileSync(path.resolve('src/main/world-model.js'), 'utf8');
+    expect(wm).toContain('keep_alive: -1');
+    expect(wm).toContain('num_ctx: system.getRecommendedContext()');
   });
   it('gateway warms the model on start', () => {
     const src = fs.readFileSync(path.resolve('src/main/gateway.js'), 'utf8');
