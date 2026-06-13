@@ -84,18 +84,18 @@ export default function Home() {
     setInviteSending(false);
   }
 
-  const inp = { width: '100%', padding: '9px 12px', borderRadius: 8, border: '1.5px solid rgba(93,78,55,0.15)', fontFamily: 'inherit', fontSize: 14, color: 'var(--text-dark)', background: 'var(--sky-top)', outline: 'none' };
+  const inp = { width: '100%', padding: '9px 12px', borderRadius: 8, border: '1.5px solid rgba(0,0,0,0.15)', fontFamily: 'inherit', fontSize: 14, color: 'var(--text-dark)', background: 'var(--sky-top)', outline: 'none' };
 
   return (
     <div className="page" style={{ maxWidth: 680 }}>
       {/* Savings hero */}
-      <div className="card mb-6" style={{ background: 'linear-gradient(135deg,rgba(184,134,11,0.08),rgba(93,78,55,0.04))', border: '1.5px solid rgba(184,134,11,0.15)', padding: '28px 32px' }}>
+      <div className="card mb-6" style={{ background: 'linear-gradient(135deg,rgba(0,0,0,0.08),rgba(0,0,0,0.04))', border: '1.5px solid rgba(0,0,0,0.15)', padding: '28px 32px' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 20 }}>
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--gold)', letterSpacing: '.05em', marginBottom: 6 }}>TOTAL SAVED VS CLOUD AI</div>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 48, fontWeight: 700, color: 'var(--earth)', lineHeight: 1 }}>${totalSaved}</div>
             <div style={{ fontSize: 13, color: 'var(--text-light)', marginTop: 8 }}>{totalExchanges.toLocaleString()} exchanges · vs {MODEL_LABEL}</div>
-            <button onClick={shareSavings} disabled={sharing || shared || totalExchanges < 1} style={{ marginTop: 12, padding: '6px 14px', background: shared ? 'var(--sage,#7a9e7e)' : 'var(--gold,#b8860b)', color: '#fff', border: 'none', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: totalExchanges < 1 ? 'default' : 'pointer', opacity: totalExchanges < 1 ? 0.4 : 1 }}>
+            <button onClick={shareSavings} disabled={sharing || shared || totalExchanges < 1} style={{ marginTop: 12, padding: '6px 14px', background: shared ? 'var(--sage,#7a9e7e)' : 'var(--gold,#171717)', color: '#fff', border: 'none', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: totalExchanges < 1 ? 'default' : 'pointer', opacity: totalExchanges < 1 ? 0.4 : 1 }}>
               {shared ? '✓ Shared with community' : sharing ? 'Sharing…' : '🌿 Share with Aspen Community'}
             </button>
           </div>
@@ -123,9 +123,9 @@ export default function Home() {
             <button key={i} onClick={() => {
               if (bridge?.store) bridge.store.set('pendingPrompt', demo.prompt);
               setPage('chat');
-            }} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', border: '1.5px solid rgba(93,78,55,.1)', borderRadius: 10, background: 'var(--cloud)', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--text-dark)', textAlign: 'left' }}
+            }} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', border: '1.5px solid rgba(0,0,0,.1)', borderRadius: 10, background: 'var(--cloud)', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--text-dark)', textAlign: 'left' }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--gold)'; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(93,78,55,.1)'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(0,0,0,.1)'; }}
             >
               <span style={{ fontSize: 22 }}>{demo.emoji}</span>
               <span>{demo.title}</span>
@@ -140,11 +140,11 @@ export default function Home() {
         <p style={{ fontSize: 13, color: 'var(--text-light)', marginBottom: 16, lineHeight: 1.5 }}>Each key tracks how often it's been used. Revoke any key from API Keys.</p>
         {keys.length === 0 ? <p style={{ fontSize: 13, color: 'var(--text-light)' }}>No keys yet.</p> : (
           <div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 80px 120px', gap: 8, padding: '6px 0', borderBottom: '2px solid rgba(93,78,55,0.1)', fontSize: 11, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--text-light)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 80px 120px', gap: 8, padding: '6px 0', borderBottom: '2px solid rgba(0,0,0,0.1)', fontSize: 11, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--text-light)' }}>
               <span>Key</span><span style={{ textAlign: 'right' }}>Uses</span><span style={{ textAlign: 'right' }}>Saved</span><span style={{ textAlign: 'right' }}>Last used</span>
             </div>
             {keys.map(key => (
-              <div key={key.id} style={{ display: 'grid', gridTemplateColumns: '1fr 80px 80px 120px', gap: 8, padding: '10px 0', borderBottom: '1px solid rgba(93,78,55,0.06)', alignItems: 'center' }}>
+              <div key={key.id} style={{ display: 'grid', gridTemplateColumns: '1fr 80px 80px 120px', gap: 8, padding: '10px 0', borderBottom: '1px solid rgba(0,0,0,0.06)', alignItems: 'center' }}>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-dark)' }}>{key.label}</div>
                   <div style={{ fontSize: 11, color: 'var(--text-light)', fontFamily: 'var(--font-mono)' }}>{key.secret.slice(0, 16)}••••</div>
@@ -168,7 +168,7 @@ export default function Home() {
           <button className="btn btn-sm" onClick={() => { setShowInvite(!showInvite); setInviteResult(null); }}>{showInvite ? 'Cancel' : '+ Invite'}</button>
         </div>
         {showInvite && (
-          <div style={{ borderTop: '1px solid rgba(93,78,55,0.1)', paddingTop: 16 }}>
+          <div style={{ borderTop: '1px solid rgba(0,0,0,0.1)', paddingTop: 16 }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
               <div><label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--t4)', marginBottom: 4, display: 'block' }}>Their name</label><input style={inp} placeholder="Ashini" value={inviteeName} onChange={e=>setInviteeName(e.target.value)} /></div>
               <div><label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--t4)', marginBottom: 4, display: 'block' }}>Their email *</label><input style={inp} type="email" placeholder="ashini@example.com" value={inviteeEmail} onChange={e=>setInviteeEmail(e.target.value)} /></div>

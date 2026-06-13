@@ -138,11 +138,12 @@ describe('Story: User chats with a local model', () => {
     expect(source).toContain('chat.stop');
   });
 
-  it('should show empty state with Aspen icon when no messages', async () => {
+  it('should show a clean empty state heading when no messages', async () => {
     const fs = await import('fs');
     const source = fs.readFileSync('src/renderer/pages/Chat.jsx', 'utf8');
     expect(source).toContain('What can I help with');
-    expect(source).toContain('🌿');
+    // Ollama-clean: no decorative leaf glyph in the empty state
+    expect(source).not.toContain('🌿');
   });
 });
 
@@ -316,11 +317,14 @@ describe('Theme: CSS design tokens', () => {
     expect(css.toLowerCase()).not.toContain('tunnel');
   });
 
-  it('should use DM Serif Display and Outfit fonts', async () => {
+  it('should use the native system font stack (Ollama-clean) and no gold', async () => {
     const fs = await import('fs');
     const css = fs.readFileSync('src/renderer/styles.css', 'utf8');
-    expect(css).toContain('DM Serif Display');
-    expect(css).toContain('Outfit');
+    expect(css).toContain('-apple-system');
+    expect(css).toContain('system-ui');
     expect(css).toContain('JetBrains Mono');
+    // No serif display face, no gold hex in the palette
+    expect(css).not.toContain('DM Serif Display');
+    expect(css.toLowerCase()).not.toContain('#b8860b');
   });
 });

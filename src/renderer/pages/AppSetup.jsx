@@ -38,7 +38,7 @@ export default function AppSetup() {
       <div className="page-title">📱 App Setup</div>
       <div className="page-sub">Connect any browser or device to your local Aspen.</div>
 
-      <div className="card mb-6" style={{ background: 'rgba(93,78,55,0.04)', border: '1.5px solid rgba(93,78,55,0.1)' }}>
+      <div className="card mb-6" style={{ background: 'rgba(0,0,0,0.04)', border: '1.5px solid rgba(0,0,0,0.1)' }}>
         <p style={{ fontSize: 13, color: 'var(--text-light)', lineHeight: 1.7, margin: 0 }}>
           <strong style={{ color: 'var(--earth)' }}>runonaspen.com/app</strong> is a web interface that connects directly to your local Aspen. Copy your tunnel URL and API key below, then paste them at the web app. Every message routes through your machine — nothing is stored on any server.
         </p>
@@ -70,7 +70,7 @@ export default function AppSetup() {
             <code style={{ flex: 1, fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-dark)', wordBreak: 'break-all' }}>
               {revealed ? defaultKey.secret : defaultKey.secret.slice(0, 14) + '••••••••••••'}
             </code>
-            <button className="btn btn-sm" style={{ flexShrink: 0, background: 'transparent', border: '1.5px solid rgba(93,78,55,0.2)', color: 'var(--text-light)' }} onClick={() => setRevealed(!revealed)}>{revealed ? 'Hide' : 'Reveal'}</button>
+            <button className="btn btn-sm" style={{ flexShrink: 0, background: 'transparent', border: '1.5px solid rgba(0,0,0,0.2)', color: 'var(--text-light)' }} onClick={() => setRevealed(!revealed)}>{revealed ? 'Hide' : 'Reveal'}</button>
             <button className="btn btn-sm" onClick={() => copy(defaultKey.secret, 'key')} style={btnStyle('key')}>{copied==='key' ? '✓ Copied' : 'Copy'}</button>
           </div>
         ) : (

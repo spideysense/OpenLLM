@@ -56,7 +56,7 @@ export default function Templates() {
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 20 }}>
         {Object.keys(TEMPLATES).map(cat => (
           <button key={cat} onClick={() => setSelectedCategory(cat)}
-            style={{ padding: '6px 14px', borderRadius: 20, border: selectedCategory === cat ? '2px solid var(--gold)' : '1.5px solid rgba(93,78,55,.12)', background: selectedCategory === cat ? 'rgba(184,134,11,.08)' : 'var(--cloud)', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: selectedCategory === cat ? 'var(--earth)' : 'var(--text-dark)' }}
+            style={{ padding: '6px 14px', borderRadius: 20, border: selectedCategory === cat ? '2px solid var(--gold)' : '1.5px solid rgba(0,0,0,.12)', background: selectedCategory === cat ? 'rgba(0,0,0,.08)' : 'var(--cloud)', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: selectedCategory === cat ? 'var(--earth)' : 'var(--text-dark)' }}
           >{cat}</button>
         ))}
       </div>
@@ -64,9 +64,9 @@ export default function Templates() {
       <div style={{ display: 'grid', gap: 12 }}>
         {TEMPLATES[selectedCategory]?.map((t, i) => (
           <div key={i} onClick={() => useTemplate(t)}
-            style={{ padding: '16px 18px', border: '1.5px solid rgba(93,78,55,.1)', borderRadius: 12, background: 'var(--cloud, #fff)', cursor: 'pointer', transition: 'all .15s' }}
+            style={{ padding: '16px 18px', border: '1.5px solid rgba(0,0,0,.1)', borderRadius: 12, background: 'var(--cloud, #fff)', cursor: 'pointer', transition: 'all .15s' }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--gold)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(93,78,55,.1)'; e.currentTarget.style.transform = 'none'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(0,0,0,.1)'; e.currentTarget.style.transform = 'none'; }}
           >
             <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--earth)', marginBottom: 4 }}>{t.title}</div>
             <div style={{ fontSize: 13, color: 'var(--text-light)', lineHeight: 1.5 }}>{t.desc}</div>

@@ -53,7 +53,7 @@ export default function WorldModel() {
       <div className="page-title">🧠 Your World Model</div>
       <div className="page-sub">What your local AI knows about you — built from your conversations.</div>
 
-      <div style={{ background: 'rgba(184,134,11,0.06)', border: '1.5px solid rgba(184,134,11,0.15)', borderRadius: 12, padding: '14px 18px', marginBottom: 24, display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+      <div style={{ background: 'rgba(0,0,0,0.06)', border: '1.5px solid rgba(0,0,0,0.15)', borderRadius: 12, padding: '14px 18px', marginBottom: 24, display: 'flex', gap: 12, alignItems: 'flex-start' }}>
         <span style={{ fontSize: 20 }}>🔒</span>
         <div>
           <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--earth)', marginBottom: 3 }}>100% local — never leaves your machine</div>
@@ -68,7 +68,7 @@ export default function WorldModel() {
       </div>
 
       <div className="card mb-6" style={{ padding: 0, overflow: 'hidden' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderBottom: '1px solid rgba(93,78,55,0.08)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
           <div>
             <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--earth)', fontFamily: 'var(--font-display)' }}>Known facts {saved && <span style={{ color: 'var(--green)', fontSize: 12, fontWeight: 400, marginLeft: 8 }}>✓ Saved</span>}</div>
             {wm.updatedAt && <div style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 2 }}>Last updated {new Date(wm.updatedAt).toLocaleString()}</div>}
@@ -91,11 +91,11 @@ export default function WorldModel() {
         ) : (
           <div>
             {wm.facts.map((fact, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 14px', borderBottom: '1px solid rgba(93,78,55,0.07)', fontSize: 14, lineHeight: 1.5, color: 'var(--text-dark)' }}>
-                <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--gold,#B8860B)', flexShrink: 0, marginTop: 6 }} />
+              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 14px', borderBottom: '1px solid rgba(0,0,0,0.07)', fontSize: 14, lineHeight: 1.5, color: 'var(--text-dark)' }}>
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--gold,#171717)', flexShrink: 0, marginTop: 6 }} />
                 {editing === i ? (
                   <>
-                    <input style={{ flex: 1, border: '1.5px solid var(--pipe-yellow,#DAA520)', borderRadius: 6, padding: '4px 8px', fontFamily: 'inherit', fontSize: 14, outline: 'none', background: 'var(--sky-top)' }} value={editText} onChange={e=>setEditText(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')commitEdit(i);if(e.key==='Escape')setEditing(null)}} autoFocus />
+                    <input style={{ flex: 1, border: '1.5px solid var(--pipe-yellow,#2E2E2E)', borderRadius: 6, padding: '4px 8px', fontFamily: 'inherit', fontSize: 14, outline: 'none', background: 'var(--sky-top)' }} value={editText} onChange={e=>setEditText(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')commitEdit(i);if(e.key==='Escape')setEditing(null)}} autoFocus />
                     <button style={{ ...iconBtn, color: 'var(--green)' }} onClick={() => commitEdit(i)}>✓</button>
                     <button style={{ ...iconBtn, color: 'var(--danger)' }} onClick={() => deleteFact(i)}>✕</button>
                     <button style={iconBtn} onClick={() => setEditing(null)}>✗</button>
@@ -112,8 +112,8 @@ export default function WorldModel() {
           </div>
         )}
 
-        <div style={{ padding: '12px 14px', borderTop: '1px solid rgba(93,78,55,0.08)', display: 'flex', gap: 8 }}>
-          <input style={{ flex: 1, border: '1.5px solid rgba(93,78,55,0.15)', borderRadius: 8, padding: '7px 11px', fontFamily: 'inherit', fontSize: 13, outline: 'none', background: 'var(--sky-top)' }} placeholder="Add a fact manually (e.g. 'I live in Hillsborough, CA')" value={newFact} onChange={e=>setNewFact(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')addFact()}} />
+        <div style={{ padding: '12px 14px', borderTop: '1px solid rgba(0,0,0,0.08)', display: 'flex', gap: 8 }}>
+          <input style={{ flex: 1, border: '1.5px solid rgba(0,0,0,0.15)', borderRadius: 8, padding: '7px 11px', fontFamily: 'inherit', fontSize: 13, outline: 'none', background: 'var(--sky-top)' }} placeholder="Add a fact manually (e.g. 'I live in Hillsborough, CA')" value={newFact} onChange={e=>setNewFact(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')addFact()}} />
           <button className="btn btn-sm" onClick={addFact} disabled={!newFact.trim()}>Add</button>
         </div>
       </div>

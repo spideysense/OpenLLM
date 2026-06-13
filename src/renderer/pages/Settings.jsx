@@ -82,7 +82,7 @@ export default function Settings() {
             value={customInstructions}
             onChange={(e) => { setCustomInstructions(e.target.value); bridge?.store?.set('customInstructions', e.target.value); }}
             placeholder="e.g., I'm a software engineer. Be technical and concise. Always include code examples. Respond in Spanish."
-            style={{ width: '100%', minHeight: 80, padding: 10, border: '1.5px solid rgba(93,78,55,.12)', borderRadius: 8, fontSize: 14, fontFamily: 'var(--font-body)', resize: 'vertical', background: 'var(--cloud)', color: 'var(--text-dark)', boxSizing: 'border-box' }}
+            style={{ width: '100%', minHeight: 80, padding: 10, border: '1.5px solid rgba(0,0,0,.12)', borderRadius: 8, fontSize: 14, fontFamily: 'var(--font-body)', resize: 'vertical', background: 'var(--cloud)', color: 'var(--text-dark)', boxSizing: 'border-box' }}
           />
         </div>
       </section>
@@ -101,7 +101,7 @@ export default function Settings() {
 
           {activeModel && modelProfile && (() => {
             const tone = modelProfile.tier === 'chat'
-              ? { bg: 'rgba(242,213,138,0.16)', bd: 'rgba(184,134,11,0.3)', fg: '#7a5e12' }
+              ? { bg: 'rgba(242,213,138,0.16)', bd: 'rgba(0,0,0,0.3)', fg: '#7a5e12' }
               : { bg: 'rgba(40,167,69,0.08)', bd: 'rgba(40,167,69,0.25)', fg: '#155724' };
             return (
               <div style={{ background: tone.bg, border: `1px solid ${tone.bd}`, borderRadius: 8, padding: '10px 14px', marginBottom: 18, fontSize: 13, color: tone.fg, lineHeight: 1.6 }}>
@@ -132,7 +132,7 @@ export default function Settings() {
                      : modelProfile.reasons?.tools)
                   : null;
                 return (
-                  <div key={t.name} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, padding: '12px 14px', background: 'rgba(93,78,55,0.04)', borderRadius: 8, opacity: disabled ? 0.5 : 1 }}>
+                  <div key={t.name} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, padding: '12px 14px', background: 'rgba(0,0,0,0.04)', borderRadius: 8, opacity: disabled ? 0.5 : 1 }}>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--earth)', marginBottom: 2 }}>{meta.icon} {meta.title}</div>
                       <div style={{ fontSize: 13, color: 'var(--text-light)', lineHeight: 1.4 }}>{meta.desc}</div>
@@ -142,7 +142,7 @@ export default function Settings() {
                       onClick={() => !disabled && toggleTool(t.name, !t.enabled)}
                       aria-label={`Toggle ${meta.title}`}
                       disabled={disabled}
-                      style={{ flexShrink: 0, width: 44, height: 26, borderRadius: 13, border: 'none', cursor: disabled ? 'not-allowed' : 'pointer', background: (t.enabled && !disabled) ? 'var(--pipe-yellow)' : 'rgba(93,78,55,0.25)', position: 'relative', transition: 'background 0.15s' }}
+                      style={{ flexShrink: 0, width: 44, height: 26, borderRadius: 13, border: 'none', cursor: disabled ? 'not-allowed' : 'pointer', background: (t.enabled && !disabled) ? 'var(--pipe-yellow)' : 'rgba(0,0,0,0.25)', position: 'relative', transition: 'background 0.15s' }}
                     >
                       <span style={{ position: 'absolute', top: 3, left: (t.enabled && !disabled) ? 21 : 3, width: 20, height: 20, borderRadius: '50%', background: '#fff', transition: 'left 0.15s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
                     </button>

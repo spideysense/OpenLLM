@@ -218,7 +218,7 @@ export default function App() {
               move your mouse, click, and type to complete tasks on your behalf.
               Ask it to "open Safari and search for X" or "fill out this form" and it'll do it.
             </p>
-            <div style={{ background: 'rgba(184,134,11,0.07)', borderRadius: 10, padding: '12px 16px', marginBottom: 20, fontSize: 13, lineHeight: 1.6 }}>
+            <div style={{ background: 'rgba(0,0,0,0.07)', borderRadius: 10, padding: '12px 16px', marginBottom: 20, fontSize: 13, lineHeight: 1.6 }}>
               <strong>⚠️ This requires one permission:</strong><br/>
               macOS will ask you to grant <em>Accessibility access</em> to Aspen the first time it tries to control your screen.
               This is a standard macOS privacy prompt — click Allow when it appears.
@@ -226,7 +226,7 @@ export default function App() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <button
                 style={{
-                  background: 'linear-gradient(135deg,#b8860b,#daa520)', color: '#fff',
+                  background: 'linear-gradient(135deg,#171717,#daa520)', color: '#fff',
                   border: 'none', borderRadius: 10, padding: '12px 20px',
                   fontSize: 15, fontWeight: 600, cursor: 'pointer',
                 }}
@@ -263,7 +263,7 @@ export default function App() {
           {!betaDismissed && (
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-              padding: '7px 16px', background: 'linear-gradient(90deg,#b8860b,#daa520)',
+              padding: '7px 16px', background: 'linear-gradient(90deg,#171717,#daa520)',
               color: '#fff', fontSize: 12.5, flexShrink: 0,
             }}>
               <span>🌿 <strong>Aspen is in Beta.</strong> We'd love your feedback — <a href="mailto:mayank.mehta@gmail.com?subject=Aspen%20Beta%20Feedback" style={{ color: '#fff', textDecoration: 'underline' }}>tell us what you think</a>.</span>
@@ -289,7 +289,7 @@ export default function App() {
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
               padding: '10px 16px', margin: '12px 16px 0', borderRadius: 10,
-              background: 'rgba(184,134,11,0.08)', border: '1px solid rgba(184,134,11,0.25)',
+              background: 'rgba(0,0,0,0.08)', border: '1px solid rgba(0,0,0,0.25)',
               fontSize: 13, color: 'var(--bk, #1D1D1F)',
             }}>
               <span>🌿 {modelUpgrade.message} — better for your machine.</span>

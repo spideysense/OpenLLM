@@ -511,8 +511,8 @@ export default function Chat() {
     <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
       {/* Conversation history panel */}
       <div style={{
-        width: 200, flexShrink: 0, borderRight: '1.5px solid rgba(93,78,55,.08)',
-        display: 'flex', flexDirection: 'column', background: 'rgba(93,78,55,.02)', overflow: 'hidden',
+        width: 200, flexShrink: 0, borderRight: '1.5px solid rgba(0,0,0,.08)',
+        display: 'flex', flexDirection: 'column', background: 'rgba(0,0,0,.02)', overflow: 'hidden',
       }}>
         <div style={{ padding: '12px 12px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: 1 }}>Chats</span>
@@ -520,7 +520,7 @@ export default function Chat() {
         </div>
         {/* Search */}
         <div style={{ padding: '0 8px 6px' }}>
-          <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search chats..." style={{ width: '100%', padding: '5px 8px', border: '1px solid rgba(93,78,55,.12)', borderRadius: 6, fontSize: 11, background: 'var(--cloud, #fff)', color: 'var(--text-dark)' }} />
+          <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search chats..." style={{ width: '100%', padding: '5px 8px', border: '1px solid rgba(0,0,0,.12)', borderRadius: 6, fontSize: 11, background: 'var(--cloud, #fff)', color: 'var(--text-dark)' }} />
         </div>
         <div style={{ flex: 1, overflowY: 'auto', padding: '0 6px 8px' }}>
           {[...conversations].reverse().filter(c => !searchQuery || c.title?.toLowerCase().includes(searchQuery.toLowerCase()) || c.messages?.some(m => m.content?.toLowerCase().includes(searchQuery.toLowerCase()))).map((c) => (
@@ -560,13 +560,12 @@ export default function Chat() {
       <div className="chat-container" style={{ flex: 1, minWidth: 0 }}>
       {/* Header */}
       <div className="chat-header">
-        <span style={{ fontSize: 24 }}>🌿</span>
         <h2>Chat</h2>
 
         <div style={{ flex: 1 }} />
 
         <button onClick={() => setPage('templates')} title="Start from a template"
-          style={{ padding: '4px 10px', border: '1.5px solid rgba(93,78,55,0.12)', borderRadius: 'var(--radius-pill)', background: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--text-light)' }}>📋 Templates</button>
+          style={{ padding: '4px 10px', border: '1.5px solid rgba(0,0,0,0.12)', borderRadius: 'var(--radius-pill)', background: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--text-light)' }}>📋 Templates</button>
 
 
         {messages.length > 0 && (
@@ -575,16 +574,16 @@ export default function Chat() {
             const blob = new Blob([md], { type: 'text/markdown' });
             const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
             a.download = `aspen-chat-${new Date().toISOString().split('T')[0]}.md`; a.click();
-          }} title="Export as Markdown (⌘E)" style={{ padding: '4px 8px', border: '1.5px solid rgba(93,78,55,0.12)', borderRadius: 'var(--radius-pill)', background: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--text-light)' }}>↓ Export</button>
+          }} title="Export as Markdown (⌘E)" style={{ padding: '4px 8px', border: '1.5px solid rgba(0,0,0,0.12)', borderRadius: 'var(--radius-pill)', background: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--text-light)' }}>↓ Export</button>
         )}
 
         <button onClick={() => setPage('worldmodel')} title="What Aspen knows about you"
-          style={{ padding: '4px 8px', border: '1.5px solid rgba(93,78,55,0.12)', borderRadius: 'var(--radius-pill)', background: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--text-light)' }}>🧠 Memory</button>
+          style={{ padding: '4px 8px', border: '1.5px solid rgba(0,0,0,0.12)', borderRadius: 'var(--radius-pill)', background: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--text-light)' }}>🧠 Memory</button>
 
         <select
           value={activeModel || ''}
           onChange={(e) => selectModel(e.target.value)}
-          style={{ padding: '6px 12px', borderRadius: 'var(--radius-pill)', border: '1.5px solid rgba(93,78,55,0.12)', fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 600, background: 'var(--cloud)', color: 'var(--earth)', cursor: 'pointer' }}
+          style={{ padding: '6px 12px', borderRadius: 'var(--radius-pill)', border: '1.5px solid rgba(0,0,0,0.12)', fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 600, background: 'var(--cloud)', color: 'var(--earth)', cursor: 'pointer' }}
         >
           {models.length === 0 && <option value="">No models installed</option>}
           {models.map((m) => (
@@ -599,7 +598,7 @@ export default function Chat() {
       {(() => {
         if (!modelProfile || modelProfile.tier !== 'chat' || smallModelDismissed) return null;
         return (
-          <div style={{ margin: '0 24px', padding: '10px 14px', background: 'rgba(242,213,138,0.14)', border: '1px solid rgba(184,134,11,0.3)', borderRadius: 10, fontSize: 13, color: '#7a5e12', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ margin: '0 24px', padding: '10px 14px', background: 'rgba(242,213,138,0.14)', border: '1px solid rgba(0,0,0,0.3)', borderRadius: 10, fontSize: 13, color: '#7a5e12', display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ flex: 1 }}>💬 <strong>{activeModel}</strong> runs as a fast chat model. Web search, code execution, research, and computer use need a larger model (5B+). Everything else works normally.</span>
             <button onClick={() => setSmallModelDismissed(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: '#7a5e12', padding: '0 4px' }}>✕</button>
           </div>
@@ -612,12 +611,11 @@ export default function Chat() {
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
         onScroll={(e) => { const el = e.target; setShowScrollBtn(el.scrollHeight - el.scrollTop - el.clientHeight > 200); }}
-        style={dragOver ? { outline: '2px dashed var(--gold)', outlineOffset: -4, background: 'rgba(184,134,11,0.04)' } : {}}
+        style={dragOver ? { outline: '2px dashed var(--gold)', outlineOffset: -4, background: 'rgba(0,0,0,0.04)' } : {}}
       >
         {messages.length === 0 && !streamBuffer && (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 24px' }}>
-            <div style={{ fontSize: 48, marginBottom: 8 }}>🌿</div>
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, color: 'var(--earth)', marginBottom: 4 }}>What can I help with?</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>What can I help with?</div>
             <div style={{ fontSize: 13, color: 'var(--text-light)', marginBottom: 24, textAlign: 'center' }}>100% private — everything stays on your machine</div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10, width: '100%', maxWidth: 500 }}>
@@ -633,9 +631,9 @@ export default function Chat() {
                 { icon: '👋', label: 'Get to know me', prompt: 'Let\'s get to know each other! Ask me 5 questions one at a time about myself — my name, what I do, where I live, my interests, and what I\'m working on. Wait for my answer before asking the next one. Be warm and conversational. At the end, summarize what you learned about me.' },
               ].map((card, i) => (
                 <button key={i} onClick={() => { setInput(card.prompt); setTimeout(() => inputRef.current?.focus(), 50); }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px', border: '1.5px solid rgba(93,78,55,.1)', borderRadius: 12, background: 'var(--cloud, #fff)', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--text-dark)', textAlign: 'left', transition: 'all .15s' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px', border: '1.5px solid rgba(0,0,0,.1)', borderRadius: 12, background: 'var(--cloud, #fff)', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--text-dark)', textAlign: 'left', transition: 'all .15s' }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--gold)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(93,78,55,.1)'; e.currentTarget.style.transform = 'none'; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(0,0,0,.1)'; e.currentTarget.style.transform = 'none'; }}
                 >
                   <span style={{ fontSize: 18 }}>{card.icon}</span>
                   <span>{card.label}</span>
@@ -644,7 +642,7 @@ export default function Chat() {
             </div>
 
             {/* Quick rewrite bar */}
-            <div style={{ marginTop: 24, padding: '12px 16px', background: 'rgba(184,134,11,.05)', border: '1.5px solid rgba(184,134,11,.12)', borderRadius: 12, width: '100%', maxWidth: 500 }}>
+            <div style={{ marginTop: 24, padding: '12px 16px', background: 'rgba(0,0,0,.05)', border: '1.5px solid rgba(0,0,0,.12)', borderRadius: 12, width: '100%', maxWidth: 500 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--earth)', marginBottom: 8 }}>✨ Quick rewrite — paste any text, then:</div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {[
@@ -661,7 +659,7 @@ export default function Chat() {
                       else { setInput(rw.prompt + '[paste your text here]'); inputRef.current?.focus(); }
                     } catch { setInput(rw.prompt + '[paste your text here]'); inputRef.current?.focus(); }
                   }}
-                    style={{ padding: '6px 10px', border: '1px solid rgba(93,78,55,.12)', borderRadius: 8, background: '#fff', cursor: 'pointer', fontSize: 11, fontWeight: 600, color: 'var(--text-dark)' }}
+                    style={{ padding: '6px 10px', border: '1px solid rgba(0,0,0,.12)', borderRadius: 8, background: '#fff', cursor: 'pointer', fontSize: 11, fontWeight: 600, color: 'var(--text-dark)' }}
                   >{rw.label}</button>
                 ))}
               </div>
@@ -671,12 +669,12 @@ export default function Chat() {
 
         {messages.map((msg, i) => (
           <div key={i} className={`chat-message ${msg.role}`}>
-            <div className="chat-avatar">{msg.role === 'assistant' ? '🌿' : '👤'}</div>
+            <div className="chat-avatar">{msg.role === 'assistant' ? '' : ''}</div>
             <div className="chat-bubble">
               {msg.attachmentPreviews?.map((a, j) => (
                 a.type === 'image'
                   ? <img key={j} src={a.preview} alt={a.name} style={{ maxWidth: 240, maxHeight: 180, borderRadius: 8, marginBottom: 8, display: 'block' }} />
-                  : <div key={j} style={{ fontSize: 11, color: 'var(--text-light)', marginBottom: 6, padding: '4px 8px', background: 'rgba(93,78,55,.06)', borderRadius: 6 }}>📄 {a.name}</div>
+                  : <div key={j} style={{ fontSize: 11, color: 'var(--text-light)', marginBottom: 6, padding: '4px 8px', background: 'rgba(0,0,0,.06)', borderRadius: 6 }}>📄 {a.name}</div>
               ))}
               {msg.role === 'assistant' && msg.trail && <ReasoningTrail steps={msg.trail} live={false} />}
               <MessageContent content={msg.content} onOpenArtifact={openArtifact} />
@@ -701,7 +699,7 @@ export default function Chat() {
 
         {(isStreaming || streamBuffer) && (
           <div className="chat-message assistant">
-            <div className="chat-avatar">🌿</div>
+            <div className="chat-avatar"></div>
             <div className="chat-bubble">
               {isStreaming && !streamBuffer ? (
                 <ThinkingIndicator toolSteps={trail} />
@@ -709,7 +707,7 @@ export default function Chat() {
                 <>
                   <MessageContent content={streamBuffer || ''} onOpenArtifact={openArtifact} />
                   {isStreaming && (
-                    <span style={{ display: 'inline-block', width: 6, height: 16, background: 'var(--pipe-yellow)', borderRadius: 2, animation: 'pulse 0.8s infinite', marginLeft: 2, verticalAlign: 'text-bottom' }} />
+                    <span style={{ display: 'inline-block', width: 6, height: 16, background: 'var(--text)', borderRadius: 2, animation: 'pulse 0.8s infinite', marginLeft: 2, verticalAlign: 'text-bottom' }} />
                   )}
                 </>
               )}
@@ -729,9 +727,9 @@ export default function Chat() {
 
       {/* Attachment previews */}
       {attachments.length > 0 && (
-        <div style={{ padding: '8px 24px', display: 'flex', gap: 8, flexWrap: 'wrap', borderTop: '1px solid rgba(93,78,55,.06)', background: 'rgba(245,166,35,.04)' }}>
+        <div style={{ padding: '8px 24px', display: 'flex', gap: 8, flexWrap: 'wrap', borderTop: '1px solid rgba(0,0,0,.06)', background: 'rgba(245,166,35,.04)' }}>
           {attachments.map((a, i) => (
-            <div key={i} style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--cloud)', border: '1.5px solid rgba(93,78,55,.1)', borderRadius: 8, padding: '4px 8px', fontSize: 12 }}>
+            <div key={i} style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--cloud)', border: '1.5px solid rgba(0,0,0,.1)', borderRadius: 8, padding: '4px 8px', fontSize: 12 }}>
               {a.type === 'image'
                 ? <img src={a.preview} alt={a.name} style={{ width: 32, height: 32, borderRadius: 4, objectFit: 'cover' }} />
                 : <span>📄</span>}
@@ -757,13 +755,13 @@ export default function Chat() {
           <div style={{
             width: 120, height: 120, borderRadius: '50%',
             background: isSpeaking
-              ? 'radial-gradient(circle, #B8860B 0%, rgba(184,134,11,0.3) 60%, transparent 100%)'
+              ? 'radial-gradient(circle, #171717 0%, rgba(0,0,0,0.3) 60%, transparent 100%)'
               : isListening
               ? 'radial-gradient(circle, #DC2626 0%, rgba(220,38,38,0.3) 60%, transparent 100%)'
               : 'radial-gradient(circle, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.05) 60%, transparent 100%)',
             animation: (isSpeaking || isListening) ? 'voicePulse 1.5s ease-in-out infinite' : 'none',
             display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 48,
-            boxShadow: isSpeaking ? '0 0 60px rgba(184,134,11,0.4)' : isListening ? '0 0 60px rgba(220,38,38,0.4)' : 'none',
+            boxShadow: isSpeaking ? '0 0 60px rgba(0,0,0,0.4)' : isListening ? '0 0 60px rgba(220,38,38,0.4)' : 'none',
             transition: 'all 0.5s ease',
           }}>
             {isSpeaking ? '🍃' : isListening ? '🎙' : '◦'}
@@ -809,20 +807,20 @@ export default function Chat() {
 
       {/* Input area */}
       {showVisionGate && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem', margin: '0 auto .6rem', maxWidth: 720, padding: '.55rem .8rem', background: 'rgba(184,134,11,.08)', border: '1px solid rgba(184,134,11,.2)', borderRadius: 11, fontSize: '.83rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem', margin: '0 auto .6rem', maxWidth: 720, padding: '.55rem .8rem', background: 'rgba(0,0,0,.08)', border: '1px solid rgba(0,0,0,.2)', borderRadius: 11, fontSize: '.83rem' }}>
           {pulling ? (
             <>
               <span style={{ flex: 1 }}>
                 Downloading <strong>{pulling.model}</strong>… {pulling.percent != null ? `${pulling.percent}%` : (pulling.status || '')}
               </span>
-              <button onClick={() => window.aspen?.ollama?.abortPull?.()} style={{ fontSize: '.78rem', padding: '.3rem .7rem', borderRadius: 8, border: '1px solid rgba(93,78,55,.2)', background: '#fff', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={() => window.aspen?.ollama?.abortPull?.()} style={{ fontSize: '.78rem', padding: '.3rem .7rem', borderRadius: 8, border: '1px solid rgba(0,0,0,.2)', background: '#fff', cursor: 'pointer' }}>Cancel</button>
             </>
           ) : (
             <>
               <span style={{ flex: 1 }}>
                 <strong>{activeModel}</strong> can't see images. Install a vision model to analyze this image — it runs fully on your machine.
               </span>
-              <button onClick={pullVisionModel} style={{ flexShrink: 0, fontSize: '.78rem', fontWeight: 600, padding: '.3rem .7rem', borderRadius: 8, border: 'none', background: 'var(--gold,#B8860B)', color: '#fff', cursor: 'pointer' }}>
+              <button onClick={pullVisionModel} style={{ flexShrink: 0, fontSize: '.78rem', fontWeight: 600, padding: '.3rem .7rem', borderRadius: 8, border: 'none', background: 'var(--gold,#171717)', color: '#fff', cursor: 'pointer' }}>
                 Get vision model
               </button>
             </>
@@ -831,12 +829,12 @@ export default function Chat() {
       )}
 
       {showCodeTip && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem', margin: '0 auto .6rem', maxWidth: 720, padding: '.55rem .8rem', background: 'rgba(184,134,11,.08)', border: '1px solid rgba(184,134,11,.2)', borderRadius: 11, fontSize: '.83rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem', margin: '0 auto .6rem', maxWidth: 720, padding: '.55rem .8rem', background: 'rgba(0,0,0,.08)', border: '1px solid rgba(0,0,0,.2)', borderRadius: 11, fontSize: '.83rem' }}>
           <span style={{ flex: 1, color: 'var(--text,#1D1D1F)' }}>
             Working with code? Connect GitHub and Aspen can read and write your repos directly — just add a token.
           </span>
           <button onClick={() => { setPage('connectors'); }}
-            style={{ flexShrink: 0, fontSize: '.78rem', fontWeight: 600, padding: '.3rem .7rem', borderRadius: 8, border: 'none', background: 'var(--gold,#B8860B)', color: '#fff', cursor: 'pointer' }}>
+            style={{ flexShrink: 0, fontSize: '.78rem', fontWeight: 600, padding: '.3rem .7rem', borderRadius: 8, border: 'none', background: 'var(--gold,#171717)', color: '#fff', cursor: 'pointer' }}>
             Connect GitHub →
           </button>
           <button onClick={() => setCodeTipDismissed(true)} title="Dismiss"
@@ -852,7 +850,7 @@ export default function Chat() {
           <button
             onClick={() => setConnMenuOpen((v) => !v)}
             title="Connectors"
-            style={{ width: 40, height: 40, borderRadius: '50%', background: connMenuOpen ? 'var(--gold,#B8860B)' : 'rgba(93,78,55,.08)', color: connMenuOpen ? '#fff' : 'inherit', border: '1.5px solid rgba(93,78,55,.1)', cursor: 'pointer', fontSize: 22, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{ width: 40, height: 40, borderRadius: '50%', background: connMenuOpen ? 'var(--gold,#171717)' : 'rgba(0,0,0,.08)', color: connMenuOpen ? '#fff' : 'inherit', border: '1.5px solid rgba(0,0,0,.1)', cursor: 'pointer', fontSize: 22, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
             +
           </button>
@@ -876,7 +874,7 @@ export default function Chat() {
                   </button>
                 ))}
                 <button onClick={() => { setConnMenuOpen(false); setPage('connectors'); }}
-                  style={{ width: '100%', marginTop: '.35rem', padding: '.5rem', border: 'none', borderTop: '1px solid var(--border,rgba(0,0,0,.08))', background: 'none', cursor: 'pointer', fontSize: '.8rem', color: 'var(--gold,#B8860B)', fontWeight: 600 }}>
+                  style={{ width: '100%', marginTop: '.35rem', padding: '.5rem', border: 'none', borderTop: '1px solid var(--border,rgba(0,0,0,.08))', background: 'none', cursor: 'pointer', fontSize: '.8rem', color: 'var(--gold,#171717)', fontWeight: 600 }}>
                   Manage all connectors
                 </button>
               </div>
@@ -899,7 +897,7 @@ export default function Chat() {
           onClick={() => fileInputRef.current?.click()}
           disabled={!activeModel}
           title="Attach file or image"
-          style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(93,78,55,.08)', border: '1.5px solid rgba(93,78,55,.1)', cursor: 'pointer', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, opacity: activeModel ? 1 : 0.4 }}
+          style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(0,0,0,.08)', border: '1.5px solid rgba(0,0,0,.1)', cursor: 'pointer', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, opacity: activeModel ? 1 : 0.4 }}
         >
           📎
         </button>
@@ -913,7 +911,7 @@ export default function Chat() {
             style={{
               width: 40, height: 40, borderRadius: '50%', border: 'none', cursor: 'pointer', fontSize: 18,
               display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-              background: isListening ? 'rgba(231,76,60,.15)' : ttsReady ? 'rgba(93,78,55,.15)' : 'rgba(93,78,55,.08)',
+              background: isListening ? 'rgba(231,76,60,.15)' : ttsReady ? 'rgba(0,0,0,.15)' : 'rgba(0,0,0,.08)',
               animation: isListening ? 'pulse 1s infinite' : 'none',
               opacity: (activeModel && !isStreaming) ? 1 : 0.4,
               position: 'relative',
@@ -954,8 +952,8 @@ export default function Chat() {
 
       {/* Artifact side panel */}
       {artifact && (
-        <div style={{ width: 'min(48%,640px)', flexShrink: 0, borderLeft: '1.5px solid rgba(93,78,55,.1)', display: 'flex', flexDirection: 'column', background: '#fff', overflow: 'hidden' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderBottom: '1.5px solid rgba(93,78,55,.1)', flexShrink: 0 }}>
+        <div style={{ width: 'min(48%,640px)', flexShrink: 0, borderLeft: '1.5px solid rgba(0,0,0,.1)', display: 'flex', flexDirection: 'column', background: '#fff', overflow: 'hidden' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderBottom: '1.5px solid rgba(0,0,0,.1)', flexShrink: 0 }}>
             <span style={{ fontSize: 13, fontWeight: 600, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {(artifact.lang || 'code').toUpperCase()} artifact
             </span>
@@ -982,7 +980,7 @@ export default function Chat() {
                 }
               } catch { if (btn) { btn.textContent = 'Error'; setTimeout(() => { btn.textContent = 'Publish 🚀'; }, 2000); } }
             }} style={{ fontSize: 12, fontWeight: 600, padding: '4px 10px', border: 'none', borderRadius: 7, background: 'var(--gold)', color: '#fff', cursor: 'pointer' }}>Publish 🚀</button>
-            <button onClick={() => { navigator.clipboard?.writeText(artifact.code); }} style={{ fontSize: 12, fontWeight: 600, padding: '4px 10px', border: '1.5px solid rgba(93,78,55,.12)', borderRadius: 7, background: '#fff', cursor: 'pointer' }}>Copy</button>
+            <button onClick={() => { navigator.clipboard?.writeText(artifact.code); }} style={{ fontSize: 12, fontWeight: 600, padding: '4px 10px', border: '1.5px solid rgba(0,0,0,.12)', borderRadius: 7, background: '#fff', cursor: 'pointer' }}>Copy</button>
             <button onClick={() => setArtifact(null)} title="Close" style={{ width: 28, height: 28, border: 'none', background: 'none', cursor: 'pointer', fontSize: 15, color: 'var(--text-light)' }}>✕</button>
           </div>
           <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
@@ -1040,10 +1038,7 @@ function ThinkingIndicator({ toolSteps }) {
 
   return (
     <span className="aspen-thinking">
-      <svg className="aspen-thinking-leaf" viewBox="0 0 48 48" aria-hidden="true">
-        <path d="M24 6 C32 14, 38 22, 24 42 C10 22, 16 14, 24 6 Z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-        <line x1="24" y1="6" x2="24" y2="42" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-      </svg>
+      <span className="aspen-thinking-dots" aria-hidden="true"><i></i><i></i><i></i></span>
       <span key={text} className="aspen-thinking-text">{text}…</span>
     </span>
   );

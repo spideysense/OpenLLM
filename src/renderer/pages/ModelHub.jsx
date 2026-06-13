@@ -185,7 +185,7 @@ export default function ModelHub() {
                       <span className="badge badge-yellow">★ Recommended</span>
                     )}
                     {!fitsHardware && !installed && !isRecommended && (
-                      <span className="badge" style={{ background: 'rgba(93,78,55,0.06)', color: 'var(--text-light)' }}>
+                      <span className="badge" style={{ background: 'rgba(0,0,0,0.06)', color: 'var(--text-light)' }}>
                         Too big
                       </span>
                     )}
@@ -233,7 +233,7 @@ export default function ModelHub() {
                       <button
                         className="btn btn-sm"
                         onClick={() => handlePull(id)}
-                        style={{ background: 'transparent', border: '1.5px solid rgba(93,78,55,0.3)', color: 'var(--text-light)' }}
+                        style={{ background: 'transparent', border: '1.5px solid rgba(0,0,0,0.3)', color: 'var(--text-light)' }}
                       >
                         Try anyway
                       </button>

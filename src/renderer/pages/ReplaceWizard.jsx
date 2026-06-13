@@ -125,7 +125,7 @@ export default function ReplaceWizard() {
                     flex: 1,
                     padding: '8px 12px',
                     borderRadius: 'var(--radius-sm)',
-                    border: '1.5px solid rgba(93,78,55,0.12)',
+                    border: '1.5px solid rgba(0,0,0,0.12)',
                     fontFamily: 'var(--font-body)',
                     fontSize: 13,
                     background: 'var(--cloud)',

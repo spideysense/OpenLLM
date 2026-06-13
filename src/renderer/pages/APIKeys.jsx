@@ -200,7 +200,7 @@ export default function APIKeys() {
 
         {/* ── Owner vs Guest selection ── */}
         <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', padding: '10px 14px', borderRadius: 8, border: `1.5px solid ${newKeyType === 'owner' ? 'var(--pipe-yellow)' : 'rgba(93,78,55,0.15)'}`, background: newKeyType === 'owner' ? 'rgba(212,160,23,0.06)' : 'transparent' }}>
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', padding: '10px 14px', borderRadius: 8, border: `1.5px solid ${newKeyType === 'owner' ? 'var(--pipe-yellow)' : 'rgba(0,0,0,0.15)'}`, background: newKeyType === 'owner' ? 'rgba(212,160,23,0.06)' : 'transparent' }}>
             <input type="radio" name="keyType" checked={newKeyType === 'owner'} onChange={() => setNewKeyType('owner')} style={{ marginTop: 3 }} />
             <div>
               <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--earth)' }}>👑 Owner key</div>
@@ -210,7 +210,7 @@ export default function APIKeys() {
               </div>
             </div>
           </label>
-          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', padding: '10px 14px', borderRadius: 8, border: `1.5px solid ${newKeyType === 'named' ? 'var(--pipe-yellow)' : 'rgba(93,78,55,0.15)'}`, background: newKeyType === 'named' ? 'rgba(212,160,23,0.06)' : 'transparent' }}>
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', padding: '10px 14px', borderRadius: 8, border: `1.5px solid ${newKeyType === 'named' ? 'var(--pipe-yellow)' : 'rgba(0,0,0,0.15)'}`, background: newKeyType === 'named' ? 'rgba(212,160,23,0.06)' : 'transparent' }}>
             <input type="radio" name="keyType" checked={newKeyType === 'named'} onChange={() => setNewKeyType('named')} style={{ marginTop: 3 }} />
             <div>
               <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--earth)' }}>🧑‍🤝‍🧑 Family / member key</div>
@@ -221,7 +221,7 @@ export default function APIKeys() {
               </div>
             </div>
           </label>
-          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', padding: '10px 14px', borderRadius: 8, border: `1.5px solid ${newKeyType === 'guest' ? 'var(--pipe-yellow)' : 'rgba(93,78,55,0.15)'}`, background: newKeyType === 'guest' ? 'rgba(212,160,23,0.06)' : 'transparent' }}>
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', padding: '10px 14px', borderRadius: 8, border: `1.5px solid ${newKeyType === 'guest' ? 'var(--pipe-yellow)' : 'rgba(0,0,0,0.15)'}`, background: newKeyType === 'guest' ? 'rgba(212,160,23,0.06)' : 'transparent' }}>
             <input type="radio" name="keyType" checked={newKeyType === 'guest'} onChange={() => setNewKeyType('guest')} style={{ marginTop: 3 }} />
             <div>
               <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--earth)' }}>👤 Anonymous guest key</div>
@@ -257,7 +257,7 @@ export default function APIKeys() {
                   </span>
                   <span style={{
                     fontSize: 11, fontWeight: 600, marginLeft: 10, padding: '2px 8px', borderRadius: 10,
-                    background: key.owner ? 'rgba(212,160,23,0.15)' : (key.memory ? 'rgba(90,140,90,0.15)' : 'rgba(93,78,55,0.1)'),
+                    background: key.owner ? 'rgba(212,160,23,0.15)' : (key.memory ? 'rgba(90,140,90,0.15)' : 'rgba(0,0,0,0.1)'),
                     color: key.owner ? '#9a7d0a' : (key.memory ? '#3c6b3c' : 'var(--text-light)'),
                   }}>
                     {key.owner ? '👑 Owner' : (key.memory ? '🧑‍🤝‍🧑 Member' : '👤 Guest')}

@@ -9,26 +9,33 @@
   --bg-soft: #F0EDE6;
   --white: #FFFFFF;
   --black: #1D1D1F;
-  --gold: #B8860B;
-  --gold-light: #DAA520;
-  --gold-soft: rgba(184,134,11,0.08);
-  --gold-ring: rgba(184,134,11,0.2);
-  --green: #28A745;
-  --green-soft: rgba(40,167,69,0.08);
-  --danger: #DC3545;
-  --danger-soft: rgba(220,53,69,0.06);
-  --text: #1D1D1F;
-  --text-2: #6E6E73;
-  --text-3: #86868B;
-  --border: rgba(0,0,0,0.06);
-  --border-solid: #E5E5E5;
+  --gold: #171717;
+  --gold-light: #2E2E2E;
+  --gold-soft: rgba(0,0,0,0.05);
+  --gold-ring: rgba(0,0,0,0.10);
+  --green: #1FA463;
+  --green-soft: rgba(31,164,99,0.08);
+  --danger: #8A8A8E;
+  --danger-soft: rgba(0,0,0,0.05);
+  --text: #171717;
+  --text-2: #6B6B70;
+  --text-3: #9A9AA0;
+  --border: rgba(0,0,0,0.08);
+  --border-solid: #E6E6E6;
   --radius: 12px;
   --radius-lg: 16px;
   --radius-sm: 8px;
   --radius-pill: 980px;
-  --font-display: 'DM Serif Display', Georgia, serif;
-  --font-body: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+  /* legacy warm tokens, remapped neutral (Ollama-clean) */
+  --earth: #171717;
+  --text-light: #6B6B70;
+  --cloud: #F2F2F4;
+  --pipe-yellow: #ECECEE;
+  --leaf: #171717;
+  --bark: #6B6B70;
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, Roboto, Helvetica, Arial, sans-serif;
+  --font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
   --sidebar-width: 240px;
   --titlebar-height: 38px;
 }
@@ -197,7 +204,7 @@ html, body, #root {
 .aspen-thinking { display: inline-flex; align-items: center; gap: 9px; }
 .aspen-thinking-leaf {
   width: 18px; height: 18px; flex: 0 0 auto;
-  color: var(--gold, #B8860B);
+  color: var(--gold, #171717);
   animation: aspenThinkLeaf 2.4s ease-in-out infinite;
 }
 @keyframes aspenThinkLeaf {
@@ -721,7 +728,7 @@ html, body, #root {
 
 .model-card.recommended {
   border-color: var(--gold);
-  box-shadow: 0 2px 12px rgba(184,134,11,0.1);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.1);
 }
 
 .model-card.active {
@@ -812,7 +819,7 @@ html, body, #root {
   overflow-x: auto;
 }
 
-.code-block .hl { background: rgba(184,134,11,0.15); color: var(--gold-light); padding: 2px 5px; border-radius: 3px; }
+.code-block .hl { background: rgba(0,0,0,0.15); color: var(--gold-light); padding: 2px 5px; border-radius: 3px; }
 .code-block .cmt { color: #6A737D; }
 .code-block .str { color: #A5D6A7; }
 .code-block .kw { color: #CE93D8; }
@@ -875,7 +882,7 @@ html, body, #root {
 .connector-privacy { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: .5rem; text-align: left; border: none; cursor: pointer; padding: .55rem .75rem; border-radius: 10px; font-size: .8rem; font-weight: 500; transition: filter .15s; }
 .connector-privacy:hover { filter: brightness(.97); }
 .connector-privacy.local { background: rgba(15,110,86,.09); color: #0F6E56; }
-.connector-privacy.cloud { background: rgba(184,134,11,.1); color: #8A6308; }
+.connector-privacy.cloud { background: rgba(0,0,0,.1); color: #8A6308; }
 .connector-chevron { opacity: .6; font-size: .7rem; }
 .connector-detail { margin-top: .6rem; padding: .8rem .9rem; background: rgba(0,0,0,.025); border-radius: 10px; }
 .detail-row { display: flex; gap: .8rem; padding: .35rem 0; border-bottom: 1px solid rgba(0,0,0,.05); }
@@ -887,7 +894,7 @@ html, body, #root {
 .token-help { font-size: .8rem; color: var(--text-light, #6E6E73); margin-bottom: .5rem; line-height: 1.5; }
 .token-row { display: flex; gap: .5rem; }
 .token-row input { flex: 1; padding: .55rem .75rem; border: 1.5px solid var(--border, rgba(0,0,0,.1)); border-radius: 10px; font-size: .85rem; outline: none; }
-.token-row input:focus { border-color: var(--gold, #B8860B); }
+.token-row input:focus { border-color: var(--gold, #171717); }
 .token-note { margin-top: .5rem; font-size: .74rem; color: var(--text-light, #6E6E73); line-height: 1.5; }
 .connector-link { margin-top: .7rem; background: none; border: none; color: #C0392B; font-size: .78rem; cursor: pointer; padding: 0; text-decoration: underline; }
 
@@ -897,6 +904,16 @@ html, body, #root {
 .artifact-lang { font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--text-light, #6E6E73); }
 .artifact-actions { display: flex; gap: .35rem; }
 .artifact-btn { font-size: .72rem; font-weight: 600; padding: .25rem .6rem; border-radius: 7px; border: 1px solid var(--border, rgba(0,0,0,.12)); background: var(--surface, #fff); color: var(--text, #1D1D1F); cursor: pointer; transition: background .15s, color .15s; }
-.artifact-btn:hover { background: var(--gold, #B8860B); color: #fff; border-color: var(--gold, #B8860B); }
+.artifact-btn:hover { background: var(--gold, #171717); color: #fff; border-color: var(--gold, #171717); }
 .artifact-code { margin: 0; padding: .8rem 1rem; overflow-x: auto; background: none; font-size: .82rem; line-height: 1.55; }
 .artifact-preview { width: 100%; height: 360px; border: none; background: #fff; display: block; }
+
+/* ---- Ollama-clean overrides ---- */
+.chat-avatar { display: none; }
+.chat-input:focus { border-color: var(--text-3); }
+.aspen-thinking-dots { display: inline-flex; align-items: center; gap: 3px; margin-right: 2px; }
+.aspen-thinking-dots i { width: 5px; height: 5px; border-radius: 50%; background: var(--text-3); display: inline-block; animation: aspenDot 1.2s ease-in-out infinite; }
+.aspen-thinking-dots i:nth-child(2) { animation-delay: .2s; }
+.aspen-thinking-dots i:nth-child(3) { animation-delay: .4s; }
+@keyframes aspenDot { 0%, 80%, 100% { opacity: .25; transform: scale(.8); } 40% { opacity: 1; transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .aspen-thinking-dots i { animation: none; opacity: .5; } }
