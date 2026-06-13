@@ -136,6 +136,13 @@ app.whenReady().then(async () => {
     const status = await ollama.getStatus();
     if (mainWindow && !mainWindow.isDestroyed())
       mainWindow.webContents.send('ollama:status', status);
+    // Warm the active model the instant Ollama is confirmed up, so the user's
+    // very first message doesn't pay the cold-load cost. This fires on the
+    // ready signal (not a blind timer), so it can't race Ollama's own startup.
+    try {
+      const activeModel = store.get('activeModel');
+      if (activeModel) ollama.warmModel(activeModel);
+    } catch {}
   });
   setInterval(async () => {
     if (!mainWindow || mainWindow.isDestroyed()) return;
