@@ -9,6 +9,7 @@
     "build:mac": "npm run build:renderer && electron-builder --mac",
     "build:win": "npm run build:renderer && electron-builder --win",
     "build:all": "npm run build:renderer && electron-builder --mac --win",
+    "build:linux": "npm run build:renderer && electron-builder --linux AppImage --$(node -p \"process.arch==='arm64'?'arm64':'x64'\")",
     "start": "electron .",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -72,6 +73,16 @@
         }
       ],
       "artifactName": "Aspen-win.${ext}"
+    },
+    "linux": {
+      "icon": "assets/icon.png",
+      "category": "Utility",
+      "artifactName": "Aspen-linux-${arch}.${ext}",
+      "target": [
+        {
+          "target": "AppImage"
+        }
+      ]
     },
     "publish": [
       {
