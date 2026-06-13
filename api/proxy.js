@@ -4,7 +4,7 @@
  * Search logic is INLINED here — no self-HTTP call to /api/search.
  * That was causing "Host not in allowlist" 403s on Vercel.
  */
-export const config = { runtime: 'edge' };
+export const config = { maxDuration: 60 };
 
 // ── Search triggers (regex) ──────────────────────────────
 const SEARCH_TRIGGERS = [
@@ -158,158 +158,119 @@ function injectSearch(messages, query, results) {
 }
 
 // ── Main handler ─────────────────────────────────────────
-export default async function handler(req) {
-  const origin = req.headers.get('origin') || '';
-  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors(origin) });
-  if (req.method !== 'POST') return new Response('POST only', { status: 405, headers: cors(origin) });
+export default async function handler(req, res) {
+  const origin = req.headers.origin || '';
+  setCors(res, origin);
 
-  let body;
-  try { body = await req.json(); } catch { return jsonErr('Invalid JSON', 400); }
+  if (req.method === 'OPTIONS') { res.statusCode = 204; res.end(); return; }
+  if (req.method === 'GET') return endJson(res, 200, { ok: true, version: 'proxy-node-v1', ts: Date.now() });
+  if (req.method !== 'POST') return endJson(res, 405, { error: 'POST only' });
+
+  // Body — Vercel usually pre-parses JSON; read the raw stream if not.
+  let body = req.body;
+  if (!body || typeof body === 'string') {
+    try {
+      if (typeof body === 'string' && body.trim()) {
+        body = JSON.parse(body);
+      } else {
+        const chunks = [];
+        for await (const c of req) chunks.push(typeof c === 'string' ? Buffer.from(c) : c);
+        body = chunks.length ? JSON.parse(Buffer.concat(chunks).toString('utf8')) : {};
+      }
+    } catch { return endJson(res, 400, { error: 'Invalid JSON' }); }
+  }
+  body = body || {};
 
   const { tunnelUrl, apiKey, model, messages, stream = true } = body;
-  if (!tunnelUrl) return jsonErr('tunnelUrl required', 400);
+  if (!tunnelUrl) return endJson(res, 400, { error: 'tunnelUrl required' });
 
   let parsed;
-  try { parsed = new URL(tunnelUrl); } catch { return jsonErr('Invalid tunnelUrl', 400); }
+  try { parsed = new URL(tunnelUrl); } catch { return endJson(res, 400, { error: 'Invalid tunnelUrl' }); }
   if (!parsed.hostname.endsWith('.runonaspen.com') && parsed.hostname !== 'runonaspen.com') {
-    return jsonErr('tunnelUrl must be runonaspen.com domain', 403);
+    return endJson(res, 403, { error: 'tunnelUrl must be a runonaspen.com domain' });
   }
 
   const upstream = `${tunnelUrl.replace(/\/+$/, '')}/v1/chat/completions`;
   const upHeaders = {
     'Content-Type': 'application/json',
     'User-Agent': 'Aspen-Proxy/1.0',
-    ...(apiKey ? { 'Authorization': `Bearer ${apiKey}` } : {}),
+    ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
   };
 
-  const lastUser = [...(messages || [])].reverse().find(m => m.role === 'user');
-  const userText = lastUser?.content || '';
-
-  // Search enrichment (classifier + web results) makes network calls and can be
-  // slow. We DON'T run it before opening the stream — doing so ate into Vercel's
-  // 25s "first byte" window and caused FUNCTION_INVOCATION_TIMEOUT / 504. Instead,
-  // for streaming we open the stream first (first byte out instantly), then run
-  // search inside the stream while heartbeats keep the connection alive.
-  const SEARCH_DEADLINE_MS = 5000;
-  async function enrich() {
-    if (userText.length <= 3) return messages || [];
-    try {
-      return await Promise.race([
-        (async () => {
-          // Use only the LLM classifier (not keyword regex) to decide if search is
-          // needed. Regex caused false positives on code-gen prompts containing
-          // trigger words like "weather" or "news" — the user wanted code, not data.
-          const shouldSearch = await classifierNeedsSearch(
-            userText, tunnelUrl.replace(/\/+$/, ''), apiKey, model || 'llama3'
-          );
-          if (shouldSearch) {
-            const results = await fetchSearchResults(userText);
-            if (results.length > 0) return injectSearch(messages, userText.slice(0, 100), results);
-          }
-          return messages || [];
-        })(),
-        new Promise(resolve => setTimeout(() => resolve(messages || []), SEARCH_DEADLINE_MS)),
-      ]);
-    } catch { return messages || []; }
-  }
-
-  // NON-STREAMING: fetch fully, then return.
+  // NON-STREAMING (world-model extraction): Node gives up to maxDuration (60s)
+  // instead of the edge runtime's ~25s ceiling — that ceiling was the 504 cause.
   if (!stream) {
-    let upRes;
     try {
-      upRes = await fetch(upstream, {
+      const upRes = await fetch(upstream, {
         method: 'POST', headers: upHeaders,
         body: JSON.stringify({ model: model || 'llama3', messages: messages || [], stream: false }),
       });
-    } catch (e) { return jsonErr(`Could not reach tunnel: ${e.message}`, 502); }
-    if (!upRes.ok) {
-      const t = await upRes.text().catch(() => '');
-      return jsonErr(`Upstream HTTP ${upRes.status}: ${t.slice(0, 200)}`, upRes.status);
+      if (!upRes.ok) {
+        const t = await upRes.text().catch(() => '');
+        return endJson(res, upRes.status, { error: `Upstream HTTP ${upRes.status}: ${t.slice(0, 200)}` });
+      }
+      return endJson(res, 200, await upRes.json());
+    } catch (e) {
+      return endJson(res, 502, { error: `Could not reach tunnel: ${e && e.message ? e.message : e}` });
     }
-    return new Response(JSON.stringify(await upRes.json()), {
-      status: 200, headers: { ...cors(origin), 'Content-Type': 'application/json' },
-    });
   }
 
-  // STREAMING: open the response stream IMMEDIATELY and flush a keep-alive comment
-  // before contacting the (possibly slow) local model. Vercel's edge runtime kills
-  // a function that doesn't return an initial response within 25s — but a streaming
-  // response counts as "returned" the instant the first byte goes out. So we send a
-  // byte now, then fetch upstream and pump its tokens whenever they arrive. This is
-  // why a slow model no longer produces FUNCTION_INVOCATION_TIMEOUT / HTTP 504.
-  const encoder = new TextEncoder();
-  const streamBody = new ReadableStream({
-    start(controller) {
-      // CRITICAL: start() must NOT be async / must NOT await the work. If start()
-      // is async and awaits, Vercel buffers the whole stream until it resolves and
-      // the first byte never flushes early — which is what caused the 504. Instead
-      // we flush ': connected' now and run the pump in a DETACHED async task, so the
-      // function counts as "responded" within the 25s window regardless of model speed.
-      controller.enqueue(encoder.encode(': connected\n\n'));
-      let alive = true;
-      const heartbeat = setInterval(() => {
-        if (alive) { try { controller.enqueue(encoder.encode(': keep-alive\n\n')); } catch {} }
-      }, 8000);
+  // STREAMING (voice chat): open SSE immediately, then pipe model tokens through.
+  res.statusCode = 200;
+  res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.setHeader('Connection', 'keep-alive');
+  if (typeof res.flushHeaders === 'function') res.flushHeaders();
+  res.write(': connected\n\n');
 
-      (async () => {
-        try {
-          // Pass messages straight to the user's local Ollama — no search enrichment.
-          // Tool execution (web_search, calculate) is handled by the desktop agent,
-          // not the proxy. The classifier call was causing intermittent empty responses
-          // by sending back-to-back requests to Ollama on resource-limited machines.
-          const upRes = await fetch(upstream, {
-            method: 'POST', headers: upHeaders,
-            body: JSON.stringify({ model: model || 'llama3', messages: messages || [], stream: true }),
-          });
-          if (!upRes.ok || !upRes.body) {
-            const t = await upRes.text().catch(() => '');
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: `Upstream HTTP ${upRes.status}: ${t.slice(0,200)}` })}\n\n`));
-            controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-            return;
-          }
-          const reader = upRes.body.getReader();
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            controller.enqueue(value); // pass model tokens straight through
-          }
-        } catch (e) {
-          try {
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: `Could not reach tunnel: ${e.message}` })}\n\n`));
-            controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-          } catch {}
-        } finally {
-          alive = false;
-          clearInterval(heartbeat);
-          try { controller.close(); } catch {}
-        }
-      })();
-    },
-  });
-
-  return new Response(streamBody, {
-    status: 200,
-    headers: { ...cors(origin), 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no' },
-  });
+  try {
+    const upRes = await fetch(upstream, {
+      method: 'POST', headers: upHeaders,
+      body: JSON.stringify({ model: model || 'llama3', messages: messages || [], stream: true }),
+    });
+    if (!upRes.ok || !upRes.body) {
+      const t = await upRes.text().catch(() => '');
+      res.write(`data: ${JSON.stringify({ error: `Upstream HTTP ${upRes.status}: ${t.slice(0, 200)}` })}\n\n`);
+      res.write('data: [DONE]\n\n');
+      res.end();
+      return;
+    }
+    const reader = upRes.body.getReader();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      res.write(Buffer.from(value));
+    }
+    res.end();
+  } catch (e) {
+    try {
+      res.write(`data: ${JSON.stringify({ error: `Could not reach tunnel: ${e && e.message ? e.message : e}` })}\n\n`);
+      res.write('data: [DONE]\n\n');
+      res.end();
+    } catch {}
+  }
 }
 
-function jsonErr(msg, status) {
-  return new Response(JSON.stringify({ error: msg }), { status, headers: { ...cors(origin), 'Content-Type': 'application/json' } });
+function endJson(res, status, obj) {
+  res.statusCode = status;
+  res.setHeader('Content-Type', 'application/json');
+  res.end(JSON.stringify(obj));
 }
 const ALLOWED_ORIGINS = [
   'https://runonaspen.com',
+  'https://www.runonaspen.com',
   'capacitor://localhost',
   'ionic://localhost',
   'http://localhost',
   'https://localhost',
 ];
-function cors(origin) {
-  // Echo back the origin if it's an allowed app origin; default to the site.
-  const allow = ALLOWED_ORIGINS.includes(origin) ? origin : 'https://runonaspen.com';
-  return {
-    'Access-Control-Allow-Origin': allow,
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Vary': 'Origin',
-  };
+function setCors(res, origin) {
+  const allow = (ALLOWED_ORIGINS.includes(origin) || (origin && origin.endsWith('.runonaspen.com')))
+    ? origin : 'https://runonaspen.com';
+  res.setHeader('Access-Control-Allow-Origin', allow);
+  res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Vary', 'Origin');
+  res.setHeader('X-Aspen-Proxy', 'proxy-node-v1');
 }

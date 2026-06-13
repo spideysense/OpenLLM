@@ -10,17 +10,17 @@
 <meta name="robots" content="noindex">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@200;300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 :root{
-  --bg:#FAFAF7;--wh:#FFFFFF;--bk:#1D1D1F;
-  --t2:#6E6E73;--t3:#86868B;--t4:#AEAEB2;
-  --gd:#B8860B;--gd-light:rgba(184,134,11,0.08);
+  --bg:#FFFFFF;--wh:#FFFFFF;--bk:#171717;
+  --t2:#6B6B70;--t3:#9A9AA0;--t4:#AEAEB2;
+  --gd:#171717;--gd-light:rgba(0,0,0,0.08);
   --brd:rgba(0,0,0,0.07);--brd2:rgba(0,0,0,0.12);
-  --danger:#DC2626;
-  --ser:'DM Serif Display',Georgia,serif;
-  --san:'Outfit',-apple-system,sans-serif;
+  --danger:#8A8A8E;
+  --ser:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',system-ui,sans-serif;
+  --san:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',system-ui,sans-serif;
   --mono:'SF Mono','JetBrains Mono',monospace;
   --sidebar:260px;--header:52px;
   --safe-bottom:env(safe-area-inset-bottom,0px);
@@ -238,8 +238,8 @@ body.is-mobile .chat-delete{opacity:.4!important}
   animation:orbpulse 1s ease-in-out infinite;
 }
 .voice-orb.speaking{
-  background:radial-gradient(circle,rgba(184,134,11,0.9) 0%,rgba(184,134,11,0.2) 60%,transparent 100%);
-  box-shadow:0 0 60px rgba(184,134,11,0.5);
+  background:radial-gradient(circle,rgba(0,0,0,0.9) 0%,rgba(0,0,0,0.2) 60%,transparent 100%);
+  box-shadow:0 0 60px rgba(0,0,0,0.5);
   animation:orbpulse 1.5s ease-in-out infinite;
 }
 .voice-orb.idle{
@@ -333,7 +333,7 @@ select.settings-select{font-family:var(--san);font-size:.84rem;color:var(--bk);b
       <li style="display:flex;gap:.7rem;align-items:flex-start;font-size:.85rem;line-height:1.4"><span style="font-size:1rem">🔒</span><span><strong>Your data, your privacy.</strong> The app you download keeps everything on your machine — nothing ever leaves.</span></li>
       <li style="display:flex;gap:.7rem;align-items:flex-start;font-size:.85rem;line-height:1.4"><span style="font-size:1rem">💸</span><span><strong>No cost, ever.</strong> No subscription, no per-message fees, no account.</span></li>
       <li style="display:flex;gap:.7rem;align-items:flex-start;font-size:.85rem;line-height:1.4"><span style="font-size:1rem">⚡</span><span><strong>Real local performance.</strong> Once installed, the AI runs on your own hardware — fast, offline, private.</span></li>
-      <li style="display:flex;gap:.7rem;align-items:flex-start;font-size:.85rem;line-height:1.4"><span style="font-size:1rem">🌿</span><span><strong>Powers all the AI in your life.</strong> One private brain you own, connected to everything you use.</span></li>
+      <li style="display:flex;gap:.7rem;align-items:flex-start;font-size:.85rem;line-height:1.4"><span style="font-size:1rem"></span><span><strong>Powers all the AI in your life.</strong> One private brain you own, connected to everything you use.</span></li>
     </ul>
 
     <div style="display:flex;gap:.75rem;margin-top:.5rem">
@@ -394,7 +394,7 @@ select.settings-select{font-family:var(--san);font-size:.84rem;color:var(--bk);b
   <div class="app-layout">
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
-        <div class="sb-logo"><img src="/favicon.svg" alt="Aspen"><span>ASPEN</span><span style="font-size:9px;font-weight:700;background:var(--gd,#b8860b);color:#fff;padding:1px 5px;border-radius:4px;letter-spacing:.5px;margin-left:4px;vertical-align:middle">BETA</span></div>
+        <div class="sb-logo"><span>ASPEN</span><span style="font-size:9px;font-weight:600;background:#ECECEE;color:var(--t2);padding:1px 5px;border-radius:4px;letter-spacing:.5px;margin-left:4px;vertical-align:middle">BETA</span></div>
         <button class="new-chat-btn" id="new-chat-btn">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>New chat
         </button>
@@ -415,9 +415,9 @@ select.settings-select{font-family:var(--san);font-size:.84rem;color:var(--bk);b
 
     <div class="chat-main">
       <!-- BETA BANNER -->
-      <div id="beta-banner" style="background:linear-gradient(90deg,#b8860b,#daa520);color:#fff;padding:7px 16px;font-size:12.5px;text-align:center;display:flex;align-items:center;justify-content:center;gap:10px;flex-shrink:0">
-        <span>🌿 <strong>Aspen is in Beta.</strong> We'd love your feedback — <a href="mailto:mayank.mehta@gmail.com?subject=Aspen%20Beta%20Feedback" style="color:#fff;text-decoration:underline">tell us what you think</a>.</span>
-        <button onclick="document.getElementById('beta-banner').style.display='none'" style="background:rgba(255,255,255,.25);border:none;color:#fff;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:12px;line-height:1;flex-shrink:0" aria-label="Dismiss">×</button>
+      <div id="beta-banner" style="background:#F2F2F4;color:var(--bk);padding:7px 16px;font-size:12.5px;text-align:center;display:flex;align-items:center;justify-content:center;gap:10px;flex-shrink:0;border-bottom:1px solid var(--brd)">
+        <span><strong>Aspen is in Beta.</strong> We'd love your feedback — <a href="mailto:mayank.mehta@gmail.com?subject=Aspen%20Beta%20Feedback" style="color:var(--bk);text-decoration:underline">tell us what you think</a>.</span>
+        <button onclick="document.getElementById('beta-banner').style.display='none'" style="background:rgba(0,0,0,.08);border:none;color:var(--bk);width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:12px;line-height:1;flex-shrink:0" aria-label="Dismiss">×</button>
       </div>
       <!-- CHAT PANEL -->
       <div class="panel active" id="panel-chat" style="flex-direction:column">
@@ -438,7 +438,7 @@ select.settings-select{font-family:var(--san);font-size:.84rem;color:var(--bk);b
           ondrop="event.preventDefault();this.style.outline='';this.style.outlineOffset='';handleFileDrop(event.dataTransfer.files)"
         >
           <div class="empty-state" id="empty-state">
-            <div class="empty-icon">🌿</div>
+            <div class="empty-icon"></div>
             <h3 class="empty-title">What can I <em>help</em> with?</h3>
             <p class="empty-sub">100% private — everything stays on your machine</p>
             <div class="starters" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;max-width:400px;margin-top:1rem">
@@ -452,7 +452,7 @@ select.settings-select{font-family:var(--san);font-size:.84rem;color:var(--bk);b
               <button class="starter" data-msg="I'll share some text — please translate it. Ask me what language I want it in.">🌐 Translate</button>
               <button class="starter" data-msg="Let's get to know each other! Ask me 5 questions one at a time about myself — my name, what I do, where I live, my interests, and what I'm working on. Wait for my answer before asking the next one. Be warm and conversational. At the end, summarize what you learned about me.">👋 Get to know me</button>
             </div>
-            <div style="margin-top:1rem;padding:10px 14px;background:rgba(184,134,11,.05);border:1.5px solid rgba(184,134,11,.12);border-radius:10px;width:100%;max-width:400px">
+            <div style="margin-top:1rem;padding:10px 14px;background:rgba(0,0,0,.05);border:1.5px solid rgba(0,0,0,.12);border-radius:10px;width:100%;max-width:400px">
               <div style="font-size:11px;font-weight:700;color:var(--gd);margin-bottom:6px">✨ Quick rewrite — paste text, then:</div>
               <div style="display:flex;gap:5px;flex-wrap:wrap">
                 <button class="starter rw-btn" data-prefix="Rewrite the following text in a formal, professional tone:\n\n">🎩 Formal</button>
@@ -797,7 +797,7 @@ const EXP_PILLARS={
     ['🔒','Completely private','The AI runs on your own machine. Your data never leaves your device — nobody else can ever see it.'],
     ['🎁','Free forever','No subscription, no per-message fees, no account. You own it outright.'],
     ['⚡','Real local performance','Runs on your hardware — fast, offline-capable, and entirely under your control.'],
-    ['🌿','Powers everything','One private AI brain you own — connected to all the apps and AI in your life, not trapped in a chat window.'],
+    ['','Powers everything','One private AI brain you own — connected to all the apps and AI in your life, not trapped in a chat window.'],
   ],
 };
 function renderPillars(mode){
@@ -1161,7 +1161,7 @@ async function sendMessage(autoRespond){
       const e=await res.json().catch(()=>({}));
       if(e.capped){
         stopThinking(bubble);
-        bubble.innerHTML=`<div style="font-size:.85rem;line-height:1.6">🌿 ${escHtml(e.error||"You've used your free messages.")}<br><br><a href="https://runonaspen.com" style="color:var(--gd);font-weight:600;text-decoration:none">Download Aspen — free →</a></div>`;
+        bubble.innerHTML=`<div style="font-size:.85rem;line-height:1.6">${escHtml(e.error||"You've used your free messages.")}<br><br><a href="https://runonaspen.com" style="color:var(--gd);font-weight:600;text-decoration:none">Download Aspen — free →</a></div>`;
         isStreaming=false;sendBtn.classList.remove('hidden');stopBtn.classList.add('hidden');sendBtn.disabled=false;streamController=null;return;
       }
       throw new Error(e.error||`HTTP ${res.status}`);
