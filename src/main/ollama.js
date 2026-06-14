@@ -315,6 +315,14 @@ async function ensureRunning(onProgress) {
           ...process.env,
           OLLAMA_HOST: '127.0.0.1:11434',
           OLLAMA_MODELS: path.join(MONET_DIR, 'models'),
+          // Cap context at LOAD time. Without this, models that declare a huge
+          // native context (llama4:scout = 256K) load at that size and every
+          // request crawls through a 256K window — minutes per "hi". This forces
+          // every model to load at a sane size regardless of what it declares.
+          OLLAMA_CONTEXT_LENGTH: String(system.getRecommendedContext()),
+          // Let extraction + chat run concurrently so a background job never
+          // blocks the user's next message.
+          OLLAMA_NUM_PARALLEL: '2',
         },
       });
       ollamaProcess.unref();
@@ -386,7 +394,7 @@ async function ensureCurrent(onProgress, { force = false } = {}) {
 
     ollamaProcess = spawn(newPath, ['serve'], {
       detached: true, stdio: 'ignore',
-      env: { ...process.env, OLLAMA_HOST: '127.0.0.1:11434', OLLAMA_MODELS: path.join(MONET_DIR, 'models') },
+      env: { ...process.env, OLLAMA_HOST: '127.0.0.1:11434', OLLAMA_MODELS: path.join(MONET_DIR, 'models'), OLLAMA_CONTEXT_LENGTH: String(system.getRecommendedContext()), OLLAMA_NUM_PARALLEL: '2' },
     });
     ollamaProcess.unref();
 

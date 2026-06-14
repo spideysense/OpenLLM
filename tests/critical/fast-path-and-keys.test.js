@@ -194,3 +194,20 @@ describe('Linux build + extraction throttle', () => {
     expect(idx).toContain('total % 3');
   });
 });
+
+describe('Ollama context cap (the 256K bug)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const src = fs.readFileSync(path.resolve('src/main/ollama.js'), 'utf8');
+
+  it('caps context at LOAD time via OLLAMA_CONTEXT_LENGTH', () => {
+    // llama4:scout declares 256K native context. Without this cap, it loads at
+    // 256K and every request crawls. This forces a sane load-time context.
+    expect(src).toContain('OLLAMA_CONTEXT_LENGTH');
+    expect(src).toContain('system.getRecommendedContext()');
+  });
+
+  it('enables parallel requests so extraction never blocks chat', () => {
+    expect(src).toContain('OLLAMA_NUM_PARALLEL');
+  });
+});
