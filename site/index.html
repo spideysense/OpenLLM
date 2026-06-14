@@ -173,7 +173,7 @@ footer{border-top:1px solid var(--brd);padding:2rem 0}
 </div>
 <p class="hero-note"><span id="download-secondary-wrap"><a href="https://github.com/spideysense/OpenLLM/releases/latest/download/Aspen-win.exe" id="download-secondary">Also available for Windows</a> &middot; </span><a href="https://apps.apple.com/app/id6775307566" id="download-ios">iPhone app on the App Store</a> &middot; Free &middot; No account required &middot; <a href="https://github.com/spideysense/OpenLLM/releases">Previous versions</a></p>
 <p class="hero-note" id="win-note" style="display:none;font-size:.82rem;opacity:.75;margin-top:.4rem">Windows may show a "protected your PC" warning. Click <strong>More info</strong> &rarr; <strong>Run anyway</strong>. It is safe. <a href="#faq">Learn why</a>.</p>
-<p class="hero-note" id="lin-note" style="display:none;font-size:.82rem;opacity:.75;margin-top:.4rem">Double-click the <code>.deb</code> to install (or <code>sudo dpkg -i Aspen-linux-arm64.deb</code>). Then launch Aspen from your apps. Prefer a portable build? <a href="https://github.com/spideysense/OpenLLM/releases/latest/download/Aspen-linux-arm64.AppImage">Download the AppImage</a> (needs <code>libfuse2</code>). Built for arm64.</p>
+<p class="hero-note" id="lin-note" style="display:none;font-size:.82rem;opacity:.75;margin-top:.4rem">One command installs everything — Aspen lands in your apps menu, no terminal needed after that. <code id="lin-cmd" style="display:none;background:rgba(0,0,0,.06);padding:.5rem .7rem;border-radius:6px;display:block;margin-top:.5rem;font-size:.8rem;user-select:all">curl -fsSL https://runonaspen.com/install.sh | sh</code></p>
 <p class="hero-note" style="margin-top:.5rem">The app is free forever on the devices you already own. The <a href="#device">Aspen device</a> is a separate, optional machine for running the biggest models, always on. You never need it to use Aspen.</p>
 <p class="hero-note" style="margin-top:.5rem">Not sure yet? <a href="/app">Try it free in your browser →</a></p>
 </div>
@@ -497,10 +497,22 @@ function submitContact(e){
     var winNote = document.getElementById('win-note');
     if(winNote) winNote.style.display='block';
   } else if(LINUX){
-    primary.href=LINUX_DEB;
-    primary.textContent='Download Free for Linux';
-    secondary.href='https://github.com/spideysense/OpenLLM/releases/latest/download/Aspen-mac.dmg';
-    secondary.textContent='Also available for Mac';
+    // On Linux the reliable install is the one-line script (handles arch,
+    // download, deps, desktop entry) — .deb double-click is unreliable across
+    // distros. Primary button reveals + copies the command.
+    primary.href='#';
+    primary.textContent='Copy Linux install command';
+    primary.onclick=function(e){
+      e.preventDefault();
+      var cmd='curl -fsSL https://runonaspen.com/install.sh | sh';
+      navigator.clipboard.writeText(cmd).then(function(){
+        primary.textContent='Copied! Paste in a terminal ✓';
+        setTimeout(function(){primary.textContent='Copy Linux install command';},2500);
+      });
+      var box=document.getElementById('lin-cmd'); if(box) box.style.display='block';
+    };
+    secondary.href=LINUX_DEB;
+    secondary.textContent='Or download the .deb';
     var linNote = document.getElementById('lin-note');
     if(linNote) linNote.style.display='block';
   } else if(IOS){

@@ -247,8 +247,10 @@ describe('Content: Calls to action', () => {
     expect(html).toContain('Aspen-mac.dmg');
     expect(html).toContain('Aspen-win.exe');
     // Linux detection serves the .deb (auto-installs deps incl FUSE)
+    // Linux: .deb available as secondary, install script as primary path
     expect(html).toContain('Aspen-linux-arm64.deb');
-    expect(html).toContain('Download Free for Linux');
+    expect(html).toContain('install.sh');
+    expect(html).toContain('Copy Linux install command');
   });
 
   it('should have GitHub Fork CTA', () => {
@@ -417,5 +419,36 @@ describe('Windows install help', () => {
   });
   it('OS detection reveals the note on Windows', () => {
     expect(html).toContain("winNote.style.display='block'");
+  });
+});
+
+describe('Linux install script', () => {
+  const fs = require('fs');
+  const path = require('path');
+
+  it('install.sh exists and is a valid shell script', () => {
+    const p = path.resolve('site/install.sh');
+    expect(fs.existsSync(p)).toBe(true);
+    const src = fs.readFileSync(p, 'utf8');
+    expect(src.startsWith('#!/usr/bin/env bash')).toBe(true);
+  });
+
+  it('detects architecture (arm64 + amd64)', () => {
+    const src = fs.readFileSync(path.resolve('site/install.sh'), 'utf8');
+    expect(src).toContain('aarch64|arm64');
+    expect(src).toContain('x86_64|amd64');
+  });
+
+  it('downloads from the latest release and installs with dep resolution', () => {
+    const src = fs.readFileSync(path.resolve('site/install.sh'), 'utf8');
+    expect(src).toContain('releases/latest/download/Aspen-linux-');
+    expect(src).toContain('apt install -y');
+  });
+
+  it('is served as plain text by vercel', () => {
+    const cfg = JSON.parse(fs.readFileSync(path.resolve('vercel.json'), 'utf8'));
+    const h = cfg.headers.find(x => x.source === '/install.sh');
+    expect(h).toBeDefined();
+    expect(h.headers.some(k => k.value.includes('text/plain'))).toBe(true);
   });
 });
