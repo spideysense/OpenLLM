@@ -658,7 +658,15 @@ You are Aspen, a helpful AI assistant running 100% LOCALLY on the user's own mac
       return;
     }
 
-    const toolCalls = msg.tool_calls || [];
+    let toolCalls = msg.tool_calls || [];
+
+    // Fallback: some models put the tool call in text instead of `tool_calls`.
+    // Recover it so the tool actually runs instead of leaking JSON to the user.
+    let textParsed = false;
+    if (toolCalls.length === 0) {
+      const parsed = tools.parseTextToolCalls(msg.content, toolDefs.map(t => t.function?.name).filter(Boolean));
+      if (parsed.length) { toolCalls = parsed; textParsed = true; }
+    }
 
     if (toolCalls.length === 0) {
       // No tool calls — final answer
@@ -669,7 +677,9 @@ You are Aspen, a helpful AI assistant running 100% LOCALLY on the user's own mac
     }
 
     // Execute each tool call
-    convo.push(msg);
+    convo.push(textParsed
+      ? { role: 'assistant', content: '', tool_calls: toolCalls }
+      : msg);
 
     for (const call of toolCalls) {
       const name = call.function?.name || '';

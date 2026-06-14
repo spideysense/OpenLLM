@@ -188,7 +188,14 @@ Call exactly the tool that fits, wait for its result, then answer using that res
     const msg = resp.choices?.[0]?.message;
     if (!msg) return 'Sorry, I could not generate a response.';
 
-    const toolCalls = msg.tool_calls || [];
+    let toolCalls = msg.tool_calls || [];
+    // Fallback: recover tool calls the model emitted as text instead of in the
+    // structured tool_calls field (otherwise the JSON leaks to the user).
+    let textParsed = false;
+    if (toolCalls.length === 0) {
+      const parsed = tools.parseTextToolCalls(msg.content, toolDefs.map(t => t.function?.name).filter(Boolean));
+      if (parsed.length) { toolCalls = parsed; textParsed = true; }
+    }
     if (toolCalls.length === 0) {
       const out = pickText(msg);
 
@@ -243,7 +250,7 @@ Call exactly the tool that fits, wait for its result, then answer using that res
     }
 
     // Record the assistant's tool-call turn, then execute each call locally.
-    convo.push(msg);
+    convo.push(textParsed ? { role: 'assistant', content: '', tool_calls: toolCalls } : msg);
     for (const call of toolCalls) {
       const name = call.function?.name;
       let args = {};

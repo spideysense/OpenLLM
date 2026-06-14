@@ -572,4 +572,59 @@ const ALL_TOOL_NAMES = [
   'computer_use', // expands to computer_screenshot, computer_click, computer_type, computer_key, computer_scroll
 ];
 
-module.exports = { getToolDefinitions, executeTool, ALL_TOOL_NAMES, runFetchUrl, hostIsBlocked, ipIsBlocked, describeToolStatus };
+// Some models (depending on their Ollama chat template) emit tool calls as plain
+// TEXT in the content instead of the structured `tool_calls` field — e.g.
+// {"name":"web_search","parameters":{"query":"..."}} sometimes wrapped in
+// template tokens like `}assistant` or <|...|>. Without this, that JSON leaks to
+// the user and no tool runs. This pulls valid tool calls back out of the text.
+function extractJsonObjects(text) {
+  const out = [];
+  for (let i = 0; i < text.length; i++) {
+    const open = text[i];
+    if (open !== '{' && open !== '[') continue;
+    let depth = 0, inStr = false, esc = false;
+    for (let j = i; j < text.length; j++) {
+      const c = text[j];
+      if (esc) { esc = false; continue; }
+      if (c === '\\') { esc = true; continue; }
+      if (c === '"') { inStr = !inStr; continue; }
+      if (inStr) continue;
+      if (c === '{' || c === '[') depth++;
+      else if (c === '}' || c === ']') {
+        depth--;
+        if (depth === 0) {
+          try {
+            const parsed = JSON.parse(text.slice(i, j + 1));
+            if (Array.isArray(parsed)) parsed.forEach(p => p && typeof p === 'object' && out.push(p));
+            else if (parsed && typeof parsed === 'object') out.push(parsed);
+          } catch {}
+          i = j;
+          break;
+        }
+      }
+    }
+  }
+  return out;
+}
+
+// Returns native-shaped tool calls ({ id, function:{ name, arguments(JSON string) } })
+// parsed from text content, restricted to known tool names. Empty if none.
+function parseTextToolCalls(content, validNames) {
+  if (!content || typeof content !== 'string') return [];
+  const valid = new Set(validNames || []);
+  const text = content.replace(/<\|[^>]*\|>/g, ' ');
+  const calls = [];
+  for (const obj of extractJsonObjects(text)) {
+    const name = obj.name || obj.function?.name || (obj.type === 'function' ? obj.function?.name || obj.name : null);
+    if (!name || !valid.has(name)) continue;
+    const rawArgs = obj.parameters ?? obj.arguments ?? obj.function?.arguments ?? {};
+    calls.push({
+      id: `call_${name}_${calls.length}`,
+      type: 'function',
+      function: { name, arguments: typeof rawArgs === 'string' ? rawArgs : JSON.stringify(rawArgs) },
+    });
+  }
+  return calls;
+}
+
+module.exports = { getToolDefinitions, executeTool, ALL_TOOL_NAMES, runFetchUrl, hostIsBlocked, ipIsBlocked, describeToolStatus, parseTextToolCalls };
