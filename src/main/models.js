@@ -65,6 +65,10 @@ async function _pullModelInner(modelName, onProgress, allowRetry) {
     const decoder = new TextDecoder();
     let lastError = null;
     let sawSuccess = false;
+    // Ollama reports progress per layer/blob. Track every layer's bytes so the
+    // bar reflects the WHOLE pull, not just whichever blob is currently moving
+    // (otherwise it races to ~100% on the big blob while others remain).
+    const layers = {};
 
     while (true) {
       const { done, value } = await reader.read();
@@ -80,10 +84,10 @@ async function _pullModelInner(modelName, onProgress, allowRetry) {
           if (json.error) {
             // Auto-update on version error streamed as JSON
             if (allowRetry && json.error.includes('requires a newer version')) {
-              onProgress({ status: 'Updating engine for this model...', completed: 0, total: 0, percent: 0 });
+              onProgress({ status: 'Updating engine for this model...', completed: 0, total: 0, percent: 0, phase: 'engine' });
               try {
                 const ollama = require('./ollama');
-                const result = await ollama.ensureCurrent((msg) => onProgress({ status: msg, completed: 0, total: 0, percent: 0 }), { force: true });
+                const result = await ollama.ensureCurrent((msg) => onProgress({ status: msg, completed: 0, total: 0, percent: 0, phase: 'engine' }), { force: true });
                 if (result.success) return _pullModelInner(modelName, onProgress, false);
                 return { success: false, error: 'Could not update engine. Please restart Aspen and try again.' };
               } catch (updateErr) {
@@ -94,11 +98,36 @@ async function _pullModelInner(modelName, onProgress, allowRetry) {
             continue;
           }
           if (json.status === 'success') sawSuccess = true;
+
+          const rawStatus = json.status || '';
+          // Accumulate this layer's bytes (keyed by digest) for an aggregate %.
+          if (json.digest && json.total) {
+            layers[json.digest] = { completed: json.completed || 0, total: json.total };
+          }
+          let aggCompleted = 0, aggTotal = 0;
+          for (const k in layers) { aggCompleted += layers[k].completed; aggTotal += layers[k].total; }
+
+          // Classify the phase. The tail phases (verify/finalize) have no bytes,
+          // so we must NOT leave a frozen download number on screen.
+          let phase = 'downloading';
+          let label = rawStatus;
+          if (/^verifying/i.test(rawStatus)) { phase = 'verifying'; label = 'Verifying download…'; }
+          else if (/manifest/i.test(rawStatus)) { phase = 'finalizing'; label = 'Finalizing…'; }
+          else if (rawStatus === 'success') { phase = 'done'; label = 'Done'; }
+          else if (/^pulling manifest/i.test(rawStatus)) { phase = 'downloading'; label = 'Preparing download…'; }
+          else if (/^(pulling|downloading)/i.test(rawStatus)) { label = 'Downloading model…'; }
+
+          const percent = phase === 'done' ? 100
+            : aggTotal ? Math.min(99, Math.round((aggCompleted / aggTotal) * 100))
+            : 0;
+
           onProgress({
-            status: json.status || '',
-            completed: json.completed || 0,
-            total: json.total || 0,
-            percent: json.total ? Math.round((json.completed / json.total) * 100) : 0,
+            status: label,
+            rawStatus,
+            phase,
+            completed: aggCompleted,
+            total: aggTotal,
+            percent,
           });
         } catch {
           // Skip

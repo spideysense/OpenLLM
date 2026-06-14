@@ -611,11 +611,35 @@ function warmModel(model) {
   } catch {}
 }
 
+// Awaitable warm — resolves only once the model is actually loaded into memory
+// (Ollama loads before it generates). Used by onboarding so the first real
+// message isn't a cold wait, and the loading time is shown instead of hidden.
+async function warmModelAndWait(model, timeoutMs = 300000) {
+  if (!model) return { success: false };
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+    const r = await fetch(`${OLLAMA_HOST}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model, messages: [{ role: 'user', content: 'hi' }], stream: false, keep_alive: -1, options: { num_predict: 1, num_ctx: system.getRecommendedContext() } }),
+      signal: ctrl.signal,
+    });
+    clearTimeout(timer);
+    await r.text();
+    console.log(`[Aspen] Warm-loaded model: ${model}`);
+    return { success: r.ok };
+  } catch (e) {
+    return { success: false, error: String((e && e.message) || e) };
+  }
+}
+
 module.exports = {
   isRunning, isInstalled, getStatus, install, ensureRunning,
   ensureCurrent, isCurrentEnough, getRunningVersion,
   chat, abortChat, getOllamaPath, getBundledPath, getDownloadedPath,
   isVisionModel, hasVisionModel, listModels, pullModel, abortPull, getModelCapabilities,
   warmModel,
+  warmModelAndWait,
   RECOMMENDED_VISION_MODEL,
 };

@@ -336,6 +336,11 @@ ipcMain.handle('models:list', async () => {
   return models.listModels();
 });
 
+ipcMain.handle('models:warm', async (event, modelName) => {
+  try { return await ollama.warmModelAndWait(modelName); }
+  catch (e) { return { success: false, error: String((e && e.message) || e) }; }
+});
+
 ipcMain.handle('models:pull', async (event, modelName) => {
   try { require('./capabilities').clearCache(modelName); } catch {}
   const notify = (progress) => mainWindow?.webContents.send('models:pullProgress', { model: modelName, ...progress });

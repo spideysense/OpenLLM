@@ -52,6 +52,7 @@ contextBridge.exposeInMainWorld('aspen', {
   models: {
     list: () => ipcRenderer.invoke('models:list'),
     pull: (name) => ipcRenderer.invoke('models:pull', name),
+    warm: (name) => ipcRenderer.invoke('models:warm', name),
     delete: (name) => ipcRenderer.invoke('models:delete', name),
     getRunning: () => ipcRenderer.invoke('models:getRunning'),
     recommend: () => ipcRenderer.invoke('models:recommend'),

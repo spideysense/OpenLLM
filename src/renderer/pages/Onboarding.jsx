@@ -9,6 +9,7 @@ export default function Onboarding() {
   const [recommendation, setRecommendation] = useState(null);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [downloadStatus, setDownloadStatus] = useState('');
+  const [downloadPhase, setDownloadPhase] = useState('downloading');
   const [error, setError] = useState(null);
 
   const currentStep = STEPS[step];
@@ -24,10 +25,9 @@ export default function Onboarding() {
   useEffect(() => {
     if (!bridge) return;
     const unsub = bridge.models.onPullProgress((data) => {
-      setDownloadStatus(data.status);
-      if (data.total > 0) {
-        setDownloadProgress(data.percent);
-      }
+      if (data.status) setDownloadStatus(data.status);
+      if (data.phase) setDownloadPhase(data.phase);
+      if (typeof data.percent === 'number') setDownloadProgress(data.percent);
     });
     return unsub;
   }, [bridge]);
@@ -59,6 +59,12 @@ export default function Onboarding() {
       setDownloadStatus(`Downloading ${recommendation.name || recommendation.model}...`);
       const result = await bridge.models.pull(recommendation.model);
       if (result.success) {
+        // Warm-load into GPU memory so the first real message isn't a cold wait.
+        // Big models can take a while to load — show it instead of hiding it.
+        setDownloadPhase('loading');
+        setDownloadProgress(100);
+        setDownloadStatus('Loading model into memory… (first time can take a minute on large models)');
+        try { if (bridge.models.warm) await bridge.models.warm(recommendation.model); } catch {}
         await selectModel(recommendation.model);
         setStep(4); // ready
       } else {
@@ -161,18 +167,34 @@ export default function Onboarding() {
       {currentStep === 'download' && (
         <>
           <div className="onboarding-icon" style={{ animation: 'none', fontSize: 60 }}>
-            {downloadProgress < 100 ? '⏳' : '📦'}
+            {downloadPhase === 'loading' ? '🧠' : downloadPhase === 'done' || downloadProgress >= 100 ? '📦' : '⏳'}
           </div>
           <h1>Getting Your Model Ready</h1>
           <p>{downloadStatus || 'Starting download...'}</p>
 
           <div style={{ width: '100%', maxWidth: 400, marginBottom: 24 }}>
-            <div className="progress-bar" style={{ height: 12 }}>
-              <div className="progress-fill" style={{ width: `${downloadProgress}%` }} />
-            </div>
-            <div style={{ textAlign: 'center', marginTop: 8, fontSize: 14, color: 'var(--text-light)' }}>
-              {downloadProgress}%
-            </div>
+            {downloadPhase === 'downloading' ? (
+              <>
+                <div className="progress-bar" style={{ height: 12 }}>
+                  <div className="progress-fill" style={{ width: `${downloadProgress}%` }} />
+                </div>
+                <div style={{ textAlign: 'center', marginTop: 8, fontSize: 14, color: 'var(--text-light)' }}>
+                  {downloadProgress}%
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="progress-bar progress-bar-indeterminate" style={{ height: 12 }}>
+                  <div className="progress-fill-indeterminate" />
+                </div>
+                <div style={{ textAlign: 'center', marginTop: 8, fontSize: 14, color: 'var(--text-light)' }}>
+                  {downloadPhase === 'verifying' ? 'Verifying…'
+                    : downloadPhase === 'finalizing' ? 'Finalizing…'
+                    : downloadPhase === 'loading' ? 'Loading into memory…'
+                    : 'Working…'}
+                </div>
+              </>
+            )}
           </div>
 
           {error && (

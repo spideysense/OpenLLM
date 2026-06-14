@@ -445,6 +445,24 @@ html, body, #root {
   transition: width 0.3s;
 }
 
+/* Indeterminate bar — used for verify/finalize/load phases that have no byte
+   count, so we show motion instead of a frozen number. */
+.progress-bar-indeterminate { position: relative; }
+.progress-fill-indeterminate {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 35%;
+  background: var(--gold);
+  border-radius: 3px;
+  animation: aspen-indeterminate 1.2s ease-in-out infinite;
+}
+@keyframes aspen-indeterminate {
+  0%   { left: -35%; }
+  100% { left: 100%; }
+}
+
 /* ─── Badge ─── */
 .badge {
   display: inline-flex;
