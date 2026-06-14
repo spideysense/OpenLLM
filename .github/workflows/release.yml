@@ -99,8 +99,8 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Install system deps for AppImage
-        run: sudo apt-get update && sudo apt-get install -y libfuse2 || true
+      - name: Install system deps (AppImage FUSE + deb tooling)
+        run: sudo apt-get update && sudo apt-get install -y libfuse2 fakeroot dpkg || true
 
       - name: Install dependencies
         run: npm install

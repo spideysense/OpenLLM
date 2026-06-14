@@ -109,18 +109,7 @@
     ],
     "afterAllArtifactBuild": "scripts/staple-dmg.js",
     "npmRebuild": true,
-    "deb": {
-      "depends": [
-        "libgtk-3-0",
-        "libnotify4",
-        "libnss3",
-        "libxss1",
-        "libxtst6",
-        "xdg-utils",
-        "libatspi2.0-0",
-        "libsecret-1-0"
-      ]
-    }
+    "deb": {}
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
@@ -154,5 +143,6 @@
   "author": {
     "name": "Aspen",
     "email": "hello@runonaspen.com"
-  }
+  },
+  "homepage": "https://github.com/spideysense/OpenLLM"
 }
