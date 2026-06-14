@@ -101,15 +101,6 @@ export default function App() {
     init();
   }, []);
 
-  // ─── Warm the active model on startup so the first message is instant ───
-  const warmedOnceRef = useRef(false);
-  useEffect(() => {
-    if (warmedOnceRef.current) return;
-    if (loading || !activeModel || !isOnboarded) return;
-    warmedOnceRef.current = true;
-    warmActiveModel(activeModel);
-  }, [loading, activeModel, isOnboarded, warmActiveModel]);
-
   // ─── Fetch the capability profile whenever the active model changes ───
   // The profile (tier + per-feature gating from model size, tools/vision, and
   // hardware) is the single source of truth for what the UI offers.
@@ -176,6 +167,15 @@ export default function App() {
     // Warm the newly selected model so the first message is instant.
     warmActiveModel(modelName);
   }, [bridge, warmActiveModel]);
+
+  // ─── Warm the active model on startup so the first message is instant ───
+  const warmedOnceRef = useRef(false);
+  useEffect(() => {
+    if (warmedOnceRef.current) return;
+    if (loading || !activeModel || !isOnboarded) return;
+    warmedOnceRef.current = true;
+    warmActiveModel(activeModel);
+  }, [loading, activeModel, isOnboarded, warmActiveModel]);
 
   // Keep activeModel honest: if it ever points at a model that isn't actually
   // installed (e.g. a download that failed, or a stale stored value), fall back

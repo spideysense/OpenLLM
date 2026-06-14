@@ -1,6 +1,6 @@
 {
   "name": "aspen",
-  "version": "0.4.55",
+  "version": "0.4.56",
   "description": "Run the best open source AI locally. No API keys. No subscriptions. No terminal.",
   "main": "src/main/index.js",
   "scripts": {
@@ -94,7 +94,15 @@
       ],
       "executableArgs": [
         "--no-sandbox"
-      ]
+      ],
+      "desktop": {
+        "entry": {
+          "Name": "Aspen",
+          "Comment": "Private AI that runs on your hardware",
+          "Categories": "Utility;Development;",
+          "StartupWMClass": "Aspen"
+        }
+      }
     },
     "publish": [
       {
