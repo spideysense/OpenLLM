@@ -124,31 +124,41 @@ jobs:
   release:
     name: Create GitHub Release
     needs: [build-mac, build-windows, build-linux]
+    if: always() && (needs.build-linux.result == 'success' || needs.build-windows.result == 'success' || needs.build-mac.result == 'success')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - name: Download Mac artifact
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           name: mac-installer
           path: dist
 
       - name: Download Windows artifact
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           name: win-installer
           path: dist
 
       - name: Download Linux artifact
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           name: linux-installer
           path: dist
 
+      - name: Get version
+        id: version
+        run: echo "v=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: v${{ steps.version.outputs.v }}
+          name: Aspen v${{ steps.version.outputs.v }}
           files: dist/*
           generate_release_notes: true
           draft: false
@@ -157,7 +167,8 @@ jobs:
 
   verify-published:
     name: Verify LIVE download is stapled
-    needs: [release]
+    needs: [release, build-mac]
+    if: needs.build-mac.result == 'success'
     runs-on: macos-latest
     steps:
       - name: Download the actual served DMG and validate its staple
