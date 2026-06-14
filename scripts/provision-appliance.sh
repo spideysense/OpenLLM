@@ -120,7 +120,7 @@ cat > "$AUTODIR/aspen.desktop" <<EOF
 Type=Application
 Name=Aspen
 Comment=Private AI on your own hardware
-Exec=sh -c 'cd "$APP_DIR" && ASPEN_KIOSK=1 "$ELECTRON_BIN" .'
+Exec=sh -c 'cd "$APP_DIR" && ASPEN_PROD=1 ASPEN_KIOSK=1 "$ELECTRON_BIN" . --no-sandbox'
 X-GNOME-Autostart-enabled=true
 Terminal=false
 EOF

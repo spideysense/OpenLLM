@@ -47,7 +47,11 @@ function createWindow() {
     },
   });
 
-  if (isDev) {
+  // Load the live Vite dev server only for actual development. ASPEN_PROD=1 runs
+  // the BUILT renderer from disk even when unpackaged — used for the appliance,
+  // so it never depends on a dev server being up.
+  const useDevServer = isDev && process.env.ASPEN_PROD !== '1';
+  if (useDevServer) {
     mainWindow.loadURL('http://localhost:5173');
     mainWindow.webContents.openDevTools({ mode: 'detach' });
   } else {
