@@ -430,11 +430,17 @@ ipcMain.handle('chat:send', async (event, { model, messages }) => {
   const lastUser = [...fullMessages].reverse().find((m) => m.role === 'user');
   const userText = lastUser?.content || '';
 
-  // After response, extract facts in the background (non-blocking)
+  // After response, extract facts in the background (non-blocking).
+  // Only run every 3rd exchange to avoid hammering Ollama, and wait 3s so it
+  // never competes with the user's next message. Uses a small model (see
+  // world-model.js pickExtractionModel) so even when it runs it's fast.
   const scheduleExtraction = () => {
+    const total = (store.get('totalExchanges') || 0) + 1;
+    store.set('totalExchanges', total);
+    if (total % 3 !== 0) return; // only every 3rd message
     setTimeout(() => {
       worldModel.extractFacts(model, fullMessages).catch(() => {});
-    }, 500);
+    }, 3000);
   };
 
   if (agent.isEnabled()) {

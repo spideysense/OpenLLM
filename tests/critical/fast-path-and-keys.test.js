@@ -124,10 +124,17 @@ describe('Speed optimizations', () => {
     expect(src).not.toContain('buckets');
     expect(src).toMatch(/function contextFor[\s\S]{0,800}return system\.getRecommendedContext\(\)/);
   });
-  it('background fact extraction matches chat options so it does not evict the model', () => {
+  it('background fact extraction uses a small model so it does not block chat', () => {
     const wm = fs.readFileSync(path.resolve('src/main/world-model.js'), 'utf8');
-    expect(wm).toContain('keep_alive: -1');
-    expect(wm).toContain('num_ctx: system.getRecommendedContext()');
+    // Must pick a small/fast model for extraction, NOT the heavy chat model.
+    // Running the 109B chat model for extraction blocked Ollama's queue for
+    // 30-60s and stalled the user's next message.
+    expect(wm).toContain('pickExtractionModel');
+    expect(wm).toContain('SMALL_EXTRACTION_MODELS');
+    // Extraction context must be small (fast), not the full chat context.
+    expect(wm).toContain('num_ctx: 4096');
+    // Must NOT pin the extraction model in VRAM forever.
+    expect(wm).not.toContain('keep_alive: -1');
   });
   it('gateway warms the model on start', () => {
     const src = fs.readFileSync(path.resolve('src/main/gateway.js'), 'utf8');
@@ -144,5 +151,37 @@ describe('Brevity', () => {
   it('no preamble instruction present', () => {
     const src = fs.readFileSync(path.resolve('src/main/gateway-agent.js'), 'utf8');
     expect(src).toContain('No preamble');
+  });
+});
+
+describe('Linux build + extraction throttle', () => {
+  const fs = require('fs');
+  const path = require('path');
+
+  it('package.json builds an arm64 AppImage for Linux', () => {
+    const pkg = JSON.parse(fs.readFileSync(path.resolve('package.json'), 'utf8'));
+    const linux = pkg.build.linux;
+    expect(linux).toBeDefined();
+    const target = linux.target[0];
+    expect(typeof target === 'object' ? target.target : target).toBe('AppImage');
+    const arches = typeof target === 'object' ? target.arch : [];
+    expect(arches).toContain('arm64');
+  });
+
+  it('Linux app launches with --no-sandbox (avoids SUID sandbox error)', () => {
+    const pkg = JSON.parse(fs.readFileSync(path.resolve('package.json'), 'utf8'));
+    expect(pkg.build.linux.executableArgs).toContain('--no-sandbox');
+  });
+
+  it('release workflow has a Linux arm64 build job', () => {
+    const wf = fs.readFileSync(path.resolve('.github/workflows/release.yml'), 'utf8');
+    expect(wf).toContain('build-linux');
+    expect(wf).toContain('ubuntu-24.04-arm');
+    expect(wf).toContain('--linux AppImage --arm64');
+  });
+
+  it('extraction only runs every 3rd message (not every message)', () => {
+    const idx = fs.readFileSync(path.resolve('src/main/index.js'), 'utf8');
+    expect(idx).toContain('total % 3');
   });
 });

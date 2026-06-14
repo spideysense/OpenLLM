@@ -1,6 +1,6 @@
 {
   "name": "aspen",
-  "version": "0.4.51",
+  "version": "0.4.52",
   "description": "Run the best open source AI locally. No API keys. No subscriptions. No terminal.",
   "main": "src/main/index.js",
   "scripts": {
@@ -80,8 +80,14 @@
       "artifactName": "Aspen-linux-${arch}.${ext}",
       "target": [
         {
-          "target": "AppImage"
+          "target": "AppImage",
+          "arch": [
+            "arm64"
+          ]
         }
+      ],
+      "executableArgs": [
+        "--no-sandbox"
       ]
     },
     "publish": [

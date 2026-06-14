@@ -18,6 +18,43 @@ const OLLAMA_HOST = '127.0.0.1';
 const OLLAMA_PORT = 11434;
 const MAX_FACTS = 100; // Cap to keep context manageable
 
+// Small models good for fact extraction, in order of preference. We pick the
+// first one that's already loaded (instant) or pulled (fast). Falls back to the
+// chat model only if none are available.
+const SMALL_EXTRACTION_MODELS = ['qwen3:4b', 'qwen3:8b', 'llama3.2:3b', 'gemma3:4b', 'qwen3:14b'];
+
+function httpGetJson(path) {
+  return new Promise((resolve) => {
+    const req = http.request({ hostname: OLLAMA_HOST, port: OLLAMA_PORT, path, method: 'GET' }, (res) => {
+      let data = '';
+      res.on('data', c => { data += c; });
+      res.on('end', () => { try { resolve(JSON.parse(data)); } catch { resolve(null); } });
+    });
+    req.on('error', () => resolve(null));
+    req.setTimeout(3000, () => { req.destroy(); resolve(null); });
+    req.end();
+  });
+}
+
+// Choose the fastest available model for background fact extraction.
+async function pickExtractionModel(chatModel) {
+  // 1. Already loaded + small? Use it — zero load cost.
+  const ps = await httpGetJson('/api/ps');
+  const loaded = (ps?.models || []).map(m => m.name);
+  for (const small of SMALL_EXTRACTION_MODELS) {
+    if (loaded.includes(small)) return small;
+  }
+  // 2. Pulled but not loaded? Still much faster than the heavy chat model.
+  const tags = await httpGetJson('/api/tags');
+  const installed = (tags?.models || []).map(m => m.name);
+  for (const small of SMALL_EXTRACTION_MODELS) {
+    if (installed.includes(small)) return small;
+  }
+  // 3. Nothing small available — fall back to the chat model (slow but works).
+  return chatModel;
+}
+
+
 // Resolve the storage key for a given identity.
 //   - 'owner' or undefined → legacy 'worldModel' (the owner's memory)
 //   - any other keyId      → 'worldModel:{keyId}' (that user's private memory)
@@ -84,6 +121,13 @@ async function extractFacts(model, messages, keyId) {
   const userMsgs = messages.filter(m => m.role === 'user');
   if (userMsgs.length < 1) return;
 
+  // Use a SMALL, FAST model for extraction — never the heavy chat model.
+  // Running a 109B model to extract facts blocks Ollama's queue for 30-60s,
+  // which stalls the user's NEXT message. A small model does this in ~2s.
+  // Prefer an already-loaded small model; fall back to the chat model only
+  // if nothing small is available.
+  const extractionModel = await pickExtractionModel(model);
+
   // Take the last few messages for extraction (not the whole history)
   const recent = messages.slice(-6);
   const convoText = recent
@@ -115,15 +159,13 @@ Example output: ["User's name is Mayank", "User is building an AI app called Asp
 
   try {
     const body = JSON.stringify({
-      model,
+      model: extractionModel,
       messages: extractionPrompt,
       stream: false,
-      // Match the chat path EXACTLY (num_ctx + keep_alive). If this background
-      // call used different options, Ollama would unload the chat model and
-      // reload it with this config — then reload again on the next message. That
-      // churn was the "Loading model into memory" on every single turn.
-      keep_alive: -1,
-      options: { num_predict: 500, temperature: 0.1, num_ctx: system.getRecommendedContext() },
+      // Small model + small context = fast extraction that doesn't block chat.
+      // keep_alive shorter so the extraction model doesn't permanently hold VRAM.
+      keep_alive: '5m',
+      options: { num_predict: 300, temperature: 0.1, num_ctx: 4096 },
     });
 
     const result = await new Promise((resolve, reject) => {

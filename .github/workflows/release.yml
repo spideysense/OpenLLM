@@ -88,9 +88,42 @@ jobs:
             dist/*.exe
             dist/latest.yml
 
+  build-linux:
+    name: Build Linux (AppImage arm64)
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install system deps for AppImage
+        run: sudo apt-get update && sudo apt-get install -y libfuse2 || true
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build renderer
+        run: npm run build:renderer
+
+      - name: Build AppImage (arm64)
+        run: npx electron-builder --linux AppImage --arm64 --publish never
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-installer
+          path: |
+            dist/*.AppImage
+            dist/latest-linux-arm64.yml
+
   release:
     name: Create GitHub Release
-    needs: [build-mac, build-windows]
+    needs: [build-mac, build-windows, build-linux]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -105,6 +138,12 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: win-installer
+          path: dist
+
+      - name: Download Linux artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-installer
           path: dist
 
       - name: Create Release
