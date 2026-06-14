@@ -94,11 +94,7 @@
       ],
       "executableArgs": [
         "--no-sandbox"
-      ],
-      "desktop": {
-        "Name": "Aspen",
-        "Comment": "Private AI that runs on your hardware"
-      }
+      ]
     },
     "publish": [
       {
