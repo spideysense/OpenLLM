@@ -241,11 +241,14 @@ describe('Content: Calls to action', () => {
     expect(pkg.build.win.artifactName).toContain('Aspen-win');
   });
 
-  it('should detect user OS (mac/win/other)', () => {
+  it('should detect user OS (mac/win/linux/ios)', () => {
     expect(html).toContain('download-primary');
     expect(html).toContain('download-secondary');
     expect(html).toContain('Aspen-mac.dmg');
     expect(html).toContain('Aspen-win.exe');
+    // Linux detection serves the arm64 AppImage
+    expect(html).toContain('Aspen-linux-arm64.AppImage');
+    expect(html).toContain('Download Free for Linux');
   });
 
   it('should have GitHub Fork CTA', () => {

@@ -173,6 +173,7 @@ footer{border-top:1px solid var(--brd);padding:2rem 0}
 </div>
 <p class="hero-note"><span id="download-secondary-wrap"><a href="https://github.com/spideysense/OpenLLM/releases/latest/download/Aspen-win.exe" id="download-secondary">Also available for Windows</a> &middot; </span><a href="https://apps.apple.com/app/id6775307566" id="download-ios">iPhone app on the App Store</a> &middot; Free &middot; No account required &middot; <a href="https://github.com/spideysense/OpenLLM/releases">Previous versions</a></p>
 <p class="hero-note" id="win-note" style="display:none;font-size:.82rem;opacity:.75;margin-top:.4rem">Windows may show a "protected your PC" warning. Click <strong>More info</strong> &rarr; <strong>Run anyway</strong>. It is safe. <a href="#faq">Learn why</a>.</p>
+<p class="hero-note" id="lin-note" style="display:none;font-size:.82rem;opacity:.75;margin-top:.4rem">After downloading, make it executable and run it: <code>chmod +x Aspen-linux-arm64.AppImage &amp;&amp; ./Aspen-linux-arm64.AppImage</code>. Built for arm64 (NVIDIA GB10 / ARM machines).</p>
 <p class="hero-note" style="margin-top:.5rem">The app is free forever on the devices you already own. The <a href="#device">Aspen device</a> is a separate, optional machine for running the biggest models, always on. You never need it to use Aspen.</p>
 <p class="hero-note" style="margin-top:.5rem">Not sure yet? <a href="/app">Try it free in your browser →</a></p>
 </div>
@@ -485,6 +486,8 @@ function submitContact(e){
   var MAC = /Mac/.test(ua) && !/iPhone|iPad/.test(ua);
   var WIN = /Win/.test(ua);
   var IOS = /iPhone|iPad/.test(ua);
+  var LINUX = /Linux/.test(ua) && !/Android/.test(ua);
+  var APPIMAGE = 'https://github.com/spideysense/OpenLLM/releases/latest/download/Aspen-linux-arm64.AppImage';
   if(WIN){
     primary.href='https://github.com/spideysense/OpenLLM/releases/latest/download/Aspen-win.exe';
     primary.textContent='Download Free for Windows';
@@ -492,6 +495,13 @@ function submitContact(e){
     secondary.textContent='Also available for Mac';
     var winNote = document.getElementById('win-note');
     if(winNote) winNote.style.display='block';
+  } else if(LINUX){
+    primary.href=APPIMAGE;
+    primary.textContent='Download Free for Linux';
+    secondary.href='https://github.com/spideysense/OpenLLM/releases/latest/download/Aspen-mac.dmg';
+    secondary.textContent='Also available for Mac';
+    var linNote = document.getElementById('lin-note');
+    if(linNote) linNote.style.display='block';
   } else if(IOS){
     primary.href='https://apps.apple.com/app/id6775307566';
     primary.textContent='Download on the App Store';
