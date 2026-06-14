@@ -1,6 +1,6 @@
 {
   "name": "aspen",
-  "version": "0.4.52",
+  "version": "0.4.53",
   "description": "Run the best open source AI locally. No API keys. No subscriptions. No terminal.",
   "main": "src/main/index.js",
   "scripts": {
@@ -80,6 +80,12 @@
       "artifactName": "Aspen-linux-${arch}.${ext}",
       "target": [
         {
+          "target": "deb",
+          "arch": [
+            "arm64"
+          ]
+        },
+        {
           "target": "AppImage",
           "arch": [
             "arm64"
@@ -88,7 +94,11 @@
       ],
       "executableArgs": [
         "--no-sandbox"
-      ]
+      ],
+      "desktop": {
+        "Name": "Aspen",
+        "Comment": "Private AI that runs on your hardware"
+      }
     },
     "publish": [
       {
@@ -98,7 +108,19 @@
       }
     ],
     "afterAllArtifactBuild": "scripts/staple-dmg.js",
-    "npmRebuild": true
+    "npmRebuild": true,
+    "deb": {
+      "depends": [
+        "libgtk-3-0",
+        "libnotify4",
+        "libnss3",
+        "libxss1",
+        "libxtst6",
+        "xdg-utils",
+        "libatspi2.0-0",
+        "libsecret-1-0"
+      ]
+    }
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",

@@ -246,8 +246,8 @@ describe('Content: Calls to action', () => {
     expect(html).toContain('download-secondary');
     expect(html).toContain('Aspen-mac.dmg');
     expect(html).toContain('Aspen-win.exe');
-    // Linux detection serves the arm64 AppImage
-    expect(html).toContain('Aspen-linux-arm64.AppImage');
+    // Linux detection serves the .deb (auto-installs deps incl FUSE)
+    expect(html).toContain('Aspen-linux-arm64.deb');
     expect(html).toContain('Download Free for Linux');
   });
 

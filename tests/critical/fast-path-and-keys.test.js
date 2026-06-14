@@ -158,14 +158,24 @@ describe('Linux build + extraction throttle', () => {
   const fs = require('fs');
   const path = require('path');
 
-  it('package.json builds an arm64 AppImage for Linux', () => {
+  it('package.json builds arm64 deb + AppImage for Linux', () => {
     const pkg = JSON.parse(fs.readFileSync(path.resolve('package.json'), 'utf8'));
     const linux = pkg.build.linux;
     expect(linux).toBeDefined();
-    const target = linux.target[0];
-    expect(typeof target === 'object' ? target.target : target).toBe('AppImage');
-    const arches = typeof target === 'object' ? target.arch : [];
-    expect(arches).toContain('arm64');
+    const targets = linux.target.map(t => typeof t === 'object' ? t.target : t);
+    // deb is the primary (auto-installs deps incl FUSE); AppImage is fallback
+    expect(targets).toContain('deb');
+    expect(targets).toContain('AppImage');
+    // both must be arm64 for the GB10
+    linux.target.forEach(t => {
+      if (typeof t === 'object') expect(t.arch).toContain('arm64');
+    });
+  });
+
+  it('deb declares runtime dependencies so apt resolves them on install', () => {
+    const pkg = JSON.parse(fs.readFileSync(path.resolve('package.json'), 'utf8'));
+    expect(pkg.build.deb).toBeDefined();
+    expect(pkg.build.deb.depends.length).toBeGreaterThan(0);
   });
 
   it('Linux app launches with --no-sandbox (avoids SUID sandbox error)', () => {
@@ -177,7 +187,7 @@ describe('Linux build + extraction throttle', () => {
     const wf = fs.readFileSync(path.resolve('.github/workflows/release.yml'), 'utf8');
     expect(wf).toContain('build-linux');
     expect(wf).toContain('ubuntu-24.04-arm');
-    expect(wf).toContain('--linux AppImage --arm64');
+    expect(wf).toContain('--linux deb AppImage --arm64');
   });
 
   it('extraction only runs every 3rd message (not every message)', () => {

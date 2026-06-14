@@ -89,7 +89,7 @@ jobs:
             dist/latest.yml
 
   build-linux:
-    name: Build Linux (AppImage arm64)
+    name: Build Linux (deb + AppImage arm64)
     runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
@@ -108,8 +108,8 @@ jobs:
       - name: Build renderer
         run: npm run build:renderer
 
-      - name: Build AppImage (arm64)
-        run: npx electron-builder --linux AppImage --arm64 --publish never
+      - name: Build Linux packages (deb + AppImage, arm64)
+        run: npx electron-builder --linux deb AppImage --arm64 --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -118,6 +118,7 @@ jobs:
         with:
           name: linux-installer
           path: |
+            dist/*.deb
             dist/*.AppImage
             dist/latest-linux-arm64.yml
 
