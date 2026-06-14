@@ -29,6 +29,13 @@ export default function App() {
   const [hardwareTier, setHardwareTier] = useState('medium');
   const [models, setModels] = useState([]);
   const [activeModel, setActiveModel] = useState(null);
+  // Model warming: the big model (e.g. llama4:scout, 67GB) takes time to load
+  // into VRAM. We warm it on startup + on switch, and block chat behind a
+  // progress screen until it's actually resident, so the first message is
+  // instant instead of a multi-minute cold wait.
+  const [modelWarming, setModelWarming] = useState(false);
+  const [warmingModel, setWarmingModel] = useState(null);
+  const [warmElapsed, setWarmElapsed] = useState(0);
   const [modelCaps, setModelCaps] = useState({ tools: false, vision: false });
   const [modelProfile, setModelProfile] = useState(null);
   const [showComputerUseOnboarding, setShowComputerUseOnboarding] = useState(false);
@@ -94,6 +101,15 @@ export default function App() {
     init();
   }, []);
 
+  // ─── Warm the active model on startup so the first message is instant ───
+  const warmedOnceRef = useRef(false);
+  useEffect(() => {
+    if (warmedOnceRef.current) return;
+    if (loading || !activeModel || !isOnboarded) return;
+    warmedOnceRef.current = true;
+    warmActiveModel(activeModel);
+  }, [loading, activeModel, isOnboarded, warmActiveModel]);
+
   // ─── Fetch the capability profile whenever the active model changes ───
   // The profile (tier + per-feature gating from model size, tools/vision, and
   // hardware) is the single source of truth for what the UI offers.
@@ -133,14 +149,33 @@ export default function App() {
     return unsub;
   }, [bridge, refreshModels]);
 
-  // ─── Select model ───
+  // ─── Warm a model into VRAM, showing a blocking progress screen ───
+  const warmActiveModel = useCallback(async (modelName) => {
+    if (!modelName || !bridge?.models?.warm) return;
+    setWarmingModel(modelName);
+    setModelWarming(true);
+    setWarmElapsed(0);
+    const startedAt = Date.now();
+    const ticker = setInterval(() => {
+      setWarmElapsed(Math.floor((Date.now() - startedAt) / 1000));
+    }, 1000);
+    try {
+      await bridge.models.warm(modelName);
+    } catch {}
+    clearInterval(ticker);
+    setModelWarming(false);
+  }, [bridge]);
+
+  // ─── Select model (warms the new one before chat is usable) ───
   const selectModel = useCallback(async (modelName) => {
     if (!modelName) return;
     setActiveModel(modelName);
     if (bridge) {
       await bridge.store.set('activeModel', modelName);
     }
-  }, []);
+    // Warm the newly selected model so the first message is instant.
+    warmActiveModel(modelName);
+  }, [bridge, warmActiveModel]);
 
   // Keep activeModel honest: if it ever points at a model that isn't actually
   // installed (e.g. a download that failed, or a stale stored value), fall back
@@ -247,6 +282,41 @@ export default function App() {
   return (
     <AppContext.Provider value={ctx}>
       <div className="titlebar-drag" />
+
+      {/* ── Model Warming Overlay — blocks chat until the model is in VRAM ── */}
+      {modelWarming && (
+        <div style={{
+          position: 'fixed', inset: 0,
+          background: 'var(--bg, #faf8f3)',
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          zIndex: 99999, padding: 24, textAlign: 'center',
+        }}>
+          <div className="onboarding-icon" style={{ marginBottom: 24 }}></div>
+          <h2 style={{ margin: '0 0 8px', fontFamily: 'var(--serif, Georgia)', fontWeight: 600, color: 'var(--text, #2a2118)' }}>
+            Preparing {warmingModel}
+          </h2>
+          <p style={{ margin: '0 0 4px', color: 'var(--text-light, #6b5d48)', maxWidth: 420, lineHeight: 1.5 }}>
+            Loading the model into your machine's memory. This happens once — after
+            this, every response is near-instant.
+          </p>
+          <p style={{ margin: '12px 0 0', fontSize: 14, color: 'var(--text-light, #8a7d68)', fontVariantNumeric: 'tabular-nums' }}>
+            {warmElapsed}s — large models can take a minute or two to load
+          </p>
+          <div style={{
+            marginTop: 24, width: 240, height: 4, borderRadius: 4,
+            background: 'rgba(0,0,0,0.08)', overflow: 'hidden',
+          }}>
+            <div style={{
+              height: '100%', width: '40%', borderRadius: 4,
+              background: 'var(--accent, #c0552e)',
+              animation: 'warming-slide 1.4s ease-in-out infinite',
+            }} />
+          </div>
+          <style>{`@keyframes warming-slide { 0% { transform: translateX(-100%); } 100% { transform: translateX(350%); } }`}</style>
+        </div>
+      )}
+
 
       {/* ── Computer Use Onboarding Modal ── */}
       {showComputerUseOnboarding && (

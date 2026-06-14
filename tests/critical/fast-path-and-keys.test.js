@@ -211,3 +211,29 @@ describe('Ollama context cap (the 256K bug)', () => {
     expect(src).toContain('OLLAMA_NUM_PARALLEL');
   });
 });
+
+describe('Model warming UX (blocks chat until model is in VRAM)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const app = fs.readFileSync(path.resolve('src/renderer/App.jsx'), 'utf8');
+
+  it('warms the model on startup', () => {
+    expect(app).toContain('warmActiveModel');
+    expect(app).toContain('warmedOnceRef');
+  });
+
+  it('warms the model when switching models', () => {
+    // selectModel must trigger a warm so the first message on the new model is fast
+    expect(app).toMatch(/selectModel[\s\S]{0,400}warmActiveModel/);
+  });
+
+  it('shows a blocking overlay while warming', () => {
+    expect(app).toContain('modelWarming');
+    expect(app).toContain('Preparing');
+  });
+
+  it('uses the awaitable warm (resolves when model is loaded)', () => {
+    const ollama = fs.readFileSync(path.resolve('src/main/ollama.js'), 'utf8');
+    expect(ollama).toContain('warmModelAndWait');
+  });
+});
