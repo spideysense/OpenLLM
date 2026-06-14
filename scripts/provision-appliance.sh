@@ -30,9 +30,14 @@ arch="$(uname -m)"
 ok "arch $arch"
 command -v curl >/dev/null || { echo "curl required"; exit 1; }
 command -v tar  >/dev/null || { echo "tar required";  exit 1; }
-command -v node >/dev/null || { echo "Node.js required (install Node 20+ first)"; exit 1; }
 command -v git  >/dev/null || { echo "git required"; exit 1; }
-ok "curl / tar / node / git present"
+if ! command -v node >/dev/null; then
+  say "Installing Node.js 20 (not present)"
+  curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+  sudo apt-get install -y nodejs
+fi
+command -v node >/dev/null || { echo "Node.js install failed — install Node 20+ and re-run"; exit 1; }
+ok "curl / tar / node ($(node -v)) / git present"
 
 # ── 1. Stage the AI engine (Ollama base arm64 + cuda_v13 libs) ──────────────
 say "Staging AI engine"
@@ -135,7 +140,7 @@ cat <<EOF
     app    : $APP_DIR  (autostarts full-screen on login)
 
   Verify now without rebooting:
-    cd "$APP_DIR" && ASPEN_KIOSK=1 "$ELECTRON_BIN" .
+    cd "$APP_DIR" && ASPEN_PROD=1 ASPEN_KIOSK=1 "$ELECTRON_BIN" . --no-sandbox
 
   Then reboot to confirm it boots straight into Aspen, and clone the disk image.
 EOF
