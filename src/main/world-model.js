@@ -50,8 +50,10 @@ async function pickExtractionModel(chatModel) {
   for (const small of SMALL_EXTRACTION_MODELS) {
     if (installed.includes(small)) return small;
   }
-  // 3. Nothing small available — fall back to the chat model (slow but works).
-  return chatModel;
+  // 3. Nothing small available — SKIP extraction. Running the heavy chat model
+  //    for extraction at a different num_ctx evicts the resident chat model and
+  //    forces a full (minutes-long) reload, stalling every message. Not worth it.
+  return null;
 }
 
 
@@ -127,6 +129,10 @@ async function extractFacts(model, messages, keyId) {
   // Prefer an already-loaded small model; fall back to the chat model only
   // if nothing small is available.
   const extractionModel = await pickExtractionModel(model);
+  // No small extraction model installed → skip. Never run extraction on the heavy
+  // chat model: it uses a different context size, which evicts + reloads the
+  // resident model and makes the user's next message pay a full cold-load.
+  if (!extractionModel || extractionModel === model) return;
 
   // Take the last few messages for extraction (not the whole history)
   const recent = messages.slice(-6);
