@@ -323,6 +323,10 @@ async function ensureRunning(onProgress) {
           // Let extraction + chat run concurrently so a background job never
           // blocks the user's next message.
           OLLAMA_NUM_PARALLEL: '2',
+          // Allow the chat model AND a small extraction model to stay resident
+          // together — otherwise loading one evicts the other, and every message
+          // pays a full cold-load. Plenty of headroom on this class of machine.
+          OLLAMA_MAX_LOADED_MODELS: '2',
         },
       });
       ollamaProcess.unref();

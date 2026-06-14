@@ -36,23 +36,20 @@ function httpGetJson(path) {
   });
 }
 
-// Choose the fastest available model for background fact extraction.
+// Choose a SAFE model for background fact extraction. Critical rule: never pick
+// a model that isn't already loaded — loading a second model can evict the
+// resident chat model (Ollama caps how many stay in memory), forcing a
+// multi-minute reload on the user's NEXT message. So we ONLY use a small model
+// that is already in memory; otherwise return null and the caller skips.
 async function pickExtractionModel(chatModel) {
-  // 1. Already loaded + small? Use it — zero load cost.
+  // Already loaded + small? Use it — zero load cost, no eviction.
   const ps = await httpGetJson('/api/ps');
   const loaded = (ps?.models || []).map(m => m.name);
   for (const small of SMALL_EXTRACTION_MODELS) {
     if (loaded.includes(small)) return small;
   }
-  // 2. Pulled but not loaded? Still much faster than the heavy chat model.
-  const tags = await httpGetJson('/api/tags');
-  const installed = (tags?.models || []).map(m => m.name);
-  for (const small of SMALL_EXTRACTION_MODELS) {
-    if (installed.includes(small)) return small;
-  }
-  // 3. Nothing small available — SKIP extraction. Running the heavy chat model
-  //    for extraction at a different num_ctx evicts the resident chat model and
-  //    forces a full (minutes-long) reload, stalling every message. Not worth it.
+  // No small model resident → skip. Do NOT load one (it would evict the chat
+  // model) and never run extraction on the heavy chat model itself.
   return null;
 }
 
