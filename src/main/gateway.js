@@ -319,7 +319,7 @@ You are Aspen, a helpful AI assistant running 100% LOCALLY on the user's own com
           (async () => {
             let fullText = '';
             try {
-              for await (const event of gatewayAgent.run({ model: agentModel, messages: agentMsgs, isOwner, memoryKeyId })) {
+              for await (const event of gatewayAgent.runValidated({ model: agentModel, messages: agentMsgs, isOwner, memoryKeyId })) {
                 if (event.type === 'content') fullText += event.text;
                 if (event.type === 'error') throw new Error(event.text);
               }
@@ -382,7 +382,7 @@ You are Aspen, a helpful AI assistant running 100% LOCALLY on the user's own com
 
         (async () => {
           try {
-            for await (const event of gatewayAgent.run({ model: agentModel, messages: agentMsgs, isOwner, memoryKeyId })) {
+            for await (const event of gatewayAgent.runValidated({ model: agentModel, messages: agentMsgs, isOwner, memoryKeyId })) {
               if (res.writableEnded) break;
               switch (event.type) {
                 case 'status':

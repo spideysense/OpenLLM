@@ -21,6 +21,7 @@ const tools = require('./tools');
 const system = require('./system');
 const worldModel = require('./world-model');
 const capabilities = require('./capabilities');
+const codeValidator = require('./code-validator');
 
 const OLLAMA_HOST = '127.0.0.1';
 const OLLAMA_PORT = 11434;
@@ -838,4 +839,58 @@ WHEN WRITING CODE:
   }
 }
 
-module.exports = { run, messageNeedsTools, SAFE_TOOLS, DANGEROUS_TOOLS, GATEWAY_COMPUTER_TOOL_DEFS, decideCodingModel };
+// ─────────────────────────────────────────────────────────────────────────────
+// Validate-retry wrapper. For coding turns, buffer the answer, check the code
+// (compile/parse only — it NEVER executes the code), and if it won't load, hand
+// the exact errors back to the model for a bounded number of fixes — BEFORE the
+// user sees it. Non-coding turns stream straight through, unchanged.
+// ─────────────────────────────────────────────────────────────────────────────
+async function* runValidated(args, _run = run) {
+  const messages = args.messages || [];
+  const lastUser = [...messages].reverse().find((m) => m.role === 'user');
+  const isCoding = CODING_RX.test((lastUser?.content || '').slice(0, 800));
+  if (!isCoding) {
+    yield* _run(args);
+    return;
+  }
+
+  const MAX_FIX = 2;
+  let attemptMsgs = messages;
+  let finalText = '';
+
+  yield { type: 'status', text: 'Writing and checking the code…', transient: true };
+
+  for (let attempt = 0; attempt <= MAX_FIX; attempt++) {
+    let text = '';
+    let errored = false;
+    for await (const ev of _run({ ...args, messages: attemptMsgs })) {
+      if (ev.type === 'content') { text += ev.text; continue; } // buffer — don't show yet
+      if (ev.type === 'done') { continue; }                     // swallow inner done
+      if (ev.type === 'error') { yield ev; errored = true; break; }
+      yield ev; // status / tool_call / tool_result → activity trail
+    }
+    if (errored) return;
+    finalText = text;
+
+    let result;
+    try { result = codeValidator.validateAnswer(text); } catch { result = { ok: true, problems: [] }; }
+    if (result.ok || !result.problems.length) break;     // clean → ship it
+    if (attempt === MAX_FIX) break;                       // out of retries → best effort
+
+    yield { type: 'status', text: 'Found an issue in the code — fixing it…', transient: true };
+    const fixPrompt =
+      'The code you just wrote has problems that will stop it from working:\n' +
+      result.problems.map((p) => `- ${p}`).join('\n') +
+      '\n\nReturn the corrected, COMPLETE file(s) — every file in full, ready to save. Output only the fixed code (with brief notes if needed); do not repeat the broken version.';
+    attemptMsgs = [
+      ...messages,
+      { role: 'assistant', content: text },
+      { role: 'user', content: fixPrompt },
+    ];
+  }
+
+  yield { type: 'content', text: finalText || 'Sorry, I could not generate a response.' };
+  yield { type: 'done' };
+}
+
+module.exports = { run, runValidated, messageNeedsTools, SAFE_TOOLS, DANGEROUS_TOOLS, GATEWAY_COMPUTER_TOOL_DEFS, decideCodingModel };
