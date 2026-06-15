@@ -11,7 +11,22 @@
 set -euo pipefail
 
 # ── Config ─────────────────────────────────────────────────────────────────
-MODEL="${ASPEN_MODEL:-gpt-oss:120b}"     # best open model that fits 128GB w/ headroom
+# ── Config ─────────────────────────────────────────────────────────────────
+# Hardware-aware model plan. Most users are NOT on a 128GB box, so size the
+# chat model (vision-capable where possible) and the coder model to the machine.
+# Two models are pinned at runtime only when they co-fit; otherwise one is used.
+RAM_GB=$(awk '/MemTotal/{printf "%d", $2/1024/1024}' /proc/meminfo 2>/dev/null || echo 16)
+if [ -n "${ASPEN_MODEL:-}" ]; then
+  MODEL="$ASPEN_MODEL"
+elif [ "$RAM_GB" -ge 96 ]; then MODEL="llama4:scout"          # vision + strong, big box
+elif [ "$RAM_GB" -ge 32 ]; then MODEL="llama3.2-vision:11b"   # vision, mid box
+elif [ "$RAM_GB" -ge 16 ]; then MODEL="qwen2.5-coder:7b"      # one model does chat+code
+else                            MODEL="llama3.2:3b"; fi        # tiny box, chat only
+# Coder model the runtime routes coding turns to (when it co-fits with chat).
+if   [ "$RAM_GB" -ge 96 ]; then CODER="qwen2.5-coder:32b"
+elif [ "$RAM_GB" -ge 32 ]; then CODER="qwen2.5-coder:14b"
+elif [ "$RAM_GB" -ge 16 ]; then CODER=""                       # MODEL already a coder
+else                            CODER=""; fi                   # too small for a pair
 ASPEN_DIR="$HOME/.aspen"                  # engine + models live here (matches the app)
 BIN_DIR="$ASPEN_DIR/bin"                  # extracted ollama tree: bin/ollama + lib/ollama
 MODELS_DIR="$ASPEN_DIR/models"
@@ -84,6 +99,17 @@ else
   echo "  pulling $MODEL ..."
   "$OLLAMA_BIN" pull "$MODEL"
   ok "model $MODEL pulled into $MODELS_DIR"
+fi
+
+# Coder model for the pinned pair (big/mid boxes). Skipped on small machines.
+if [ -n "$CODER" ]; then
+  if "$OLLAMA_BIN" list 2>/dev/null | awk '{print $1}' | grep -qx "$CODER"; then
+    ok "coder model $CODER already present"
+  else
+    echo "  pulling coder model $CODER ..."
+    "$OLLAMA_BIN" pull "$CODER"
+    ok "coder model $CODER pulled"
+  fi
 fi
 
 # Stop the temp server we started (the app starts its own on boot)
