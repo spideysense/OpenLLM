@@ -15,11 +15,11 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.runonaspen.native",
+      "bundleIdentifier": "com.runonaspen.app",
       "infoPlist": { "ITSAppUsesNonExemptEncryption": false }
     },
     "android": {
-      "package": "com.runonaspen.native",
+      "package": "com.runonaspen.app",
       "adaptiveIcon": { "foregroundImage": "./assets/adaptive-icon.png", "backgroundColor": "#FFFFFF" }
     }
   }
