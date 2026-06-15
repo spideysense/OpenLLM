@@ -12,7 +12,7 @@ vi.mock('http', () => ({
   request: vi.fn(() => ({ write: vi.fn(), end: vi.fn(), on: vi.fn(), setTimeout: vi.fn(), destroy: vi.fn() })),
 }));
 
-const { run, SAFE_TOOLS, DANGEROUS_TOOLS, GATEWAY_COMPUTER_TOOL_DEFS } = await import('../../src/main/gateway-agent.js');
+const { run, plainChatRetry, SAFE_TOOLS, DANGEROUS_TOOLS, GATEWAY_COMPUTER_TOOL_DEFS } = await import('../../src/main/gateway-agent.js');
 
 describe('Tool availability', () => {
   it('safe tools cover the basics', () => {
@@ -237,5 +237,48 @@ describe('Reasoning trail in web/mobile apps', () => {
     const src = fs.readFileSync(path.resolve('src/main/gateway.js'), 'utf8');
     expect(src).toContain('aspen_status: event.text');
     expect(src).toContain('aspen_status: event.statusText');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Empty-response safety net (OPEN #1). The gateway path (web app + iOS) must
+// never dead-end on "Sorry, I could not generate a response." when a model
+// returns blank after being handed a tools payload. plainChatRetry is the
+// no-tools fallback wired into every terminal site in run().
+// ─────────────────────────────────────────────────────────────────────────────
+describe('Empty-response safety net (plainChatRetry)', () => {
+  it('returns the model output when the plain (no-tools) call answers', async () => {
+    const chat = async () => ({ choices: [{ message: { content: 'Paris is the capital of France.' } }] });
+    const out = await plainChatRetry('llama4:scout', [{ role: 'user', content: 'capital of france' }], chat);
+    expect(out).toBe('Paris is the capital of France.');
+  });
+
+  it('strips <think> blocks and falls back to reasoning when content is empty', async () => {
+    const chat = async () => ({ choices: [{ message: { content: '<think>hmm</think>', reasoning: 'The answer is 42.' } }] });
+    const out = await plainChatRetry('qwen3', [{ role: 'user', content: 'x' }], chat);
+    expect(out).toBe('The answer is 42.');
+  });
+
+  it('returns empty string (lets caller emit fallback) when the retry is also blank', async () => {
+    const chat = async () => ({ choices: [{ message: { content: '' } }] });
+    const out = await plainChatRetry('llama4:scout', [{ role: 'user', content: 'x' }], chat);
+    expect(out).toBe('');
+  });
+
+  it('swallows a throwing chat call and returns empty string, never throws', async () => {
+    const chat = async () => { throw new Error('ollama down'); };
+    await expect(plainChatRetry('llama4:scout', [{ role: 'user', content: 'x' }], chat)).resolves.toBe('');
+  });
+
+  it('the broadened TOOL_INCOMPATIBLE list (deepseek-r1/coder/phi) is wired into run()', () => {
+    const src = fs.readFileSync(path.resolve('src/main/gateway-agent.js'), 'utf8');
+    expect(src).toContain("['deepseek-r1', 'coder', 'phi']");
+  });
+
+  it('every terminal empty site nets through plainChatRetry before the fallback string', () => {
+    const src = fs.readFileSync(path.resolve('src/main/gateway-agent.js'), 'utf8');
+    // tool-loop final answer + round-cap best-effort both retry; bare fallbacks gone from those sites
+    const retries = (src.match(/await plainChatRetry\(model, messages\)/g) || []).length;
+    expect(retries).toBeGreaterThanOrEqual(3); // fast path + tool-loop + round-cap
   });
 });

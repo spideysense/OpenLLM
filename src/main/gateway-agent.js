@@ -527,6 +527,20 @@ function clean(raw) {
   return (raw || '').replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
 }
 
+// Last-resort plain (no-tools) completion when the agent loop returns empty.
+// Some models return blank content when handed a tools payload; this gives the
+// user the model's actual output instead of a dead-end "Sorry…". Mirrors the
+// desktop net in agent.js (runAgentValidated). `model` is already routed by the
+// caller; retry on bare `messages` (no tools, no directive) so a tools-choking
+// model can answer from its own knowledge.
+async function plainChatRetry(model, messages, _chat = ollamaChat) {
+  try {
+    const r = await _chat({ model, messages: messages || [] });
+    const m = r?.choices?.[0]?.message || {};
+    return clean(m.content) || clean(m.reasoning) || '';
+  } catch { return ''; }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Core: async generator that runs the agent loop and yields events
 //
@@ -549,7 +563,7 @@ async function* run({ model, messages, isOwner = false, memoryKeyId = null }) {
   model = await routeModel(model, messages);
 
   const modelLower = String(model).toLowerCase();
-  const TOOL_INCOMPATIBLE = ['deepseek-r1', 'deepseek-coder'];
+  const TOOL_INCOMPATIBLE = ['deepseek-r1', 'coder', 'phi'];
   const supportsTools = !TOOL_INCOMPATIBLE.some(m => modelLower.includes(m));
 
   // Capability gate (web/mobile share the same policy as desktop). A chat-tier
@@ -605,7 +619,10 @@ BE CONCISE. Lead with the answer. No preamble, no "I'm Aspen running locally" in
         yield { type: 'content', text: step.value };
         step = await iter.next();
       }
-      if (!any) yield { type: 'content', text: 'Sorry, I could not generate a response.' };
+      if (!any) {
+        const retry = await plainChatRetry(model, messages);
+        yield { type: 'content', text: retry || 'Sorry, I could not generate a response.' };
+      }
       // Extract facts to THIS user's memory (background, best-effort)
       if (memoryKeyId !== null && fullReply) {
         worldModel.extractFacts(model, [...messages, { role: 'assistant', content: fullReply }], memoryKeyId).catch(() => {});
@@ -720,7 +737,8 @@ WHEN WRITING CODE:
     if (toolCalls.length === 0) {
       // No tool calls — final answer
       const text = clean(msg.content);
-      yield { type: 'content', text: text || 'Sorry, I could not generate a response.' };
+      const out = text || await plainChatRetry(model, messages);
+      yield { type: 'content', text: out || 'Sorry, I could not generate a response.' };
       yield { type: 'done' };
       return;
     }
@@ -784,7 +802,8 @@ WHEN WRITING CODE:
     const final = await ollamaChat({ model, messages: convo });
     const fm = final?.choices?.[0]?.message;
     const text = clean(fm?.content) || clean(fm?.reasoning);
-    yield { type: 'content', text: text || 'Sorry, I could not complete that request.' };
+    const out = text || await plainChatRetry(model, messages);
+    yield { type: 'content', text: out || 'Sorry, I could not complete that request.' };
     yield { type: 'done' };
   } catch (e) {
     yield { type: 'error', text: `Final response error: ${e.message}` };
@@ -845,4 +864,4 @@ async function* runValidated(args, _run = run) {
   yield { type: 'done' };
 }
 
-module.exports = { run, runValidated, messageNeedsTools, SAFE_TOOLS, DANGEROUS_TOOLS, GATEWAY_COMPUTER_TOOL_DEFS, decideCodingModel };
+module.exports = { run, runValidated, plainChatRetry, messageNeedsTools, SAFE_TOOLS, DANGEROUS_TOOLS, GATEWAY_COMPUTER_TOOL_DEFS, decideCodingModel };
