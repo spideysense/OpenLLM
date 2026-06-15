@@ -101,7 +101,9 @@ async function runAgent({ model, messages, retryCount = 0, isOwner = true, onEve
   // a response." Detect those and treat them as plain chat. deepseek-r1 is a
   // reasoning model (no tools); add others here as needed.
   const modelLower = String(model).toLowerCase();
-  const TOOL_INCOMPATIBLE = ['deepseek-r1', 'deepseek-coder', 'phi'];
+  // Coder models (qwen2.5-coder, deepseek-coder, …) return EMPTY content when
+  // sent a `tools` param, so treat all of them as plain chat. 'coder' covers them.
+  const TOOL_INCOMPATIBLE = ['deepseek-r1', 'coder', 'phi'];
   const supportsTools = !TOOL_INCOMPATIBLE.some(m => modelLower.includes(m));
 
   // Strips <think>...</think> reasoning blocks (deepseek-r1) and falls back to a
@@ -284,6 +286,20 @@ async function runAgentValidated(args) {
   const routedArgs = { ...args, model };
 
   let answer = await runAgent(routedArgs);
+
+  // Universal safety net: if the agent came back empty or with the can't-generate
+  // fallback (e.g. a model that chokes on tools), retry once as a plain chat call
+  // so the user always gets the model's actual output instead of a dead end.
+  const FALLBACK = 'Sorry, I could not generate a response.';
+  if (!answer || !String(answer).trim() || String(answer).trim() === FALLBACK) {
+    try {
+      const r = await ollamaChat({ model, messages });
+      const msg = r?.choices?.[0]?.message || {};
+      const out = (String(msg.content || '').replace(/<think>[\s\S]*?<\/think>/gi, '').trim())
+        || String(msg.reasoning || '').trim();
+      if (out) answer = out;
+    } catch {}
+  }
 
   const lastUser = [...messages].reverse().find((m) => m.role === 'user');
   if (!modelRouter.CODING_RX.test((lastUser?.content || '').slice(0, 800))) return answer;
