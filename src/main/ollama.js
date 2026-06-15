@@ -7,6 +7,7 @@ const system = require('./system');
 const http = require('http');
 const os = require('os');
 const { runFetchUrl } = require('./tools');
+const gpuFallback = require('./gpu-fallback');
 
 const OLLAMA_HOST = 'http://127.0.0.1:11434';
 const MONET_DIR = path.join(os.homedir(), '.aspen');
@@ -561,12 +562,19 @@ async function chat(model, messages, onChunk) {
     const res = await fetch(`${OLLAMA_HOST}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, messages: enrichedMessages, stream: true, keep_alive: -1, options: { num_predict: -1, num_ctx: system.getRecommendedContext() } }),
+      body: JSON.stringify({ model, messages: enrichedMessages, stream: true, keep_alive: -1, options: { num_predict: -1, num_ctx: system.getRecommendedContext(), ...gpuFallback.gpuOptions() } }),
       signal: chatController.signal,
     });
 
     if (!res.ok) {
       const err = await res.text();
+      // GPU runtime crash (unsupported card): flip the box to CPU so the next
+      // message runs on CPU, and surface a human message instead of the raw
+      // CUDA/stack-overflow string.
+      if (gpuFallback.isGpuRuntimeFailure(err)) {
+        gpuFallback.setForceCpu(true);
+        throw new Error('__GPU_FALLBACK__');
+      }
       throw new Error(`Ollama error: ${err}`);
     }
 
@@ -584,6 +592,10 @@ async function chat(model, messages, onChunk) {
       for (const line of lines) {
         try {
           const json = JSON.parse(line);
+          if (json.error && gpuFallback.isGpuRuntimeFailure(json.error)) {
+            gpuFallback.setForceCpu(true);
+            throw new Error('__GPU_FALLBACK__');
+          }
           if (json.message?.content) {
             fullResponse += json.message.content;
             onChunk({ content: json.message.content, done: json.done || false });
@@ -591,13 +603,18 @@ async function chat(model, messages, onChunk) {
           if (json.done) {
             onChunk({ content: '', done: true, total_duration: json.total_duration, eval_count: json.eval_count });
           }
-        } catch (e) {}
+        } catch (e) {
+          if (e && e.message === '__GPU_FALLBACK__') throw e;
+        }
       }
     }
 
     return { success: true, response: fullResponse };
   } catch (err) {
     if (err.name === 'AbortError') return { success: true, aborted: true };
+    if (err && err.message === '__GPU_FALLBACK__') {
+      return { success: false, gpu: true, error: gpuFallback.GPU_FALLBACK_MESSAGE };
+    }
     return { success: false, error: err.message };
   } finally {
     chatController = null;
@@ -618,7 +635,7 @@ function warmModel(model) {
     fetch(`${OLLAMA_HOST}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, messages: [{ role: 'user', content: 'hi' }], stream: false, keep_alive: -1, options: { num_predict: 1, num_ctx: system.getRecommendedContext() } }),
+      body: JSON.stringify({ model, messages: [{ role: 'user', content: 'hi' }], stream: false, keep_alive: -1, options: { num_predict: 1, num_ctx: system.getRecommendedContext(), ...gpuFallback.gpuOptions() } }),
     }).then((r) => r.text()).then(() => console.log(`[Aspen] Warmed model: ${model}`)).catch(() => {});
   } catch {}
 }
@@ -634,7 +651,7 @@ async function warmModelAndWait(model, timeoutMs = 300000) {
     const r = await fetch(`${OLLAMA_HOST}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, messages: [{ role: 'user', content: 'hi' }], stream: false, keep_alive: -1, options: { num_predict: 1, num_ctx: system.getRecommendedContext() } }),
+      body: JSON.stringify({ model, messages: [{ role: 'user', content: 'hi' }], stream: false, keep_alive: -1, options: { num_predict: 1, num_ctx: system.getRecommendedContext(), ...gpuFallback.gpuOptions() } }),
       signal: ctrl.signal,
     });
     clearTimeout(timer);

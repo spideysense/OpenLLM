@@ -22,6 +22,7 @@ const system = require('./system');
 const worldModel = require('./world-model');
 const capabilities = require('./capabilities');
 const codeValidator = require('./code-validator');
+const gpuFallback = require('./gpu-fallback');
 
 const OLLAMA_HOST = '127.0.0.1';
 const OLLAMA_PORT = 11434;
@@ -392,7 +393,7 @@ async function* ollamaStream(model, messages) {
   const body = JSON.stringify({
     model, messages, stream: true,
     keep_alive: KEEP_ALIVE,
-    options: { num_predict: -1, num_ctx: contextFor(messages) },
+    options: { num_predict: -1, num_ctx: contextFor(messages), ...gpuFallback.gpuOptions() },
   });
 
   const response = await new Promise((resolve, reject) => {
@@ -426,6 +427,13 @@ async function* ollamaStream(model, messages) {
       if (!line.trim()) continue;
       try {
         const json = JSON.parse(line);
+        // A GPU runtime crash arrives as an error line and yields no content.
+        // Flip the box to CPU so the empty-response net (plainChatRetry →
+        // ollamaChat) re-runs this turn on CPU instead of dead-ending.
+        if (json.error && gpuFallback.isGpuRuntimeFailure(json.error)) {
+          gpuFallback.setForceCpu(true);
+          continue;
+        }
         const delta = json.message?.content;
         if (delta) { yieldedContent = true; yield delta; }
         else if (json.message?.reasoning) { reasoning += json.message.reasoning; }
@@ -447,7 +455,15 @@ async function* ollamaStream(model, messages) {
 // Ollama's `images` field. The native response is normalized to OpenAI shape so
 // callers don't care which path was used.
 // ─────────────────────────────────────────────────────────────────────────────
+// Public entry: runs the chat once on the GPU and, if the GPU runtime crashes
+// (unsupported card), transparently flips the box to CPU and retries once. The
+// CPU retry and all later calls carry num_gpu:0 via gpuOptions(). Callers never
+// see the raw CUDA crash.
 function ollamaChat(payload) {
+  return gpuFallback.withGpuFallback((extraOpts) => ollamaChatOnce(payload, extraOpts));
+}
+
+function ollamaChatOnce(payload, extraOpts) {
   // Stream from the native /api/chat endpoint and accumulate the full message.
   // WHY STREAM for a "non-streaming" caller: a real non-streaming request sends
   // zero bytes while the model thinks, so req.setTimeout (an IDLE timeout) fires
@@ -463,7 +479,7 @@ function ollamaChat(payload) {
       tools: payload.tools,
       stream: true,
       keep_alive: KEEP_ALIVE,
-      options: { num_predict: -1, num_ctx: ctx },
+      options: { num_predict: -1, num_ctx: ctx, ...(extraOpts || {}) },
     });
 
     let content = '';
