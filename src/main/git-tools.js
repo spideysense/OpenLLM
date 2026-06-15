@@ -76,6 +76,15 @@ async function gitStatus({ dir } = {}) {
 async function gitCommitPush({ dir, message, branch } = {}) {
   const d = safeDir(dir);
   if (!message) return 'A commit message is required.';
+  // Guard against ref/option injection — a branch like "--upload-pack=…" must not
+  // reach git as a flag. execFile already blocks shell injection; this blocks the
+  // git-flag class.
+  let target = 'HEAD';
+  if (branch != null && String(branch).trim() !== '') {
+    const b = String(branch).trim();
+    if (b.startsWith('-') || !/^[A-Za-z0-9._/-]+$/.test(b)) return 'Invalid branch name.';
+    target = b;
+  }
   const authorName = secrets.getSecret('git_author_name') || 'Aspen';
   const authorEmail = secrets.getSecret('git_author_email') || 'aspen@runonaspen.com';
 
@@ -91,7 +100,6 @@ async function gitCommitPush({ dir, message, branch } = {}) {
   const remote = await git(['remote', 'get-url', 'origin'], d);
   const slug = repoSlug(remote.output);
   if (!slug) return secrets.redact(`Committed, but could not determine a github.com origin to push to:\n${remote.output}`);
-  const target = branch || 'HEAD';
   const push = await git(['push', authedUrl(slug), target], d);
   if (!push.ok) return secrets.redact(`Committed, but push failed:\n${push.output}`);
   return `Committed and pushed to ${slug}. ${/auto-deploy|vercel/i.test('') ? '' : 'If the repo auto-deploys on push, the deploy is now running.'}`.trim();

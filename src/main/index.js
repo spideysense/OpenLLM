@@ -1,4 +1,10 @@
 const { app, BrowserWindow, ipcMain, shell, Tray, Menu, nativeImage, clipboard, systemPreferences } = require('electron');
+
+// Best-in-class stability: never let a stray promise rejection or async error
+// hard-crash the app. Log it and keep running (same behaviour on Mac/Win/Linux).
+process.on('unhandledRejection', (reason) => { try { console.error('[unhandledRejection]', reason); } catch {} });
+process.on('uncaughtException', (err) => { try { console.error('[uncaughtException]', err); } catch {} });
+
 const path = require('path');
 const ollama = require('./ollama');
 const models = require('./models');
@@ -125,7 +131,7 @@ app.whenReady().then(async () => {
   const existingKeys = apikeys.listKeys();
   if (existingKeys.length === 0) {
     const defaultKey = apikeys.createKey('Default', { owner: true });
-    console.log('[Security] Auto-generated default API key:', defaultKey.secret.slice(0, 20) + '...');
+    console.log('[Security] Auto-generated a default API key (stored locally).');
     store.set('defaultKeyGenerated', true);
   } else {
     // Migration: mark existing Default keys as owner (added in v0.4.21)

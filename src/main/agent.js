@@ -43,6 +43,9 @@ function ollamaChat(payload) {
       }
     );
     req.on('error', reject);
+    // A stalled engine (cold load, GPU hang, AV interference) must not hang the
+    // chat forever. Generous enough for a real cold load (~minutes), then abort.
+    req.setTimeout(300000, () => { req.destroy(new Error('Ollama request timed out')); });
     req.write(body);
     req.end();
   });
