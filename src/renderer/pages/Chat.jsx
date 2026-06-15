@@ -443,6 +443,31 @@ export default function Chat() {
 
   const removeAttachment = (idx) => setAttachments((prev) => prev.filter((_, i) => i !== idx));
 
+  // Paste an image straight into the composer (Cmd/Ctrl+V a screenshot) — parity
+  // with the web app. Text paste falls through to default behaviour.
+  const handlePaste = useCallback((e) => {
+    const items = (e.clipboardData && e.clipboardData.items) || [];
+    const imageFiles = [];
+    for (const it of items) {
+      if (it.type && it.type.startsWith('image/')) {
+        const f = it.getAsFile();
+        if (f) imageFiles.push(f);
+      }
+    }
+    if (!imageFiles.length) return; // not an image → let normal paste happen
+    e.preventDefault();
+    Promise.all(imageFiles.map((file) => new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (ev) => resolve({
+        type: 'image',
+        name: file.name || 'pasted-image.png',
+        data: ev.target.result.split(',')[1],
+        preview: ev.target.result,
+      });
+      reader.readAsDataURL(file);
+    }))).then((atts) => setAttachments((prev) => [...prev, ...atts]));
+  }, []);
+
   const stopStreaming = () => {
     if (bridge) bridge.chat.stop();
     setIsStreaming(false);
@@ -839,6 +864,7 @@ export default function Chat() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
           rows={1}
           disabled={!activeModel}
         />

@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { theme } from '../theme';
 import { streamChat } from '../api';
 import MessageBubble from '../components/MessageBubble';
@@ -25,7 +26,7 @@ export default function ChatScreen({ config, model, onDisconnect }) {
   const listRef = useRef(null);
 
   const scrollToEnd = useCallback(() => {
-    requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated: true }));
+    requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated: false }));
   }, []);
 
   const send = useCallback(async () => {
@@ -42,6 +43,26 @@ export default function ChatScreen({ config, model, onDisconnect }) {
     const controller = new AbortController();
     abortRef.current = controller;
     let acc = '';
+    let flushTimer = null;
+
+    // Batch token updates to ~16/sec instead of re-rendering per token — keeps
+    // scrolling and typing smooth even on a fast stream.
+    const commit = () => {
+      flushTimer = null;
+      setMessages((prev) => {
+        const n = [...prev];
+        n[n.length - 1] = { role: 'assistant', content: acc };
+        return n;
+      });
+      scrollToEnd();
+    };
+    const scheduleFlush = () => {
+      if (flushTimer == null) flushTimer = setTimeout(commit, 60);
+    };
+    const flushNow = () => {
+      if (flushTimer != null) { clearTimeout(flushTimer); flushTimer = null; }
+      commit();
+    };
 
     await streamChat({
       tunnelUrl: config.tunnelUrl,
@@ -52,28 +73,22 @@ export default function ChatScreen({ config, model, onDisconnect }) {
       onStatus: (s) => setStatus(s),
       onDelta: (d) => {
         acc += d;
-        setStatus('');
-        setMessages((prev) => {
-          const n = [...prev];
-          n[n.length - 1] = { role: 'assistant', content: acc };
-          return n;
-        });
-        scrollToEnd();
+        if (status) setStatus('');
+        scheduleFlush();
       },
       onError: (err) => {
-        setMessages((prev) => {
-          const n = [...prev];
-          n[n.length - 1] = { role: 'assistant', content: acc || `⚠️ ${err}` };
-          return n;
-        });
+        acc = acc || `⚠️ ${err}`;
+        flushNow();
       },
       onDone: () => {
+        flushNow();
         setStreaming(false);
         setStatus('');
         abortRef.current = null;
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       },
     });
-  }, [input, streaming, messages, config, model, scrollToEnd]);
+  }, [input, streaming, messages, config, model, scrollToEnd, status]);
 
   function stop() {
     abortRef.current?.abort();
@@ -122,16 +137,27 @@ export default function ChatScreen({ config, model, onDisconnect }) {
           contentContainerStyle={styles.list}
           data={visible}
           keyExtractor={(_, i) => String(i)}
-          renderItem={({ item }) => <MessageBubble role={item.role} content={item.content} />}
+          renderItem={({ item, index }) => (
+            <MessageBubble
+              role={item.role}
+              content={item.content}
+              streaming={streaming && item.role === 'assistant' && index === visible.length - 1}
+            />
+          )}
           ListEmptyComponent={
             <View style={styles.empty}>
               <Text style={styles.emptyTitle}>Ask Aspen anything</Text>
               <Text style={styles.emptySub}>Running privately on your machine.</Text>
             </View>
           }
-          ListFooterComponent={streaming ? <ThinkingIndicator status={status} /> : null}
+          ListFooterComponent={streaming && lastIsEmptyAssistant ? <ThinkingIndicator status={status} /> : null}
           onContentSizeChange={scrollToEnd}
           keyboardDismissMode="interactive"
+          keyboardShouldPersistTaps="handled"
+          removeClippedSubviews
+          initialNumToRender={12}
+          maxToRenderPerBatch={8}
+          windowSize={11}
         />
 
         <Composer

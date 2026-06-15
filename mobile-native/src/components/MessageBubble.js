@@ -3,16 +3,17 @@ import { View, Text, StyleSheet } from 'react-native';
 import Markdown from 'react-native-markdown-display';
 import { theme } from '../theme';
 
-export default function MessageBubble({ role, content }) {
+// `streaming` renders plain text (cheap) while tokens arrive, then swaps to full
+// markdown once complete — markdown re-parsing on every token is the main source
+// of stutter in a streaming chat. Memoized so settled bubbles never re-render.
+function MessageBubble({ role, content, streaming }) {
   const isUser = role === 'user';
 
   if (isUser) {
     return (
       <View style={[styles.row, styles.rowRight]}>
         <View style={[styles.bubble, styles.user]}>
-          <Text style={styles.userText} selectable>
-            {content}
-          </Text>
+          <Text style={styles.userText} selectable>{content}</Text>
         </View>
       </View>
     );
@@ -21,11 +22,15 @@ export default function MessageBubble({ role, content }) {
   return (
     <View style={[styles.row, styles.rowLeft]}>
       <View style={[styles.bubble, styles.assistant]}>
-        <Markdown style={md}>{content || ''}</Markdown>
+        {streaming
+          ? <Text style={styles.streamText}>{content || ''}</Text>
+          : <Markdown style={md}>{content || ''}</Markdown>}
       </View>
     </View>
   );
 }
+
+export default React.memo(MessageBubble);
 
 const styles = StyleSheet.create({
   row: { width: '100%', paddingHorizontal: 16, marginBottom: 12, flexDirection: 'row' },
@@ -40,9 +45,9 @@ const styles = StyleSheet.create({
     borderColor: theme.assistantBorder,
     borderBottomLeftRadius: 6,
   },
+  streamText: { color: theme.text, fontSize: 16, lineHeight: 23 },
 });
 
-// Markdown styling tuned to the neutral system look.
 const md = {
   body: { color: theme.text, fontSize: 16, lineHeight: 23 },
   heading1: { color: theme.text, fontSize: 20, fontWeight: '700', marginTop: 6, marginBottom: 4 },
@@ -51,29 +56,8 @@ const md = {
   strong: { fontWeight: '700' },
   bullet_list: { marginVertical: 2 },
   list_item: { marginVertical: 1 },
-  code_inline: {
-    backgroundColor: theme.field,
-    color: theme.text,
-    borderRadius: 4,
-    paddingHorizontal: 4,
-    fontFamily: 'Menlo',
-    fontSize: 14,
-  },
-  code_block: {
-    backgroundColor: theme.field,
-    borderRadius: 10,
-    padding: 12,
-    fontFamily: 'Menlo',
-    fontSize: 13,
-    color: theme.text,
-  },
-  fence: {
-    backgroundColor: theme.field,
-    borderRadius: 10,
-    padding: 12,
-    fontFamily: 'Menlo',
-    fontSize: 13,
-    color: theme.text,
-  },
+  code_inline: { backgroundColor: theme.field, color: theme.text, borderRadius: 4, paddingHorizontal: 4, fontFamily: 'Menlo', fontSize: 14 },
+  code_block: { backgroundColor: theme.field, borderRadius: 10, padding: 12, fontFamily: 'Menlo', fontSize: 13, color: theme.text },
+  fence: { backgroundColor: theme.field, borderRadius: 10, padding: 12, fontFamily: 'Menlo', fontSize: 13, color: theme.text },
   link: { color: '#0A66C2' },
 };
