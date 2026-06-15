@@ -36,6 +36,21 @@ function endJson(res, status, obj) {
   res.end(JSON.stringify(obj));
 }
 
+// Durable, monotonic all-time counter of trial-surface messages (every message
+// sent through the hosted web/mobile app). Upstash INCR never resets and has no
+// TTL, so this is reliable history — unlike the old per-IP keys that expired
+// daily. Fire-and-forget: a counter hiccup must never break a chat.
+const TRIAL_KV_URL = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || '';
+const TRIAL_KV_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN || '';
+function bumpTrialMessages() {
+  if (!TRIAL_KV_URL || !TRIAL_KV_TOKEN) return;
+  try {
+    fetch(`${TRIAL_KV_URL}/INCR/aspen:trial_msgs_total`, {
+      headers: { Authorization: `Bearer ${TRIAL_KV_TOKEN}` },
+    }).catch(() => {});
+  } catch {}
+}
+
 export default async function handler(req, res) {
   const origin = req.headers.origin || '';
   setCors(res, origin);
@@ -69,6 +84,9 @@ export default async function handler(req, res) {
   if (!parsed.hostname.endsWith('.runonaspen.com') && parsed.hostname !== 'runonaspen.com') {
     return endJson(res, 403, { error: 'tunnelUrl must be a runonaspen.com domain' });
   }
+
+  // Valid trial-surface chat message — record it (durable, all-time).
+  if (Array.isArray(messages) && messages.length) bumpTrialMessages();
 
   const upstream = `${tunnelUrl.replace(/\/+$/, '')}/v1/agent`;
   const upHeaders = {

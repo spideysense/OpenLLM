@@ -123,10 +123,13 @@ export default async function handler(req, res) {
   // ── Trial usage (from trial KV — Upstash) ──
   const tUrl = process.env.UPSTASH_REDIS_REST_URL, tTok = process.env.UPSTASH_REDIS_REST_TOKEN;
   if (tUrl && tTok) {
-    // Sessions started = count of trial:sess:* keys; messages = sum of their values + expired (best effort).
     const sessions = await kvSumPrefix(tUrl, tTok, 'trial:sess:');
-    const ipUsage = await kvSumPrefix(tUrl, tTok, 'trial:ip:');
-    const msgs = ipUsage.sum; // IP counters capture total messages even after sessions expire
+    // Durable, monotonic all-time counter — every trial-surface message ever sent.
+    // Never expires, so it's reliable history. The per-IP keys (24h TTL) are kept
+    // only as a floor during the transition so we never show LESS than recent use.
+    const durable = parseInt(await kvGet(tUrl, tTok, 'aspen:trial_msgs_total')) || 0;
+    const recent = await kvSumPrefix(tUrl, tTok, 'trial:ip:');
+    const msgs = Math.max(durable, recent.sum);
     out.trial = {
       activeSessions: sessions.count,
       messagesUsed: msgs,

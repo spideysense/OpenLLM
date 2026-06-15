@@ -139,6 +139,8 @@ export default async function handler(req) {
   try {
     sessionCount = await kv(['INCR', `trial:sess:${token}`]);
     await kvIncrWithTTL(`trial:ip:${ip}`, IP_TTL_SEC);
+    // Durable, monotonic all-time counter (never expires) — the reliable history.
+    await kv(['INCR', 'aspen:trial_msgs_total']);
   } catch { /* best effort */ }
 
   // Proxy to the host machine's tunnel. Tolerate a TRIAL_TUNNEL_URL that already
