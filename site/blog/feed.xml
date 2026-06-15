@@ -7,6 +7,13 @@
   <atom:link href="https://runonaspen.com/blog/feed.xml" rel="self" type="application/rss+xml"/>
   
   <item>
+    <title><![CDATA[Claude vs Local Models: When Does Local Win?]]></title>
+    <link>https://runonaspen.com/blog/claude-vs-local-models-when-does-local-win.html</link>
+    <description><![CDATA[An exploration of the trade-offs between frontier cloud LLMs and the rising power of private, on-device intelligence.]]></description>
+    <pubDate>Mon, 15 Jun 2026 00:00:00 GMT</pubDate>
+    <guid>https://runonaspen.com/blog/claude-vs-local-models-when-does-local-win.html</guid>
+  </item>
+  <item>
     <title><![CDATA[I asked my local AI to research a topic — here's what happened]]></title>
     <link>https://runonaspen.com/blog/i-asked-my-local-ai-to-research-a-topic-here-s-what-happened.html</link>
     <description><![CDATA[Discover what happens when you move your research workflow from the cloud to a private, local-first AI environment.]]></description>
