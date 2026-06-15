@@ -347,6 +347,7 @@ async function runDeepResearch({ topic }) {
 const { execSync } = require('child_process');
 const os = require('os');
 const path = require('path');
+const gitTools = require('./git-tools');
 
 function runCommand({ command, cwd }) {
   if (!command || typeof command !== 'string') return 'Error: command is required';
@@ -470,6 +471,54 @@ const TOOLS = {
       },
     },
     run: runCommand,
+  },
+  git_clone: {
+    definition: {
+      type: 'function',
+      function: {
+        name: 'git_clone',
+        description: "Clone a GitHub repo into the Aspen workspace. Authenticates with the owner's stored token automatically — you never see or handle the token. Use https://github.com/<owner>/<name>.",
+        parameters: {
+          type: 'object',
+          properties: {
+            repo: { type: 'string', description: 'https://github.com/<owner>/<name>' },
+            dir: { type: 'string', description: 'Optional workspace folder name' },
+          },
+          required: ['repo'],
+        },
+      },
+    },
+    run: (a) => gitTools.gitClone(a || {}),
+  },
+  git_status: {
+    definition: {
+      type: 'function',
+      function: {
+        name: 'git_status',
+        description: 'Show the git status (branch + changed files) of a repo in the Aspen workspace.',
+        parameters: { type: 'object', properties: { dir: { type: 'string', description: 'Workspace folder name' } }, required: ['dir'] },
+      },
+    },
+    run: (a) => gitTools.gitStatus(a || {}),
+  },
+  git_commit_push: {
+    definition: {
+      type: 'function',
+      function: {
+        name: 'git_commit_push',
+        description: "Stage all changes, commit, and push to origin using the owner's stored token (you never see the token). For repos that auto-deploy on push, this also deploys.",
+        parameters: {
+          type: 'object',
+          properties: {
+            dir: { type: 'string', description: 'Workspace folder name' },
+            message: { type: 'string', description: 'Commit message' },
+            branch: { type: 'string', description: 'Branch to push (default: current HEAD)' },
+          },
+          required: ['dir', 'message'],
+        },
+      },
+    },
+    run: (a) => gitTools.gitCommitPush(a || {}),
   },
   deep_research: {
     definition: {

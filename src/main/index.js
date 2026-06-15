@@ -689,3 +689,10 @@ ipcMain.handle('hotUpdater:reload', async () => {
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.loadFile(hotUpdater.resolveRendererPath());
   return true;
 });
+
+// ── Secrets (git/deploy tokens) — owner sets these out of band, never via chat.
+// The model never receives the value; git tools inject it at exec time and redact.
+const secretsStore = require('./secrets');
+ipcMain.handle('secrets:set', async (_e, { name, value }) => secretsStore.setSecret(name, value));
+ipcMain.handle('secrets:list', async () => secretsStore.listSecretNames());
+ipcMain.handle('secrets:delete', async (_e, { name }) => secretsStore.deleteSecret(name));

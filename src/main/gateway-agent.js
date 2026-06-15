@@ -85,7 +85,7 @@ function messageNeedsTools(messages) {
 // Dangerous tools: owner key only.
 // ─────────────────────────────────────────────────────────────────────────────
 const SAFE_TOOLS = ['web_search', 'calculate', 'get_datetime', 'fetch_url', 'deep_research'];
-const DANGEROUS_TOOLS = ['run_command', 'computer_screenshot', 'computer_click', 'computer_type', 'computer_key', 'computer_scroll'];
+const DANGEROUS_TOOLS = ['run_command', 'git_clone', 'git_status', 'git_commit_push', 'computer_screenshot', 'computer_click', 'computer_type', 'computer_key', 'computer_scroll'];
 
 // Computer tool definitions in OpenAI/Ollama format (tools.js uses Anthropic
 // input_schema format for desktop; here we use the parameters format that
@@ -163,7 +163,7 @@ function getToolDefs(isOwner, allowed = null) {
   let names = isOwner ? [...SAFE_TOOLS, ...DANGEROUS_TOOLS] : [...SAFE_TOOLS];
   // Capability gate: drop any tool the model/machine can't reliably use.
   if (Array.isArray(allowed)) names = names.filter((n) => allowed.includes(n));
-  const builtins = tools.getToolDefinitions(names.filter(n => SAFE_TOOLS.includes(n) || n === 'run_command'));
+  const builtins = tools.getToolDefinitions(names.filter(n => SAFE_TOOLS.includes(n) || n === 'run_command' || n.startsWith('git_')));
   const computerDefs = (isOwner && (!Array.isArray(allowed) || allowed.includes('computer_use'))) ? GATEWAY_COMPUTER_TOOL_DEFS : [];
   return [...builtins, ...computerDefs];
 }
