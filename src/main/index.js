@@ -463,7 +463,7 @@ ipcMain.handle('chat:send', async (event, { model, messages }) => {
           done: false,
         });
       };
-      const content = await agent.runAgent({ model, messages: fullMessages, onEvent });
+      const content = await agent.runAgentValidated({ model, messages: fullMessages, onEvent });
       mainWindow?.webContents.send('chat:stream', { content: content || '', done: false });
       mainWindow?.webContents.send('chat:stream', { content: '', done: true });
       // Extract facts from the completed conversation

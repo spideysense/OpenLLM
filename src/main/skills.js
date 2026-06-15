@@ -94,6 +94,7 @@ function getRelevantSkills(userMessage) {
 
   // Development
   match(/(git|clone|commit|push|repo|deploy|token|pat_|ghp_)/, 'git-workflow');
+  match(/\b(chrome extension|browser extension|manifest\.json|content script|service worker|mv3|manifest v3|popup\.html|browser plugin)\b/, 'chrome-extension');
   match(/(html|web ?app|website|landing|page|game|quiz|artifact|calculator|tool|widget)/, 'html-artifact');
   match(/(screenshot|recreate|rebuild|copy this|make this|looks like|photo of|image of)/, 'screenshot-to-app');
   match(/(design|beautiful|polished|professional|ui|ux|style|css|layout|responsive|dark mode|theme|color|font|typography|mockup|wireframe)/, 'frontend-design');

@@ -13,6 +13,8 @@ const tools = require('./tools');
 const toolSettings = require('./tool-settings');
 const system = require('./system');
 const skills = require('./skills');
+const modelRouter = require('./model-router');
+const codeValidator = require('./code-validator');
 
 const OLLAMA_HOST = '127.0.0.1';
 const OLLAMA_PORT = 11434;
@@ -272,9 +274,38 @@ Call exactly the tool that fits, wait for its result, then answer using that res
   return pickText(final.choices?.[0]?.message) || 'Sorry, I could not complete that request.';
 }
 
+// Routing + validate-retry for the DESKTOP chat path, mirroring the gateway's
+// runValidated. Routes coding turns to a coder model when it co-fits, then
+// compile/parse-checks the answer (never executes it) and hands errors back to
+// the model for a bounded fix before returning.
+async function runAgentValidated(args) {
+  const messages = args.messages || [];
+  const model = await modelRouter.routeModel(args.model, messages);
+  const routedArgs = { ...args, model };
+
+  let answer = await runAgent(routedArgs);
+
+  const lastUser = [...messages].reverse().find((m) => m.role === 'user');
+  if (!modelRouter.CODING_RX.test((lastUser?.content || '').slice(0, 800))) return answer;
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    let result;
+    try { result = codeValidator.validateAnswer(answer); } catch { result = { ok: true, problems: [] }; }
+    if (result.ok || !result.problems.length) break;
+    try { args.onEvent?.({ type: 'status', text: 'Found an issue in the code — fixing it…', transient: true }); } catch {}
+    const fixPrompt =
+      'The code you just wrote has problems that will stop it from working:\n' +
+      result.problems.map((p) => `- ${p}`).join('\n') +
+      '\n\nReturn the corrected, COMPLETE file(s) — every file in full, ready to save. Output only the fixed code (with brief notes if needed); do not repeat the broken version.';
+    const fixMsgs = [...messages, { role: 'assistant', content: answer }, { role: 'user', content: fixPrompt }];
+    answer = await runAgent({ ...routedArgs, messages: fixMsgs });
+  }
+  return answer;
+}
+
 // Whether the agent loop should handle this request (any tools on).
 function isEnabled() {
   return toolSettings.getEnabledToolNames().length > 0;
 }
 
-module.exports = { runAgent, isEnabled };
+module.exports = { runAgent, runAgentValidated, isEnabled };
