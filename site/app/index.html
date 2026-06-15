@@ -213,6 +213,14 @@ body.is-mobile .chat-delete{opacity:.4!important}
 .input-box{flex:1;min-height:22px;max-height:140px;resize:none;border:none;outline:none;font-family:var(--san);font-size:1rem;line-height:1.5;background:transparent;color:var(--bk);overflow-y:auto;-webkit-overflow-scrolling:touch}
 .input-box::placeholder{color:var(--t4)}
 .mic-btn,.send-btn,.stop-btn{width:34px;height:34px;border-radius:9px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;-webkit-appearance:none}
+.attach-btn{width:34px;height:34px;border-radius:9px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:transparent;color:var(--t3);transition:all .2s;-webkit-appearance:none}
+.attach-btn:active{background:rgba(0,0,0,.06)}
+.thumb-strip{display:flex;flex-wrap:wrap;gap:8px;padding:8px 4px 4px}
+.thumb{position:relative;width:56px;height:56px;border-radius:10px;overflow:hidden;border:1px solid var(--brd);background:rgba(0,0,0,.03)}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb button{position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;border:none;background:rgba(0,0,0,.6);color:#fff;font-size:11px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
+.bubble-imgs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}
+.bubble-imgs img{max-width:160px;max-height:160px;border-radius:10px;border:1px solid var(--brd)}
 .mic-btn{background:transparent;color:var(--t3)}
 .mic-btn:active{background:rgba(0,0,0,.06)}
 .mic-btn.listening{background:rgba(220,38,38,.1);color:var(--danger);animation:micpulse 1s ease-in-out infinite}
@@ -466,7 +474,12 @@ select.settings-select{font-family:var(--san);font-size:.84rem;color:var(--bk);b
         </div>
         <div class="input-area">
           <input type="password" style="display:none" aria-hidden="true" tabindex="-1" autocomplete="new-password">
+          <div class="thumb-strip" id="thumb-strip" style="display:none"></div>
           <div class="input-wrap">
+            <button class="attach-btn" id="attach-btn" title="Add image">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </button>
+            <input type="file" id="file-input" accept="image/*" multiple style="display:none">
             <textarea class="input-box" id="input-box" placeholder="Message your Aspen…" rows="1" autocomplete="off" data-1p-ignore data-lpignore="true" data-form-type="other"></textarea>
             <button class="mic-btn" id="mic-btn" title="Voice input">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M19 10a7 7 0 0 1-14 0"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>
@@ -904,7 +917,7 @@ function renderMessages(){
   const chat=chats[activeChatId];
   if(!chat||!chat.messages.length){messagesEl.innerHTML='';messagesEl.appendChild(emptyState);emptyState.style.display='flex';return}
   emptyState.style.display='none';if(emptyState.parentNode===messagesEl)messagesEl.removeChild(emptyState);
-  messagesEl.innerHTML='';chat.messages.forEach(m=>appendMessage(m.role,m.content,false));scrollToBottom();
+  messagesEl.innerHTML='';chat.messages.forEach(m=>appendMessage(m.role,m.content,false,m.images));scrollToBottom();
 }
 // Inline animated thinking indicator — one line whose message changes as work
 // progresses (cycles phrases while reasoning; shows live tool status when tools
@@ -932,12 +945,13 @@ function lockThinking(bubble,txt){
   setThinkText(bubble,(txt||'Thinking').replace(/^[^\p{L}\p{N}]+/u,'').trim()||'Thinking');
 }
 function stopThinking(bubble){if(bubble&&bubble._thinkTimer){clearInterval(bubble._thinkTimer);bubble._thinkTimer=null;}}
-function appendMessage(role,content,stream=false){
+function appendMessage(role,content,stream=false,images){
   emptyState.style.display='none';if(emptyState.parentNode===messagesEl)messagesEl.removeChild(emptyState);
   const row=document.createElement('div');row.className=`msg-row ${role}`;
   const bubble=document.createElement('div');bubble.className='msg-bubble';
   if(stream&&role==='assistant'){row.appendChild(bubble);messagesEl.appendChild(row);startThinking(bubble);scrollToBottom();return bubble;}
-  bubble.innerHTML=formatMessage(content);
+  const imgHtml=(images&&images.length)?`<div class="bubble-imgs">${images.map(u=>`<img src="${u}">`).join('')}</div>`:'';
+  bubble.innerHTML=imgHtml+formatMessage(content);
   row.appendChild(bubble);messagesEl.appendChild(row);
   if(role==='assistant'&&!stream&&content)buildActions(row,content);
   scrollToBottom();return bubble;
@@ -1057,6 +1071,15 @@ function scrollToBottom(force){
 
 // Send
 sendBtn.addEventListener('click',()=>sendMessage());
+// Image attach: + button opens picker; pasting a screenshot attaches it.
+document.getElementById('attach-btn')?.addEventListener('click',()=>document.getElementById('file-input')?.click());
+document.getElementById('file-input')?.addEventListener('change',e=>{handleFileDrop(e.target.files);e.target.value='';});
+inputBox.addEventListener('paste',e=>{
+  const items=e.clipboardData&&e.clipboardData.items?e.clipboardData.items:[];
+  let added=false;
+  for(const it of items){if(it.type&&it.type.startsWith('image/')){const f=it.getAsFile();if(f){addImageFile(f);added=true;}}}
+  if(added)e.preventDefault();
+});
 inputBox.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage()}});
 inputBox.addEventListener('input',()=>{inputBox.style.height='auto';inputBox.style.height=Math.min(inputBox.scrollHeight,140)+'px'});
 document.querySelectorAll('.starter').forEach(btn=>{
@@ -1073,30 +1096,27 @@ document.querySelectorAll('.starter').forEach(btn=>{
   });
 });
 
-// ── Drag & drop file handling ──
+// ── Image attachments (screenshots): drag-drop, paste, or the + button ──
+let pendingImages = []; // [{ b64, url }]
+function renderThumbs(){
+  const strip=document.getElementById('thumb-strip');if(!strip)return;
+  strip.innerHTML=pendingImages.map((im,i)=>`<div class="thumb"><img src="${im.url}"><button onclick="removeThumb(${i})" title="Remove">✕</button></div>`).join('');
+  strip.style.display=pendingImages.length?'flex':'none';
+}
+function removeThumb(i){pendingImages.splice(i,1);renderThumbs();}
+function addImageFile(file){
+  if(!file||!file.type.startsWith('image/'))return;
+  const reader=new FileReader();
+  reader.onload=()=>{const url=String(reader.result);pendingImages.push({b64:url.split(',')[1]||'',url});renderThumbs();};
+  reader.readAsDataURL(file);
+}
 function handleFileDrop(files){
   if(!files||!files.length)return;
   for(const file of files){
-    const isImage=file.type.startsWith('image/');
-    if(isImage){
+    if(file.type.startsWith('image/')){addImageFile(file);}
+    else{
       const reader=new FileReader();
-      reader.onload=()=>{
-        const b64=reader.result;
-        // Add image preview above input
-        const preview=document.createElement('div');
-        preview.style.cssText='display:flex;align-items:center;gap:6px;padding:6px 10px;margin:4px 0;background:rgba(0,0,0,.04);border-radius:8px;font-size:.8rem';
-        preview.innerHTML=`<img src="${b64}" style="max-height:40px;border-radius:4px"> ${escHtml(file.name)} <button onclick="this.parentNode.remove()" style="background:none;border:none;cursor:pointer;font-size:1rem">✕</button>`;
-        preview.dataset.imageB64=b64.split(',')[1]||'';
-        inputBox.parentNode.insertBefore(preview,inputBox);
-      };
-      reader.readAsDataURL(file);
-    }else{
-      const reader=new FileReader();
-      reader.onload=()=>{
-        const content=reader.result;
-        inputBox.value=`--- Content of ${file.name} ---\n${content.slice(0,8000)}\n---\n\n${inputBox.value}`;
-        inputBox.dispatchEvent(new Event('input'));inputBox.focus();
-      };
+      reader.onload=()=>{const content=String(reader.result);inputBox.value=`--- Content of ${file.name} ---\n${content.slice(0,8000)}\n---\n\n${inputBox.value}`;inputBox.dispatchEvent(new Event('input'));inputBox.focus();};
       reader.readAsText(file);
     }
   }
@@ -1131,9 +1151,11 @@ async function sendMessage(autoRespond){
       return;
     }
 
-    chat.messages.push({role:'user',content:text});
+    const imgUrls=pendingImages.map(im=>im.url).filter(Boolean);
+    chat.messages.push(imgUrls.length?{role:'user',content:text,images:imgUrls}:{role:'user',content:text});
     if(chat.messages.length===1){chat.title=text.slice(0,52)+(text.length>52?'…':'');chatTitle.textContent=chat.title;renderChatList()}
-    saveChats();appendMessage('user',text,false);inputBox.value='';inputBox.style.height='auto';
+    saveChats();appendMessage('user',text,false,imgUrls);inputBox.value='';inputBox.style.height='auto';
+    pendingImages=[];renderThumbs();
   }
 
   const chat=chats[activeChatId];if(!chat)return;
@@ -1141,7 +1163,7 @@ async function sendMessage(autoRespond){
   stickToBottom=true;scrollToBottom(true);
   const bubble=appendMessage('assistant','',true);
   isStreaming=true;sendBtn.classList.add('hidden');stopBtn.classList.remove('hidden');sendBtn.disabled=true;
-  const history=chat.messages.slice(-20).map(m=>({role:m.role,content:m.content}));
+  const history=chat.messages.slice(-20).map(m=>(m.images&&m.images.length?{role:m.role,content:m.content,images:m.images.map(u=>String(u).replace(/^data:[^;]+;base64,/,""))}:{role:m.role,content:m.content}));
   streamController=new AbortController();let fullText='';
   try{
     const sys=worldModelSystemPrompt();
@@ -1343,7 +1365,7 @@ async function sendVoiceMessage(text){
 
   try{
     const sys=worldModelSystemPrompt();
-    const history=chat.messages.slice(-20).map(m=>({role:m.role,content:m.content}));
+    const history=chat.messages.slice(-20).map(m=>(m.images&&m.images.length?{role:m.role,content:m.content,images:m.images.map(u=>String(u).replace(/^data:[^;]+;base64,/,""))}:{role:m.role,content:m.content}));
     const res=await fetch('/api/proxy',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({tunnelUrl:config.tunnelUrl,apiKey:config.apiKey||'',model,messages:sys?[{role:'system',content:sys},...history]:history}),
       signal:streamController.signal});

@@ -301,16 +301,49 @@ const BUILTIN_SKILLS_DIR = path.join(__dirname, '..', '..', 'skills');
 function getRelevantSkillsText(userMsg) {
   try {
     if (!fs.existsSync(BUILTIN_SKILLS_DIR)) return '';
-    const files = fs.readdirSync(BUILTIN_SKILLS_DIR).filter(f => f.endsWith('.md'));
-    // Simple keyword match: find skills whose filename appears in the message
-    const relevant = files.filter(f => {
-      const topic = f.replace('.md', '').toLowerCase().replace(/-/g, ' ');
-      return userMsg.toLowerCase().includes(topic);
-    }).slice(0, 2);
-    if (!relevant.length) return '';
-    return '\n\n--- SKILLS (follow these carefully) ---\n' +
-      relevant.map(f => fs.readFileSync(path.join(BUILTIN_SKILLS_DIR, f), 'utf8').slice(0, 3000)).join('\n\n---\n\n');
-  } catch { return ''; }
+    const lc = (userMsg || '').toLowerCase();
+
+    // Each skill is matched by trigger keywords appearing anywhere in the message
+    // (not just the filename). This is why "make a chrome extension" now actually
+    // pulls the chrome-extension scaffold instead of nothing.
+    const TRIGGERS = {
+      'chrome-extension': ['chrome extension', 'browser extension', 'manifest.json', 'content script', 'service worker', 'manifest v3', 'mv3', 'popup.html', 'browser plugin', 'addon', 'add-on'],
+      'full-stack-app': ['full stack', 'full-stack', 'backend', 'rest api', 'express', 'server', 'database', 'auth', 'sign up', 'login system'],
+      'frontend-design': ['frontend', 'css', 'layout', 'responsive', 'tailwind', 'component', 'styling', 'design system', 'ui '],
+      'html-artifact': ['single page', 'landing page', 'one file', 'html app', 'static page'],
+      'screenshot-to-app': ['screenshot', 'from this image', 'recreate this', 'build this ui', 'match this design'],
+      'data-visualization': ['chart', 'graph', 'd3', 'plot', 'dashboard', 'visualize data'],
+      'git-workflow': ['git ', 'commit', 'push to', 'pull request', 'github', 'branch', 'merge'],
+      'code-quality': ['refactor', 'clean up', 'best practice', 'maintainable', 'unit test'],
+      'documents': ['pdf', 'docx', 'word document', 'spreadsheet', 'xlsx'],
+      'writing': ['rewrite', 'proofread', 'edit my', 'blog post', 'essay'],
+    };
+
+    const scored = [];
+    for (const [name, kws] of Object.entries(TRIGGERS)) {
+      const hits = kws.filter((k) => lc.includes(k)).length;
+      if (hits) scored.push({ name, hits });
+    }
+    let picks = scored.sort((a, b) => b.hits - a.hits).map((s) => s.name);
+
+    // Any coding intent → always inject the code-quality discipline, even if no
+    // specific scaffold matched. Cheap insurance against the model free-styling
+    // architecture and inventing APIs.
+    const codingIntent = /\b(code|coding|app|extension|build|function|script|bug|error|deploy|html|css|javascript|typescript|python|react|vue|node|api|program|website|debug)\b/.test(lc);
+    if (codingIntent && !picks.includes('code-quality')) picks.unshift('code-quality');
+
+    picks = [...new Set(picks)].slice(0, 3);
+    const texts = picks
+      .map((n) => {
+        const p = path.join(BUILTIN_SKILLS_DIR, `${n}.md`);
+        return fs.existsSync(p) ? fs.readFileSync(p, 'utf8').slice(0, 4000) : '';
+      })
+      .filter(Boolean);
+    if (!texts.length) return '';
+    return '\n\n--- SKILLS (authoritative — follow exactly; never invent APIs) ---\n' + texts.join('\n\n---\n\n');
+  } catch {
+    return '';
+  }
 }
 
 // Size num_ctx to the actual conversation instead of always allocating the
@@ -592,7 +625,14 @@ You are Aspen, a helpful AI assistant running 100% LOCALLY on the user's own mac
 - For any shell/terminal task, call run_command.
 - For screen tasks (click, type, navigate apps), use computer_screenshot first, then interact.
 - Always answer in English, even if tool results are in another language.
-- BE CONCISE. Lead with the answer, no preamble or filler. Match length to the question. Only go long when the user asks for depth, a list, or a tutorial. Default to TL;DR.`;
+- BE CONCISE. Lead with the answer, no preamble or filler. Match length to the question. Only go long when the user asks for depth, a list, or a tutorial. Default to TL;DR.
+
+WHEN WRITING CODE:
+- PLAN the architecture before writing a line. Name the correct primitive for the job. (Example: a browser extension that overlays UI on the current page and responds to a global shortcut = content script + background service worker. A popup CANNOT draw on the page or receive a keyboard command — do not use one for that.)
+- NEVER invent APIs. If you are not certain a function/method exists, do not call it. (There is no chrome.commands.register — shortcuts are declared in manifest.json only.)
+- Manifest V3 forbids inline <script>. Put ALL JavaScript in external .js files referenced by src. Site/host access goes under host_permissions, not permissions.
+- Deliver EVERY file complete and ready to save — never partial snippets the user has to splice together.
+- Before you finish, re-read the code as if loading it cold. If it would throw on load or obviously not run, fix it yourself. Do not make the user your error channel.`;
 
   // URL pre-fetch (same as agent.js — unambiguous intent)
   let msgs = [...messages];
