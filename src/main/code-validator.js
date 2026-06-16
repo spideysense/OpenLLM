@@ -65,7 +65,22 @@ const LINT_RULES = [
   { rx: /chrome\.extension\.(getURL|sendMessage|onRequest|onConnect)\b/, msg: 'chrome.extension.* is removed in Manifest V3. Use chrome.runtime.* instead.' },
   { rx: /["']background["']\s*:\s*\{[^}]*["']scripts["']\s*:/, msg: 'Manifest V3 background must use "service_worker", not "scripts".' },
   { rx: /["']content_security_policy["']\s*:\s*["']/, msg: 'In Manifest V3, content_security_policy is an object (e.g. { "extension_pages": "..." }), not a string.' },
+  { rx: /content_security_policy[\s\S]{0,120}unsafe-inline/, msg: 'Manifest V3 does not allow "unsafe-inline" in content_security_policy. Inline <script> is blocked; move the JavaScript into a separate .js file and load it with <script src="...">.' },
+  { rx: /["']suggested_key["'][\s\S]{0,160}\b(Cmd|Option)\b/, msg: 'In manifest "suggested_key", Chrome uses "Command", "MacCtrl", "Alt", "Shift", "Ctrl" — not "Cmd" or "Option". Use e.g. "default": "Ctrl+Shift+Y" and "mac": "Command+Shift+Y", and every shortcut needs a non-shift modifier plus a key.' },
 ];
+
+// Inline <script> in an extension HTML page that calls chrome.* is the single
+// most common MV3 failure (CSP blocks it, then the model "fixes" it wrong in a
+// loop). High-precision: only flag inline scripts that actually use chrome APIs,
+// so ordinary HTML demos with inline script aren't touched.
+function checkExtensionHtml(code) {
+  const out = [];
+  const inlineScripts = (code || '').match(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi) || [];
+  if (inlineScripts.some((s) => /chrome\.\w/.test(s))) {
+    out.push('Manifest V3 blocks inline <script> in extension pages. Move this JavaScript into a separate file (e.g. popup.js) and load it with <script src="popup.js"></script>.');
+  }
+  return out;
+}
 
 function lint(code) {
   const out = [];
@@ -86,6 +101,14 @@ function checkManifest(obj) {
   if (obj.background && obj.background.scripts) {
     out.push('Manifest V3 background must be a "service_worker", not "scripts".');
   }
+  if (obj.commands && typeof obj.commands === 'object') {
+    for (const [name, def] of Object.entries(obj.commands)) {
+      if (name === '_execute_action' || name === '_execute_browser_action' || name === '_execute_page_action') continue;
+      if (def && typeof def === 'object' && !def.description) {
+        out.push(`The "${name}" entry in manifest "commands" needs a "description" — Chrome rejects custom commands without one.`);
+      }
+    }
+  }
   return out;
 }
 
@@ -100,6 +123,7 @@ function validateBlock({ lang, code }) {
     }
     errors.push(...lint(code));
   } else if (kind === 'json') {
+    errors.push(...lint(code)); // source-level rules (CSP string, unsafe-inline, Cmd/Option keys)
     const j = checkJson(code);
     if (j) {
       errors.push(j);
@@ -114,6 +138,7 @@ function validateBlock({ lang, code }) {
   } else if (kind === 'html' || kind === 'jsx-or-ts') {
     // Can't reliably compile these here — run lint only (catches hallucinated APIs).
     errors.push(...lint(code));
+    if (kind === 'html') errors.push(...checkExtensionHtml(code));
   }
   // python/shell/unknown: skipped (no safe in-process compiler available)
 

@@ -78,3 +78,98 @@ describe('runValidated (validate-retry loop)', () => {
     expect(evs.some((e) => e.type === 'status' && /Writing and checking/.test(e.text))).toBe(false);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Hardening for the recurring Chrome-extension failures that looped forever in
+// the field (inline-script CSP, unsafe-inline, commands without description,
+// Cmd/Option keybindings). Each is caught now so validate-retry fixes it.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('code-validator — MV3 extension hardening', () => {
+  it('flags an inline <script> that uses chrome.* in an extension HTML page', () => {
+    const html =
+      '```html\n<!DOCTYPE html><html><body>\n' +
+      '<script>\nchrome.commands.onCommand.addListener(() => {});\n</script>\n' +
+      '</body></html>\n```';
+    const r = validator.validateAnswer(html);
+    expect(r.ok).toBe(false);
+    expect(r.problems.join(' ')).toMatch(/inline <script>/i);
+  });
+
+  it('does NOT flag a plain inline <script> with no chrome APIs (ordinary HTML demo)', () => {
+    const html =
+      '```html\n<!DOCTYPE html><html><body>\n' +
+      '<script>\ndocument.title = "hi";\n</script>\n</body></html>\n```';
+    const r = validator.validateAnswer(html);
+    expect(r.ok).toBe(true);
+  });
+
+  it('flags an external-script extension page as clean', () => {
+    const html =
+      '```html\n<!DOCTYPE html><html><body>\n<script src="popup.js"></script>\n</body></html>\n```';
+    const r = validator.validateAnswer(html);
+    expect(r.ok).toBe(true);
+  });
+
+  it('flags unsafe-inline in content_security_policy', () => {
+    const json =
+      '```json\n{ "manifest_version": 3, "name": "x", "version": "1", ' +
+      '"content_security_policy": { "extension_pages": "script-src \'self\' \'unsafe-inline\'" } }\n```';
+    const r = validator.validateAnswer(json);
+    expect(r.ok).toBe(false);
+    expect(r.problems.join(' ')).toMatch(/unsafe-inline/i);
+  });
+
+  it('flags a manifest command missing a description', () => {
+    const json =
+      '```json\n{ "manifest_version": 3, "name": "x", "version": "1", ' +
+      '"commands": { "open-drawer": { "suggested_key": { "default": "Ctrl+Shift+Y" } } } }\n```';
+    const r = validator.validateAnswer(json);
+    expect(r.ok).toBe(false);
+    expect(r.problems.join(' ')).toMatch(/needs a "description"/i);
+  });
+
+  it('does not flag _execute_action (it needs no description)', () => {
+    const json =
+      '```json\n{ "manifest_version": 3, "name": "x", "version": "1", ' +
+      '"commands": { "_execute_action": { "suggested_key": { "default": "Ctrl+Shift+Y" } } } }\n```';
+    const r = validator.validateAnswer(json);
+    expect(r.problems.join(' ')).not.toMatch(/needs a "description"/i);
+  });
+
+  it('flags Cmd/Option in suggested_key (Chrome rejects them)', () => {
+    const json =
+      '```json\n{ "manifest_version": 3, "name": "x", "version": "1", ' +
+      '"commands": { "go": { "description": "Go", "suggested_key": { "mac": "Cmd+Option+N" } } } }\n```';
+    const r = validator.validateAnswer(json);
+    expect(r.ok).toBe(false);
+    expect(r.problems.join(' ')).toMatch(/Command.*MacCtrl|not "Cmd" or "Option"/i);
+  });
+
+  it('still passes a correct, complete manifest with no problems', () => {
+    const json =
+      '```json\n{ "manifest_version": 3, "name": "Notes", "version": "1.0", ' +
+      '"action": { "default_popup": "popup.html" }, ' +
+      '"commands": { "open": { "description": "Open notes", "suggested_key": { "default": "Ctrl+Shift+Y", "mac": "Command+Shift+Y" } } } }\n```';
+    const r = validator.validateAnswer(json);
+    expect(r.ok).toBe(true);
+  });
+});
+
+describe('CODING_RX — natural-language coding requests route to the coder', () => {
+  const { CODING_RX } = require('../../src/main/model-router.js');
+  it('classifies plain-English app/game requests as coding', () => {
+    for (const t of [
+      'create a web app game for guessing fonts',
+      'make a game in a web app that is for users to guess fonts',
+      'I want to make a simple web app like the iOS notes app',
+      'build me a chrome extension',
+    ]) expect(CODING_RX.test(t)).toBe(true);
+  });
+  it('does not misclassify ordinary chat as coding', () => {
+    for (const t of [
+      'what app should I use for taking notes',
+      'write a poem about the ocean',
+      'help me write a professional email to my boss',
+    ]) expect(CODING_RX.test(t)).toBe(false);
+  });
+});

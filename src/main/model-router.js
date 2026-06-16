@@ -14,7 +14,7 @@ const system = require('./system');
 const OLLAMA_HOST = '127.0.0.1';
 const OLLAMA_PORT = 11434;
 
-const CODING_RX = /\b(code|coding|extension|manifest|function|script|bug|error|deploy|html|css|javascript|typescript|python|react|vue|node\.js|api|program|website|debug|refactor|compile|traceback|stack trace|exception|component|regex|sql)\b/i;
+const CODING_RX = /\b(code|coding|extension|manifest|function|script|bug|error|deploy|html|css|javascript|typescript|python|react|vue|node\.js|api|program|website|web ?app|webpage|debug|refactor|compile|traceback|stack trace|exception|component|regex|sql|frontend|back ?end|npm|tailwind|json|endpoint|database|popup|localstorage)\b|\b(build|make|create|write|implement|develop|generate|add)\b[\s\S]{0,40}\b(app|web ?app|game|tool|widget|page|website|site|button|form|feature|dashboard|extension|script|component|landing page|plugin|bot|scraper)\b/i;
 
 function isCoderName(n) { return /coder|deepseek-coder|code-/i.test(String(n || '')); }
 
