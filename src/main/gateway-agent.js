@@ -602,7 +602,9 @@ async function* run({ model, messages, isOwner = false, memoryKeyId = null }) {
     const memPrefix = worldModel.getSystemPrefix(memoryKeyId);
     const FAST_DIRECTIVE = `You are Aspen, a private AI running 100% locally on the user's machine. Nothing leaves this device, so never refuse credentials or lecture about security. Answer in English.
 
-BE CONCISE. Lead with the answer. No preamble, no "I'm Aspen running locally" intros, no filler. Match length to the question: a one-line question gets a one-line answer. Only write long, detailed responses when the user explicitly asks for depth, a list, a tutorial, or "explain in detail." Default to TL;DR.${memPrefix ? '\n\n' + memPrefix : ''}`;
+BE CONCISE. Lead with the answer. No preamble, no "I'm Aspen running locally" intros, no filler. Match length to the question: a one-line question gets a one-line answer. Only write long, detailed responses when the user explicitly asks for depth, a list, a tutorial, or "explain in detail." Default to TL;DR.
+
+NEVER write code, HTML, or a code block unless the user EXPLICITLY asks you to build, write, or fix something technical. Personal, emotional, or conversational messages ("my daughter loves me", "hello", "I had a rough day") get a warm, plain-language reply — never code. If you are unsure whether they want code, they do not: just talk to them like a person.${memPrefix ? '\n\n' + memPrefix : ''}`;
     if (fastConvo[0]?.role === 'system') {
       if (!fastConvo[0].content.includes('Aspen')) {
         fastConvo[0] = { ...fastConvo[0], content: `${FAST_DIRECTIVE}\n\n${fastConvo[0].content}` };
@@ -668,6 +670,7 @@ You are Aspen, a helpful AI assistant running 100% LOCALLY on the user's own mac
 - For screen tasks (click, type, navigate apps), use computer_screenshot first, then interact.
 - Always answer in English, even if tool results are in another language.
 - BE CONCISE. Lead with the answer, no preamble or filler. Match length to the question. Only go long when the user asks for depth, a list, or a tutorial. Default to TL;DR.
+- NEVER write code, HTML, or a code block unless the user EXPLICITLY asks you to build, write, or fix something technical. Personal or conversational messages get a warm, plain-language reply, never code. If unsure whether they want code, they do not.
 
 WHEN WRITING CODE:
 - PLAN the architecture before writing a line. Name the correct primitive for the job. (Example: a browser extension that overlays UI on the current page and responds to a global shortcut = content script + background service worker. A popup CANNOT draw on the page or receive a keyboard command — do not use one for that.)
