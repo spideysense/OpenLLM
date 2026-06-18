@@ -577,6 +577,9 @@ async function* run({ model, messages, isOwner = false, memoryKeyId = null }) {
   // Hardware-aware routing: coding turns go to a coder model when it can stay
   // resident alongside chat (else we keep the loaded model — never thrash).
   model = await routeModel(model, messages);
+  // Tell the client which model actually handles this turn (routing happens here,
+  // server-side) so footers show the truth instead of the dropdown selection.
+  yield { type: 'model', name: model };
 
   const modelLower = String(model).toLowerCase();
   const TOOL_INCOMPATIBLE = ['deepseek-r1', 'coder', 'phi'];

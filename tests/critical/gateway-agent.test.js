@@ -12,7 +12,7 @@ vi.mock('http', () => ({
   request: vi.fn(() => ({ write: vi.fn(), end: vi.fn(), on: vi.fn(), setTimeout: vi.fn(), destroy: vi.fn() })),
 }));
 
-const { run, plainChatRetry, SAFE_TOOLS, DANGEROUS_TOOLS, GATEWAY_COMPUTER_TOOL_DEFS } = await import('../../src/main/gateway-agent.js');
+const { run, runValidated, plainChatRetry, SAFE_TOOLS, DANGEROUS_TOOLS, GATEWAY_COMPUTER_TOOL_DEFS } = await import('../../src/main/gateway-agent.js');
 
 describe('Tool availability', () => {
   it('safe tools cover the basics', () => {
@@ -280,5 +280,34 @@ describe('Empty-response safety net (plainChatRetry)', () => {
     // tool-loop final answer + round-cap best-effort both retry; bare fallbacks gone from those sites
     const retries = (src.match(/await plainChatRetry\(model, messages\)/g) || []).length;
     expect(retries).toBeGreaterThanOrEqual(3); // fast path + tool-loop + round-cap
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Per-turn model reporting. run() routes server-side, so the client must learn
+// which model actually answered (the footer was showing the dropdown/coder
+// instead). runValidated forwards the {type:'model'} event on both paths.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('routed-model reporting', () => {
+  it('forwards the model event to the client on the non-coding path', async () => {
+    async function* fakeRun() {
+      yield { type: 'model', name: 'llama4:scout' };
+      yield { type: 'content', text: 'hi there' };
+      yield { type: 'done' };
+    }
+    const events = [];
+    for await (const ev of runValidated({ messages: [{ role: 'user', content: 'hello' }] }, fakeRun)) events.push(ev);
+    expect(events.find((e) => e.type === 'model')?.name).toBe('llama4:scout');
+  });
+
+  it('forwards the model event on the coding path (so the coder is shown for code turns)', async () => {
+    async function* fakeRun() {
+      yield { type: 'model', name: 'qwen2.5-coder:32b' };
+      yield { type: 'content', text: '```js\nconsole.log(1)\n```' };
+      yield { type: 'done' };
+    }
+    const events = [];
+    for await (const ev of runValidated({ messages: [{ role: 'user', content: 'write a function to add two numbers' }] }, fakeRun)) events.push(ev);
+    expect(events.find((e) => e.type === 'model')?.name).toBe('qwen2.5-coder:32b');
   });
 });
