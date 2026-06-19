@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../theme';
 import { fetchModels } from '../api';
 
-export default function ConnectScreen({ onConnected }) {
+export default function ConnectScreen({ onConnected, onCancel }) {
   const [url, setUrl] = useState('');
   const [key, setKey] = useState('');
   const [busy, setBusy] = useState(false);
@@ -97,6 +97,12 @@ export default function ConnectScreen({ onConnected }) {
           <Text style={styles.privacy}>
             🔒 Your messages go only to your machine. We never see them.
           </Text>
+
+          {onCancel ? (
+            <TouchableOpacity onPress={onCancel} style={styles.cancel} hitSlop={10}>
+              <Text style={styles.cancelText}>Back to on-device</Text>
+            </TouchableOpacity>
+          ) : null}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -135,4 +141,6 @@ const styles = StyleSheet.create({
   connectDisabled: { opacity: 0.5 },
   connectText: { color: '#fff', fontSize: 16, fontWeight: '600' },
   privacy: { fontSize: 13, color: theme.textMuted, textAlign: 'center', marginTop: 20 },
+  cancel: { alignItems: 'center', marginTop: 18, paddingVertical: 8 },
+  cancelText: { fontSize: 14, color: theme.textMuted, fontWeight: '500' },
 });

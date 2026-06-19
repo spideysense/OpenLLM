@@ -12,12 +12,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { theme } from '../theme';
-import { streamChat } from '../api';
+import { sendMessage } from '../chat';
 import MessageBubble from '../components/MessageBubble';
 import Composer from '../components/Composer';
 import ThinkingIndicator from '../components/ThinkingIndicator';
 
-export default function ChatScreen({ config, model, onDisconnect }) {
+export default function ChatScreen({ mode, config, boxModel, localFile, localLabel, onOpenTier }) {
   const [messages, setMessages] = useState([]); // {role, content}
   const [input, setInput] = useState('');
   const [streaming, setStreaming] = useState(false);
@@ -64,10 +64,11 @@ export default function ChatScreen({ config, model, onDisconnect }) {
       commit();
     };
 
-    await streamChat({
-      tunnelUrl: config.tunnelUrl,
-      apiKey: config.apiKey,
-      model,
+    await sendMessage({
+      mode,
+      config,
+      boxModel,
+      localFile,
       messages: history,
       signal: controller.signal,
       onStatus: (s) => setStatus(s),
@@ -88,7 +89,7 @@ export default function ChatScreen({ config, model, onDisconnect }) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       },
     });
-  }, [input, streaming, messages, config, model, scrollToEnd, status]);
+  }, [input, streaming, messages, mode, config, boxModel, localFile, scrollToEnd, status]);
 
   function stop() {
     abortRef.current?.abort();
@@ -115,8 +116,8 @@ export default function ChatScreen({ config, model, onDisconnect }) {
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={onDisconnect} hitSlop={10} style={styles.headerBtn}>
-          <Ionicons name="ellipsis-horizontal" size={22} color={theme.text} />
+        <TouchableOpacity onPress={onOpenTier} hitSlop={10} style={styles.tierPill}>
+          <Text style={styles.tierPillText}>{mode === 'box' ? 'On your Aspen' : 'On iPhone'} ▾</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
           Aspen
@@ -169,7 +170,9 @@ export default function ChatScreen({ config, model, onDisconnect }) {
         />
 
         <Text style={styles.footer}>
-          Running on your machine{model ? ` · ${model}` : ''}
+          {mode === 'box'
+            ? `On your Aspen${boxModel ? ` · ${boxModel}` : ''}`
+            : `On iPhone${localLabel ? ` · ${localLabel}` : ''}`}
         </Text>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -188,6 +191,8 @@ const styles = StyleSheet.create({
     borderBottomColor: theme.hairline,
   },
   headerBtn: { width: 32, alignItems: 'center' },
+  tierPill: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 14, backgroundColor: theme.field },
+  tierPillText: { fontSize: 13, fontWeight: '600', color: theme.text },
   headerTitle: { fontSize: 16, fontWeight: '600', color: theme.text },
   list: { paddingTop: 16, paddingBottom: 8, flexGrow: 1 },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 120 },
