@@ -38,6 +38,18 @@ function decideCodingModel({ requested, text, list, ramBytes, ctx }) {
   return coFits ? coder.name : requested;                  // co-fit → pin both & route; else stay put
 }
 
+// Pure decision (unit-tested): when a coder model is requested for a NON-coding
+// turn (e.g. a client whose model selector defaulted to the coder), pick the
+// chat model to use instead — the largest installed non-coder. This is what
+// stops "Is the vegetarian Omega 3?" from being answered by qwen2.5-coder.
+function decideChatModel({ requested, list }) {
+  if (!isCoderName(requested)) return requested;           // already a chat model
+  const chats = (list || [])
+    .filter((m) => !isCoderName(m.name) && !/embed/i.test(m.name))
+    .sort((a, b) => (b.size || 0) - (a.size || 0));
+  return chats.length ? chats[0].name : requested;         // largest non-coder, else keep
+}
+
 let _tagCache = { at: 0, list: [] };
 async function installedModelsDetailed() {
   if (Date.now() - _tagCache.at < 60000 && _tagCache.list.length) return _tagCache.list;
@@ -55,12 +67,19 @@ async function routeModel(requested, messages) {
   try {
     const lastUser = [...(messages || [])].reverse().find((m) => m.role === 'user');
     const text = (lastUser?.content || '').slice(0, 800);
-    if (isCoderName(requested) || !CODING_RX.test(text)) return requested; // fast path, no /api/tags
+    const coding = CODING_RX.test(text);
+    // Fast path: a chat model on a non-coding turn needs no decision or /api/tags.
+    if (!isCoderName(requested) && !coding) return requested;
     const list = await installedModelsDetailed();
+    // Non-coding turn but a coder was requested → downgrade to the chat model so
+    // plain questions never get code. Fixes clients that send the wrong model
+    // (e.g. an old build whose selector defaulted to the coder).
+    if (!coding) return decideChatModel({ requested, list });
+    // Coding turn → upgrade chat→coder when it co-fits (or keep an existing coder).
     return decideCodingModel({ requested, text, list, ramBytes: os.totalmem(), ctx: system.getRecommendedContext() });
   } catch {
     return requested;
   }
 }
 
-module.exports = { CODING_RX, isCoderName, modelSizeFromList, decideCodingModel, installedModelsDetailed, routeModel };
+module.exports = { CODING_RX, isCoderName, modelSizeFromList, decideCodingModel, decideChatModel, installedModelsDetailed, routeModel };
