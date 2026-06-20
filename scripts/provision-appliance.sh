@@ -27,6 +27,12 @@ if   [ "$RAM_GB" -ge 96 ]; then CODER="qwen2.5-coder:32b"
 elif [ "$RAM_GB" -ge 32 ]; then CODER="qwen2.5-coder:14b"
 elif [ "$RAM_GB" -ge 16 ]; then CODER=""                       # MODEL already a coder
 else                            CODER=""; fi                   # too small for a pair
+# Small extraction model for memory. The chat model is too big to extract facts
+# with (running a 100B+ model per turn stalls the queue), so big/mid boxes pin a
+# tiny model alongside chat+coder purely for background memory extraction. Small
+# boxes already run a small chat model, which doubles as the extractor.
+if   [ "$RAM_GB" -ge 32 ]; then EXTRACT="llama3.2:3b"          # ~2GB, memory needs it
+else                            EXTRACT=""; fi                  # small chat model extracts
 ASPEN_DIR="$HOME/.aspen"                  # engine + models live here (matches the app)
 BIN_DIR="$ASPEN_DIR/bin"                  # extracted ollama tree: bin/ollama + lib/ollama
 MODELS_DIR="$ASPEN_DIR/models"
@@ -110,6 +116,23 @@ if [ -n "$CODER" ]; then
     "$OLLAMA_BIN" pull "$CODER"
     ok "coder model $CODER pulled"
   fi
+fi
+
+# Extraction model for memory (big/mid boxes). Without a small resident model,
+# background fact extraction can't run and memory never gets written.
+if [ -n "$EXTRACT" ]; then
+  if "$OLLAMA_BIN" list 2>/dev/null | awk '{print $1}' | grep -qx "$EXTRACT"; then
+    ok "extraction model $EXTRACT already present"
+  else
+    echo "  pulling extraction model $EXTRACT (memory) ..."
+    "$OLLAMA_BIN" pull "$EXTRACT"
+    ok "extraction model $EXTRACT pulled"
+  fi
+  # Three models must stay co-resident (chat + coder + extractor). Ollama's
+  # default cap can evict one; pin the cap so memory extraction never knocks the
+  # chat model out of memory.
+  export OLLAMA_MAX_LOADED_MODELS=3
+  ok "OLLAMA_MAX_LOADED_MODELS=3 (chat + coder + extractor co-resident)"
 fi
 
 # Stop the temp server we started (the app starts its own on boot)

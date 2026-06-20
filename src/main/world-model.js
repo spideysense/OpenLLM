@@ -18,10 +18,17 @@ const OLLAMA_HOST = '127.0.0.1';
 const OLLAMA_PORT = 11434;
 const MAX_FACTS = 100; // Cap to keep context manageable
 
-// Small models good for fact extraction, in order of preference. We pick the
-// first one that's already loaded (instant) or pulled (fast). Falls back to the
-// chat model only if none are available.
-const SMALL_EXTRACTION_MODELS = ['qwen3:4b', 'qwen3:8b', 'llama3.2:3b', 'gemma3:4b', 'qwen3:14b'];
+// Models small enough to extract facts without stalling the chat queue. Used as
+// a name-based fallback; the primary check below is SIZE-based so any small
+// resident model qualifies regardless of exact tag.
+const SMALL_EXTRACTION_MODELS = [
+  'qwen3:1.7b', 'qwen3:4b', 'qwen3:8b', 'qwen3:14b',
+  'llama3.2:1b', 'llama3.2:3b',
+  'qwen2.5:1.5b', 'qwen2.5:3b',
+  'gemma2:2b', 'gemma3:4b', 'phi3:mini', 'smollm2:1.7b',
+];
+// A resident model at or under this many billion params is safe for extraction.
+const MAX_EXTRACTION_PARAMS_B = 14;
 
 function httpGetJson(path) {
   return new Promise((resolve) => {
@@ -36,18 +43,43 @@ function httpGetJson(path) {
   });
 }
 
+// Parse a billions-of-params number from an Ollama /api/ps details string
+// ("3.2B", "1.7B") or a model tag ("llama3.2:3b"). Returns null if unknown.
+function paramsB(model) {
+  const fromDetails = model?.details?.parameter_size;
+  const s = fromDetails || model?.name || (typeof model === 'string' ? model : '');
+  const m = String(s).match(/([\d.]+)\s*b/i);
+  return m ? parseFloat(m[1]) : null;
+}
+
 // Choose a SAFE model for background fact extraction. Critical rule: never pick
 // a model that isn't already loaded — loading a second model can evict the
 // resident chat model (Ollama caps how many stay in memory), forcing a
-// multi-minute reload on the user's NEXT message. So we ONLY use a small model
+// multi-minute reload on the user's NEXT message. We ONLY use a small model
 // that is already in memory; otherwise return null and the caller skips.
+//
+// Selection is SIZE-based first (any resident model <= MAX_EXTRACTION_PARAMS_B
+// that isn't the chat model), so it works no matter which small model is pinned;
+// the hardcoded name list is a fallback for when /api/ps omits the param size.
 async function pickExtractionModel(chatModel) {
-  // Already loaded + small? Use it — zero load cost, no eviction.
   const ps = await httpGetJson('/api/ps');
-  const loaded = (ps?.models || []).map(m => m.name);
-  for (const small of SMALL_EXTRACTION_MODELS) {
-    if (loaded.includes(small)) return small;
+  const resident = ps?.models || [];
+
+  // Primary: smallest resident model under the size cap, excluding the chat model.
+  let best = null, bestB = Infinity;
+  for (const m of resident) {
+    if (m.name === chatModel) continue;
+    const b = paramsB(m);
+    if (b != null && b <= MAX_EXTRACTION_PARAMS_B && b < bestB) { best = m.name; bestB = b; }
   }
+  if (best) return best;
+
+  // Fallback: name-list match among resident models (when size is unavailable).
+  const loadedNames = resident.map(m => m.name);
+  for (const small of SMALL_EXTRACTION_MODELS) {
+    if (loadedNames.includes(small) && small !== chatModel) return small;
+  }
+
   // No small model resident → skip. Do NOT load one (it would evict the chat
   // model) and never run extraction on the heavy chat model itself.
   return null;
@@ -219,4 +251,8 @@ module.exports = {
   extractFacts,
   storeKeyFor,
   clearMemory,
+  paramsB,
+  pickExtractionModel,
+  SMALL_EXTRACTION_MODELS,
+  MAX_EXTRACTION_PARAMS_B,
 };

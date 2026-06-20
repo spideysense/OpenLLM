@@ -157,6 +157,18 @@ app.whenReady().then(async () => {
       const activeModel = store.get('activeModel');
       if (activeModel) ollama.warmModel(activeModel);
     } catch {}
+    // Also pin a small extraction model (if one is installed) so background
+    // memory extraction has a resident model to use. Without this, on a box
+    // whose only resident models are large (chat + coder), fact extraction
+    // silently never runs and memory stays empty.
+    try {
+      const activeModel = store.get('activeModel');
+      const installed = (await ollama.listModels()).map(m => m.name || m);
+      const small = worldModel.SMALL_EXTRACTION_MODELS.find(
+        (s) => installed.includes(s) && s !== activeModel
+      );
+      if (small) ollama.warmModel(small);
+    } catch {}
   });
   setInterval(async () => {
     if (!mainWindow || mainWindow.isDestroyed()) return;
