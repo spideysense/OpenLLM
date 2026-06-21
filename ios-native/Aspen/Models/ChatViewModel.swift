@@ -19,6 +19,8 @@ final class ChatViewModel: ObservableObject {
     var boxConfig: BoxClient.Config? { didSet { persistBox() } }
     var boxModel = ""
     private var task: Task<Void, Never>?
+    private var currentId = UUID()
+    private let store = ConversationStore.shared
 
     init() {
         // Restore a saved box connection so returning users land already connected.
@@ -95,10 +97,27 @@ final class ChatViewModel: ObservableObject {
     /// Start a fresh conversation.
     func newChat() {
         task?.cancel()
+        currentId = UUID()
         messages = []
         status = ""
         streaming = false
         input = ""
+    }
+
+    /// Load a saved conversation into the view.
+    func load(_ convo: Conversation) {
+        task?.cancel()
+        currentId = convo.id
+        messages = convo.messages
+        status = ""
+        streaming = false
+        input = ""
+    }
+
+    /// Save the current conversation (called after each completed turn).
+    private func save() {
+        guard !messages.isEmpty else { return }
+        store.upsert(Conversation(id: currentId, title: Conversation.titleFrom(messages), messages: messages))
     }
 
     private func run(history: [ChatTurn]) async {
@@ -140,5 +159,6 @@ final class ChatViewModel: ObservableObject {
         status = ""
         let haptic = UIImpactFeedbackGenerator(style: .soft)
         haptic.impactOccurred()
+        save()
     }
 }
