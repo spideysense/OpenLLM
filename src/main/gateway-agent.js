@@ -403,12 +403,25 @@ function timeoutError(gotFirstByte) {
     : 'The model is taking too long to load (over 5 minutes). It may be too large for this machine, or the machine is busy (e.g. still downloading a model). Try a smaller model like qwen3:14b or gemma4:e4b.');
 }
 
+// Qwen3.x / GLM-5 / deepseek-r1 etc. emit a chain-of-thought trace by default.
+// That trace (a) breaks tool-call JSON — the model reasons instead of emitting a
+// clean call — and (b) slows streaming, since the user waits through reasoning
+// tokens before the answer. Disable it via Ollama's native `think` flag. CRUCIAL:
+// only send `think` for models that actually support thinking — passing it to a
+// non-thinking model (e.g. llama4:scout) can error. So scout's request body is
+// left byte-for-byte unchanged; only thinking models get think:false.
+const THINKING_MODELS = /qwen3|glm-?5|deepseek-r1|magistral|cogito|minimax-m/i;
+function thinkOpt(model) {
+  return THINKING_MODELS.test(String(model || '')) ? { think: false } : {};
+}
+
 // Streaming Ollama call — yields content deltas. Used by the fast path when
 // no tools are needed, so simple chats feel instant.
 async function* ollamaStream(model, messages) {
   const body = JSON.stringify({
     model, messages, stream: true,
     keep_alive: KEEP_ALIVE,
+    ...thinkOpt(model),
     options: { num_predict: -1, num_ctx: contextFor(messages), ...gpuFallback.gpuOptions() },
   });
 
@@ -495,6 +508,7 @@ function ollamaChatOnce(payload, extraOpts) {
       tools: payload.tools,
       stream: true,
       keep_alive: KEEP_ALIVE,
+      ...thinkOpt(payload.model),
       options: { num_predict: -1, num_ctx: ctx, ...(extraOpts || {}) },
     });
 

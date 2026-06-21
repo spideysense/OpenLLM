@@ -24,11 +24,23 @@ const MAX_TOOL_ROUNDS = 4; // safety cap so a confused model can't loop forever
 // Exits early when the model stops calling tools, so this never slows normal chat.
 const OWNER_MAX_TOOL_ROUNDS = 16;
 
+// Qwen3.x / GLM-5 / deepseek-r1 etc. emit a reasoning trace by default, which
+// breaks tool-call JSON and slows output. The OpenAI-compatible /v1 endpoint
+// disables it via chat_template_kwargs.enable_thinking=false (the native `think`
+// flag is /api/chat-only). Gated to thinking models so non-thinking models like
+// llama4:scout are sent an unchanged body.
+const THINKING_MODELS = /qwen3|glm-?5|deepseek-r1|magistral|cogito|minimax-m/i;
+function thinkKwargs(model) {
+  return THINKING_MODELS.test(String(model || ''))
+    ? { chat_template_kwargs: { enable_thinking: false } }
+    : {};
+}
+
 // One non-streaming call to Ollama's OpenAI-compatible endpoint.
 function ollamaChat(payload) {
   return new Promise((resolve, reject) => {
     const ctx = system.getRecommendedContext();
-    const body = JSON.stringify({ ...payload, stream: false, max_tokens: ctx, keep_alive: -1, options: { num_predict: -1, num_ctx: ctx } });
+    const body = JSON.stringify({ ...payload, stream: false, max_tokens: ctx, keep_alive: -1, ...thinkKwargs(payload.model), options: { num_predict: -1, num_ctx: ctx } });
     const req = http.request(
       {
         hostname: OLLAMA_HOST,
