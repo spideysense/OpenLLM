@@ -513,7 +513,10 @@ function tryListen(port) {
             console.log(`[Aspen] Active model migrated off deprecated '${activeModel}' -> '${best}'`);
             activeModel = best;
           }
-          const r = await manager.manage(activeModel, { autoRetire: store.get('autoRetireModels') !== false });
+          const r = await manager.manage(activeModel, {
+            autoRetire: store.get('autoRetireModels') !== false,
+            lean: store.get('leanMode') !== false,   // default on: keep only best + coder
+          });
           if (r.evicted.length) console.log(`[Aspen] Evicted from memory: ${r.evicted.join(', ')}`);
           if (r.retired.length) console.log(`[Aspen] Retired superseded models: ${r.retired.join(', ')} (freed ~${r.freedGB.toFixed(0)}GB)`);
         } catch (e) { console.log('[Aspen] model manager skipped:', e.message); }

@@ -93,3 +93,23 @@ describe('pickActiveModel — migrate off deprecated models', () => {
     expect(mgr.pickActiveModel({ current: 'llama4:scout', installed: only, reg: REG })).toBe('llama4:scout');
   });
 });
+
+describe('lean mode — keep only active + coder', () => {
+  const installed = [
+    { name: 'qwen3.6:35b-a3b' }, { name: 'qwen2.5-coder:32b' },
+    { name: 'qwen3:32b' }, { name: 'gpt-oss:120b' }, { name: 'llama4:scout' },
+  ];
+  it('retires every non-active, non-coder model', () => {
+    const out = mgr.toRetireLean('qwen3.6:35b-a3b', installed, []);
+    expect(out.sort()).toEqual(['gpt-oss:120b', 'llama4:scout', 'qwen3:32b']);
+  });
+  it('keeps the active model and the coder', () => {
+    const out = mgr.toRetireLean('qwen3.6:35b-a3b', installed, []);
+    expect(out).not.toContain('qwen3.6:35b-a3b');
+    expect(out).not.toContain('qwen2.5-coder:32b');
+  });
+  it('never retires a model that is still resident', () => {
+    const out = mgr.toRetireLean('qwen3.6:35b-a3b', installed, [{ name: 'gpt-oss:120b' }]);
+    expect(out).not.toContain('gpt-oss:120b');
+  });
+});

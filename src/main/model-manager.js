@@ -65,6 +65,19 @@ function toRetire(reg, installed, resident, activeModel) {
     .filter((m) => !residentBases.has(base(m)) && base(m) !== activeBase);
 }
 
+// pure: LEAN mode — retire every installed model except the active chat model
+// and the coder (and anything still resident, which we never delete). This keeps
+// the box to just the best model + coder, reclaiming disk from redundant models
+// like a leftover 65GB gpt-oss the user tried once. Guard lives in manage():
+// lean only runs when the active model is actually installed and healthy.
+function toRetireLean(activeModel, installed, resident) {
+  const keep = keepSet(activeModel, installed);           // active + coder bases
+  const residentBases = new Set((resident || []).map((m) => base(m.name)));
+  return (installed || [])
+    .map((m) => m.name)
+    .filter((n) => !keep.has(base(n)) && !residentBases.has(base(n)));
+}
+
 // ── IO (defensive) ───────────────────────────────────────────────────────────
 async function residentModels() {
   try {
@@ -109,7 +122,7 @@ async function deleteModel(name) {
 // Called on startup and whenever the active model changes. Frees memory and,
 // if autoRetire is on, reclaims disk from superseded models. Returns a summary
 // so the app can surface what it did. Never throws.
-async function manage(activeModel, { autoRetire = true } = {}) {
+async function manage(activeModel, { autoRetire = true, lean = false } = {}) {
   const summary = { active: activeModel, evicted: [], retired: [], freedGB: 0 };
   if (!activeModel) return summary;
   try {
@@ -122,9 +135,22 @@ async function manage(activeModel, { autoRetire = true } = {}) {
       if (await unloadModel(name)) summary.evicted.push(name);
     }
 
-    // 2) Retire superseded models whose replacement is installed (disk reclaim).
-    if (autoRetire && reg) {
-      const freshResident = await residentModels(); // re-read after eviction
+    const freshResident = await residentModels(); // re-read after eviction
+    const activeInstalled = installed.some((m) => base(m.name) === base(activeModel));
+
+    // 2) Reclaim disk. LEAN mode (default) keeps only active + coder and retires
+    //    everything else. Otherwise retire only registry-deprecated models.
+    //    Safety: lean only runs if the active model is actually installed — never
+    //    strip the box down around a missing/broken active model.
+    if (lean && activeInstalled) {
+      for (const name of toRetireLean(activeModel, installed, freshResident)) {
+        const m = installed.find((x) => base(x.name) === base(name));
+        if (await deleteModel(name)) {
+          summary.retired.push(name);
+          summary.freedGB += m ? (m.size || 0) / 1e9 : 0;
+        }
+      }
+    } else if (autoRetire && reg) {
       for (const name of toRetire(reg, installed, freshResident, activeModel)) {
         const m = installed.find((x) => base(x.name) === base(name));
         if (await deleteModel(name)) {
@@ -138,6 +164,6 @@ async function manage(activeModel, { autoRetire = true } = {}) {
 }
 
 module.exports = {
-  keepSet, toEvict, toRetire, pickActiveModel,
+  keepSet, toEvict, toRetire, toRetireLean, pickActiveModel,
   residentModels, installedModels, unloadModel, deleteModel, manage,
 };
