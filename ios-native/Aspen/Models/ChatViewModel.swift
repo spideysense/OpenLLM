@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 import SwiftUI
 
 enum Tier: String, Codable { case local, box }

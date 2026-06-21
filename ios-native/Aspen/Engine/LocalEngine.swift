@@ -1,7 +1,16 @@
 import Foundation
+import Combine
 import MLX
 import MLXLLM
 import MLXLMCommon
+
+/// On-device model id, kept outside the @MainActor class so it can be used as a
+/// default argument and referenced from any context (avoids the Swift 6
+/// main-actor-isolation error).
+/// ⚠️ VERIFY this id resolves on Hugging Face before shipping.
+enum AspenModels {
+    static let defaultId = "mlx-community/Llama-3.2-3B-Instruct-4bit"
+}
 
 /// On-device inference via Apple MLX (Metal). This is the same framework Locally
 /// AI uses. The model container is loaded once and kept resident — that residency
@@ -22,11 +31,10 @@ final class LocalEngine: ObservableObject {
     private var loadedModelId: String?
 
     /// Default on-device model: small, fast, fits any modern iPhone at 4-bit.
-    /// MLX-community quants are the canonical on-device builds.
-    /// ⚠️ VERIFY this id resolves on Hugging Face before shipping.
-    static let defaultModelId = "mlx-community/Llama-3.2-3B-Instruct-4bit"
+    /// (Id lives in AspenModels so it can be a default arg without actor issues.)
+    static let defaultModelId = AspenModels.defaultId
 
-    func loadIfNeeded(_ modelId: String = LocalEngine.defaultModelId) async throws {
+    func loadIfNeeded(_ modelId: String = AspenModels.defaultId) async throws {
         if container != nil, loadedModelId == modelId { return }
         // Cap MLX's GPU cache so a phone under memory pressure doesn't get killed.
         MLX.GPU.set(cacheLimit: 20 * 1024 * 1024)
