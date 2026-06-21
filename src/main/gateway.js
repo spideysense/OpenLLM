@@ -499,10 +499,20 @@ function tryListen(port) {
     setTimeout(async () => {
       try {
         const store = require('./store');
-        const activeModel = store.get('activeModel');
+        let activeModel = store.get('activeModel');
         if (!activeModel) return;
         try {
           const manager = require('./model-manager');
+          const reg = await require('./registry').getRegistry();
+          const installed = await manager.installedModels();
+          // If the active model is deprecated (e.g. scout), migrate to the best
+          // installed model automatically so the user never has to switch by hand.
+          const best = manager.pickActiveModel({ current: activeModel, installed, reg });
+          if (best && best !== activeModel) {
+            store.set('activeModel', best);
+            console.log(`[Aspen] Active model migrated off deprecated '${activeModel}' -> '${best}'`);
+            activeModel = best;
+          }
           const r = await manager.manage(activeModel, { autoRetire: store.get('autoRetireModels') !== false });
           if (r.evicted.length) console.log(`[Aspen] Evicted from memory: ${r.evicted.join(', ')}`);
           if (r.retired.length) console.log(`[Aspen] Retired superseded models: ${r.retired.join(', ')} (freed ~${r.freedGB.toFixed(0)}GB)`);

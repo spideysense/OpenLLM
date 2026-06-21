@@ -76,3 +76,20 @@ describe('model-manager memory reconciliation', () => {
     expect(mgr.toRetire(REG, installed, resident, 'qwen3.6:35b-a3b')).toEqual(['llama4:scout']);
   });
 });
+
+describe('pickActiveModel — migrate off deprecated models', () => {
+  const installed = [{ name: 'qwen3.6:35b-a3b' }, { name: 'llama4:scout' }, { name: 'qwen3:32b' }];
+  it('migrates off a deprecated active model to the best installed', () => {
+    expect(mgr.pickActiveModel({ current: 'llama4:scout', installed, reg: REG })).toBe('qwen3.6:35b-a3b');
+  });
+  it('respects a valid non-deprecated active choice', () => {
+    expect(mgr.pickActiveModel({ current: 'qwen3:32b', installed, reg: REG })).toBe('qwen3:32b');
+  });
+  it('picks a best when none is set', () => {
+    expect(mgr.pickActiveModel({ current: '', installed, reg: REG })).toBe('qwen3.6:35b-a3b');
+  });
+  it('keeps current if no non-deprecated model is installed', () => {
+    const only = [{ name: 'llama4:scout' }];
+    expect(mgr.pickActiveModel({ current: 'llama4:scout', installed: only, reg: REG })).toBe('llama4:scout');
+  });
+});

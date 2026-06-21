@@ -18,6 +18,26 @@ const registry = require('./registry');
 function base(n) { return String(n || '').split(':')[0]; }
 function isCoder(n) { return /coder|deepseek-coder|code-/i.test(String(n || '')); }
 
+// pure: choose the active model. If the current active model is DEPRECATED (per
+// registry) or unset, switch to the best installed non-deprecated model (registry
+// order). Never overrides a valid, non-deprecated user choice — so picking
+// qwen3:32b on purpose is respected, but a deprecated scout is migrated off.
+function pickActiveModel({ current, installed, reg }) {
+  if (!reg || !Array.isArray(reg.models)) return current;
+  const curEntry = reg.models.find((m) => base(m.model) === base(current));
+  const currentIsDeprecated = !!(curEntry && curEntry.deprecated);
+  if (current && !currentIsDeprecated) return current;   // respect a valid choice
+  const installedBases = new Set((installed || []).map((m) => base(m.name)));
+  for (const m of reg.models) {
+    if (m.deprecated) continue;
+    if (installedBases.has(base(m.model))) {
+      const inst = (installed || []).find((x) => base(x.name) === base(m.model));
+      return inst ? inst.name : m.model;
+    }
+  }
+  return current;
+}
+
 // ── pure: which base names should stay resident ──────────────────────────────
 // Keep the active chat model, plus an installed coder (the router routes coding
 // turns to it and it co-fits on big boxes). Everything else is evictable.
@@ -118,6 +138,6 @@ async function manage(activeModel, { autoRetire = true } = {}) {
 }
 
 module.exports = {
-  keepSet, toEvict, toRetire,
+  keepSet, toEvict, toRetire, pickActiveModel,
   residentModels, installedModels, unloadModel, deleteModel, manage,
 };
