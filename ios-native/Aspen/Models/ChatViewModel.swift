@@ -47,7 +47,10 @@ final class ChatViewModel: ObservableObject {
 
     func connected(_ cfg: BoxClient.Config, _ models: [String]) {
         boxConfig = cfg
-        boxModel = models.first ?? ""
+        // Default to a CHAT model, never a coder — otherwise the footer shows
+        // "qwen2.5-coder" before any turn. The box's per-turn aspen_model event
+        // corrects this after the first message, but the initial label matters.
+        boxModel = models.first { !$0.lowercased().contains("coder") } ?? models.first ?? ""
         setTier(.box)
     }
 
