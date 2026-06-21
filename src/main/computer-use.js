@@ -17,11 +17,24 @@
  * automatically on first use.
  */
 
-const { execSync } = require('child_process');
+const { execSync, execFileSync } = require('child_process');
 const os = require('os');
 
 const isMac = os.platform() === 'darwin';
 const isWin = os.platform() === 'win32';
+const isLinux = os.platform() === 'linux';
+
+// xdotool is the X11 input driver on Linux. Check once; give a clear, actionable
+// error if it's missing instead of a cryptic ENOENT mid-task.
+let _xdotoolChecked = false, _xdotoolOk = false;
+function ensureXdotool() {
+  if (!_xdotoolChecked) {
+    _xdotoolChecked = true;
+    try { execFileSync('xdotool', ['--version'], { timeout: 3000 }); _xdotoolOk = true; }
+    catch { _xdotoolOk = false; }
+  }
+  if (!_xdotoolOk) throw new Error('xdotool is not installed. On the box run: sudo apt install -y xdotool');
+}
 
 // Lazy-load Electron APIs — only available inside the Electron main process,
 // and only after the app is ready. Requiring at module load time can throw.
@@ -84,6 +97,12 @@ function click(x, y, button = 'left', double = false) {
       [Mouse]::SetCursorPos(${x},${y});
       [Mouse]::mouse_event(2,0,0,0,0);[Mouse]::mouse_event(4,0,0,0,0)
     "`);
+  } else if (isLinux) {
+    ensureXdotool();
+    const btn = button === 'right' ? '3' : button === 'middle' ? '2' : '1';
+    execFileSync('xdotool', ['mousemove', String(x), String(y)], { timeout: 5000 });
+    if (double) execFileSync('xdotool', ['click', '--repeat', '2', btn], { timeout: 5000 });
+    else execFileSync('xdotool', ['click', btn], { timeout: 5000 });
   }
 }
 
@@ -105,6 +124,11 @@ import Quartz
 e=Quartz.CGEventCreateScrollWheelEvent(None,Quartz.kCGScrollEventUnitLine,1,${delta})
 Quartz.CGEventPost(Quartz.kCGHIDEventTap,e)
 " 2>/dev/null || osascript -e 'tell application "System Events" to scroll at {${x}, ${y}} by ${delta}'`);
+  } else if (isLinux) {
+    ensureXdotool();
+    const btn = direction === 'up' ? '4' : '5';
+    execFileSync('xdotool', ['mousemove', String(x), String(y)], { timeout: 5000 });
+    execFileSync('xdotool', ['click', '--repeat', String(amount), btn], { timeout: 5000 });
   }
 }
 
@@ -130,6 +154,10 @@ function typeText(text) {
     execSync(`osascript -e 'tell application "System Events" to keystroke "${escaped}"'`);
   } else if (isWin) {
     execSync(`powershell -Command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('${text.replace(/'/g, "''")}')"`)
+  } else if (isLinux) {
+    ensureXdotool();
+    // execFileSync passes text as a single arg — no shell escaping needed.
+    execFileSync('xdotool', ['type', '--clearmodifiers', String(text)], { timeout: 15000 });
   }
 }
 
@@ -175,6 +203,18 @@ function pressKey(combo) {
     const WIN_MOD = { cmd: '^', ctrl: '^', alt: '%', shift: '+' };
     const mods = modifiers.map(m => WIN_MOD[m] || '').join('');
     execSync(`powershell -Command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('${mods}${key}')"`);
+  } else if (isLinux) {
+    ensureXdotool();
+    const LIN_MOD = { cmd: 'super', meta: 'super', win: 'super', ctrl: 'ctrl', control: 'ctrl', alt: 'alt', option: 'alt', shift: 'shift' };
+    const LIN_KEY = {
+      enter: 'Return', esc: 'Escape', escape: 'Escape', backspace: 'BackSpace',
+      tab: 'Tab', space: 'space', up: 'Up', down: 'Down', left: 'Left', right: 'Right',
+      delete: 'Delete', pageup: 'Prior', pagedown: 'Next', home: 'Home', end: 'End',
+    };
+    const xmods = modifiers.map(m => LIN_MOD[m] || m);
+    const xkey = LIN_KEY[key] || key;
+    const spec = [...xmods, xkey].join('+');
+    execFileSync('xdotool', ['key', '--clearmodifiers', spec], { timeout: 5000 });
   }
 }
 
