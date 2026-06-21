@@ -27,6 +27,11 @@ const gpuFallback = require('./gpu-fallback');
 const OLLAMA_HOST = '127.0.0.1';
 const OLLAMA_PORT = 11434;
 const MAX_TOOL_ROUNDS = 4;
+// Owner agentic tasks (download N files, run scripts, inspect, refine) need more
+// iterations than a one-shot lookup. Local models are free to run, so a deeper
+// loop costs only time. Bounded to avoid a runaway. Tool path only — never the
+// streaming fast path.
+const OWNER_MAX_TOOL_ROUNDS = 16;
 
 const isMac = os.platform() === 'darwin';
 const isWin = os.platform() === 'win32';
@@ -743,8 +748,13 @@ WHEN WRITING CODE:
     return;
   }
 
-  // Agent loop
-  for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+  // Agent loop. The owner gets a deeper loop so genuine multi-step jobs
+  // (download N files, run a script, inspect output, refine) can actually
+  // complete instead of being cut off at 4. Non-owner safe-tool turns stay
+  // bounded. NOTE: this is the TOOL path only — the streaming fast path above
+  // never enters here, so loop depth has zero effect on chat response speed.
+  const maxRounds = isOwner ? OWNER_MAX_TOOL_ROUNDS : MAX_TOOL_ROUNDS;
+  for (let round = 0; round < maxRounds; round++) {
     let resp;
     try {
       resp = await ollamaChat({ model, messages: convo, tools: toolDefs });
