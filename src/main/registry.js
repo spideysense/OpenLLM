@@ -19,6 +19,17 @@ async function getRegistry() {
     return cachedRegistry;
   }
 
+  // Aspen's own researched registry is authoritative on this box — the weekly
+  // research job keeps it fresh. Prefer it over the remote seed when present.
+  try {
+    const local = store.get('researchedRegistry');
+    if (local && local.reg && Array.isArray(local.reg.models)) {
+      cachedRegistry = local.reg;
+      cacheTime = Date.now();
+      return cachedRegistry;
+    }
+  } catch { /* fall through */ }
+
   // Try remote first
   try {
     const res = await fetch(REMOTE_REGISTRY_URL);
@@ -49,6 +60,18 @@ async function getRegistry() {
   } catch {
     return null;
   }
+}
+
+// Persist a registry produced by the research job. Becomes authoritative (see
+// getRegistry precedence) and refreshes the in-process cache immediately.
+function saveRegistry(reg) {
+  if (!reg || !Array.isArray(reg.models)) return false;
+  try {
+    store.set('researchedRegistry', { reg, at: Date.now() });
+    cachedRegistry = reg;
+    cacheTime = Date.now();
+    return true;
+  } catch { return false; }
 }
 
 // ═══════════════════════════════════════════════════
@@ -120,4 +143,4 @@ function checkUpgrades(installedModels, registry, tier) {
   }];
 }
 
-module.exports = { getRegistry, checkUpgrades, modelsForTier, recommendedModel, qualityRank, retirableModels };
+module.exports = { getRegistry, saveRegistry, checkUpgrades, modelsForTier, recommendedModel, qualityRank, retirableModels };

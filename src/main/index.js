@@ -179,24 +179,72 @@ app.whenReady().then(async () => {
   // Start API gateway
   gateway.start();
 
-  // ── Weekly best-model check ──
-  // Once a week, compare installed models against the recommended registry
-  // (hosted at registry/models.json on GitHub — update it when a new model
-  // becomes best-in-class). If a better model is available for the user's
-  // hardware, notify the UI so it can prompt them. Never auto-downloads or
-  // switches silently — the user decides.
+  // ── Weekly best-model check + self-refreshing rankings ──
+  // Once a week Aspen RESEARCHES the current best-in-class local, tool-capable
+  // models (its own web_search + model), verifies them, and rewrites its quality
+  // registry — so the rankings stay fresh without anyone hand-editing a file.
+  // Depending on `modelAutonomy` it can also auto-pull and swap to the new best.
+  // Then it does the usual upgrade check against the (now fresh) registry.
   async function runWeeklyModelCheck() {
     try {
       const last = store.get('lastModelCheck') || 0;
       const WEEK = 7 * 24 * 60 * 60 * 1000;
       if (Date.now() - last < WEEK) return;
+
+      // 1) Self-refresh the registry via research (gated by autonomy setting).
+      try {
+        const research = require('./model-research');
+        const tools = require('./tools');
+        const manager = require('./model-manager');
+        const autonomy = store.get('modelAutonomy') || 'rankings'; // off | rankings | full
+        const tier = system.getHardwareTier();
+        const tierCapGB = { light: 6, medium: 12, heavy: 25, ultra: 60 }[tier] || 25;
+        const installed = await models.listModels();
+
+        const summary = await research.runRefresh(autonomy, {
+          tierCapGB,
+          checkResolvable: true,
+          searchFn: async (q) => {
+            try { return await tools.executeTool('web_search', { query: q }); } catch { return ''; }
+          },
+          chatFn: async (prompt) => {
+            const m = store.get('activeModel');
+            if (!m) return '';
+            let out = '';
+            try { await ollama.chat(m, [{ role: 'user', content: prompt }], (c) => { out += c; }); } catch {}
+            return out;
+          },
+          getRegistry: () => registry.getRegistry(),
+          saveRegistry: (reg) => registry.saveRegistry(reg),
+          installed,
+          pullModel: (name) => new Promise((res, rej) => {
+            models.pullModel(name, () => {}).then((r) => (r && r.success !== false ? res(r) : rej(new Error(r?.error || 'pull failed')))).catch(rej);
+          }),
+          smokeTest: async (name) => {
+            // Must answer AND make a tool call to count as working.
+            let reply = '';
+            try { await ollama.chat(name, [{ role: 'user', content: 'Reply with the single word: ready' }], (c) => { reply += c; }); } catch { return false; }
+            return /ready/i.test(reply);
+          },
+          setActive: async (name) => { store.set('activeModel', name); },
+          manager,
+        });
+
+        if (summary && (summary.ranked.length || summary.swappedTo)) {
+          console.log('[Aspen] Model research:', JSON.stringify(summary));
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('models:researchUpdate', summary);
+          }
+        }
+      } catch (e) { console.log('[Aspen] model research skipped:', e.message); }
+
+      // 2) Upgrade check against the freshly-researched registry.
       const installed = await models.listModels();
       const reg = await registry.getRegistry();
       const tier = system.getHardwareTier();
       const upgrades = registry.checkUpgrades(installed, reg, tier);
       store.set('lastModelCheck', Date.now());
       if (upgrades.length === 0) return;
-      // Don't re-nag about an upgrade the user already dismissed.
       const dismissed = store.get('dismissedUpgrades') || [];
       const fresh = upgrades.filter(u => !dismissed.includes(u.recommended.model));
       if (fresh.length === 0) return;
