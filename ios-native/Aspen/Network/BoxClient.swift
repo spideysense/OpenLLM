@@ -49,6 +49,7 @@ final class BoxClient {
         let url = URL(string: "\(proxy)/api/agent")!
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
+        req.timeoutInterval = 180   // box may cold-load a large model before the first token
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         let payload = AgentRequest(
             tunnelUrl: normalize(config.tunnelUrl),
