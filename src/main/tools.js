@@ -371,8 +371,54 @@ function runCommand({ command, cwd }) {
 }
 
 // ═══════════════════════════════════════════════════
-// Registry — definitions (sent to the model) + runners
+// TOOL: download_file — fetch a URL and save it to disk (owner-gated upstream)
 // ═══════════════════════════════════════════════════
+const fs = require('fs');
+
+function runDownloadFile({ url, filename, dir }) {
+  if (!url || typeof url !== 'string') return Promise.resolve('Error: url is required');
+  let u = url.trim();
+  if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
+  let parsed;
+  try { parsed = new URL(u); } catch { return Promise.resolve(`Error: invalid url ${u}`); }
+  // SSRF guard: block internal hosts/IPs (same posture as fetch_url).
+  if (typeof hostIsBlocked === 'function' && hostIsBlocked(parsed.hostname)) {
+    return Promise.resolve(`Error: refusing to download from internal host ${parsed.hostname}`);
+  }
+  // Default download dir under the Aspen workspace so files are easy to find.
+  const baseDir = dir || path.join(os.homedir(), '.aspen', 'downloads');
+  try { fs.mkdirSync(baseDir, { recursive: true }); } catch {}
+  // Derive a safe filename.
+  let name = filename || path.basename(parsed.pathname) || `download_${Date.now()}`;
+  name = name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 120) || `download_${Date.now()}`;
+  const dest = path.join(baseDir, name);
+
+  return new Promise((resolve) => {
+    const lib = parsed.protocol === 'http:' ? http : https;
+    const MAX = 50 * 1024 * 1024; // 50MB cap
+    const req = lib.get(u, { timeout: 60000, headers: { 'User-Agent': 'Aspen/1.0' } }, (res) => {
+      // Follow one redirect.
+      if ([301, 302, 303, 307, 308].includes(res.statusCode) && res.headers.location) {
+        res.resume();
+        return resolve(runDownloadFile({ url: new URL(res.headers.location, u).toString(), filename: name, dir: baseDir }));
+      }
+      if (res.statusCode !== 200) { res.resume(); return resolve(`Error: HTTP ${res.statusCode} downloading ${u}`); }
+      let bytes = 0; let aborted = false;
+      const out = fs.createWriteStream(dest);
+      res.on('data', (chunk) => {
+        bytes += chunk.length;
+        if (bytes > MAX) { aborted = true; req.destroy(); out.destroy(); try { fs.unlinkSync(dest); } catch {}; resolve(`Error: file exceeds 50MB cap`); }
+      });
+      res.pipe(out);
+      out.on('finish', () => { if (!aborted) { out.close(() => resolve(`Saved ${bytes} bytes to ${dest}`)); } });
+      out.on('error', (e) => resolve(`Error writing file: ${e.message}`));
+    });
+    req.on('timeout', () => { req.destroy(); resolve('Error: download timed out'); });
+    req.on('error', (e) => resolve(`Error: ${e.message}`));
+  });
+}
+
+
 // Human-readable, ARG-AWARE status line for the reasoning trail. Says what the
 // model is actually doing ("Searching the web for X"), not just the tool name.
 // Shared by the desktop agent (agent.js) and the gateway agent (gateway-agent.js)
@@ -388,6 +434,7 @@ function describeToolStatus(name, args = {}) {
     case 'calculate':        return a.expression ? `🔢 Calculating ${clip(a.expression, 40)}` : '🔢 Calculating…';
     case 'get_datetime':     return '🕐 Checking the date & time';
     case 'run_command':      return a.command ? `⚡ Running: ${clip(a.command, 50)}` : '⚡ Running a command…';
+    case 'download_file':    return a.url ? `⬇️ Downloading ${host(a.url)}` : '⬇️ Downloading a file…';
     case 'computer_screenshot': return '📸 Taking a screenshot';
     case 'computer_click':   return (a.x != null && a.y != null) ? `🖱️ Clicking (${Math.round(a.x)}, ${Math.round(a.y)})` : '🖱️ Clicking…';
     case 'computer_type':    return a.text ? `⌨️ Typing “${clip(a.text, 40)}”` : '⌨️ Typing…';
@@ -471,6 +518,25 @@ const TOOLS = {
       },
     },
     run: runCommand,
+  },
+  download_file: {
+    definition: {
+      type: 'function',
+      function: {
+        name: 'download_file',
+        description: 'Download a file (image, PDF, dataset, video, etc.) from a URL and save it to the user\'s machine. Use this to fetch files you then need to analyze or process. Returns the saved local path. Saves to ~/.aspen/downloads by default.',
+        parameters: {
+          type: 'object',
+          properties: {
+            url: { type: 'string', description: 'The URL of the file to download' },
+            filename: { type: 'string', description: 'Optional filename to save as (e.g. "page1.jpg")' },
+            dir: { type: 'string', description: 'Optional directory to save into (defaults to ~/.aspen/downloads)' },
+          },
+          required: ['url'],
+        },
+      },
+    },
+    run: runDownloadFile,
   },
   git_clone: {
     definition: {

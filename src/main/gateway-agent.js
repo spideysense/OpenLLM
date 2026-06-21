@@ -52,6 +52,17 @@ const TOOL_TRIGGERS = [
   /\b(calculate|compute|what'?s|whats)\b[^?]*[\d+\-*/^%]/i,
   /\b(search|google|look up|find out|research)\b/i,
   /\b(run|execute|command|terminal|shell|bash)\b/i,
+  // Agentic / action intents — scoped to technical OBJECTS so conversational or
+  // emotional messages ("process my feelings", "analyze our relationship") stay
+  // on the fast streaming path. These route to the tool loop where the owner can
+  // download, run code, and iterate.
+  /\b(download|fetch|grab|save|pull|scrape|crawl)\b.{0,30}\b(file|files|image|images|photo|photos|pic|pics|pdf|dataset|data|url|page|pages|site|website|web|video|audio|zip|csv|json|model|repo)\b/i,
+  /\b(scrape|crawl|spider)\b/i,
+  /\b(decipher|decode|crack|unscramble|de-?crypt)\b/i,
+  /\b(transcribe|\bocr\b|extract (text|data|images?))\b/i,
+  /\b(set ?up|build|write|create|run|start|kick off)\b.{0,24}\b(script|loop|pipeline|scraper|crawler|bot|job|cron|analysis|workflow|agent|process)\b/i,
+  /\b(analy[sz]e|analy[sz]is|process|parse|inspect|examine|classify|cluster|segment)\b.{0,28}\b(image|images|photo|photos|file|files|data|dataset|pdf|document|manuscript|page|pages|corpus|repo|codebase)\b/i,
+  /\b(convert|transform|resize|crop|preprocess)\b.{0,24}\b(image|images|file|files|to|into|pdf|png|jpe?g)\b/i,
   // Computer use / browsing triggers (owner only, but detect here)
   /\b(screenshot|screen shot|my screen|click|scroll)\b/i,
   /\bwhat'?s on (my |the )?screen\b/i,
@@ -86,7 +97,7 @@ function messageNeedsTools(messages) {
 // Dangerous tools: owner key only.
 // ─────────────────────────────────────────────────────────────────────────────
 const SAFE_TOOLS = ['web_search', 'calculate', 'get_datetime', 'fetch_url', 'deep_research'];
-const DANGEROUS_TOOLS = ['run_command', 'git_clone', 'git_status', 'git_commit_push', 'computer_screenshot', 'computer_click', 'computer_type', 'computer_key', 'computer_scroll'];
+const DANGEROUS_TOOLS = ['run_command', 'download_file', 'git_clone', 'git_status', 'git_commit_push', 'computer_screenshot', 'computer_click', 'computer_type', 'computer_key', 'computer_scroll'];
 
 // Computer tool definitions in OpenAI/Ollama format (tools.js uses Anthropic
 // input_schema format for desktop; here we use the parameters format that
@@ -164,7 +175,7 @@ function getToolDefs(isOwner, allowed = null) {
   let names = isOwner ? [...SAFE_TOOLS, ...DANGEROUS_TOOLS] : [...SAFE_TOOLS];
   // Capability gate: drop any tool the model/machine can't reliably use.
   if (Array.isArray(allowed)) names = names.filter((n) => allowed.includes(n));
-  const builtins = tools.getToolDefinitions(names.filter(n => SAFE_TOOLS.includes(n) || n === 'run_command' || n.startsWith('git_')));
+  const builtins = tools.getToolDefinitions(names.filter(n => SAFE_TOOLS.includes(n) || n === 'run_command' || n === 'download_file' || n.startsWith('git_')));
   const computerDefs = (isOwner && (!Array.isArray(allowed) || allowed.includes('computer_use'))) ? GATEWAY_COMPUTER_TOOL_DEFS : [];
   return [...builtins, ...computerDefs];
 }
@@ -670,6 +681,8 @@ You are Aspen, a helpful AI assistant running 100% LOCALLY on the user's own mac
 - Use tools whenever they apply. Do not answer from memory when a tool gives the correct answer.
 - For ANY math, call calculate. For current date/time, call get_datetime. For web facts, call web_search.
 - For any shell/terminal task, call run_command.
+- You CAN download files: call download_file with a URL to save images, PDFs, datasets, etc. to disk, then analyze them (run_command for scripts/processing). NEVER say you "can't download" or "can't run code" — you have these tools; use them.
+- For multi-step jobs ("download these images and analyze them", "scrape X then summarize"), work the task in steps: call a tool, look at the result, call the next, and keep going until it's done. You do not need permission between steps.
 - For screen tasks (click, type, navigate apps), use computer_screenshot first, then interact.
 - Always answer in English, even if tool results are in another language.
 - BE CONCISE. Lead with the answer, no preamble or filler. Match length to the question. Only go long when the user asks for depth, a list, or a tutorial. Default to TL;DR.
