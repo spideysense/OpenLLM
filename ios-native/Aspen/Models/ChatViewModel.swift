@@ -92,6 +92,15 @@ final class ChatViewModel: ObservableObject {
         finish()
     }
 
+    /// Start a fresh conversation.
+    func newChat() {
+        task?.cancel()
+        messages = []
+        status = ""
+        streaming = false
+        input = ""
+    }
+
     private func run(history: [ChatTurn]) async {
         do {
             if tier == .box, let cfg = boxConfig {

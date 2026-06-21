@@ -6,6 +6,7 @@ struct ChatView: View {
     @StateObject private var vm = ChatViewModel()
     @State private var showTier = false
     @State private var showConnect = false
+    @State private var showMenu = false
     @Namespace private var bottomID
 
     var body: some View {
@@ -35,11 +36,28 @@ struct ChatView: View {
                 onCancel: { showConnect = false }
             )
         }
+        .sheet(isPresented: $showMenu) {
+            MenuSheet(
+                tier: vm.tier,
+                boxConnected: vm.boxConfig != nil,
+                onNewChat: { vm.newChat(); showMenu = false },
+                onChangeTier: { showMenu = false; showTier = true },
+                onDisconnect: {
+                    vm.boxConfig = nil; vm.boxModel = ""
+                    UserDefaults.standard.removeObject(forKey: "boxModel")
+                    vm.setTier(.local); showMenu = false
+                }
+            )
+            .presentationDetents([.height(300)])
+        }
     }
 
     private var header: some View {
         HStack {
-            Image(systemName: "line.3.horizontal").font(.title3)
+            Button { showMenu = true } label: {
+                Image(systemName: "line.3.horizontal").font(.title3).foregroundStyle(.primary)
+            }
+            .buttonStyle(.plain)
             Spacer()
             Button { showTier = true } label: {
                 HStack(spacing: 4) {
@@ -52,7 +70,13 @@ struct ChatView: View {
             }
             .buttonStyle(.plain)
             Spacer()
-            Image(systemName: "plus").font(.title3)
+            Button {
+                vm.newChat()
+                let h = UIImpactFeedbackGenerator(style: .light); h.impactOccurred()
+            } label: {
+                Image(systemName: "square.and.pencil").font(.title3).foregroundStyle(.primary)
+            }
+            .buttonStyle(.plain)
         }
         .padding(.horizontal).padding(.vertical, 10)
     }
@@ -144,5 +168,49 @@ struct ThinkingIndicator: View {
         .padding(.horizontal, 14).padding(.vertical, 10)
         .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 16))
         .transition(.opacity)
+    }
+}
+
+/// The burger menu — new chat, where Aspen runs, and disconnect.
+struct MenuSheet: View {
+    let tier: Tier
+    let boxConnected: Bool
+    var onNewChat: () -> Void
+    var onChangeTier: () -> Void
+    var onDisconnect: () -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Capsule().fill(.secondary.opacity(0.3)).frame(width: 38, height: 4).padding(.top, 8).padding(.bottom, 12)
+            Text("Aspen").font(.headline).frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 18)
+
+            VStack(spacing: 2) {
+                menuRow(icon: "square.and.pencil", title: "New chat", action: onNewChat)
+                menuRow(icon: tier == .box ? "desktopcomputer" : "iphone.gen3",
+                        title: "Where Aspen runs", sub: tier == .box ? "On your Aspen" : "On iPhone",
+                        action: onChangeTier)
+                if boxConnected {
+                    menuRow(icon: "wifi.slash", title: "Disconnect Aspen", tint: .red, action: onDisconnect)
+                }
+            }
+            .padding(.top, 12)
+            Spacer()
+        }
+    }
+
+    private func menuRow(icon: String, title: String, sub: String? = nil, tint: Color = .primary, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 14) {
+                Image(systemName: icon).font(.title3).foregroundStyle(tint).frame(width: 28)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title).foregroundStyle(tint)
+                    if let sub { Text(sub).font(.caption).foregroundStyle(.secondary) }
+                }
+                Spacer()
+            }
+            .padding(.vertical, 12).padding(.horizontal, 18)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 }
