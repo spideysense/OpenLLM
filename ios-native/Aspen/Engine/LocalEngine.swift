@@ -26,6 +26,7 @@ final class LocalEngine: ObservableObject {
 
     @Published var loadProgress: Double = 0      // 0..1 while a model downloads
     @Published var isLoaded = false
+    private var maxProgressSeen: Double = 0       // clamp so progress never jumps backward
 
     private var container: ModelContainer?
     private var loadedModelId: String?
@@ -38,13 +39,25 @@ final class LocalEngine: ObservableObject {
         if container != nil, loadedModelId == modelId { return }
         // Cap MLX's GPU cache so a phone under memory pressure doesn't get killed.
         MLX.GPU.set(cacheLimit: 20 * 1024 * 1024)
+        loadProgress = 0
+        maxProgressSeen = 0
         let configuration = ModelConfiguration(id: modelId)
         let c = try await LLMModelFactory.shared.loadContainer(configuration: configuration) { [weak self] progress in
-            Task { @MainActor in self?.loadProgress = progress.fractionCompleted }
+            Task { @MainActor in
+                guard let self else { return }
+                // The model is many files; MLX's fractionCompleted resets/jumps as
+                // each file downloads and as it recalculates the total. Clamp to the
+                // max ever seen so the user sees a smooth, monotonic bar instead of
+                // 90% -> 27% -> 80% bouncing.
+                let f = progress.fractionCompleted
+                if f > self.maxProgressSeen { self.maxProgressSeen = f }
+                self.loadProgress = self.maxProgressSeen
+            }
         }
         container = c
         loadedModelId = modelId
         isLoaded = true
+        loadProgress = 1
     }
 
     /// Stream a reply token-by-token. `onToken` fires on the main actor as text

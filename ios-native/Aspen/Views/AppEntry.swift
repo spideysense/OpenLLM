@@ -163,7 +163,17 @@ struct OnboardingView: View {
             let h = UINotificationFeedbackGenerator(); h.notificationOccurred(.success)
             onReady()
         } catch {
-            self.error = "Download failed. Check your connection and try again."
+            // Surface the real reason instead of a generic line. Low storage is the
+            // most common cause of a failure near the end of the ~2GB download.
+            let ns = error as NSError
+            let msg = ns.localizedDescription
+            if ns.code == NSFileWriteOutOfSpaceError || msg.lowercased().contains("space") {
+                self.error = "Not enough free storage. The model needs about 2 GB free — clear some space and try again."
+            } else if msg.lowercased().contains("network") || msg.lowercased().contains("internet") || msg.lowercased().contains("connection") {
+                self.error = "Network interrupted the download. Stay on Wi-Fi and tap Retry — it resumes where it left off."
+            } else {
+                self.error = "Download failed: \(msg). Tap Retry — it resumes where it left off."
+            }
             downloading = false
         }
     }
