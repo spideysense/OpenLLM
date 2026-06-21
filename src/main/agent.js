@@ -272,12 +272,33 @@ Call exactly the tool that fits, wait for its result, then answer using that res
       try { args = JSON.parse(call.function?.arguments || '{}'); } catch {}
       emit({ type: 'tool_call', name, statusText: tools.describeToolStatus(name, args) });
       const result = await tools.executeTool(name, args);
-      convo.push({
-        role: 'tool',
-        tool_call_id: call.id,
-        name,
-        content: typeof result === 'string' ? result : JSON.stringify(result),
-      });
+
+      // A screenshot returns a base64 image. Pushing that as tool TEXT floods the
+      // context with a giant blob the model can't see, which truncates the reply.
+      // Instead acknowledge with short text, then pass the actual image to the
+      // vision pipeline via Ollama's images[] array (raw base64, no data: prefix).
+      const isScreenshot = (name === 'computer_screenshot' && typeof result === 'string' && result.startsWith('data:image'));
+      if (isScreenshot) {
+        convo.push({
+          role: 'tool',
+          tool_call_id: call.id,
+          name,
+          content: 'Screenshot captured. The image is provided below for analysis.',
+        });
+        const rawBase64 = result.replace(/^data:image\/[a-z]+;base64,/, '');
+        convo.push({
+          role: 'user',
+          content: 'Here is the screenshot you just captured. Analyze it and answer my original request.',
+          images: [rawBase64],
+        });
+      } else {
+        convo.push({
+          role: 'tool',
+          tool_call_id: call.id,
+          name,
+          content: typeof result === 'string' ? result : JSON.stringify(result),
+        });
+      }
     }
     // loop: model now sees the tool results and continues
   }
