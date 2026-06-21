@@ -157,6 +157,13 @@ struct OnboardingView: View {
     }
 
     private func download() async {
+        // Preflight: if the device can't safely hold the model, don't even try —
+        // attempting the load lets iOS jetsam-kill the app (the crash on a
+        // memory-tight iPhone 15). Show a clear reason instead.
+        guard DeviceCompat.canRunDefaultModel else {
+            self.error = DeviceCompat.incompatibilityReason
+            return
+        }
         downloading = true; error = ""
         do {
             try await engine.loadIfNeeded()
