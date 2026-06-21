@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 
 /// A saved conversation (title + messages + timestamp).
 struct Conversation: Identifiable, Codable, Equatable {
