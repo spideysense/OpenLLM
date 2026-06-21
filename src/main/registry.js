@@ -59,10 +59,41 @@ const TIER_ORDER = { light: 1, medium: 2, heavy: 3, ultra: 4 };
 
 // Models the user's hardware can actually run, power-ranked (registry order is
 // already most→least capable). Only tool-capable models are in the registry.
+// Deprecated models (superseded by a better one) are skipped so Aspen never
+// recommends or auto-selects them.
 function modelsForTier(registry, tier) {
   if (!Array.isArray(registry?.models)) return [];
   const cap = TIER_ORDER[tier] || 2;
-  return registry.models.filter((m) => (TIER_ORDER[m.min_tier] || 2) <= cap);
+  return registry.models.filter((m) => !m.deprecated && (TIER_ORDER[m.min_tier] || 2) <= cap);
+}
+
+// Registry quality rank for an installed model's base name. Lower = better.
+// Deprecated models are pushed to the bottom. Used by the router to pick the
+// best chat model by QUALITY, not by size (which used to resurrect 65GB scout).
+function qualityRank(registry, modelName) {
+  const base = String(modelName || '').split(':')[0];
+  const models = registry?.models || [];
+  const idx = models.findIndex((m) => String(m.model).split(':')[0] === base);
+  if (idx < 0) return 9999;                       // unknown → unranked
+  if (models[idx].deprecated) return 9000 + idx;  // deprecated → bottom
+  return idx;                                      // registry order = quality
+}
+
+// Installed models that are deprecated (superseded) AND have their replacement
+// installed — safe to retire to free space. Returns [{model, superseded_by}].
+function retirableModels(registry, installedModels) {
+  if (!Array.isArray(registry?.models)) return [];
+  const installedBases = (installedModels || []).map((m) => String(m.name).split(':')[0]);
+  const out = [];
+  for (const m of registry.models) {
+    if (!m.deprecated || !m.superseded_by) continue;
+    const base = String(m.model).split(':')[0];
+    const replBase = String(m.superseded_by).split(':')[0];
+    if (installedBases.includes(base) && installedBases.includes(replBase)) {
+      out.push({ model: m.model, superseded_by: m.superseded_by });
+    }
+  }
+  return out;
 }
 
 // The single best model the user's machine can run = first runnable in the
@@ -89,4 +120,4 @@ function checkUpgrades(installedModels, registry, tier) {
   }];
 }
 
-module.exports = { getRegistry, checkUpgrades, modelsForTier, recommendedModel };
+module.exports = { getRegistry, checkUpgrades, modelsForTier, recommendedModel, qualityRank, retirableModels };

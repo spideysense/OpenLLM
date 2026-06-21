@@ -493,12 +493,20 @@ function tryListen(port) {
     currentPort = port;
     console.log(`[Aspen] API Gateway running on http://127.0.0.1:${port}`);
     // Warm the active model so the first user message doesn't pay a cold-load
-    // penalty. Fire-and-forget; failure is harmless.
-    setTimeout(() => {
+    // penalty. Fire-and-forget; failure is harmless. First, let the model manager
+    // reconcile: evict any leftover models from memory and retire superseded ones
+    // so the box isn't thrashing on a stale 65GB model.
+    setTimeout(async () => {
       try {
         const store = require('./store');
         const activeModel = store.get('activeModel');
         if (!activeModel) return;
+        try {
+          const manager = require('./model-manager');
+          const r = await manager.manage(activeModel, { autoRetire: store.get('autoRetireModels') !== false });
+          if (r.evicted.length) console.log(`[Aspen] Evicted from memory: ${r.evicted.join(', ')}`);
+          if (r.retired.length) console.log(`[Aspen] Retired superseded models: ${r.retired.join(', ')} (freed ~${r.freedGB.toFixed(0)}GB)`);
+        } catch (e) { console.log('[Aspen] model manager skipped:', e.message); }
         const warmBody = JSON.stringify({ model: activeModel, messages: [{ role: 'user', content: 'hi' }], stream: false, keep_alive: -1, options: { num_predict: 1, num_ctx: system.getRecommendedContext() } });
         const warmReq = http.request({
           hostname: '127.0.0.1', port: 11434, path: '/api/chat', method: 'POST',

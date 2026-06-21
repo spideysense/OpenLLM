@@ -1,0 +1,123 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// Model manager — Aspen manages its own models so the user never has to babysit
+// memory or quality by hand.
+//
+//   * Memory: only the ACTIVE chat model (+ the coder, if it co-fits) stays
+//     resident. Everything else is evicted, so a leftover 65GB model can't sit
+//     in RAM thrashing the box.
+//   * Quality: deprecated/superseded models (per the registry) are never
+//     recommended, and — when their replacement is installed — are auto-retired
+//     to reclaim disk. Guard: never deletes a model that is currently loaded.
+//
+// Pure decision helpers (keepSet, toEvict, toRetire) are unit-tested; the IO
+// wrappers are defensive and never throw into the caller.
+// ─────────────────────────────────────────────────────────────────────────────
+const OLLAMA = 'http://127.0.0.1:11434';
+const registry = require('./registry');
+
+function base(n) { return String(n || '').split(':')[0]; }
+function isCoder(n) { return /coder|deepseek-coder|code-/i.test(String(n || '')); }
+
+// ── pure: which base names should stay resident ──────────────────────────────
+// Keep the active chat model, plus an installed coder (the router routes coding
+// turns to it and it co-fits on big boxes). Everything else is evictable.
+function keepSet(activeModel, installed) {
+  const keep = new Set([base(activeModel)]);
+  const coder = (installed || []).find((m) => isCoder(m.name));
+  if (coder) keep.add(base(coder.name));
+  return keep;
+}
+
+// pure: resident models that aren't in the keep set → should be unloaded.
+function toEvict(activeModel, installed, resident) {
+  const keep = keepSet(activeModel, installed);
+  return (resident || []).map((m) => m.name).filter((n) => !keep.has(base(n)));
+}
+
+// pure: retirable models (deprecated + replacement installed) that are NOT
+// currently resident → safe to delete. Never deletes something loaded/active.
+function toRetire(reg, installed, resident, activeModel) {
+  const residentBases = new Set((resident || []).map((m) => base(m.name)));
+  const activeBase = base(activeModel);
+  return registry
+    .retirableModels(reg, installed)
+    .map((r) => r.model)
+    .filter((m) => !residentBases.has(base(m)) && base(m) !== activeBase);
+}
+
+// ── IO (defensive) ───────────────────────────────────────────────────────────
+async function residentModels() {
+  try {
+    const res = await fetch(`${OLLAMA}/api/ps`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.models || []).map((m) => ({ name: m.name, size: m.size_vram || m.size || 0 }));
+  } catch { return []; }
+}
+
+async function installedModels() {
+  try {
+    const res = await fetch(`${OLLAMA}/api/tags`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.models || []).map((m) => ({ name: m.name, size: m.size || 0 }));
+  } catch { return []; }
+}
+
+async function unloadModel(name) {
+  // keep_alive:0 tells Ollama to drop the model from memory immediately.
+  try {
+    await fetch(`${OLLAMA}/api/generate`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: name, keep_alive: 0 }),
+    });
+    return true;
+  } catch { return false; }
+}
+
+async function deleteModel(name) {
+  try {
+    const res = await fetch(`${OLLAMA}/api/delete`, {
+      method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: name }),
+    });
+    return res.ok;
+  } catch { return false; }
+}
+
+// ── orchestration ────────────────────────────────────────────────────────────
+// Called on startup and whenever the active model changes. Frees memory and,
+// if autoRetire is on, reclaims disk from superseded models. Returns a summary
+// so the app can surface what it did. Never throws.
+async function manage(activeModel, { autoRetire = true } = {}) {
+  const summary = { active: activeModel, evicted: [], retired: [], freedGB: 0 };
+  if (!activeModel) return summary;
+  try {
+    const [installed, resident, reg] = await Promise.all([
+      installedModels(), residentModels(), registry.getRegistry(),
+    ]);
+
+    // 1) Evict anything resident that isn't the active model or the coder.
+    for (const name of toEvict(activeModel, installed, resident)) {
+      if (await unloadModel(name)) summary.evicted.push(name);
+    }
+
+    // 2) Retire superseded models whose replacement is installed (disk reclaim).
+    if (autoRetire && reg) {
+      const freshResident = await residentModels(); // re-read after eviction
+      for (const name of toRetire(reg, installed, freshResident, activeModel)) {
+        const m = installed.find((x) => base(x.name) === base(name));
+        if (await deleteModel(name)) {
+          summary.retired.push(name);
+          summary.freedGB += m ? (m.size || 0) / 1e9 : 0;
+        }
+      }
+    }
+  } catch { /* never break startup over model housekeeping */ }
+  return summary;
+}
+
+module.exports = {
+  keepSet, toEvict, toRetire,
+  residentModels, installedModels, unloadModel, deleteModel, manage,
+};

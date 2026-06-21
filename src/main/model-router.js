@@ -40,14 +40,24 @@ function decideCodingModel({ requested, text, list, ramBytes, ctx }) {
 
 // Pure decision (unit-tested): when a coder model is requested for a NON-coding
 // turn (e.g. a client whose model selector defaulted to the coder), pick the
-// chat model to use instead — the largest installed non-coder. This is what
-// stops "Is the vegetarian Omega 3?" from being answered by qwen2.5-coder.
-function decideChatModel({ requested, list }) {
+// chat model to use instead. Ranks by registry QUALITY when a rank fn is given
+// (lower = better), else falls back to largest non-coder. The quality rank is
+// what stops a big-but-worse model (e.g. deprecated 65GB scout) from being
+// auto-selected just because it's the largest installed file.
+function decideChatModel({ requested, list, rank }) {
   if (!isCoderName(requested)) return requested;           // already a chat model
-  const chats = (list || [])
-    .filter((m) => !isCoderName(m.name) && !/embed/i.test(m.name))
-    .sort((a, b) => (b.size || 0) - (a.size || 0));
-  return chats.length ? chats[0].name : requested;         // largest non-coder, else keep
+  const chats = (list || []).filter((m) => !isCoderName(m.name) && !/embed/i.test(m.name));
+  if (!chats.length) return requested;
+  if (rank) {
+    chats.sort((a, b) => {
+      const ra = rank(a.name), rb = rank(b.name);
+      if (ra !== rb) return ra - rb;                        // better quality first
+      return (b.size || 0) - (a.size || 0);                 // tie → larger
+    });
+  } else {
+    chats.sort((a, b) => (b.size || 0) - (a.size || 0));    // no registry → size
+  }
+  return chats[0].name;
 }
 
 let _tagCache = { at: 0, list: [] };
@@ -72,9 +82,17 @@ async function routeModel(requested, messages) {
     if (!isCoderName(requested) && !coding) return requested;
     const list = await installedModelsDetailed();
     // Non-coding turn but a coder was requested → downgrade to the chat model so
-    // plain questions never get code. Fixes clients that send the wrong model
-    // (e.g. an old build whose selector defaulted to the coder).
-    if (!coding) return decideChatModel({ requested, list });
+    // plain questions never get code. Pick by registry QUALITY (not size) so a
+    // deprecated big model (scout) is never resurrected over a better one.
+    if (!coding) {
+      let rank = null;
+      try {
+        const registry = require('./registry');
+        const reg = await registry.getRegistry();
+        if (reg) rank = (name) => registry.qualityRank(reg, name);
+      } catch {}
+      return decideChatModel({ requested, list, rank });
+    }
     // Coding turn → upgrade chat→coder when it co-fits (or keep an existing coder).
     return decideCodingModel({ requested, text, list, ramBytes: os.totalmem(), ctx: system.getRecommendedContext() });
   } catch {

@@ -1,7 +1,7 @@
 {
   "schema_version": 3,
-  "updated": "2026-06-08",
-  "changelog": "Auto-updated 2026-06-08: new models detected from Ollama library.",
+  "updated": "2026-06-21",
+  "changelog": "Added qwen3.6:35b-a3b as top tool-calling model; deprecated llama4:scout (weaker tool use, 65GB thrash).",
   "hardware_tiers": {
     "light": {
       "label": "Light",
@@ -59,13 +59,24 @@
   },
   "models": [
     {
+      "model": "qwen3.6:35b-a3b",
+      "name": "Qwen 3.6 35B-A3B",
+      "provider": "Alibaba",
+      "download_gb": 24,
+      "min_tier": "heavy",
+      "tool_support": true,
+      "why": "MoE: 35B total / 3B active \u2014 fast streaming with strong, reliable tool calling and agentic coding. Best all-around local model for tool use on this hardware."
+    },
+    {
       "model": "llama4:scout",
       "name": "Llama 4 Scout",
       "provider": "Meta",
       "download_gb": 65,
       "min_tier": "ultra",
       "tool_support": true,
-      "why": "Meta's open flagship. 10M-token context, MoE efficiency, strong tool use. Needs serious hardware."
+      "why": "Superseded by Qwen 3.6 for this hardware: weaker tool calling and 65GB vs 24GB (caused memory thrash). Not recommended.",
+      "deprecated": true,
+      "superseded_by": "qwen3.6:35b-a3b"
     },
     {
       "model": "qwen3:32b",
