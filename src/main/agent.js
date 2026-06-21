@@ -19,6 +19,10 @@ const codeValidator = require('./code-validator');
 const OLLAMA_HOST = '127.0.0.1';
 const OLLAMA_PORT = 11434;
 const MAX_TOOL_ROUNDS = 4; // safety cap so a confused model can't loop forever
+// Owner multi-step tasks (download N files, run a script, inspect, refine, loop)
+// need more rounds than a one-shot. The desktop app is the owner by definition.
+// Exits early when the model stops calling tools, so this never slows normal chat.
+const OWNER_MAX_TOOL_ROUNDS = 16;
 
 // One non-streaming call to Ollama's OpenAI-compatible endpoint.
 function ollamaChat(payload) {
@@ -158,7 +162,9 @@ You have access to tools. Use them whenever they apply — do not answer from me
 - For ANY arithmetic or math, you MUST call the "calculate" tool. Never compute numbers yourself; you will get them wrong.
 - For the current date or time, call "get_datetime".
 - To read a specific web page, call "fetch_url".
-- To run terminal/shell commands on the user's machine, call "run_command". This includes ALL of: git clone, git add, git commit, git push, reading files (cat), writing files (use heredoc: cat > file.html << 'EOF' ... EOF), creating directories (mkdir), running scripts, installing packages, listing files (ls). You MUST use run_command for these — NEVER tell the user to run commands themselves. NEVER say "I cannot execute commands" — you CAN, via run_command. When writing code to a file, use run_command with a heredoc, then use run_command again to git add, commit, and push. Do the FULL workflow without asking.
+- To run terminal/shell commands on the user's machine, call "run_command". This includes ALL of: git clone, git add, git commit, git push, reading files (cat), writing files (use heredoc: cat > file.html << 'EOF' ... EOF), creating directories (mkdir), running scripts, installing packages, listing files (ls). You MUST use run_command for these — NEVER tell the user to run commands themselves. NEVER say "I cannot execute commands" or "I don't have access to run_command" — you CAN, via run_command. When writing code to a file, use run_command with a heredoc, then use run_command again to git add, commit, and push. Do the FULL workflow without asking.
+- To download a file (image, PDF, dataset) from a URL, call "download_file" — it saves to disk and returns the path. Then use run_command to process it (run a script, OCR, analysis, etc.).
+- For multi-step jobs ("download these images and analyze them", "set up a decipher loop that scores results and keeps going until it stops improving"): WORK THE LOOP YOURSELF. Write a script with run_command, run it, read the output/score, refine, run again — iterate across multiple tool calls until done. Do NOT just describe a script or hand the user pseudocode — actually write it to a file and execute it. You have up to many tool rounds; use them.
 - When the user asks you to do something on screen, control an app, or automate a task on their computer, use the computer_* tools: always start with computer_screenshot to see the current state, then click/type/key as needed, then screenshot again to verify. Keep going until the task is complete. Never ask the user to do things themselves if you can do it via computer use.
 Call exactly the tool that fits, wait for its result, then answer using that result. Always answer in English.`;
 
@@ -190,7 +196,8 @@ Call exactly the tool that fits, wait for its result, then answer using that res
   // tool/agent activity only. A pure chat or reasoning turn (no tool calls) shows
   // the normal thinking indicator instead of a useless one-line "Thinking" trail.
 
-  for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+  const maxRounds = isOwner ? OWNER_MAX_TOOL_ROUNDS : MAX_TOOL_ROUNDS;
+  for (let round = 0; round < maxRounds; round++) {
     const resp = await ollamaChat({ model, messages: convo, tools: toolDefs });
     const msg = resp.choices?.[0]?.message;
     if (!msg) return 'Sorry, I could not generate a response.';
@@ -211,9 +218,9 @@ Call exactly the tool that fits, wait for its result, then answer using that res
       // training, even though the tool exists. Detect refusal patterns and either
       // extract commands from the response OR retry with a stronger directive.
       if (out && isOwner && toolSettings.getEnabledToolNames().includes('run_command')) {
-        const refusalPatterns = /cannot (execute|run|perform|directly|push|commit)|security protocol|your (own )?terminal|please (run|execute) these|cannot directly|do not have.*access|cannot.*shell|operating as an AI|for your (own )?security|massive security risk|DO NOT paste|\.env file|never.*share.*token|cannot accept.*token|cannot.*credentials|text.based (intelligence|AI)|do not have.*background thread|say.*"Next"|paste.*into.*file|create.*new token|revoke.*token|ACTION REQUIRED/i;
+        const refusalPatterns = /(can'?t|cannot|do ?n'?t|not able to) (execute|run|perform|directly|push|commit|access)|don'?t have.*access|do not have.*access|security protocol|your (own )?terminal|please (run|execute) these|cannot directly|cannot.*shell|operating as an AI|for your (own )?security|massive security risk|DO NOT paste|\.env file|never.*share.*token|cannot accept.*token|cannot.*credentials|text.based (intelligence|AI)|do not have.*background thread|say.*"Next"|paste.*into.*file|create.*new token|revoke.*token|ACTION REQUIRED/i;
         const userMsg = (messages[messages.length - 1]?.content || '').toLowerCase();
-        const shellIntent = /\b(git |commit|push|pull|clone|mkdir|cat |echo |npm |pip |cd |ls |write|create.*file|save.*file|deploy|ship it|do it|just do|token|api.key|password|credential|pat_|ghp_|sk-|secret|https?:\/\/.*github)\b/i;
+        const shellIntent = /\b(git |commit|push|pull|clone|mkdir|cat |echo |npm |pip |cd |ls |write|create.*file|save.*file|deploy|ship it|do it|just do|token|api.key|password|credential|pat_|ghp_|sk-|secret|https?:\/\/.*github|download|analy[sz]e|analy[sz]is|decipher|decode|loop|script|pipeline|iterate|process.*(image|file|data)|run.*(script|loop|analysis))\b/i;
 
         if (refusalPatterns.test(out) && shellIntent.test(userMsg)) {
           // Try to extract commands from code blocks in the model's response

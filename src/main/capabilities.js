@@ -91,7 +91,7 @@ function computeProfile({ tools = false, vision = false, sizeB = null } = {}, ha
   const allowedTools = [];
   if (features.webSearch) allowedTools.push('web_search', 'fetch_url');
   if (features.calculator) allowedTools.push('calculate', 'get_datetime');
-  if (features.runCommand) allowedTools.push('run_command');
+  if (features.runCommand) allowedTools.push('run_command', 'download_file');
   if (features.deepResearch) allowedTools.push('deep_research');
   if (features.computerUse) allowedTools.push('computer_use');
 
