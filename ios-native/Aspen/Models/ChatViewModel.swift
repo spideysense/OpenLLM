@@ -26,8 +26,26 @@ final class ChatViewModel: ObservableObject {
            let cfg = try? JSONDecoder().decode(BoxClient.Config.self, from: data) {
             boxConfig = cfg
         }
+        // Restore the model name too — without it, the box receives an empty model
+        // and hangs (the cause of the box-mode "request timed out").
+        boxModel = UserDefaults.standard.string(forKey: "boxModel") ?? ""
         if let saved = UserDefaults.standard.string(forKey: "lastTier"), saved == "box", boxConfig != nil {
             tier = .box
+            footerModel = "On your Aspen\(boxModel.isEmpty ? "" : " · \(boxModel)")"
+        }
+        // If we're connected but lost the model (e.g. older saved state), re-fetch.
+        if boxConfig != nil, boxModel.isEmpty { Task { await refreshBoxModel() } }
+    }
+
+    /// Re-fetch the box's model list and pick a chat model. Used on restore and as
+    /// a safety net before sending if the model went missing.
+    func refreshBoxModel() async {
+        guard let cfg = boxConfig else { return }
+        if let models = try? await BoxClient.fetchModels(cfg), !models.isEmpty {
+            let chat = models.first { !$0.lowercased().contains("coder") } ?? models.first ?? ""
+            boxModel = chat
+            UserDefaults.standard.set(chat, forKey: "boxModel")
+            if tier == .box { footerModel = "On your Aspen\(chat.isEmpty ? "" : " · \(chat)")" }
         }
     }
 
@@ -51,6 +69,7 @@ final class ChatViewModel: ObservableObject {
         // "qwen2.5-coder" before any turn. The box's per-turn aspen_model event
         // corrects this after the first message, but the initial label matters.
         boxModel = models.first { !$0.lowercased().contains("coder") } ?? models.first ?? ""
+        UserDefaults.standard.set(boxModel, forKey: "boxModel")
         setTier(.box)
     }
 
@@ -76,6 +95,8 @@ final class ChatViewModel: ObservableObject {
     private func run(history: [ChatTurn]) async {
         do {
             if tier == .box, let cfg = boxConfig {
+                // Never send an empty model — the box hangs on it. Re-fetch first.
+                if boxModel.isEmpty { await refreshBoxModel() }
                 try await BoxClient.chat(
                     config: cfg, model: boxModel, messages: history,
                     onStatus: { [weak self] s in Task { @MainActor in self?.status = s } },
