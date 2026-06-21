@@ -716,6 +716,27 @@ WHEN WRITING CODE:
     }
   } catch {}
 
+  // Search pre-fetch — local models often REFUSE to call web_search and fall back
+  // to "I don't have real-time access". For clear search-intent queries (news,
+  // latest, weather, prices, "who won"), run the search deterministically and
+  // inject results, so the model answers from real data instead of refusing.
+  // Tool path only (non-streaming) — never touches the fast streaming path.
+  try {
+    const lastUser = [...msgs].reverse().find(m => m.role === 'user');
+    const q = (lastUser?.content || '').trim();
+    const SEARCH_INTENT = /\b(news|headlines?|latest|breaking|current events|today'?s|right now|weather|forecast|temperature|stock|share price|price of|how much (is|does)|who (won|is winning|is the (ceo|president|prime minister))|score|standings|released|launched)\b/i;
+    const hasUrl = /https?:\/\//.test(q);
+    if (q && !hasUrl && SEARCH_INTENT.test(q)) {
+      const results = await tools.executeTool('web_search', { query: q.slice(0, 200) });
+      if (results && typeof results === 'string' && results.length > 20 && !/^(No results|Search failed|Error)/i.test(results)) {
+        const block = `\n\n--- Live web search results for "${q.slice(0, 120)}" (use these to answer; they are current) ---\n${results.slice(0, 4000)}\n---`;
+        msgs = msgs[0]?.role === 'system'
+          ? [{ ...msgs[0], content: msgs[0].content + block }, ...msgs.slice(1)]
+          : [{ role: 'system', content: `You are a helpful assistant.${block}` }, ...msgs];
+      }
+    }
+  } catch {}
+
   // Skills injection
   const userText = (msgs[msgs.length - 1]?.content || '').slice(0, 500);
   const skillsBlock = getRelevantSkillsText(userText);
