@@ -23,6 +23,7 @@ const worldModel = require('./world-model');
 const capabilities = require('./capabilities');
 const codeValidator = require('./code-validator');
 const gpuFallback = require('./gpu-fallback');
+const modelDebug = require('./model-debug');
 
 const OLLAMA_HOST = '127.0.0.1';
 const OLLAMA_PORT = 11434;
@@ -660,17 +661,23 @@ NEVER write code, HTML, or a code block unless the user EXPLICITLY asks you to b
     try {
       let any = false;
       let fullReply = '';
+      // Non-blocking: log what's resident vs what we're sending, so the box's
+      // console shows whether this turn will reload, with no added latency.
+      const reqCtx = contextFor(fastConvo);
+      modelDebug.diagnose('fast', model, reqCtx).catch(() => {});
       const iter = ollamaStream(model, fastConvo)[Symbol.asyncIterator]();
 
-      // Race the first token against a short timer. If the model is still loading
-      // into memory (common the first time on a large model), surface a clear
-      // "Loading…" state instead of leaving a frozen indicator that looks broken.
+      // Race the first token against a short timer. If it's slow, find out WHY
+      // (resident => thinking; not resident => loading) and show the accurate
+      // status — the user has said repeatedly that a slow-but-honest status is
+      // fine, a frozen/mislabeled one is not.
       let pending = iter.next();
       let nudgeTimer;
       const nudge = new Promise((r) => { nudgeTimer = setTimeout(() => r(SLOW_FIRST_TOKEN), FIRST_TOKEN_NUDGE_MS); });
       let step = await Promise.race([pending, nudge]);
       if (step === SLOW_FIRST_TOKEN) {
-        yield { type: 'status', text: `Loading ${model} into memory`, transient: true };
+        const d = await modelDebug.diagnose('fast-nudge', model, reqCtx);
+        yield { type: 'status', text: d.resident ? 'Thinking…' : `Loading ${model} into memory`, transient: true };
         step = await pending; // keep waiting for the real first token (cold-load grace applies)
       } else {
         clearTimeout(nudgeTimer);
