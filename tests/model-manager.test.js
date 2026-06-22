@@ -50,12 +50,17 @@ describe('router picks best chat model by quality, not size', () => {
 
 describe('model-manager memory reconciliation', () => {
   const installed = [{ name: 'qwen3.6:35b-a3b' }, { name: 'qwen2.5-coder:32b' }, { name: 'llama4:scout' }];
-  it('keeps the active chat model and the coder resident', () => {
+  it('does NOT keep a separate coder when the active model codes for itself (qwen3.6)', () => {
     const keep = mgr.keepSet('qwen3.6:35b-a3b', installed);
     expect(keep.has('qwen3.6')).toBe(true);
+    expect(keep.has('qwen2.5-coder')).toBe(false);   // one model only — no thrash
+  });
+  it('keeps the coder for a non-self-sufficient active model', () => {
+    const keep = mgr.keepSet('llama4:scout', installed);
+    expect(keep.has('llama4')).toBe(true);
     expect(keep.has('qwen2.5-coder')).toBe(true);
   });
-  it('evicts a resident model that is neither active nor the coder', () => {
+  it('evicts a resident model that is neither active nor kept', () => {
     const resident = [{ name: 'qwen3.6:35b-a3b' }, { name: 'llama4:scout' }];
     expect(mgr.toEvict('qwen3.6:35b-a3b', installed, resident)).toEqual(['llama4:scout']);
   });
@@ -94,19 +99,23 @@ describe('pickActiveModel — migrate off deprecated models', () => {
   });
 });
 
-describe('lean mode — keep only active + coder', () => {
+describe('lean mode — keep only the active model (coder dropped if self-sufficient)', () => {
   const installed = [
     { name: 'qwen3.6:35b-a3b' }, { name: 'qwen2.5-coder:32b' },
     { name: 'qwen3:32b' }, { name: 'gpt-oss:120b' }, { name: 'llama4:scout' },
   ];
-  it('retires every non-active, non-coder model', () => {
+  it('retires every other model including the coder (qwen3.6 codes for itself)', () => {
     const out = mgr.toRetireLean('qwen3.6:35b-a3b', installed, []);
-    expect(out.sort()).toEqual(['gpt-oss:120b', 'llama4:scout', 'qwen3:32b']);
+    expect(out.sort()).toEqual(['gpt-oss:120b', 'llama4:scout', 'qwen2.5-coder:32b', 'qwen3:32b']);
   });
-  it('keeps the active model and the coder', () => {
+  it('keeps the active model itself', () => {
     const out = mgr.toRetireLean('qwen3.6:35b-a3b', installed, []);
     expect(out).not.toContain('qwen3.6:35b-a3b');
+  });
+  it('keeps the coder when the active model is NOT self-sufficient', () => {
+    const out = mgr.toRetireLean('llama4:scout', installed, []);
     expect(out).not.toContain('qwen2.5-coder:32b');
+    expect(out).not.toContain('llama4:scout');
   });
   it('never retires a model that is still resident', () => {
     const out = mgr.toRetireLean('qwen3.6:35b-a3b', installed, [{ name: 'gpt-oss:120b' }]);

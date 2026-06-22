@@ -26,8 +26,17 @@ function modelSizeFromList(list, name) {
 
 // Pure decision (unit-tested): given the requested model, the user's text, the
 // installed models with sizes, RAM and context window, return the model to run.
+// Models that code well enough on their own that routing to a SEPARATE coder
+// isn't worth keeping a second large model resident. Qwen3.x is a strong coder,
+// so using one model for both chat and code keeps exactly one model in memory —
+// no two-model eviction/reload thrash.
+function isSelfSufficientCoder(name) {
+  return /qwen3|glm-?5|deepseek-v3|gpt-oss/i.test(String(name || ''));
+}
+
 function decideCodingModel({ requested, text, list, ramBytes, ctx }) {
   if (isCoderName(requested)) return requested;            // already a coder
+  if (isSelfSufficientCoder(requested)) return requested;  // codes well itself — one model, no thrash
   if (!CODING_RX.test(text || '')) return requested;       // not a coding turn
   const coders = (list || []).filter((m) => isCoderName(m.name)).sort((a, b) => (b.size || 0) - (a.size || 0));
   if (!coders.length) return requested;                    // no coder installed

@@ -17,6 +17,8 @@ const registry = require('./registry');
 
 function base(n) { return String(n || '').split(':')[0]; }
 function isCoder(n) { return /coder|deepseek-coder|code-/i.test(String(n || '')); }
+// Models that code well enough alone that we don't keep a second coder resident.
+function isSelfSufficientCoder(n) { return /qwen3|glm-?5|deepseek-v3|gpt-oss/i.test(String(n || '')); }
 
 // pure: choose the active model. If the current active model is DEPRECATED (per
 // registry) or unset, switch to the best installed non-deprecated model (registry
@@ -43,8 +45,13 @@ function pickActiveModel({ current, installed, reg }) {
 // turns to it and it co-fits on big boxes). Everything else is evictable.
 function keepSet(activeModel, installed) {
   const keep = new Set([base(activeModel)]);
-  const coder = (installed || []).find((m) => isCoder(m.name));
-  if (coder) keep.add(base(coder.name));
+  // If the active model codes well on its own (qwen3 etc.), do NOT keep a second
+  // coder model resident — one model in memory means nothing can evict it and
+  // force a reload ("Loading qwen…" every other message).
+  if (!isSelfSufficientCoder(activeModel)) {
+    const coder = (installed || []).find((m) => isCoder(m.name));
+    if (coder) keep.add(base(coder.name));
+  }
   return keep;
 }
 
