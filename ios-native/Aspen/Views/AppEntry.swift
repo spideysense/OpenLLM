@@ -192,6 +192,8 @@ struct TierSheet: View {
     let boxConnected: Bool
     var onPickLocal: () -> Void
     var onPickBox: () -> Void
+    var onChangeConnection: () -> Void
+    var onDisconnect: () -> Void
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -203,6 +205,29 @@ struct TierSheet: View {
             row(title: "On your Aspen",
                 sub: boxConnected ? "Connected · the big models" : "Connect your Mac or Aspen box",
                 active: tier == .box, action: onPickBox)
+
+            // When a box is connected, let the user change the URL/key or drop it.
+            if boxConnected {
+                HStack(spacing: 10) {
+                    Button(action: onChangeConnection) {
+                        Label("Change connection", systemImage: "arrow.triangle.2.circlepath")
+                            .font(.subheadline.weight(.medium))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12))
+                    }
+                    Button(role: .destructive, action: onDisconnect) {
+                        Label("Disconnect", systemImage: "xmark.circle")
+                            .font(.subheadline.weight(.medium))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12))
+                    }
+                    .foregroundStyle(.red)
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 2)
+            }
             Spacer()
         }
         .padding(.horizontal, 18)

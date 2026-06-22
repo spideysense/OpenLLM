@@ -466,6 +466,7 @@ async function* ollamaStream(model, messages) {
         const delta = json.message?.content;
         if (delta) { yieldedContent = true; yield delta; }
         else if (json.message?.reasoning) { reasoning += json.message.reasoning; }
+        else if (json.message?.thinking) { reasoning += json.message.thinking; } // qwen3/glm native field
       } catch {}
     }
   }
@@ -539,6 +540,7 @@ function ollamaChatOnce(payload, extraOpts) {
             if (json.error) { done(() => reject(new Error(`Ollama error: ${json.error}`))); req.destroy(); return; }
             if (json.message?.content) content += json.message.content;
             if (json.message?.reasoning) reasoning += json.message.reasoning;
+            if (json.message?.thinking) reasoning += json.message.thinking;
             if (Array.isArray(json.message?.tool_calls) && json.message.tool_calls.length) {
               toolCalls = toolCalls.concat(json.message.tool_calls);
             }
@@ -552,6 +554,7 @@ function ollamaChatOnce(payload, extraOpts) {
             const json = JSON.parse(tail);
             if (json.message?.content) content += json.message.content;
             if (json.message?.reasoning) reasoning += json.message.reasoning;
+            if (json.message?.thinking) reasoning += json.message.thinking;
             if (Array.isArray(json.message?.tool_calls)) toolCalls = toolCalls.concat(json.message.tool_calls);
           } catch {}
         }
@@ -815,8 +818,9 @@ WHEN WRITING CODE:
     }
 
     if (toolCalls.length === 0) {
-      // No tool calls — final answer
-      const text = clean(msg.content);
+      // No tool calls — final answer. Fall back to reasoning/thinking if the
+      // model left content empty (qwen3.6 etc.) before giving up.
+      const text = clean(msg.content) || clean(msg.reasoning);
       const out = text || await plainChatRetry(model, messages);
       yield { type: 'content', text: out || 'Sorry, I could not generate a response.' };
       yield { type: 'done' };

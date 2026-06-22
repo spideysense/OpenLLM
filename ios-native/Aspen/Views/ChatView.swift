@@ -46,9 +46,11 @@ struct ChatView: View {
                 onPickBox: {
                     showTier = false
                     if vm.boxConfig != nil { vm.setTier(.box) } else { showConnect = true }
-                }
+                },
+                onChangeConnection: { showTier = false; showConnect = true },
+                onDisconnect: { vm.disconnect(); showTier = false }
             )
-            .presentationDetents([.height(280)])
+            .presentationDetents([.height(vm.boxConfig != nil ? 360 : 280)])
         }
         .sheet(isPresented: $showConnect) {
             ConnectView(

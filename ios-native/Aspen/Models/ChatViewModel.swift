@@ -75,6 +75,17 @@ final class ChatViewModel: ObservableObject {
         setTier(.box)
     }
 
+    /// Disconnect from the box: clear the saved connection + model and fall back
+    /// to on-iPhone mode. After this the user can connect to a different Aspen
+    /// URL / API key from the connect screen.
+    func disconnect() {
+        task?.cancel()
+        boxConfig = nil                                   // persistBox() clears UserDefaults
+        boxModel = ""
+        UserDefaults.standard.removeObject(forKey: "boxModel")
+        setTier(.local)
+    }
+
     func send() {
         let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, !streaming else { return }
