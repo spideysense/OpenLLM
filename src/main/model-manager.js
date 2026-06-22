@@ -135,7 +135,16 @@ async function manage(activeModel, { autoRetire = true, lean = false } = {}) {
       if (await unloadModel(name)) summary.evicted.push(name);
     }
 
-    const freshResident = await residentModels(); // re-read after eviction
+    // Wait for those evictions to actually land. Ollama's keep_alive:0 unload is
+    // not instant (a 65GB model takes a moment), and if we re-read the resident
+    // list too fast we'd skip-then-orphan a model we just told it to unload —
+    // which is exactly how gpt-oss:120b survived. Poll up to ~6s until nothing
+    // outside the keep set is still resident.
+    let freshResident = await residentModels();
+    for (let i = 0; i < 6 && toEvict(activeModel, installed, freshResident).length; i++) {
+      await new Promise((r) => setTimeout(r, 1000));
+      freshResident = await residentModels();
+    }
     const activeInstalled = installed.some((m) => base(m.name) === base(activeModel));
 
     // 2) Reclaim disk. LEAN mode (default) keeps only active + coder and retires
