@@ -89,10 +89,19 @@ const TOOL_TRIGGERS = [
 
 function messageNeedsTools(messages) {
   try {
-    const lastUser = [...messages].reverse().find(m => m.role === 'user');
-    const text = lastUser?.content || '';
+    const userMsgs = messages.filter(m => m.role === 'user');
+    const text = userMsgs[userMsgs.length - 1]?.content || '';
     if (text.length < 2) return false;
-    return TOOL_TRIGGERS.some(r => r.test(text));
+    if (TOOL_TRIGGERS.some(r => r.test(text))) return true;
+    // Clarification turn: "weather in Hillsborough?" -> "which one?" -> "California".
+    // The short reply has no trigger word, but the prior turn did. Don't drop the
+    // tool intent just because the user answered tersely.
+    const prev = userMsgs[userMsgs.length - 2]?.content || '';
+    const isShort = text.trim().split(/\s+/).length <= 4;
+    // ...but not if the short reply is just an acknowledgment ("thanks", "ok cool").
+    const isAck = /^(thanks?|thank you|ok(ay)?|cool|great|nice|got it|perfect|awesome|sounds good|no|nope|yes|yeah|yep)\b/i.test(text.trim());
+    if (isShort && !isAck && prev && TOOL_TRIGGERS.some(r => r.test(prev))) return true;
+    return false;
   } catch { return false; }
 }
 
@@ -739,8 +748,13 @@ WHEN WRITING CODE:
   // inject results, so the model answers from real data instead of refusing.
   // Tool path only (non-streaming) — never touches the fast streaming path.
   try {
-    const lastUser = [...msgs].reverse().find(m => m.role === 'user');
-    const q = (lastUser?.content || '').trim();
+    const userMsgs = msgs.filter(m => m.role === 'user');
+    const last = (userMsgs[userMsgs.length - 1]?.content || '').trim();
+    const prev = (userMsgs[userMsgs.length - 2]?.content || '').trim();
+    // If the latest turn is a short clarification ("California"), fold in the
+    // prior question ("weather in Hillsborough") so the search has the subject.
+    const isShort = last.split(/\s+/).filter(Boolean).length <= 4;
+    const q = (isShort && prev) ? `${prev} ${last}` : last;
     const SEARCH_INTENT = /\b(news|headlines?|latest|breaking|current events|today'?s|right now|weather|forecast|temperature|stock|share price|price of|how much (is|does)|who (won|is winning|is the (ceo|president|prime minister))|score|standings|released|launched)\b/i;
     const hasUrl = /https?:\/\//.test(q);
     if (q && !hasUrl && SEARCH_INTENT.test(q)) {
