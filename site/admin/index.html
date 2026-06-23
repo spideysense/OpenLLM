@@ -6,6 +6,8 @@
 <meta name="robots" content="noindex, nofollow">
 <title>Aspen — Admin</title>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
 <style>
 :root{--bg:#FAFAF7;--wh:#FFF;--bk:#1D1D1F;--t2:#6E6E73;--t3:#86868B;--gd:#B8860B;--gd-light:rgba(184,134,11,.08);--brd:rgba(0,0,0,.07);--ser:'DM Serif Display',Georgia,serif;--san:'Outfit',-apple-system,sans-serif}
 *{margin:0;padding:0;box-sizing:border-box}
@@ -34,9 +36,17 @@ h1{font-family:var(--ser);font-size:2rem;margin-bottom:.3rem}
 .notes li:before{content:'·';position:absolute;left:.4rem;color:var(--gd);font-weight:700}
 .hidden{display:none}
 .refresh{background:transparent;border:1.5px solid var(--brd);color:var(--t2);padding:.5rem 1rem;border-radius:10px;font-family:var(--san);font-size:.82rem;cursor:pointer;margin-bottom:1.5rem}
+.mapbox{background:var(--wh);border:1px solid var(--brd);border-radius:16px;padding:1rem;margin-bottom:1.5rem}
+#map svg{display:block;border-radius:10px;background:#F4F2EC}
+.map-note{font-size:.8rem;color:var(--t2);padding:1.5rem;text-align:center}
+.legend{display:flex;flex-wrap:wrap;gap:.5rem .9rem;margin-top:.8rem}
+.leg{font-size:.76rem;color:var(--t2);display:flex;align-items:center;gap:.35rem}
+.leg .dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+#tip{position:fixed;pointer-events:none;background:var(--bk);color:#fff;font-size:.74rem;padding:.35rem .6rem;border-radius:7px;opacity:0;transition:opacity .1s;z-index:10;white-space:nowrap}
 </style>
 </head>
 <body>
+<div id="tip"></div>
 <div class="wrap">
   <div class="logo"><img src="/favicon.svg" alt="Aspen"><span>ASPEN</span></div>
 
@@ -55,6 +65,15 @@ h1{font-family:var(--ser);font-size:2rem;margin-bottom:.3rem}
 
     <div class="grid" id="cards"></div>
 
+    <div id="map-wrap" class="hidden">
+      <div class="section-title">Where visitors browse from</div>
+      <div class="mapbox">
+        <div id="map"></div>
+        <div class="map-note" id="map-note"></div>
+        <div class="legend" id="map-legend"></div>
+      </div>
+    </div>
+
     <div id="releases-wrap" class="hidden">
       <div class="section-title">Downloads by release</div>
       <div id="releases"></div>
@@ -67,11 +86,13 @@ h1{font-family:var(--ser);font-size:2rem;margin-bottom:.3rem}
 <script>
 const $=id=>document.getElementById(id);
 let pw='';
+let worldData=null;
 
 async function load(){
   $('err').textContent='';
   try{
-    const res=await fetch('/api/admin-stats',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw})});
+    // Unique URL every call — defeats browser, CDN, and ETag caching outright.
+    const res=await fetch('/api/admin-stats?t='+Date.now(),{method:'POST',headers:{'Content-Type':'application/json'},cache:'no-store',body:JSON.stringify({password:pw})});
     const data=await res.json();
     if(!res.ok){$('err').textContent=data.error||'Error';return false;}
     render(data);
@@ -94,6 +115,8 @@ function render(d){
   }
   $('cards').innerHTML=cards.join('');
 
+  renderMap(d.geo||[]);
+
   if(d.downloads?.byRelease?.length){
     $('releases-wrap').classList.remove('hidden');
     $('releases').innerHTML=d.downloads.byRelease
@@ -101,6 +124,46 @@ function render(d){
   }
 
   $('notes').innerHTML=(d.notes||[]).map(n=>`<li>${n}</li>`).join('');
+}
+
+async function renderMap(geo){
+  $('map-wrap').classList.remove('hidden');
+  if(!geo.length){
+    $('map').innerHTML='';$('map-legend').innerHTML='';
+    $('map-note').textContent='No location data yet — visitor locations start recording from now on.';
+    return;
+  }
+  $('map-note').textContent='';
+  if(typeof d3==='undefined'){$('map-note').textContent='Map library unavailable.';return;}
+  try{
+    if(!worldData) worldData=await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json').then(r=>r.json());
+  }catch(e){$('map-note').textContent='Could not load world map.';return;}
+
+  const W=700,H=380;
+  const land=topojson.feature(worldData,worldData.objects.countries);
+  const projection=d3.geoNaturalEarth1().fitSize([W,H],land);
+  const path=d3.geoPath(projection);
+  const svg=d3.select('#map').html('').append('svg').attr('viewBox',`0 0 ${W} ${H}`).attr('width','100%');
+  svg.append('g').selectAll('path').data(land.features).join('path')
+    .attr('d',path).attr('fill','#E4E0D6').attr('stroke','#F4F2EC').attr('stroke-width',.6);
+
+  const color=d3.scaleOrdinal(d3.schemeTableau10.concat(d3.schemeSet3||[]));
+  const maxC=d3.max(geo,d=>d.count)||1;
+  const r=d3.scaleSqrt().domain([0,maxC]).range([3,24]);
+  const tip=$('tip');
+  svg.append('g').selectAll('circle')
+    .data(geo.filter(d=>projection([d.lon,d.lat]))).join('circle')
+    .attr('cx',d=>projection([d.lon,d.lat])[0])
+    .attr('cy',d=>projection([d.lon,d.lat])[1])
+    .attr('r',d=>r(d.count))
+    .attr('fill',d=>color(d.country)).attr('fill-opacity',.55)
+    .attr('stroke',d=>color(d.country)).attr('stroke-width',1.3)
+    .on('mousemove',(e,d)=>{tip.style.opacity=1;tip.style.left=(e.clientX+12)+'px';tip.style.top=(e.clientY+12)+'px';tip.textContent=`${d.city?d.city+', ':''}${d.country} — ${d.count.toLocaleString()} visit${d.count>1?'s':''}`;})
+    .on('mouseleave',()=>{tip.style.opacity=0;});
+
+  const byCountry={};geo.forEach(d=>byCountry[d.country]=(byCountry[d.country]||0)+d.count);
+  const top=Object.entries(byCountry).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  $('map-legend').innerHTML=top.map(([c,n])=>`<span class="leg"><span class="dot" style="background:${color(c)}"></span>${c} ${n.toLocaleString()}</span>`).join('');
 }
 
 $('enter').addEventListener('click',async()=>{
@@ -115,7 +178,6 @@ $('enter').addEventListener('click',async()=>{
 });
 $('pw').addEventListener('keydown',e=>{if(e.key==='Enter')$('enter').click();});
 $('refresh').addEventListener('click',load);
-// Auto-login if session exists
 (async()=>{
   const saved=localStorage.getItem('admin_pw');
   if(saved){pw=saved;const ok=await load();if(ok){$('gate').classList.add('hidden');$('dash').classList.remove('hidden');}}

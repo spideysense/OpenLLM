@@ -93,6 +93,23 @@ export default async function handler(req, res) {
   if (vUrl && vTok) {
     const v = parseInt(await kvGet(vUrl, vTok, 'aspen:visits')) || 0;
     out.visits = v + parseInt(process.env.VISIT_SEED || '847', 10);
+
+    // Visitor locations for the map (city-level points, sized by count).
+    out.geo = [];
+    try {
+      const g = await fetch(`${vUrl}/hgetall/aspen:geo`, { headers: { Authorization: `Bearer ${vTok}` }, cache: 'no-store' });
+      if (g.ok) {
+        const arr = (await g.json()).result || [];
+        for (let i = 0; i < arr.length; i += 2) {
+          const parts = String(arr[i]).split('|');
+          const lat = parseFloat(parts[1]), lon = parseFloat(parts[2]);
+          const count = parseInt(arr[i + 1]) || 0;
+          if (!isNaN(lat) && !isNaN(lon)) {
+            out.geo.push({ country: parts[0] || '??', lat, lon, city: parts[3] || '', count });
+          }
+        }
+      }
+    } catch {}
   } else {
     out.notes.push('Visit counter not configured.');
   }

@@ -20,6 +20,22 @@ export default async function handler(req, res) {
 
   if (kvUrl && kvToken) {
     try {
+      // Record visitor location (city-level) for the map. Vercel tags every
+      // request with geo headers. Fire-and-forget so it never slows the visit.
+      const country = req.headers['x-vercel-ip-country'] || '';
+      const lat = req.headers['x-vercel-ip-latitude'] || '';
+      const lon = req.headers['x-vercel-ip-longitude'] || '';
+      let city = '';
+      try { city = decodeURIComponent(req.headers['x-vercel-ip-city'] || ''); } catch {}
+      if (lat && lon) {
+        const rlat = (Math.round(parseFloat(lat) * 100) / 100);
+        const rlon = (Math.round(parseFloat(lon) * 100) / 100);
+        const field = `${country}|${rlat}|${rlon}|${city}`;
+        fetch(`${kvUrl}/hincrby/aspen:geo/${encodeURIComponent(field)}/1`, {
+          method: 'POST', headers: { Authorization: `Bearer ${kvToken}` },
+        }).catch(() => {});
+      }
+
       // INCR is atomic — safe for concurrent requests
       const r = await fetch(`${kvUrl}/incr/aspen:visits`, {
         method: 'POST',
