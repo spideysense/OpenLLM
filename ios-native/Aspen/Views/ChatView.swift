@@ -96,8 +96,12 @@ struct ChatView: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 14) {
                     ForEach(vm.messages) { msg in
-                        MessageBubble(message: msg)
-                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                        MessageBubble(
+                            message: msg,
+                            isStreaming: vm.streaming && msg.role == "assistant" && msg.id == vm.messages.last?.id,
+                            boxConfig: vm.boxConfig
+                        )
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
                     if vm.streaming && !vm.status.isEmpty {
                         ThinkingIndicator(status: vm.status)
@@ -141,23 +145,43 @@ struct ChatView: View {
     }
 }
 
-/// A streaming-aware chat bubble.
+/// A streaming-aware chat bubble. While a turn is streaming it renders plain
+/// text (zero parse cost — protects the buttery streaming speed). Once the turn
+/// completes it renders rich content: markdown, code blocks, and openable
+/// html/svg artifacts.
 struct MessageBubble: View {
     let message: ChatTurn
+    var isStreaming: Bool = false
+    var boxConfig: BoxClient.Config? = nil
     var isUser: Bool { message.role == "user" }
 
     var body: some View {
         HStack {
             if isUser { Spacer(minLength: 40) }
-            Text(message.content.isEmpty && !isUser ? " " : message.content)
-                .padding(.horizontal, 16).padding(.vertical, 11)
-                .background(
-                    isUser ? AnyShapeStyle(Color.primary) : AnyShapeStyle(Color(.secondarySystemBackground)),
-                    in: RoundedRectangle(cornerRadius: 20)
-                )
-                .foregroundStyle(isUser ? Color(.systemBackground) : Color.primary)
-                .textSelection(.enabled)
+            bubble
             if !isUser { Spacer(minLength: 40) }
+        }
+    }
+
+    @ViewBuilder private var bubble: some View {
+        if isUser {
+            Text(message.content)
+                .padding(.horizontal, 16).padding(.vertical, 11)
+                .background(AnyShapeStyle(Color.primary), in: RoundedRectangle(cornerRadius: 20))
+                .foregroundStyle(Color(.systemBackground))
+                .textSelection(.enabled)
+        } else if isStreaming {
+            // STREAMING PATH — plain text only, never parse mid-stream.
+            Text(message.content.isEmpty ? " " : message.content)
+                .padding(.horizontal, 16).padding(.vertical, 11)
+                .background(AnyShapeStyle(Color(.secondarySystemBackground)), in: RoundedRectangle(cornerRadius: 20))
+                .foregroundStyle(Color.primary)
+                .textSelection(.enabled)
+        } else {
+            // COMPLETED PATH — rich render with artifacts.
+            MessageContentView(content: message.content, boxConfig: boxConfig)
+                .padding(.horizontal, 16).padding(.vertical, 11)
+                .background(AnyShapeStyle(Color(.secondarySystemBackground)), in: RoundedRectangle(cornerRadius: 20))
         }
     }
 }
