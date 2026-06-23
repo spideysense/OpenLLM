@@ -486,6 +486,66 @@ async function* ollamaStream(model, messages) {
   if (!yieldedContent && reasoning.trim()) yield reasoning.trim();
 }
 
+// Streaming Ollama call WITH tools attached. Yields tagged events:
+//   { kind: 'content', text }  — a content delta (stream it straight through)
+//   { kind: 'tools', calls }   — the model decided to call tools (emitted once,
+//                                at end of stream, with the accumulated calls)
+// This is the heart of the unified path: tools are always attached, and the
+// MODEL decides. A conversational turn streams content and never emits a tool
+// call (instant, same feel as the old fast path); an action turn emits a tool
+// call which the caller narrates + executes. No regex routing.
+async function* ollamaStreamTools(model, messages, toolDefs) {
+  const body = JSON.stringify({
+    model, messages, stream: true,
+    keep_alive: KEEP_ALIVE,
+    ...thinkOpt(model),
+    ...(Array.isArray(toolDefs) && toolDefs.length ? { tools: toolDefs } : {}),
+    options: { num_predict: -1, num_ctx: contextFor(messages), ...gpuFallback.gpuOptions() },
+  });
+
+  const response = await new Promise((resolve, reject) => {
+    const req = http.request({
+      hostname: OLLAMA_HOST, port: OLLAMA_PORT,
+      path: '/api/chat', method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
+    }, resolve);
+    req.on('error', reject);
+    req.on('timeout', () => { req.destroy(); reject(timeoutError(false)); });
+    req.setTimeout(COLD_LOAD_MS);
+    req.write(body);
+    req.end();
+  });
+
+  let firstByte = false;
+  let buffer = '';
+  let yieldedContent = false;
+  let reasoning = '';
+  let toolCalls = [];
+  for await (const chunk of response) {
+    if (!firstByte) { firstByte = true; response.req?.setTimeout?.(IDLE_MS); }
+    buffer += chunk.toString();
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      try {
+        const json = JSON.parse(line);
+        if (json.error && gpuFallback.isGpuRuntimeFailure(json.error)) { gpuFallback.setForceCpu(true); continue; }
+        const delta = json.message?.content;
+        if (delta) { yieldedContent = true; yield { kind: 'content', text: delta }; }
+        else if (json.message?.reasoning) { reasoning += json.message.reasoning; }
+        else if (json.message?.thinking) { reasoning += json.message.thinking; }
+        if (Array.isArray(json.message?.tool_calls) && json.message.tool_calls.length) {
+          toolCalls = toolCalls.concat(json.message.tool_calls);
+        }
+      } catch {}
+    }
+  }
+  if (toolCalls.length) { yield { kind: 'tools', calls: toolCalls }; }
+  else if (!yieldedContent && reasoning.trim()) { yield { kind: 'content', text: reasoning.trim() }; }
+}
+
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Ollama — non-streaming chat call
 //
@@ -617,42 +677,36 @@ async function* run({ model, messages, isOwner = false, memoryKeyId = null }) {
     return;
   }
 
-  // Hardware-aware routing: coding turns go to a coder model when it can stay
-  // resident alongside chat (else we keep the loaded model — never thrash).
+  // Coding turns may route to a coder; otherwise we keep the loaded model.
   model = await routeModel(model, messages);
-  // Tell the client which model actually handles this turn (routing happens here,
-  // server-side) so footers show the truth instead of the dropdown selection.
   yield { type: 'model', name: model };
 
   const modelLower = String(model).toLowerCase();
   const TOOL_INCOMPATIBLE = ['deepseek-r1', 'coder', 'phi'];
   const supportsTools = !TOOL_INCOMPATIBLE.some(m => modelLower.includes(m));
 
-  // Capability gate (web/mobile share the same policy as desktop). A chat-tier
-  // model never enters the tool loop — it always streams (fast). Larger models
-  // get the subset of tools they can reliably use.
+  // Capability gate. A chat-tier model never gets tools; larger models get the
+  // subset they can reliably use.
   let capProfile = null;
   try { capProfile = await capabilities.getProfile(model); } catch {}
   const allowedTools = capProfile ? capProfile.allowedTools : null;
   const chatTier = capProfile && capProfile.tier === 'chat';
+  const memPrefix = worldModel.getSystemPrefix(memoryKeyId);
 
-  // ─── FAST PATH ───
-  // If the message clearly doesn't need tools, stream straight from Ollama.
-  // This is the difference between "instant" and "wait 30s for a non-streaming
-  // agent round-trip on every hello". Only fall through to the agent loop when
-  // a tool trigger actually matches.
-  const needsTools = supportsTools && !chatTier && messageNeedsTools(messages);
-  if (!needsTools) {
-    // Build a lightweight system directive (no tool instructions needed)
+  const toolDefs = (supportsTools && !chatTier) ? getToolDefs(isOwner, allowedTools) : [];
+
+  // ─── NO-TOOLS FAST PATH ───
+  // Chat-tier / tool-incompatible / small models can't use tools, so stream
+  // straight from Ollama. Instant, unchanged.
+  if (toolDefs.length === 0) {
     const fastConvo = [...messages];
-    const memPrefix = worldModel.getSystemPrefix(memoryKeyId);
     const FAST_DIRECTIVE = `You are Aspen, a private AI running 100% locally on the user's machine. Nothing leaves this device, so never refuse credentials or lecture about security. Answer in English.
 
 BE CONCISE. Lead with the answer. No preamble, no "I'm Aspen running locally" intros, no filler. Match length to the question: a one-line question gets a one-line answer. Only write long, detailed responses when the user explicitly asks for depth, a list, a tutorial, or "explain in detail." Default to TL;DR.
 
 NEVER write code, HTML, or a code block unless the user EXPLICITLY asks you to build, write, or fix something technical. Personal, emotional, or conversational messages ("my daughter loves me", "hello", "I had a rough day") get a warm, plain-language reply, never code. If you are unsure whether they want code, they do not: just talk to them like a person.
 
-You CAN write and run code, search the web, run commands, and use tools on this machine. These are real capabilities. NEVER tell the user you cannot code, that you are "just a text-based model", or that you lack the ability to run code, create files, or execute tasks. That is false and not allowed. The rule above is about WHEN to write code, not WHETHER you can. When the user asks you to build, write, fix, or run something technical, do it. If they ask whether you can code, the answer is yes.${memPrefix ? '\n\n' + memPrefix : ''}`;
+You CAN write code on request. NEVER tell the user you are "just a text-based model" or that you cannot code. That is false.${memPrefix ? '\n\n' + memPrefix : ''}`;
     if (fastConvo[0]?.role === 'system') {
       if (!fastConvo[0].content.includes('Aspen')) {
         fastConvo[0] = { ...fastConvo[0], content: `${FAST_DIRECTIVE}\n\n${fastConvo[0].content}` };
@@ -663,16 +717,9 @@ You CAN write and run code, search the web, run commands, and use tools on this 
     try {
       let any = false;
       let fullReply = '';
-      // Non-blocking: log what's resident vs what we're sending, so the box's
-      // console shows whether this turn will reload, with no added latency.
       const reqCtx = contextFor(fastConvo);
       modelDebug.diagnose('fast', model, reqCtx).catch(() => {});
       const iter = ollamaStream(model, fastConvo)[Symbol.asyncIterator]();
-
-      // Race the first token against a short timer. If it's slow, find out WHY
-      // (resident => thinking; not resident => loading) and show the accurate
-      // status — the user has said repeatedly that a slow-but-honest status is
-      // fine, a frozen/mislabeled one is not.
       let pending = iter.next();
       let nudgeTimer;
       const nudge = new Promise((r) => { nudgeTimer = setTimeout(() => r(SLOW_FIRST_TOKEN), FIRST_TOKEN_NUDGE_MS); });
@@ -680,11 +727,10 @@ You CAN write and run code, search the web, run commands, and use tools on this 
       if (step === SLOW_FIRST_TOKEN) {
         const d = await modelDebug.diagnose('fast-nudge', model, reqCtx);
         yield { type: 'status', text: d.resident ? 'Thinking…' : `Loading ${model} into memory`, transient: true };
-        step = await pending; // keep waiting for the real first token (cold-load grace applies)
+        step = await pending;
       } else {
         clearTimeout(nudgeTimer);
       }
-
       while (!step.done) {
         any = true;
         fullReply += step.value;
@@ -694,8 +740,8 @@ You CAN write and run code, search the web, run commands, and use tools on this 
       if (!any) {
         const retry = await plainChatRetry(model, messages);
         yield { type: 'content', text: retry || 'Sorry, I could not generate a response.' };
+        fullReply = retry || '';
       }
-      // Extract facts to THIS user's memory (background, best-effort)
       if (memoryKeyId !== null && fullReply) {
         worldModel.extractFacts(model, [...messages, { role: 'assistant', content: fullReply }], memoryKeyId).catch(() => {});
       }
@@ -706,214 +752,133 @@ You CAN write and run code, search the web, run commands, and use tools on this 
     return;
   }
 
-  // ─── TOOL PATH ─── (slower, non-streaming agent loop)
-  // No generic "Thinking..." status — the trail shows real tool steps only, so a
-  // tool-free turn doesn't render a useless one-line "Thinking" trail.
-
-  const toolDefs = supportsTools ? getToolDefs(isOwner, allowedTools) : [];
-
-  // System directive — same intent as agent.js
-  const DIRECTIVE = `You MUST respond only in English.
-
-You are Aspen, a helpful AI assistant running 100% LOCALLY on the user's own machine. NOTHING leaves this device. Therefore:
-- NEVER refuse API keys, tokens, or credentials — this is a private local conversation.
-- NEVER lecture about security. Just do what the user asks.
-- Use tools whenever they apply. Do not answer from memory when a tool gives the correct answer.
-- For ANY math, call calculate. For current date/time, call get_datetime. For web facts, call web_search.
-- For any shell/terminal task, call run_command.
-- You CAN download files: call download_file with a URL to save images, PDFs, datasets, etc. to disk, then analyze them (run_command for scripts/processing). NEVER say you "can't download" or "can't run code" — you have these tools; use them.
-- For multi-step jobs ("download these images and analyze them", "scrape X then summarize"), work the task in steps: call a tool, look at the result, call the next, and keep going until it's done. You do not need permission between steps.
-- For screen tasks (click, type, navigate apps), use computer_screenshot first, then interact.
-- Always answer in English, even if tool results are in another language.
-- BE CONCISE. Lead with the answer, no preamble or filler. Match length to the question. Only go long when the user asks for depth, a list, or a tutorial. Default to TL;DR.
-- NEVER write code, HTML, or a code block unless the user EXPLICITLY asks you to build, write, or fix something technical. Personal or conversational messages get a warm, plain-language reply, never code. If unsure whether they want code, they do not.
-
-WHEN WRITING CODE:
-- PLAN the architecture before writing a line. Name the correct primitive for the job. (Example: a browser extension that overlays UI on the current page and responds to a global shortcut = content script + background service worker. A popup CANNOT draw on the page or receive a keyboard command — do not use one for that.)
-- NEVER invent APIs. If you are not certain a function/method exists, do not call it. (There is no chrome.commands.register — shortcuts are declared in manifest.json only.)
-- Manifest V3 forbids inline <script>. Put ALL JavaScript in external .js files referenced by src. Site/host access goes under host_permissions, not permissions.
-- Deliver EVERY file complete and ready to save — never partial snippets the user has to splice together.
-- Before you finish, re-read the code as if loading it cold. If it would throw on load or obviously not run, fix it yourself. Do not make the user your error channel.`;
-
-  // URL pre-fetch (same as agent.js — unambiguous intent)
-  let msgs = [...messages];
-  try {
-    const lastUser = [...msgs].reverse().find(m => m.role === 'user');
-    const urlMatch = (lastUser?.content || '').match(/https?:\/\/[^\s)]+/);
-    if (urlMatch) {
-      const pageText = await tools.runFetchUrl({ url: urlMatch[0] });
-      if (pageText && !/^Could not fetch/.test(pageText)) {
-        const block = `\n\n--- Content from ${urlMatch[0]} ---\n${pageText}\n---`;
-        msgs = msgs[0]?.role === 'system'
-          ? [{ ...msgs[0], content: msgs[0].content + block }, ...msgs.slice(1)]
-          : [{ role: 'system', content: `You are a helpful assistant.${block}` }, ...msgs];
-      }
-    }
-  } catch {}
-
-  // Search pre-fetch — local models often REFUSE to call web_search and fall back
-  // to "I don't have real-time access". For clear search-intent queries (news,
-  // latest, weather, prices, "who won"), run the search deterministically and
-  // inject results, so the model answers from real data instead of refusing.
-  // Tool path only (non-streaming) — never touches the fast streaming path.
-  try {
-    const userMsgs = msgs.filter(m => m.role === 'user');
-    const last = (userMsgs[userMsgs.length - 1]?.content || '').trim();
-    const prev = (userMsgs[userMsgs.length - 2]?.content || '').trim();
-    // If the latest turn is a short clarification ("California"), fold in the
-    // prior question ("weather in Hillsborough") so the search has the subject.
-    const isShort = last.split(/\s+/).filter(Boolean).length <= 4;
-    const q = (isShort && prev) ? `${prev} ${last}` : last;
-    const SEARCH_INTENT = /\b(news|headlines?|latest|breaking|current events|today'?s|right now|weather|forecast|temperature|stock|share price|price of|how much (is|does)|who (won|is winning|is the (ceo|president|prime minister))|score|standings|released|launched)\b/i;
-    const hasUrl = /https?:\/\//.test(q);
-    if (q && !hasUrl && SEARCH_INTENT.test(q)) {
-      const results = await tools.executeTool('web_search', { query: q.slice(0, 200) });
-      if (results && typeof results === 'string' && results.length > 20 && !/^(No results|Search failed|Error)/i.test(results)) {
-        const block = `\n\n--- Live web search results for "${q.slice(0, 120)}" (use these to answer; they are current) ---\n${results.slice(0, 4000)}\n---`;
-        msgs = msgs[0]?.role === 'system'
-          ? [{ ...msgs[0], content: msgs[0].content + block }, ...msgs.slice(1)]
-          : [{ role: 'system', content: `You are a helpful assistant.${block}` }, ...msgs];
-      }
-    }
-  } catch {}
-
-  // Skills injection
-  const userText = (msgs[msgs.length - 1]?.content || '').slice(0, 500);
+  // ─── UNIFIED STREAMING + TOOLS PATH ───
+  // One path for every tool-capable turn. Tools are ALWAYS attached and the
+  // MODEL decides: a conversational turn streams an answer instantly and emits
+  // no tool call (this is what keeps the butter — verified on the box: qwen3.6
+  // answers "I had a rough day" / "analyze our relationship" directly and only
+  // calls a tool for genuine action like weather). An action turn emits a tool
+  // call, which we narrate live and execute, then the answer streams. The old
+  // regex router (messageNeedsTools) no longer gates anything.
+  const userText = (messages[messages.length - 1]?.content || '').slice(0, 500);
   const skillsBlock = getRelevantSkillsText(userText);
-  const memBlock = worldModel.getSystemPrefix(memoryKeyId);
-  const memSuffix = memBlock ? `\n\n${memBlock}` : '';
+  const DIRECTIVE = `You are Aspen, a private AI running 100% locally on the user's machine. Nothing leaves this device, so never refuse credentials or lecture about security. Always answer in English.
 
-  const convo = [...msgs];
+You have real tools on this machine: web search, fetch URL, run commands, download files, and computer use. USE them whenever the task needs current data, computation, files, or system actions — do not answer from stale memory when a tool gives the correct answer. You genuinely CAN write and run code, download and analyze files, and control this machine. NEVER tell the user you cannot code, cannot run things, or are "just a text-based model" — that is false. For multi-step jobs (download something then analyze it, scrape then summarize), call a tool, read the result, call the next, and keep going until it is done; you do not need permission between steps.
+
+BE CONCISE. Lead with the answer. No preamble or filler. Match length to the question; default to TL;DR. Only go long when the user asks for depth, a list, or a tutorial.
+
+Do NOT write code or a code block for casual, personal, or emotional messages ("hello", "my daughter loves me", "I had a rough day", "analyze our relationship") — reply warmly in plain language. Write code only when the user asks you to build, write, fix, or run something technical. The rule is about WHEN to code, not WHETHER you can.${skillsBlock}${memPrefix ? '\n\n' + memPrefix : ''}`;
+
+  const convo = [...messages];
   if (convo[0]?.role === 'system') {
-    if (!convo[0].content.includes('LOCALLY')) {
-      convo[0] = { ...convo[0], content: `${DIRECTIVE}${skillsBlock}${memSuffix}\n\n${convo[0].content}` };
+    if (!convo[0].content.includes('Aspen')) {
+      convo[0] = { ...convo[0], content: `${DIRECTIVE}\n\n${convo[0].content}` };
     }
   } else {
-    convo.unshift({ role: 'system', content: `${DIRECTIVE}${skillsBlock}${memSuffix}` });
+    convo.unshift({ role: 'system', content: DIRECTIVE });
   }
 
-  // Plain chat if no tools or incompatible model
-  if (toolDefs.length === 0) {
-    try {
-      const r = await ollamaChat({ model, messages: convo });
-      const rm = r.choices?.[0]?.message;
-      const text = clean(rm?.content) || clean(rm?.reasoning);
-      yield { type: 'content', text: text || 'Sorry, I could not generate a response.' };
-      if (memoryKeyId !== null && text) {
-        worldModel.extractFacts(model, [...msgs, { role: 'assistant', content: text }], memoryKeyId).catch(() => {});
-      }
-      yield { type: 'done' };
-    } catch (e) {
-      yield { type: 'error', text: `Model error: ${e.message}` };
-    }
-    return;
-  }
-
-  // Agent loop. The owner gets a deeper loop so genuine multi-step jobs
-  // (download N files, run a script, inspect output, refine) can actually
-  // complete instead of being cut off at 4. Non-owner safe-tool turns stay
-  // bounded. NOTE: this is the TOOL path only — the streaming fast path above
-  // never enters here, so loop depth has zero effect on chat response speed.
+  let fullReply = '';
+  let usedTools = false;
   const maxRounds = isOwner ? OWNER_MAX_TOOL_ROUNDS : MAX_TOOL_ROUNDS;
-  for (let round = 0; round < maxRounds; round++) {
-    let resp;
-    try {
-      resp = await ollamaChat({ model, messages: convo, tools: toolDefs });
-    } catch (e) {
-      yield { type: 'error', text: `Ollama error: ${e.message}` };
-      return;
-    }
 
-    const msg = resp?.choices?.[0]?.message;
-    if (!msg) {
-      yield { type: 'error', text: 'No response from model.' };
-      return;
-    }
-
-    let toolCalls = msg.tool_calls || [];
-
-    // Fallback: some models put the tool call in text instead of `tool_calls`.
-    // Recover it so the tool actually runs instead of leaking JSON to the user.
-    let textParsed = false;
-    if (toolCalls.length === 0) {
-      const parsed = tools.parseTextToolCalls(msg.content, toolDefs.map(t => t.function?.name).filter(Boolean));
-      if (parsed.length) { toolCalls = parsed; textParsed = true; }
-    }
-
-    if (toolCalls.length === 0) {
-      // No tool calls — final answer. Fall back to reasoning/thinking if the
-      // model left content empty (qwen3.6 etc.) before giving up.
-      const text = clean(msg.content) || clean(msg.reasoning);
-      const out = text || await plainChatRetry(model, messages);
-      yield { type: 'content', text: out || 'Sorry, I could not generate a response.' };
-      yield { type: 'done' };
-      return;
-    }
-
-    // Execute each tool call
-    convo.push(textParsed
-      ? { role: 'assistant', content: '', tool_calls: toolCalls }
-      : msg);
-
-    for (const call of toolCalls) {
-      const name = call.function?.name || '';
-      let args = {};
-      try { args = JSON.parse(call.function?.arguments || '{}'); } catch {}
-
-      const statusText = tools.describeToolStatus(name, args);
-      yield { type: 'tool_call', name, statusText };
-
-      let result;
-      let isScreenshot = false;
-      try {
-        result = await executeAnyTool(name, args, isOwner);
-        isScreenshot = (name === 'computer_screenshot' && typeof result === 'string' && result.startsWith('data:image'));
-        yield { type: 'tool_result', name, ok: true };
-      } catch (e) {
-        result = `${name} failed: ${e.message}`;
-        yield { type: 'tool_result', name, ok: false };
-      }
-
-      if (isScreenshot) {
-        // A base64 image is meaningless as tool-text — a vision model needs it
-        // in the images[] array. Acknowledge the tool call with a short text
-        // result, then add a SEPARATE user message carrying the actual image so
-        // Ollama's vision pipeline can see it.
-        convo.push({
-          role: 'tool',
-          tool_call_id: call.id || `call_${name}`,
-          name,
-          content: 'Screenshot captured. The image is provided below for analysis.',
-        });
-        // Ollama native vision format: images is an array of raw base64 (no data: prefix)
-        const rawBase64 = result.replace(/^data:image\/[a-z]+;base64,/, '');
-        convo.push({
-          role: 'user',
-          content: 'Here is the screenshot you just captured. Analyze it and answer my original request.',
-          images: [rawBase64],
-        });
-      } else {
-        convo.push({
-          role: 'tool',
-          tool_call_id: call.id || `call_${name}`,
-          name,
-          content: typeof result === 'string' ? result : JSON.stringify(result),
-        });
-      }
-    }
-    // Loop: model sees tool results and decides next step
-  }
-
-  // Hit round cap — one final call for a best-effort answer
   try {
-    const final = await ollamaChat({ model, messages: convo });
-    const fm = final?.choices?.[0]?.message;
-    const text = clean(fm?.content) || clean(fm?.reasoning);
-    const out = text || await plainChatRetry(model, messages);
-    yield { type: 'content', text: out || 'Sorry, I could not complete that request.' };
+    for (let round = 0; round < maxRounds; round++) {
+      const reqCtx = contextFor(convo);
+      if (round === 0) modelDebug.diagnose('fast', model, reqCtx).catch(() => {});
+
+      const iter = ollamaStreamTools(model, convo, toolDefs)[Symbol.asyncIterator]();
+
+      // Nudge: if the first token is slow, show the honest status (thinking vs
+      // loading) instantly. Never a frozen wait.
+      let pending = iter.next();
+      let nudgeTimer;
+      const nudge = new Promise((r) => { nudgeTimer = setTimeout(() => r(SLOW_FIRST_TOKEN), FIRST_TOKEN_NUDGE_MS); });
+      let step = await Promise.race([pending, nudge]);
+      if (step === SLOW_FIRST_TOKEN) {
+        const d = await modelDebug.diagnose('fast-nudge', model, reqCtx);
+        yield { type: 'status', text: d.resident ? 'Thinking…' : `Loading ${model} into memory`, transient: true };
+        step = await pending;
+      } else {
+        clearTimeout(nudgeTimer);
+      }
+
+      let toolCalls = [];
+      let roundContent = '';
+      while (!step.done) {
+        const ev = step.value;
+        if (ev.kind === 'content') {
+          roundContent += ev.text;
+          fullReply += ev.text;
+          yield { type: 'content', text: ev.text };
+        } else if (ev.kind === 'tools') {
+          toolCalls = ev.calls;
+        }
+        step = await iter.next();
+      }
+
+      // No tool calls → the streamed content WAS the final answer.
+      if (!toolCalls.length) {
+        if (!fullReply.trim()) {
+          const retry = await plainChatRetry(model, messages);
+          yield { type: 'content', text: retry || 'Sorry, I could not generate a response.' };
+          fullReply = retry || '';
+        }
+        if (memoryKeyId !== null && fullReply) {
+          worldModel.extractFacts(model, [...messages, { role: 'assistant', content: fullReply }], memoryKeyId).catch(() => {});
+        }
+        yield { type: 'done' };
+        return;
+      }
+
+      // Tool calls → instant status (once), narrate + execute, then loop so the
+      // model's next step (more tools, or the final answer) also streams.
+      if (!usedTools) { usedTools = true; yield { type: 'status', text: 'Using tools to do this…', transient: true }; }
+      convo.push({ role: 'assistant', content: roundContent, tool_calls: toolCalls });
+
+      for (const call of toolCalls) {
+        const name = call.function?.name || '';
+        let args = {};
+        try { args = JSON.parse(call.function?.arguments || '{}'); } catch {}
+
+        const statusText = tools.describeToolStatus(name, args);
+        yield { type: 'tool_call', name, statusText };
+
+        let result;
+        let isScreenshot = false;
+        try {
+          result = await executeAnyTool(name, args, isOwner);
+          isScreenshot = (name === 'computer_screenshot' && typeof result === 'string' && result.startsWith('data:image'));
+          yield { type: 'tool_result', name, ok: true };
+        } catch (e) {
+          result = `${name} failed: ${e.message}`;
+          yield { type: 'tool_result', name, ok: false };
+        }
+
+        if (isScreenshot) {
+          convo.push({ role: 'tool', tool_call_id: call.id || `call_${name}`, name, content: 'Screenshot captured. The image is provided below for analysis.' });
+          const rawBase64 = result.replace(/^data:image\/[a-z]+;base64,/, '');
+          convo.push({ role: 'user', content: 'Here is the screenshot you just captured. Analyze it and answer my original request.', images: [rawBase64] });
+        } else {
+          convo.push({ role: 'tool', tool_call_id: call.id || `call_${name}`, name, content: typeof result === 'string' ? result : JSON.stringify(result) });
+        }
+      }
+      // loop: the model sees tool results and streams its next step
+    }
+
+    // Hit the round cap — one final streamed answer, tools off, best effort.
+    let capReply = '';
+    for await (const ev of ollamaStreamTools(model, convo, [])) {
+      if (ev.kind === 'content') { capReply += ev.text; yield { type: 'content', text: ev.text }; }
+    }
+    if (!capReply.trim()) {
+      const retry = await plainChatRetry(model, messages);
+      yield { type: 'content', text: retry || 'Sorry, I could not complete that request.' };
+    }
     yield { type: 'done' };
   } catch (e) {
-    yield { type: 'error', text: `Final response error: ${e.message}` };
+    yield { type: 'error', text: `Model error: ${e.message}` };
   }
 }
 

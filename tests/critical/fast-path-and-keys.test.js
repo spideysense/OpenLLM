@@ -21,9 +21,10 @@ describe('Fast-path speed gate', () => {
     expect(src).toContain('FAST PATH');
     expect(src).toContain('ollamaStream');
   });
-  it('only enters tool loop when needsTools is true', () => {
+  it('streams via ollamaStreamTools with tools attached (model decides, no regex gate)', () => {
     const src = fs.readFileSync(path.resolve('src/main/gateway-agent.js'), 'utf8');
-    expect(src).toContain('if (!needsTools)');
+    expect(src).toContain('UNIFIED STREAMING + TOOLS PATH');
+    expect(src).toContain('ollamaStreamTools');
   });
   it('tool triggers cover web search, weather, stock, compute, computer use', () => {
     const src = fs.readFileSync(path.resolve('src/main/gateway-agent.js'), 'utf8');

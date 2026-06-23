@@ -1,16 +1,19 @@
 /**
- * SPEED PROTECTION — the fast streaming path is sacred.
+ * SPEED PROTECTION — the streaming feel is sacred.
  *
- * Aspen's "butter" feel comes from one thing: conversational messages stream
- * straight from Ollama (the FAST PATH) and never enter the non-streaming agent
- * loop. The only gate is messageNeedsTools() / TOOL_TRIGGERS. If anyone ever
- * broadens a trigger so it catches everyday chat ("hello", "I had a rough day",
- * "analyze our relationship"), those messages silently fall into the slow tool
- * loop and the streaming feel dies.
+ * Aspen's "butter" comes from one thing: every turn STREAMS. Conversational
+ * messages stream an answer instantly; tool turns fire an instant status and
+ * narrate live, then stream the result. There is no longer a regex router
+ * deciding fast-vs-slow — tools are always attached and the MODEL decides
+ * whether to call one. The conversational-vs-tool judgment is verified live on
+ * the box by scripts/probe-tool-judgment.sh (qwen3.6 answers "I had a rough
+ * day" directly and only calls a tool for genuine action).
  *
- * These tests evaluate the LIVE regexes against real conversational input and
- * fail CI if any of them would be pulled off the fast path. Add agentic triggers
- * all you want — just don't let them catch ordinary conversation.
+ * These tests guard two things: (1) the streaming architecture stays intact and
+ * nothing collapses back into a blocking non-streaming round-trip, and (2) the
+ * directives keep instructing the model not to code on casual/emotional input.
+ * The legacy TOOL_TRIGGERS regex is retained as a reference contract and still
+ * checked here, but it no longer gates routing.
  */
 import { describe, it, expect } from 'vitest';
 import fs from 'fs';
@@ -83,29 +86,50 @@ describe('Agentic requests DO route to the tool path (capability)', () => {
   }
 });
 
-describe('Fast path structure is intact', () => {
-  it('fast path streams via ollamaStream (not the blocking agent loop)', () => {
-    expect(src).toContain('FAST PATH');
+describe('Streaming architecture is intact (the butter)', () => {
+  it('no-tools models stream via ollamaStream, never a blocking round-trip', () => {
+    expect(src).toContain('NO-TOOLS FAST PATH');
     expect(src).toContain('ollamaStream(model, fastConvo)');
   });
 
-  it('tool loop is only entered when needsTools is true', () => {
-    expect(src).toContain('const needsTools =');
-    expect(src).toContain('if (!needsTools)');
+  it('tool-capable turns stream via ollamaStreamTools (tools attached, model decides)', () => {
+    // The unified path must STREAM with tools attached, not buffer a
+    // non-streaming agent round-trip. ollamaStreamTools is the streaming call.
+    expect(src).toContain('UNIFIED STREAMING + TOOLS PATH');
+    expect(src).toContain('ollamaStreamTools(model, convo, toolDefs)');
   });
 
-  it('the deeper owner agent loop lives in the TOOL path, never the fast path', () => {
-    // OWNER_MAX_TOOL_ROUNDS must sit with the agent loop, after the fast-path
-    // return. If it ever appears before the fast path, loop depth could touch
-    // streaming. Assert ordering.
-    const fastReturn = src.indexOf('// ─── TOOL PATH ───');
-    const ownerCap = src.indexOf('OWNER_MAX_TOOL_ROUNDS = ');
-    const loopUse = src.indexOf('round < maxRounds');
-    expect(fastReturn).toBeGreaterThan(0);
-    expect(loopUse).toBeGreaterThan(fastReturn); // loop is after the tool-path marker
+  it('the answer streams incrementally, never buffered', () => {
+    // Content deltas are yielded as they arrive inside the loop. If this ever
+    // collapses into a single post-loop content yield, streaming is dead.
+    expect(src).toContain("yield { type: 'content', text: ev.text }");
   });
 
-  it('fast directive still instructs concise streaming (no tool preamble)', () => {
+  it('a slow first token shows instant honest status, never a frozen wait', () => {
+    expect(src).toContain('SLOW_FIRST_TOKEN');
+    expect(src).toContain('FIRST_TOKEN_NUDGE_MS');
+  });
+
+  it('tool turns fire an instant status + live tool narration', () => {
+    expect(src).toContain('Using tools to do this');
+    expect(src).toContain("type: 'tool_call'");
+  });
+
+  it('the owner tool loop is bounded', () => {
+    expect(src).toContain('OWNER_MAX_TOOL_ROUNDS');
+    expect(src).toContain('round < maxRounds');
+  });
+
+  it('directives forbid code on conversational/emotional messages (model-judgment guard)', () => {
+    // Conversational-vs-tool routing is now the MODEL's call, verified live by
+    // scripts/probe-tool-judgment.sh on the box. The directives must keep
+    // telling the model not to code on casual/emotional input so the butter
+    // survives even though no regex gates it anymore.
+    expect(src).toContain('I had a rough day');
+    expect(src).toContain('analyze our relationship');
+  });
+
+  it('fast directive still instructs concise streaming', () => {
     expect(src).toContain('FAST_DIRECTIVE');
     expect(src).toContain('BE CONCISE');
   });
