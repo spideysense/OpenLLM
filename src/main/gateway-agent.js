@@ -843,6 +843,7 @@ Do NOT write code or a code block for casual, personal, or emotional messages ("
         try { args = JSON.parse(call.function?.arguments || '{}'); } catch {}
 
         const statusText = tools.describeToolStatus(name, args);
+        console.log(`[TOOLDBG] call: ${name} ${JSON.stringify(args).slice(0, 160)}`);
         yield { type: 'tool_call', name, statusText };
 
         let result;
@@ -850,9 +851,11 @@ Do NOT write code or a code block for casual, personal, or emotional messages ("
         try {
           result = await executeAnyTool(name, args, isOwner);
           isScreenshot = (name === 'computer_screenshot' && typeof result === 'string' && result.startsWith('data:image'));
+          console.log(`[TOOLDBG] ok: ${name} (${typeof result === 'string' ? result.length : 0} chars)`);
           yield { type: 'tool_result', name, ok: true };
         } catch (e) {
           result = `${name} failed: ${e.message}`;
+          console.log(`[TOOLDBG] FAIL: ${name} — ${e.message}`);
           yield { type: 'tool_result', name, ok: false };
         }
 
