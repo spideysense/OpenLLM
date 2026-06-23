@@ -80,7 +80,26 @@ export default async function handler(req, res) {
     // froze the total). Count only real installers — .dmg/.exe for Mac/Windows
     // and .AppImage/.deb for Linux. The .yml/.blockmap/.zip files are auto-update
     // machinery and would inflate "downloads" with update-check traffic.
+    const kvUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL, kvTok = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+
+    // Per-release high-water marks. GitHub resets an asset's download_count when
+    // a release is re-published, so the live sum can drop. A single GLOBAL floor
+    // (the old approach) froze at one peak forever — that was the 283 freeze.
+    // Instead we keep each release's own peak in a hash and sum the peaks, so the
+    // total is monotonic, survives re-publishes, and climbs as any release grows.
+    let marks = {};
+    if (kvUrl && kvTok) {
+      try {
+        const m = await fetch(`${kvUrl}/hgetall/aspen:dl_marks`, { headers: { Authorization: `Bearer ${kvTok}` }, cache: 'no-store' });
+        if (m.ok) {
+          const arr = (await m.json()).result || [];
+          for (let i = 0; i < arr.length; i += 2) marks[arr[i]] = parseInt(arr[i + 1]) || 0;
+        }
+      } catch {}
+    }
+
     let page = 1, fetchedAny = false;
+    const toPersist = [];
     while (page <= 20) {
       const r = await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/releases?per_page=100&page=${page}`, { headers: ghHeaders, cache: 'no-store', next: { revalidate: 0 } });
       if (!r.ok) { if (!fetchedAny) out.notes.push('GitHub download data unavailable.'); break; }
@@ -88,31 +107,28 @@ export default async function handler(req, res) {
       if (!Array.isArray(releases) || releases.length === 0) break;
       fetchedAny = true;
       for (const rel of releases) {
-        let relTotal = 0;
+        let live = 0;
         for (const a of rel.assets || []) {
           const name = (a.name || '').toLowerCase();
           if (name.endsWith('.dmg') || name.endsWith('.exe') || name.endsWith('.appimage') || name.endsWith('.deb')) {
-            relTotal += a.download_count || 0;
+            live += a.download_count || 0;
           }
         }
-        out.downloads.byRelease.push({ tag: rel.tag_name, downloads: relTotal });
-        out.downloads.total += relTotal;
+        const tag = rel.tag_name;
+        const prev = marks[tag] || 0;
+        const best = live > prev ? live : prev;   // this release's all-time peak
+        if (live > prev) toPersist.push([tag, best]);
+        out.downloads.byRelease.push({ tag, downloads: best });
+        out.downloads.total += best;
       }
       if (releases.length < 100) break;
       page++;
     }
-    if (fetchedAny) {
-      // Download floor — never show a number lower than the highest we've seen.
-      // Re-publishing a release resets its GitHub download count, which makes the
-      // total drop. We store the high-water mark in KV and use it as a floor.
-      const kvUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL, kvTok = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
-      if (kvUrl && kvTok) {
-        const floor = parseInt(await kvGet(kvUrl, kvTok, 'aspen:download_floor')) || 0;
-        if (out.downloads.total > floor) {
-          await kvSet(kvUrl, kvTok, 'aspen:download_floor', String(out.downloads.total));
-        } else if (out.downloads.total < floor) {
-          out.downloads.total = floor;
-        }
+
+    // Persist any raised marks (fire-and-forget, batched).
+    if (kvUrl && kvTok && toPersist.length) {
+      for (const [tag, val] of toPersist) {
+        fetch(`${kvUrl}/hset/aspen:dl_marks/${encodeURIComponent(tag)}/${val}`, { method: 'POST', headers: { Authorization: `Bearer ${kvTok}` } }).catch(() => {});
       }
     }
   } catch { out.notes.push('GitHub download data unavailable.'); }
