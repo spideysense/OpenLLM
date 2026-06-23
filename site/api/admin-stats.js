@@ -60,17 +60,26 @@ export default async function handler(req, res) {
   try {
     const ghHeaders = { 'User-Agent': 'Aspen-Admin', Accept: 'application/vnd.github+json' };
     if (process.env.GH_TOKEN) ghHeaders.Authorization = `token ${process.env.GH_TOKEN}`;
-    const r = await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/releases?per_page=20`, { headers: ghHeaders });
-    if (r.ok) {
+    // Page through EVERY release (100 at a time) and sum every asset's
+    // download_count. The old code fetched only ?per_page=20, so the total
+    // counted just the 20 newest releases — which made it look frozen and would
+    // have nosedived the moment the big release slid out of that window.
+    let page = 1;
+    let fetchedAny = false;
+    while (page <= 20) { // hard cap: 2000 releases
+      const r = await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/releases?per_page=100&page=${page}`, { headers: ghHeaders });
+      if (!r.ok) { if (!fetchedAny) out.notes.push('GitHub download data unavailable.'); break; }
       const releases = await r.json();
+      if (!Array.isArray(releases) || releases.length === 0) break;
+      fetchedAny = true;
       for (const rel of releases) {
         let relTotal = 0;
         for (const a of rel.assets || []) relTotal += a.download_count || 0;
         out.downloads.byRelease.push({ tag: rel.tag_name, downloads: relTotal });
         out.downloads.total += relTotal;
       }
-    } else {
-      out.notes.push('GitHub download data unavailable.');
+      if (releases.length < 100) break;
+      page++;
     }
   } catch { out.notes.push('GitHub download data unavailable.'); }
 
