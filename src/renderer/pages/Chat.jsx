@@ -24,6 +24,7 @@ export default function Chat() {
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamBuffer, setStreamBuffer] = useState('');
+  const streamBufferRef = useRef('');
   // Live reasoning trail (status + tool steps) for the in-progress message.
   const [trail, setTrail] = useState([]);
   const trailRef = useRef([]);
@@ -224,39 +225,41 @@ export default function Chat() {
         const finishedTrail = trailRef.current.filter((s) => !s.transient);
         trailRef.current = [];
         setTrail([]);
-        // Read the accumulated buffer via the functional updater, capture it,
-        // commit the assistant message in the SAME pass, then clear. The old code
-        // assigned finalContent inside the updater and read it in a setTimeout
-        // before the updater had run → intermittent EMPTY assistant bubbles.
-        setStreamBuffer((prev) => {
-          const finalContent = prev + (chunk.content || '');
-          setConversations((cs) =>
-            cs.map((c) =>
-              c.id === activeConvo
-                ? {
-                    ...c,
-                    messages: [...c.messages, { role: 'assistant', content: finalContent, trail: finishedTrail.length ? finishedTrail : undefined }],
-                    title: c.messages.length === 0 ? (c.messages[0]?.content || 'Chat').slice(0, 40) : c.title,
-                  }
-                : c
-            )
-          );
-          if (voiceModeRef.current) {
-            const sentences = tts.splitIntoSentences(finalContent);
-            if (sentences.length > 0) {
-              setIsSpeaking(true);
-              (async () => {
-                for (const sentence of sentences) {
-                  if (!voiceModeRef.current) break;
-                  await tts.speak(sentence);
+
+        // Read the final content from the ref — NOT from inside a setState
+        // updater. Committing the assistant message here, in the plain stream
+        // handler, means React can never double-invoke a side-effecting updater
+        // and append the same message twice (the double-bubble bug).
+        const finalContent = streamBufferRef.current + (chunk.content || '');
+        streamBufferRef.current = '';
+        setStreamBuffer('');
+
+        setConversations((cs) =>
+          cs.map((c) =>
+            c.id === activeConvo
+              ? {
+                  ...c,
+                  messages: [...c.messages, { role: 'assistant', content: finalContent, trail: finishedTrail.length ? finishedTrail : undefined }],
+                  title: c.messages.length === 0 ? (c.messages[0]?.content || 'Chat').slice(0, 40) : c.title,
                 }
-                setIsSpeaking(false);
-                if (voiceModeRef.current) setTimeout(() => startListening(), 500);
-              })();
-            }
+              : c
+          )
+        );
+
+        if (voiceModeRef.current) {
+          const sentences = tts.splitIntoSentences(finalContent);
+          if (sentences.length > 0) {
+            setIsSpeaking(true);
+            (async () => {
+              for (const sentence of sentences) {
+                if (!voiceModeRef.current) break;
+                await tts.speak(sentence);
+              }
+              setIsSpeaking(false);
+              if (voiceModeRef.current) setTimeout(() => startListening(), 500);
+            })();
           }
-          return '';
-        });
+        }
 
         setTotalExchanges((prev) => {
           const next = prev + 1;
@@ -264,7 +267,8 @@ export default function Chat() {
           return next;
         });
       } else {
-        setStreamBuffer((prev) => prev + (chunk.content || ''));
+        streamBufferRef.current += (chunk.content || '');
+        setStreamBuffer(streamBufferRef.current);
       }
     });
     return unsub;
