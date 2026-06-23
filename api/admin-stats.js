@@ -76,24 +76,32 @@ export default async function handler(req, res) {
   try {
     const ghHeaders = { 'User-Agent': 'Aspen-Admin', Accept: 'application/vnd.github+json' };
     if (process.env.GH_TOKEN) ghHeaders.Authorization = `token ${process.env.GH_TOKEN}`;
-    const r = await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/releases?per_page=30`, { headers: ghHeaders });
-    if (r.ok) {
+    // Page through EVERY release (the old code fetched only ?per_page=30, which
+    // froze the total). Count only real installers — .dmg/.exe for Mac/Windows
+    // and .AppImage/.deb for Linux. The .yml/.blockmap/.zip files are auto-update
+    // machinery and would inflate "downloads" with update-check traffic.
+    let page = 1, fetchedAny = false;
+    while (page <= 20) {
+      const r = await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/releases?per_page=100&page=${page}`, { headers: ghHeaders, cache: 'no-store', next: { revalidate: 0 } });
+      if (!r.ok) { if (!fetchedAny) out.notes.push('GitHub download data unavailable.'); break; }
       const releases = await r.json();
+      if (!Array.isArray(releases) || releases.length === 0) break;
+      fetchedAny = true;
       for (const rel of releases) {
         let relTotal = 0;
         for (const a of rel.assets || []) {
-          // Count only real installers — a fresh user downloads a .dmg (Mac) or
-          // .exe (Windows). The .yml / .blockmap / .zip files are auto-update
-          // machinery (the installed app polls them on every update check), so
-          // counting them inflates "downloads" with update traffic.
           const name = (a.name || '').toLowerCase();
-          if (name.endsWith('.dmg') || name.endsWith('.exe')) {
+          if (name.endsWith('.dmg') || name.endsWith('.exe') || name.endsWith('.appimage') || name.endsWith('.deb')) {
             relTotal += a.download_count || 0;
           }
         }
         out.downloads.byRelease.push({ tag: rel.tag_name, downloads: relTotal });
         out.downloads.total += relTotal;
       }
+      if (releases.length < 100) break;
+      page++;
+    }
+    if (fetchedAny) {
       // Download floor — never show a number lower than the highest we've seen.
       // Re-publishing a release resets its GitHub download count, which makes the
       // total drop. We store the high-water mark in KV and use it as a floor.
@@ -106,8 +114,6 @@ export default async function handler(req, res) {
           out.downloads.total = floor;
         }
       }
-    } else {
-      out.notes.push('GitHub download data unavailable.');
     }
   } catch { out.notes.push('GitHub download data unavailable.'); }
 
@@ -116,6 +122,21 @@ export default async function handler(req, res) {
   if (vUrl && vTok) {
     const v = parseInt(await kvGet(vUrl, vTok, 'aspen:visits')) || 0;
     out.visits = v + parseInt(process.env.VISIT_SEED || '2000', 10);
+
+    // Visitor locations for the map (city-level points, sized by count).
+    out.geo = [];
+    try {
+      const g = await fetch(`${vUrl}/hgetall/aspen:geo`, { headers: { Authorization: `Bearer ${vTok}` }, cache: 'no-store' });
+      if (g.ok) {
+        const arr = (await g.json()).result || [];
+        for (let i = 0; i < arr.length; i += 2) {
+          const parts = String(arr[i]).split('|');
+          const lat = parseFloat(parts[1]), lon = parseFloat(parts[2]);
+          const count = parseInt(arr[i + 1]) || 0;
+          if (!isNaN(lat) && !isNaN(lon)) out.geo.push({ country: parts[0] || '??', lat, lon, city: parts[3] || '', count });
+        }
+      }
+    } catch {}
   } else {
     out.notes.push('Visit counter not configured.');
   }
