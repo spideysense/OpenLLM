@@ -285,6 +285,20 @@ function contentTypeFor(name) {
     console.error(`   Run it manually: Actions → Release Windows EXE → Run workflow → tag ${TAG}`);
   }
 
+  // 7. Kick off the Linux arm64 build (AppImage + deb) the same way, so every
+  //    Mac release also gets matching Linux packages attached to this same tag.
+  try {
+    console.log(`▶ Triggering Linux (arm64) build for ${TAG}...`);
+    await ghRequest('POST', `/repos/${OWNER}/${REPO}/actions/workflows/release-linux.yml/dispatches`, {
+      body: { ref: 'main', inputs: { tag: TAG } },
+    });
+    console.log(`   ✅ Linux build started — AppImage + deb will attach to ${TAG} in a few minutes.`);
+    console.log(`   Track it: https://github.com/${OWNER}/${REPO}/actions/workflows/release-linux.yml`);
+  } catch (e) {
+    console.error(`   ⚠️ Could not auto-trigger Linux build: ${e.message}`);
+    console.error(`   Run it manually: Actions → Release Linux → Run workflow → tag ${TAG}`);
+  }
+
   console.log(`\n✅ Released ${TAG} — DMG stapled BEFORE upload AND verified as served 'latest'.`);
   console.log(`   ${release.html_url}`);
 })().catch((e) => { console.error('Release failed:', e.message); process.exit(1); });

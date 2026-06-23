@@ -1,0 +1,60 @@
+name: Release Linux (AppImage + deb)
+
+# Builds the Linux arm64 packages on an ARM runner and attaches them to an
+# existing GitHub release. Decoupled from the Mac build the same way Windows is:
+# Mac is cut locally via `npm run release:mac`, which dispatches THIS workflow
+# (and release-windows.yml) so every Mac release also gets a matching Linux
+# AppImage + deb on the same tag.
+#
+# NOTE: unsigned, like the Windows build. Targets arm64 (the ThinkStation PGX /
+# DGX class box). Trigger via the dispatch from release-mac.js, or manually with
+# the tag.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing release tag to attach the Linux packages to (e.g. v0.5.9)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build-linux:
+    name: Build & publish Linux (arm64)
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install system deps (AppImage FUSE + deb tooling)
+        run: sudo apt-get update && sudo apt-get install -y libfuse2 fakeroot dpkg || true
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build renderer
+        run: npm run build:renderer
+
+      - name: Build Linux packages (deb + AppImage, arm64)
+        run: npx electron-builder --linux deb AppImage --arm64 --publish never
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Linux packages to the release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag }}
+          files: |
+            dist/*.AppImage
+            dist/*.deb
+            dist/latest-linux-arm64.yml
+          generate_release_notes: false
+          draft: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
