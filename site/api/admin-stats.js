@@ -67,7 +67,7 @@ export default async function handler(req, res) {
     let page = 1;
     let fetchedAny = false;
     while (page <= 20) { // hard cap: 2000 releases
-      const r = await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/releases?per_page=100&page=${page}`, { headers: ghHeaders });
+      const r = await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/releases?per_page=100&page=${page}`, { headers: ghHeaders, cache: 'no-store', next: { revalidate: 0 } });
       if (!r.ok) { if (!fetchedAny) out.notes.push('GitHub download data unavailable.'); break; }
       const releases = await r.json();
       if (!Array.isArray(releases) || releases.length === 0) break;
