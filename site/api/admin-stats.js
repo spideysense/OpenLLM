@@ -42,7 +42,12 @@ async function kvSumPrefix(url, token, prefix) {
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Cache-Control', 'no-store');
+  // Plain Cache-Control alone doesn't stop Vercel's edge from caching the
+  // function response (it was serving a stale ETag'd body for weeks). The
+  // CDN-specific headers below force the edge to never cache this endpoint.
+  res.setHeader('Cache-Control', 'no-store, max-age=0');
+  res.setHeader('CDN-Cache-Control', 'no-store');
+  res.setHeader('Vercel-CDN-Cache-Control', 'no-store');
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
   // ── Server-side password check ──
