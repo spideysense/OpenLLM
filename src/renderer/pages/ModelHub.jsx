@@ -14,6 +14,20 @@ const FALLBACK_MODELS = [
   { model: 'llama3.2:3b', name: 'Llama 3.2 3B', provider: 'Meta', download_gb: 2.0, min_tier: 'light', why: 'Runs on anything. Tool-capable and fast.' },
 ];
 
+// Rough RAM needed to run = model weights (~ download size) plus headroom for the
+// context window / KV cache. Mirrors LM Studio's "estimated memory" on model cards.
+const ramToRun = (gb) => Math.max(4, Math.ceil(gb + Math.max(2, gb * 0.25)));
+
+// Light capability inference from the model's own description, for at-a-glance tags.
+const tagsFor = (m) => {
+  const s = `${m.name} ${m.why || ''}`.toLowerCase();
+  const t = [];
+  if (/tool|function|agent/.test(s)) t.push('tools');
+  if (/vision|image|multimodal/.test(s)) t.push('vision');
+  if (/cod(e|ing)/.test(s)) t.push('coding');
+  return t;
+};
+
 export default function ModelHub() {
   const { bridge, models, refreshModels, hardwareTier, selectModel, setPage, activeModel } = useApp();
   // Per-model download state, keyed by model id, so multiple models can download
@@ -21,6 +35,7 @@ export default function ModelHub() {
   const [pulls, setPulls] = useState({});
   const pullMetaRef = React.useRef({}); // per-model { startTime, lastPct } for ETA + monotonic smoothing
   const [catalog, setCatalog] = useState(FALLBACK_MODELS);
+  const [query, setQuery] = useState('');
 
   useEffect(() => {
     if (!bridge?.registry?.get) return;
@@ -155,9 +170,21 @@ export default function ModelHub() {
         // The recommended model = the most capable one this machine can run
         // (catalog is already power-ranked, so it's the first that fits).
         const recommendedId = catalog.find((m) => canRun(m.min_tier))?.model || null;
+        const q = query.trim().toLowerCase();
+        const filtered = q
+          ? catalog.filter((m) => `${m.name} ${m.provider} ${m.why || ''}`.toLowerCase().includes(q))
+          : catalog;
         return (
+          <>
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search models…"
+            style={{ width: '100%', padding: '10px 14px', marginBottom: 16, borderRadius: 10, border: '1.5px solid var(--border, rgba(0,0,0,.1))', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
+          />
           <div className="model-grid">
-            {catalog.map((model) => {
+            {filtered.map((model) => {
               const id = model.model;
               const installed = isInstalled(id);
               const active = isActiveModel(id);
@@ -175,7 +202,14 @@ export default function ModelHub() {
                   <div className="model-card-header">
                     <div>
                       <h3>{model.name}</h3>
-                      <div className="model-meta">{model.provider} · {model.download_gb} GB</div>
+                      <div className="model-meta">{model.provider} · {model.download_gb} GB · needs ~{ramToRun(model.download_gb)} GB RAM</div>
+                      {tagsFor(model).length > 0 && (
+                        <div style={{ display: 'flex', gap: 5, marginTop: 6 }}>
+                          {tagsFor(model).map((t) => (
+                            <span key={t} style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.04em', color: 'var(--text-light)', background: 'rgba(0,0,0,0.05)', borderRadius: 5, padding: '2px 6px' }}>{t}</span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     {installed && active && (
                       <span className="badge badge-green"><span className="active-model-dot" /> In use</span>
@@ -194,6 +228,10 @@ export default function ModelHub() {
                   <p style={{ fontSize: 13, color: 'var(--text-light)', marginBottom: 12, lineHeight: 1.5 }}>
                     {model.why}
                   </p>
+
+                  <div style={{ fontSize: 11.5, fontWeight: 600, marginBottom: 10, color: fitsHardware ? 'var(--green, #1A7A4A)' : 'var(--text-light)' }}>
+                    {fitsHardware ? '✓ Runs on your machine' : `Needs a bigger machine (${model.min_tier} tier)`}
+                  </div>
 
                   {isPulling ? (
                     <div>
@@ -243,6 +281,7 @@ export default function ModelHub() {
               );
             })}
           </div>
+          </>
         );
       })()}
     </div>
