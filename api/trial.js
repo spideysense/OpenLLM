@@ -162,8 +162,13 @@ export default async function handler(req) {
         const list = (await mRes.json()).data || [];
         const pick = list.find((m) => !String(m.id).includes('embed'));
         if (pick) trialModel = pick.id;
+        else console.error(`[trial] ${base}/v1/models returned no usable model (${list.length} entries) — is a model loaded on the host?`);
+      } else {
+        console.error(`[trial] ${base}/v1/models responded ${mRes.status} ${mRes.statusText} — check TRIAL_TUNNEL_URL path and TRIAL_API_KEY`);
       }
-    } catch { /* fall through to graceful fail below */ }
+    } catch (e) {
+      console.error(`[trial] could not reach ${base}/v1/models: ${(e && e.message) || e} — tunnel down or wrong TRIAL_TUNNEL_URL`);
+    }
   }
   if (!trialModel) {
     return jsonErr(origin, 'The cloud trial is unavailable right now. Download Aspen to run locally.', 503, { unavailable: true });
@@ -189,6 +194,7 @@ export default async function handler(req) {
             body: JSON.stringify({ model: trialModel, messages, stream: true }),
           });
           if (!upRes.ok || !upRes.body) {
+            console.error(`[trial] upstream ${upstream} responded ${upRes.status} ${upRes.statusText} for model ${trialModel}`);
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: 'The cloud trial is unavailable right now. Download Aspen to run locally.', unavailable: true })}\n\n`));
             controller.enqueue(encoder.encode('data: [DONE]\n\n'));
             return;
@@ -199,7 +205,8 @@ export default async function handler(req) {
             if (done) break;
             controller.enqueue(value);
           }
-        } catch {
+        } catch (e) {
+          console.error(`[trial] upstream fetch to ${upstream} threw: ${(e && e.message) || e}`);
           try {
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: 'The cloud trial is unavailable right now. Download Aspen to run locally.', unavailable: true })}\n\n`));
             controller.enqueue(encoder.encode('data: [DONE]\n\n'));
