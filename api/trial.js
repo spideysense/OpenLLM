@@ -26,7 +26,7 @@ const IP_TTL_SEC = 60 * 60 * 24;      // IP window resets daily
 
 const KV_URL = (typeof process !== 'undefined' && process.env.UPSTASH_REDIS_REST_URL) || '';
 const KV_TOKEN = (typeof process !== 'undefined' && process.env.UPSTASH_REDIS_REST_TOKEN) || '';
-const TRIAL_TUNNEL_URL = (typeof process !== 'undefined' && process.env.TRIAL_TUNNEL_URL) || '';
+const TRIAL_TUNNEL_URL = (typeof process !== 'undefined' && (process.env.ASPEN_TUNNEL_URL || process.env.TRIAL_TUNNEL_URL)) || '';
 const TRIAL_API_KEY = (typeof process !== 'undefined' && process.env.TRIAL_API_KEY) || '';
 
 const ALLOWED_ORIGINS = [
