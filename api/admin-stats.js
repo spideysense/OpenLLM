@@ -155,6 +155,27 @@ export default async function handler(req, res) {
         }
       }
     } catch {}
+
+    // Traffic + download-click attribution by source.
+    out.sources = [];
+    out.dlSources = [];
+    try {
+      const s = await fetch(`${vUrl}/hgetall/aspen:src`, { headers: { Authorization: `Bearer ${vTok}` }, cache: 'no-store' });
+      if (s.ok) {
+        const arr = (await s.json()).result || [];
+        for (let i = 0; i < arr.length; i += 2) out.sources.push({ source: String(arr[i]), count: parseInt(arr[i + 1]) || 0 });
+        out.sources.sort((a, b) => b.count - a.count);
+      }
+      const d = await fetch(`${vUrl}/hgetall/aspen:dlsrc`, { headers: { Authorization: `Bearer ${vTok}` }, cache: 'no-store' });
+      if (d.ok) {
+        const arr = (await d.json()).result || [];
+        for (let i = 0; i < arr.length; i += 2) {
+          const [src, plat] = String(arr[i]).split('|');
+          out.dlSources.push({ source: src || 'direct', platform: plat || 'other', count: parseInt(arr[i + 1]) || 0 });
+        }
+        out.dlSources.sort((a, b) => b.count - a.count);
+      }
+    } catch {}
   } else {
     out.notes.push('Visit counter not configured.');
   }

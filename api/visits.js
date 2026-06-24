@@ -14,12 +14,34 @@ export default async function handler(req, res) {
 
   if (req.method === 'OPTIONS') return res.status(200).end();
 
+  // Source attribution (first-touch, sent by the client).
+  let body = {};
+  try { body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {}); } catch {}
+  const source = (body.source || 'direct').toString().slice(0, 60);
+  const action = (body.action || '').toString();
+  const platform = (body.platform || '').toString().slice(0, 12);
+
   // Try Vercel KV first (truly persistent)
   const kvUrl   = process.env.KV_REST_API_URL;
   const kvToken = process.env.KV_REST_API_TOKEN;
 
+  // A download-button click — attribute it to its source, don't count as a visit.
+  if (action === 'download') {
+    if (kvUrl && kvToken) {
+      const field = `${source}|${platform || 'other'}`;
+      fetch(`${kvUrl}/hincrby/aspen:dlsrc/${encodeURIComponent(field)}/1`, {
+        method: 'POST', headers: { Authorization: `Bearer ${kvToken}` },
+      }).catch(() => {});
+    }
+    return res.status(200).json({ ok: true });
+  }
+
   if (kvUrl && kvToken) {
     try {
+      // Record which source sent this visit (utm / referrer / direct).
+      fetch(`${kvUrl}/hincrby/aspen:src/${encodeURIComponent(source)}/1`, {
+        method: 'POST', headers: { Authorization: `Bearer ${kvToken}` },
+      }).catch(() => {});
       // Record visitor location (city-level) for the map. Vercel tags every
       // request with geo headers. Fire-and-forget so it never slows the visit.
       const country = req.headers['x-vercel-ip-country'] || '';

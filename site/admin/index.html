@@ -74,6 +74,13 @@ h1{font-family:var(--ser);font-size:2rem;margin-bottom:.3rem}
       </div>
     </div>
 
+    <div id="sources-wrap" class="hidden">
+      <div class="section-title">Where downloads come from</div>
+      <div id="dlsources"></div>
+      <div class="section-title" style="margin-top:1.2rem">Traffic by source</div>
+      <div id="sources"></div>
+    </div>
+
     <div id="releases-wrap" class="hidden">
       <div class="section-title">Downloads by release</div>
       <div id="releases"></div>
@@ -116,6 +123,19 @@ function render(d){
   $('cards').innerHTML=cards.join('');
 
   renderMap(d.geo||[]);
+
+  // Growth attribution — download clicks by source first (the conversion signal),
+  // then overall traffic by source.
+  const dls=d.dlSources||[], srcs=d.sources||[];
+  if(dls.length||srcs.length){
+    $('sources-wrap').classList.remove('hidden');
+    $('dlsources').innerHTML = dls.length
+      ? dls.map(s=>`<div class="rel-row"><span class="rel-tag">${s.source}</span><span>${s.count.toLocaleString()} click${s.count===1?'':'s'} · ${s.platform}</span></div>`).join('')
+      : `<div class="rel-row" style="color:var(--t2)"><span>No download clicks attributed yet</span></div>`;
+    $('sources').innerHTML = srcs.length
+      ? srcs.map(s=>`<div class="rel-row"><span class="rel-tag">${s.source}</span><span>${s.count.toLocaleString()} visit${s.count===1?'':'s'}</span></div>`).join('')
+      : `<div class="rel-row" style="color:var(--t2)"><span>No traffic sources yet — starts recording now</span></div>`;
+  }
 
   if(d.downloads?.byRelease?.length){
     $('releases-wrap').classList.remove('hidden');

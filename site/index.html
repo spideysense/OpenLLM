@@ -448,18 +448,63 @@ function submitContact(e){
 <p style="font-size:11px;color:#999;margin-top:8px;text-align:center">Secure payment via Stripe · $1 deposit applied to your first payment</p>
 </div></div>
 <script>
-// Count this visit — fire-and-forget, increments the real KV counter.
-// One count per browser session (sessionStorage) so a reload doesn't double-count.
+// Source attribution + visit count. First-touch source = utm_source → referrer
+// host → "direct", held in sessionStorage so every event in the session agrees.
 (function(){
+  function aspenSource(){
+    try{
+      var s = sessionStorage.getItem('aspen_src');
+      if (s) return s;
+      var p = new URLSearchParams(location.search);
+      var src = p.get('utm_source') || p.get('ref') || '';
+      if (!src && document.referrer) {
+        try {
+          var h = new URL(document.referrer).hostname.replace(/^www\./,'');
+          if (h && h !== location.hostname) src = h;
+        } catch(e){}
+      }
+      src = (src || 'direct').toLowerCase().slice(0,60);
+      sessionStorage.setItem('aspen_src', src);
+      return src;
+    } catch(e){ return 'direct'; }
+  }
+  window.aspenSource = aspenSource;
+
+  function visit(){
+    var body = JSON.stringify({ source: aspenSource() });
+    fetch('/api/visits', { method:'POST', headers:{'Content-Type':'application/json'}, body:body }).catch(function(){});
+  }
   try {
     if (!sessionStorage.getItem('aspen_counted')) {
       sessionStorage.setItem('aspen_counted', '1');
-      fetch('/api/visits', { method: 'POST' }).catch(function(){});
+      visit();
     }
-  } catch (e) {
-    // sessionStorage blocked (some incognito modes) — still count the visit
-    fetch('/api/visits', { method: 'POST' }).catch(function(){});
-  }
+  } catch (e) { visit(); }
+
+  // Attribute download-button clicks to their source (closest proxy we can see —
+  // the real GitHub download can't carry our referrer).
+  document.addEventListener('click', function(e){
+    var a = e.target && e.target.closest ? e.target.closest('a') : null;
+    if (!a) return;
+    var href = a.getAttribute('href') || '';
+    var isDl = href.indexOf('releases/latest/download') > -1
+            || href.indexOf('apps.apple.com') > -1
+            || href.indexOf('install.sh') > -1
+            || /\/releases\/download\//.test(href);
+    if (!isDl) return;
+    var plat = href.indexOf('apps.apple.com') > -1 ? 'ios'
+             : href.indexOf('-mac') > -1 || href.indexOf('.dmg') > -1 ? 'mac'
+             : href.indexOf('-win') > -1 || href.indexOf('.exe') > -1 ? 'win'
+             : href.indexOf('install.sh') > -1 ? 'linux' : 'other';
+    try {
+      var body = JSON.stringify({ action:'download', source: aspenSource(), platform: plat });
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon('/api/visits', new Blob([body], { type:'application/json' }));
+      } else {
+        fetch('/api/visits', { method:'POST', headers:{'Content-Type':'application/json'}, body:body, keepalive:true }).catch(function(){});
+      }
+    } catch(err){}
+  }, true);
 })();
 </script>
 <script>
