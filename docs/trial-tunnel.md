@@ -70,7 +70,7 @@ cloudflared tunnel --config /etc/cloudflared/aspen-trial.yml run aspen-trial
 In another shell, confirm the stable hostname now serves your model list:
 ```bash
 curl -i https://trial.runonaspen.com/v1/models \
-  -H "Authorization: Bearer sk-aspen-S785JFc0zl3TFpDQURd52KEYpaSrhhKK"
+  -H "Authorization: Bearer YOUR-TRIAL-API-KEY"
 ```
 Expect `HTTP/2 200` and `qwen3.6:35b-a3b` in the JSON. Then Ctrl-C the foreground run.
 
