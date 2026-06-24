@@ -3,15 +3,15 @@ import { useApp } from '../App';
 
 // Tool-capable defaults shown if the remote registry can't be fetched. Power-ranked.
 const FALLBACK_MODELS = [
-  { model: 'llama4:scout', name: 'Llama 4 Scout', provider: 'Meta', download_gb: 65, min_tier: 'ultra', why: "Meta's open flagship. Strong tool use, huge context." },
-  { model: 'qwen3:32b', name: 'Qwen 3 32B', provider: 'Alibaba', download_gb: 20, min_tier: 'heavy', why: 'Most reliable tool-calling of any local model.' },
-  { model: 'gemma4:26b', name: 'Gemma 4 26B', provider: 'Google', download_gb: 18, min_tier: 'heavy', why: 'Native function-calling trained in. Great all-round agent.' },
-  { model: 'qwen2.5:32b', name: 'Qwen 2.5 32B', provider: 'Alibaba', download_gb: 20, min_tier: 'heavy', why: 'GPT-4-class with a mature tool ecosystem.' },
-  { model: 'qwen3:14b', name: 'Qwen 3 14B', provider: 'Alibaba', download_gb: 10, min_tier: 'medium', why: 'Production tool reliability that fits 16 GB. The sweet spot.' },
-  { model: 'gemma4:e4b', name: 'Gemma 4 E4B', provider: 'Google', download_gb: 9.6, min_tier: 'medium', why: 'Built-in tools + vision, edge-optimized.' },
-  { model: 'qwen2.5:7b', name: 'Qwen 2.5 7B', provider: 'Alibaba', download_gb: 4.7, min_tier: 'medium', why: 'Beats larger models on benchmarks, solid tools.' },
-  { model: 'llama3.1:8b', name: 'Llama 3.1 8B', provider: 'Meta', download_gb: 5, min_tier: 'light', why: 'Reliable lightweight pick. Fast, dependable tool calling.' },
-  { model: 'llama3.2:3b', name: 'Llama 3.2 3B', provider: 'Meta', download_gb: 2.0, min_tier: 'light', why: 'Runs on anything. Tool-capable and fast.' },
+  { model: 'llama4:scout', name: 'Llama 4 Scout', provider: 'Meta', download_gb: 65, min_tier: 'ultra', why: 'For heavy work and very long documents. Needs a powerful machine.' },
+  { model: 'qwen3:32b', name: 'Qwen 3 32B', provider: 'Alibaba', download_gb: 20, min_tier: 'heavy', why: 'A strong all-rounder for writing, research, and detailed answers.' },
+  { model: 'gemma4:26b', name: 'Gemma 4 26B', provider: 'Google', download_gb: 18, min_tier: 'heavy', why: 'Great general assistant for everyday writing and questions.' },
+  { model: 'qwen2.5:32b', name: 'Qwen 2.5 32B', provider: 'Alibaba', download_gb: 20, min_tier: 'heavy', why: 'Powerful for detailed analysis, coding, and long answers.' },
+  { model: 'qwen3:14b', name: 'Qwen 3 14B', provider: 'Alibaba', download_gb: 10, min_tier: 'medium', why: 'Well-rounded and quick on a normal laptop. A great default.' },
+  { model: 'gemma4:e4b', name: 'Gemma 4 E4B', provider: 'Google', download_gb: 9.6, min_tier: 'medium', why: 'Reads images as well as text. Light enough for most machines.' },
+  { model: 'qwen2.5:7b', name: 'Qwen 2.5 7B', provider: 'Alibaba', download_gb: 4.7, min_tier: 'medium', why: 'Fast and capable for everyday chat, writing, and questions.' },
+  { model: 'llama3.1:8b', name: 'Llama 3.1 8B', provider: 'Meta', download_gb: 5, min_tier: 'light', why: 'Quick and dependable for everyday tasks.' },
+  { model: 'llama3.2:3b', name: 'Llama 3.2 3B', provider: 'Meta', download_gb: 2.0, min_tier: 'light', why: 'Runs on almost anything. Best for older or low-memory machines.' },
 ];
 
 // Rough RAM needed to run = model weights (~ download size) plus headroom for the
