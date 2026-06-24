@@ -107,4 +107,5 @@ struct ChatTurn: Identifiable, Codable, Equatable {
     var id = UUID()
     let role: String      // "user" | "assistant" | "system"
     var content: String
+    var images: [String]? = nil   // base64 (no data: prefix), Ollama-style, for box vision
 }

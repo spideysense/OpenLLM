@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 /// The chat screen. Native streaming bubbles, an animated "thinking" indicator
 /// that shows live status (tool-call narration on box mode), and a tier pill.
@@ -7,6 +8,7 @@ struct ChatView: View {
     @State private var showTier = false
     @State private var showConnect = false
     @State private var showMenu = false
+    @State private var pickerItems: [PhotosPickerItem] = []
     @Namespace private var bottomID
 
     var body: some View {
@@ -118,24 +120,88 @@ struct ChatView: View {
     }
 
     private var composer: some View {
-        HStack(spacing: 10) {
-            TextField("Message your Aspen…", text: $vm.input, axis: .vertical)
-                .lineLimit(1...5)
-                .padding(.horizontal, 16).padding(.vertical, 12)
-                .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 22))
-            Button {
-                vm.streaming ? vm.stop() : vm.send()
-            } label: {
-                Image(systemName: vm.streaming ? "stop.fill" : "arrow.up")
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(Color(.systemBackground))
-                    .frame(width: 44, height: 44)
-                    .background(vm.streaming ? Color.red : Color.accentColor, in: RoundedRectangle(cornerRadius: 16))
+        VStack(spacing: 8) {
+            if !vm.pendingImages.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(Array(vm.pendingImages.enumerated()), id: \.offset) { idx, b64 in
+                            if let data = Data(base64Encoded: b64), let ui = UIImage(data: data) {
+                                ZStack(alignment: .topTrailing) {
+                                    Image(uiImage: ui)
+                                        .resizable().scaledToFill()
+                                        .frame(width: 56, height: 56)
+                                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                                    Button {
+                                        vm.pendingImages.remove(at: idx)
+                                    } label: {
+                                        Image(systemName: "xmark.circle.fill")
+                                            .font(.system(size: 16))
+                                            .foregroundStyle(.white, .black.opacity(0.5))
+                                    }
+                                    .padding(2)
+                                }
+                            }
+                        }
+                    }
+                    .padding(.horizontal)
+                }
+                .frame(height: 60)
             }
-            .buttonStyle(.plain)
-            .sensoryFeedback(.impact(weight: .light), trigger: vm.streaming)
+            HStack(spacing: 10) {
+                PhotosPicker(selection: $pickerItems, maxSelectionCount: 4, matching: .images) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 40, height: 44)
+                }
+                .onChange(of: pickerItems) { _, items in
+                    guard !items.isEmpty else { return }
+                    Task { await loadPicked(items) }
+                }
+                TextField("Message your Aspen…", text: $vm.input, axis: .vertical)
+                    .lineLimit(1...5)
+                    .padding(.horizontal, 16).padding(.vertical, 12)
+                    .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 22))
+                Button {
+                    vm.streaming ? vm.stop() : vm.send()
+                } label: {
+                    Image(systemName: vm.streaming ? "stop.fill" : "arrow.up")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(Color(.systemBackground))
+                        .frame(width: 44, height: 44)
+                        .background(vm.streaming ? Color.red : Color.accentColor, in: RoundedRectangle(cornerRadius: 16))
+                }
+                .buttonStyle(.plain)
+                .sensoryFeedback(.impact(weight: .light), trigger: vm.streaming)
+            }
+            .padding(.horizontal).padding(.vertical, 8)
         }
-        .padding(.horizontal).padding(.vertical, 8)
+    }
+
+    /// Load picked photos, downscale + JPEG-compress to keep the payload small
+    /// (large base64 images would blow the request timeout), append as base64.
+    private func loadPicked(_ items: [PhotosPickerItem]) async {
+        for item in items {
+            if let data = try? await item.loadTransferable(type: Data.self),
+               let ui = UIImage(data: data),
+               let b64 = Self.downscaledJPEGBase64(ui) {
+                await MainActor.run { vm.pendingImages.append(b64) }
+            }
+        }
+        await MainActor.run { pickerItems = [] }
+    }
+
+    private static func downscaledJPEGBase64(_ image: UIImage, maxDim: CGFloat = 1024, quality: CGFloat = 0.7) -> String? {
+        let size = image.size
+        guard size.width > 0, size.height > 0 else { return nil }
+        let scale = min(1, maxDim / max(size.width, size.height))
+        let target = CGSize(width: size.width * scale, height: size.height * scale)
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = 1
+        let resized = UIGraphicsImageRenderer(size: target, format: format).image { _ in
+            image.draw(in: CGRect(origin: .zero, size: target))
+        }
+        return resized.jpegData(compressionQuality: quality)?.base64EncodedString()
     }
 
     private var footer: some View {
@@ -165,11 +231,27 @@ struct MessageBubble: View {
 
     @ViewBuilder private var bubble: some View {
         if isUser {
-            Text(message.content)
-                .padding(.horizontal, 16).padding(.vertical, 11)
-                .background(AnyShapeStyle(Color.primary), in: RoundedRectangle(cornerRadius: 20))
-                .foregroundStyle(Color(.systemBackground))
-                .textSelection(.enabled)
+            VStack(alignment: .trailing, spacing: 6) {
+                if let imgs = message.images, !imgs.isEmpty {
+                    VStack(spacing: 6) {
+                        ForEach(Array(imgs.enumerated()), id: \.offset) { _, b64 in
+                            if let data = Data(base64Encoded: b64), let ui = UIImage(data: data) {
+                                Image(uiImage: ui)
+                                    .resizable().scaledToFit()
+                                    .frame(maxWidth: 220, maxHeight: 220)
+                                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                            }
+                        }
+                    }
+                }
+                if !message.content.isEmpty {
+                    Text(message.content)
+                        .padding(.horizontal, 16).padding(.vertical, 11)
+                        .background(AnyShapeStyle(Color.primary), in: RoundedRectangle(cornerRadius: 20))
+                        .foregroundStyle(Color(.systemBackground))
+                        .textSelection(.enabled)
+                }
+            }
         } else if isStreaming {
             // STREAMING PATH — plain text only, never parse mid-stream.
             Text(message.content.isEmpty ? " " : message.content)

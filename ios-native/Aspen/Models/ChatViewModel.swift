@@ -11,6 +11,7 @@ enum Tier: String, Codable { case local, box }
 final class ChatViewModel: ObservableObject {
     @Published var messages: [ChatTurn] = []
     @Published var input = ""
+    @Published var pendingImages: [String] = []   // base64 queued for the next send
     @Published var streaming = false
     @Published var status = ""              // "Thinking…", "Searching the web…"
     @Published var tier: Tier = .local
@@ -88,9 +89,11 @@ final class ChatViewModel: ObservableObject {
 
     func send() {
         let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty, !streaming else { return }
+        let imgs = pendingImages
+        guard (!text.isEmpty || !imgs.isEmpty), !streaming else { return }
         input = ""
-        messages.append(ChatTurn(role: "user", content: text))
+        pendingImages = []
+        messages.append(ChatTurn(role: "user", content: text, images: imgs.isEmpty ? nil : imgs))
         // Placeholder assistant bubble that streams in.
         messages.append(ChatTurn(role: "assistant", content: ""))
         streaming = true

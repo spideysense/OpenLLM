@@ -55,7 +55,7 @@ final class BoxClient {
             tunnelUrl: normalize(config.tunnelUrl),
             apiKey: config.apiKey,
             model: model,
-            messages: messages.map { .init(role: $0.role, content: $0.content) }
+            messages: messages.map { .init(role: $0.role, content: $0.content, images: $0.images) }
         )
         req.httpBody = try JSONEncoder().encode(payload)
 
@@ -81,7 +81,7 @@ final class BoxClient {
     struct AgentRequest: Codable {
         let tunnelUrl: String; let apiKey: String; let model: String
         let messages: [Msg]
-        struct Msg: Codable { let role: String; let content: String }
+        struct Msg: Codable { let role: String; let content: String; let images: [String]? }
     }
     struct SSEEvent: Codable {
         let choices: [Choice]?
