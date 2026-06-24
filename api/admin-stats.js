@@ -109,7 +109,11 @@ export default async function handler(req, res) {
       for (const rel of releases) {
         let live = 0;
         for (const a of rel.assets || []) {
-          // Count EVERY asset download — installers, update files, everything.
+          // Count every real download. Exclude ONLY the two files the installed
+          // app fetches by itself on an update-check timer (.yml manifest and
+          // .blockmap diff) — those tick up with no human downloading anything.
+          const name = (a.name || '').toLowerCase();
+          if (name.endsWith('.yml') || name.endsWith('.yaml') || name.endsWith('.blockmap')) continue;
           live += a.download_count || 0;
         }
         const tag = rel.tag_name;
