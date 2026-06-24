@@ -167,6 +167,38 @@ footer{border-top:1px solid var(--brd);padding:2rem 0}
 <div class="w cn">
 <h1>Own your<br><em>intelligence.</em></h1>
 <p class="sb">Private AI that runs on your machine. No subscriptions. No cloud. No one reading your conversations. No terminal, no configuration. Just download, open, and ask.</p>
+<style>
+.try-card{max-width:560px;margin:0 auto 2rem;background:var(--wh);border:1px solid var(--brd);border-radius:20px;padding:1rem;box-shadow:0 10px 40px rgba(0,0,0,.05);position:relative;z-index:2;text-align:left}
+.try-msgs{display:none;max-height:320px;overflow-y:auto;padding:.2rem .2rem .6rem;flex-direction:column;gap:.6rem}
+.try-msgs.show{display:flex}
+.try-msg{font-size:.94rem;line-height:1.6;padding:.65rem .9rem;border-radius:14px;max-width:90%;white-space:pre-wrap;word-wrap:break-word}
+.try-msg.user{align-self:flex-end;background:var(--bk);color:var(--bg)}
+.try-msg.bot{align-self:flex-start;background:var(--gd3);color:var(--bk)}
+.try-msg.typing{color:var(--t3)}
+.try-input-row{display:flex;gap:.5rem;align-items:center}
+.try-input{flex:1;border:1.5px solid var(--brd);border-radius:14px;padding:.85rem 1rem;font-family:var(--san);font-size:1rem;outline:none;background:var(--bg);color:var(--bk)}
+.try-input:focus{border-color:var(--gd)}
+.try-send{width:46px;height:46px;border:none;border-radius:13px;background:var(--gd);color:#fff;font-size:1.3rem;cursor:pointer;flex-shrink:0;transition:background .2s;line-height:1}
+.try-send:hover{background:var(--gd2)}.try-send:disabled{opacity:.5;cursor:default}
+.try-chips{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.7rem}
+.try-chip{font-size:.8rem;color:var(--t2);background:transparent;border:1px solid var(--brd);border-radius:20px;padding:.4rem .8rem;cursor:pointer;font-family:var(--san);transition:all .2s}
+.try-chip:hover{border-color:var(--gd);color:var(--gd)}
+.try-meta{font-size:.72rem;color:var(--t4);margin-top:.7rem;text-align:center}
+.try-meta a{color:var(--gd);font-weight:600;text-decoration:none}
+</style>
+<div class="try-card" id="try-aspen">
+  <div class="try-msgs" id="try-msgs"></div>
+  <div class="try-input-row">
+    <input class="try-input" id="try-input" placeholder="Ask Aspen anything…" autocomplete="off" aria-label="Ask Aspen">
+    <button class="try-send" id="try-send" aria-label="Send">&rarr;</button>
+  </div>
+  <div class="try-chips" id="try-chips">
+    <button class="try-chip">Write a haiku about privacy</button>
+    <button class="try-chip">How does local AI keep my data private?</button>
+    <button class="try-chip">Draft a cold email to a recruiter</button>
+  </div>
+  <div class="try-meta" id="try-meta">Try it right here &middot; free &middot; runs on a real Aspen machine &middot; no account</div>
+</div>
 <div class="hero-btns">
 <a href="https://github.com/spideysense/OpenLLM/releases/latest/download/Aspen-mac.dmg" class="nb nb-g nb-l" id="download-primary">Download Free for Mac</a>
 <a href="#device" class="nb nb-o nb-l">See the Aspen device</a>
@@ -616,6 +648,88 @@ ctx.fillStyle='rgba(184,134,11,'+p.a+')';ctx.fill()}
 }
 requestAnimationFrame(draw)}
 draw()})();
+</script>
+<script>
+// Hero trial chat — talks to /api/trial (server enforces the 20-message cap).
+(function(){
+  const card=document.getElementById('try-aspen'); if(!card) return;
+  const msgsEl=document.getElementById('try-msgs');
+  const input=document.getElementById('try-input');
+  const sendBtn=document.getElementById('try-send');
+  const meta=document.getElementById('try-meta');
+  const chips=document.getElementById('try-chips');
+  const DL='https://github.com/spideysense/OpenLLM/releases/latest/download/Aspen-mac.dmg';
+  let token=null,left=20,busy=false,capped=false;
+  const history=[];
+
+  function addMsg(role,text){
+    msgsEl.classList.add('show');
+    const d=document.createElement('div');
+    d.className='try-msg '+(role==='user'?'user':'bot');
+    d.textContent=text; msgsEl.appendChild(d); msgsEl.scrollTop=msgsEl.scrollHeight;
+    return d;
+  }
+  function setMeta(html){ meta.innerHTML=html; }
+  function showCap(){
+    capped=true; input.disabled=true; sendBtn.disabled=true;
+    input.placeholder='Download Aspen to keep going';
+    setMeta('You\'ve used your 20 free messages. <a href="'+DL+'">Download Aspen — free, unlimited, fully private &rarr;</a>');
+  }
+  async function ensureToken(){
+    if(token) return true;
+    try{
+      const r=await fetch('/api/trial',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'start'})});
+      const d=await r.json().catch(()=>({}));
+      if(!r.ok||!d.token){ setMeta((d.error||'Trial is busy right now.')+' <a href="'+DL+'">Download Aspen free &rarr;</a>'); return false; }
+      token=d.token; left=d.messagesLeft??20; return true;
+    }catch{ setMeta('Trial unavailable right now. <a href="'+DL+'">Download Aspen free &rarr;</a>'); return false; }
+  }
+  async function send(text){
+    if(busy||capped) return;
+    text=(text||input.value).trim(); if(!text) return;
+    busy=true; sendBtn.disabled=true; input.value=''; chips.style.display='none';
+    addMsg('user',text); history.push({role:'user',content:text});
+    if(!(await ensureToken())){ busy=false; sendBtn.disabled=false; return; }
+    const bot=addMsg('bot','…'); bot.classList.add('typing');
+    let full='';
+    try{
+      const res=await fetch('/api/trial',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'chat',token,messages:history.slice(-20)})});
+      if(!res.ok){
+        const e=await res.json().catch(()=>({}));
+        if(e.capped){ bot.remove(); showCap(); busy=false; return; }
+        throw new Error(e.error||('HTTP '+res.status));
+      }
+      const reader=res.body.getReader(),dec=new TextDecoder(); let buf='';
+      while(true){
+        const{done,value}=await reader.read(); if(done) break;
+        buf+=dec.decode(value,{stream:true});
+        const lines=buf.split('\n'); buf=lines.pop()??'';
+        for(const line of lines){
+          const t=line.trim();
+          if(t.startsWith(': messagesLeft=')){ left=parseInt(t.slice(15))||0; continue; }
+          if(!t.startsWith('data: ')) continue;
+          const d=t.slice(6); if(d==='[DONE]') continue;
+          let j; try{ j=JSON.parse(d); }catch{ continue; }
+          if(j.error) throw new Error(j.error);
+          const tok=j.choices&&j.choices[0]&&j.choices[0].delta&&j.choices[0].delta.content;
+          if(tok){ full+=tok; bot.classList.remove('typing'); bot.textContent=full; msgsEl.scrollTop=msgsEl.scrollHeight; }
+        }
+      }
+      if(!full) bot.textContent='(The trial machine is busy. Try again in a moment, or download Aspen to run it locally.)';
+      else history.push({role:'assistant',content:full});
+    }catch(e){
+      bot.classList.remove('typing');
+      bot.textContent='Something went wrong. You can download Aspen to run it locally, fully private.';
+    }
+    busy=false; sendBtn.disabled=false;
+    if(left<=0) showCap();
+    else setMeta(left+' free message'+(left===1?'':'s')+' left &middot; runs on a real Aspen machine &middot; no account');
+    input.focus();
+  }
+  sendBtn.addEventListener('click',()=>send());
+  input.addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); send(); } });
+  Array.prototype.forEach.call(chips.querySelectorAll('.try-chip'),function(c){ c.addEventListener('click',function(){ send(c.textContent); }); });
+})();
 </script>
 </body>
 </html>
