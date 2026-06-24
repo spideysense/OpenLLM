@@ -8,8 +8,13 @@ struct ChatView: View {
     @State private var showTier = false
     @State private var showConnect = false
     @State private var showMenu = false
+    @State private var showVoice = false
     @State private var pickerItems: [PhotosPickerItem] = []
     @Namespace private var bottomID
+
+    private var hasDraft: Bool {
+        !vm.input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !vm.pendingImages.isEmpty
+    }
 
     var body: some View {
         ZStack(alignment: .leading) {
@@ -59,6 +64,9 @@ struct ChatView: View {
                 onConnected: { cfg, models in vm.connected(cfg, models); showConnect = false },
                 onCancel: { showConnect = false }
             )
+        }
+        .fullScreenCover(isPresented: $showVoice) {
+            VoiceModeView(vm: vm)
         }
     }
 
@@ -163,9 +171,11 @@ struct ChatView: View {
                     .padding(.horizontal, 16).padding(.vertical, 12)
                     .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 22))
                 Button {
-                    vm.streaming ? vm.stop() : vm.send()
+                    if vm.streaming { vm.stop() }
+                    else if hasDraft { vm.send() }
+                    else { showVoice = true }
                 } label: {
-                    Image(systemName: vm.streaming ? "stop.fill" : "arrow.up")
+                    Image(systemName: vm.streaming ? "stop.fill" : (hasDraft ? "arrow.up" : "waveform"))
                         .font(.system(size: 18, weight: .bold))
                         .foregroundStyle(Color(.systemBackground))
                         .frame(width: 44, height: 44)
