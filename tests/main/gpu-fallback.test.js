@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   isGpuRuntimeFailure,
+  isGpuOom,
   forceCpu,
   setForceCpu,
   resetForceCpu,
@@ -29,9 +30,21 @@ describe('isGpuRuntimeFailure', () => {
       'ggml_cuda_compute_forward failed',
       'cuBLAS error',
       'cudnn status not initialized',
-      'CUDA out of memory',
     ]) {
       expect(isGpuRuntimeFailure(s)).toBe(true);
+    }
+  });
+
+  it('treats out-of-memory as a sizing problem, NOT a dead GPU', () => {
+    // OOM means "this model is too big", not "this card is broken". It must not flip
+    // the permanent CPU flag, or one oversized model poisons every smaller one after it.
+    for (const s of [
+      'CUDA out of memory',
+      'cuBLAS error: out of memory trying to allocate',
+      'GPU out of memory',
+    ]) {
+      expect(isGpuRuntimeFailure(s)).toBe(false);
+      expect(isGpuOom(s)).toBe(true);
     }
   });
 
@@ -103,6 +116,27 @@ describe('withGpuFallback', () => {
       withGpuFallback(async () => { calls++; throw new Error('CUDA error: device kernel image is invalid'); })
     ).rejects.toThrow(/CUDA/);
     expect(calls).toBe(1); // attempted once on CPU; no infinite GPU<->CPU retry
+  });
+
+  it('on OOM, runs THIS call on CPU but does NOT flip the session — the next smaller model still gets the GPU', async () => {
+    // The regression behind the field report: big model OOMs, then every smaller model
+    // is slow too. Here the oversized model falls back to CPU for its own call, but the
+    // flag stays false so the next model is tried on the GPU again.
+    const big = [];
+    const bigOut = await withGpuFallback(async (opts) => {
+      big.push(opts);
+      if (big.length === 1) throw new Error('CUDA out of memory: tried to allocate 18.2 GiB');
+      return 'cpu-answer-for-big-model';
+    });
+    expect(bigOut).toBe('cpu-answer-for-big-model');
+    expect(big).toEqual([{}, { num_gpu: 0 }]); // GPU attempt, then CPU retry for THIS call
+    expect(forceCpu()).toBe(false);            // crucially: session NOT demoted
+
+    // Now a smaller model: it should get a clean GPU attempt, not be forced to CPU.
+    const small = [];
+    const smallOut = await withGpuFallback(async (opts) => { small.push(opts); return 'fast-gpu-answer'; });
+    expect(smallOut).toBe('fast-gpu-answer');
+    expect(small).toEqual([{}]); // ran on the GPU, fast
   });
 });
 
