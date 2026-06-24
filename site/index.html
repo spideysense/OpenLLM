@@ -211,6 +211,50 @@ footer{border-top:1px solid var(--brd);padding:2rem 0}
 </div>
 </section>
 
+<section class="gallery" id="see">
+  <h2 class="gallery-title">See Aspen</h2>
+  <p class="gallery-sub">A real app running real local models. No terminal in sight.</p>
+  <div class="gallery-grid" id="gallery-grid"></div>
+</section>
+<style>
+.gallery{max-width:1100px;margin:0 auto;padding:4rem 1.5rem;text-align:center;display:none}
+.gallery.show{display:block}
+.gallery-title{font-family:var(--ser);font-size:2.2rem;margin-bottom:.4rem}
+.gallery-sub{color:var(--t2);font-size:1rem;margin-bottom:2.5rem}
+.gallery-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:1.5rem}
+.shot{background:var(--wh);border:1px solid var(--brd);border-radius:16px;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.05);text-align:left;opacity:0;transform:translateY(12px);transition:opacity .5s ease,transform .5s ease}
+.shot.in{opacity:1;transform:none}
+.shot img{width:100%;display:block;background:var(--bg)}
+.shot .cap{padding:.9rem 1.1rem;font-size:.9rem;color:var(--t2);line-height:1.5}
+.shot .cap b{color:var(--bk);font-weight:600}
+</style>
+<script>
+// Self-revealing gallery: each shot appears only if its image actually loads, so
+// visitors never see a broken frame. Drop PNGs into site/screenshots/ and they
+// show up automatically, in this order.
+(function(){
+  var grid=document.getElementById('gallery-grid'), sec=document.getElementById('see');
+  if(!grid) return;
+  var shots=[
+    {src:'/screenshots/chat.png',     t:'Just chat',         d:'Download, open, ask. No terminal, no config.'},
+    {src:'/screenshots/tools.png',    t:'It uses tools',     d:'Web search, shell commands, fetching URLs, git — built in.'},
+    {src:'/screenshots/voice.png',    t:'Talk to it',        d:'Hands-free voice mode with a natural neural voice.'},
+    {src:'/screenshots/ios.png',      t:'On your phone',     d:'The iPhone app connects back to your own machine.'},
+    {src:'/screenshots/artifact.png', t:'Live artifacts',    d:'Code and pages render and run right in the chat.'},
+    {src:'/aspen-device.png',         t:'The Aspen device',  d:'Optional always-on machine for the biggest models.'}
+  ];
+  var shown=0;
+  shots.forEach(function(s){
+    var card=document.createElement('div'); card.className='shot'; card.style.display='none';
+    card.innerHTML='<img alt="'+s.t+'" loading="lazy"><div class="cap"><b>'+s.t+'</b> &mdash; '+s.d+'</div>';
+    grid.appendChild(card);
+    var img=card.querySelector('img');
+    img.onload=function(){ card.style.display=''; requestAnimationFrame(function(){ card.classList.add('in'); }); if(++shown===1) sec.classList.add('show'); };
+    img.src=s.src;
+  });
+})();
+</script>
+
 <section class="dev-section" id="device">
 <div class="w cn">
 <p class="tg rv" style="text-align:center;display:block">Optional hardware</p>
