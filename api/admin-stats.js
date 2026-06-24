@@ -109,10 +109,8 @@ export default async function handler(req, res) {
       for (const rel of releases) {
         let live = 0;
         for (const a of rel.assets || []) {
-          const name = (a.name || '').toLowerCase();
-          if (name.endsWith('.dmg') || name.endsWith('.exe') || name.endsWith('.appimage') || name.endsWith('.deb')) {
-            live += a.download_count || 0;
-          }
+          // Count EVERY asset download — installers, update files, everything.
+          live += a.download_count || 0;
         }
         const tag = rel.tag_name;
         const prev = marks[tag] || 0;
