@@ -175,6 +175,8 @@ footer{border-top:1px solid var(--brd);padding:2rem 0}
 .try-msg.user{align-self:flex-end;background:var(--bk);color:var(--bg)}
 .try-msg.bot{align-self:flex-start;background:var(--gd3);color:var(--bk)}
 .try-msg.typing{color:var(--t3)}
+.try-leaf{width:22px;height:22px;display:block;animation:leafspin 1.2s ease-in-out infinite;transform-origin:50% 60%}
+@keyframes leafspin{0%{transform:rotate(-12deg) scale(.92);opacity:.55}50%{transform:rotate(12deg) scale(1);opacity:1}100%{transform:rotate(-12deg) scale(.92);opacity:.55}}
 .try-input-row{display:flex;gap:.5rem;align-items:center}
 .try-input{flex:1;border:1.5px solid var(--brd);border-radius:14px;padding:.85rem 1rem;font-family:var(--san);font-size:1rem;outline:none;background:var(--bg);color:var(--bk)}
 .try-input:focus{border-color:var(--gd)}
@@ -779,7 +781,7 @@ draw()})();
     busy=true; sendBtn.disabled=true; input.value=''; chips.style.display='none';
     addMsg('user',text); history.push({role:'user',content:text});
     if(!(await ensureToken())){ busy=false; sendBtn.disabled=false; return; }
-    const bot=addMsg('bot','…'); bot.classList.add('typing');
+    const bot=addMsg('bot',''); bot.classList.add('typing'); bot.innerHTML='<img src="/aspen-leaf.png" class="try-leaf" alt="">';
     let full='';
     try{
       const res=await fetch('/api/trial',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'chat',token,messages:history.slice(-20)})});
