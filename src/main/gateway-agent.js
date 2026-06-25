@@ -186,12 +186,15 @@ const GATEWAY_COMPUTER_TOOL_DEFS = [
   },
 ];
 
-function getToolDefs(isOwner, allowed = null) {
+function getToolDefs(isOwner, allowed = null, allowComputer = false) {
   let names = isOwner ? [...SAFE_TOOLS, ...DANGEROUS_TOOLS] : [...SAFE_TOOLS];
   // Capability gate: drop any tool the model/machine can't reliably use.
   if (Array.isArray(allowed)) names = names.filter((n) => allowed.includes(n));
   const builtins = tools.getToolDefinitions(names.filter(n => SAFE_TOOLS.includes(n) || n === 'run_command' || n === 'download_file' || n.startsWith('git_')));
-  const computerDefs = (isOwner && (!Array.isArray(allowed) || allowed.includes('computer_use'))) ? GATEWAY_COMPUTER_TOOL_DEFS : [];
+  // Computer use (screenshot/click on THIS machine) is OFF unless explicitly opted in.
+  // It must never be auto-offered to a remote web/mobile chat: a phone asking for the
+  // weather doesn't want a 6 MB screenshot of the box dumped into the model's context.
+  const computerDefs = (allowComputer && isOwner && (!Array.isArray(allowed) || allowed.includes('computer_use'))) ? GATEWAY_COMPUTER_TOOL_DEFS : [];
   return [...builtins, ...computerDefs];
 }
 
@@ -671,7 +674,7 @@ async function plainChatRetry(model, messages, _chat = ollamaChat) {
 //   { type: 'done' }                            — stream complete
 //   { type: 'error', text: string }             — fatal error
 // ─────────────────────────────────────────────────────────────────────────────
-async function* run({ model, messages, isOwner = false, memoryKeyId = null }) {
+async function* run({ model, messages, isOwner = false, memoryKeyId = null, allowComputerUse = false }) {
   if (!model || !Array.isArray(messages) || messages.length === 0) {
     yield { type: 'error', text: 'model and messages are required' };
     return;
@@ -693,7 +696,7 @@ async function* run({ model, messages, isOwner = false, memoryKeyId = null }) {
   const chatTier = capProfile && capProfile.tier === 'chat';
   const memPrefix = worldModel.getSystemPrefix(memoryKeyId);
 
-  const toolDefs = (supportsTools && !chatTier) ? getToolDefs(isOwner, allowedTools) : [];
+  const toolDefs = (supportsTools && !chatTier) ? getToolDefs(isOwner, allowedTools, allowComputerUse) : [];
 
   // ─── NO-TOOLS FAST PATH ───
   // Chat-tier / tool-incompatible / small models can't use tools, so stream
