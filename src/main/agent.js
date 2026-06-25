@@ -18,20 +18,7 @@ const codeValidator = require('./code-validator');
 
 const OLLAMA_HOST = '127.0.0.1';
 const OLLAMA_PORT = 11434;
-
-// Tool-call arguments come in two shapes: Ollama's native /api/chat returns an
-// already-parsed OBJECT ({query:'x'}); the OpenAI form returns a JSON STRING.
-// JSON.parse on the object form throws ('[object Object]') and silently drops every
-// argument — the root cause of "web search does nothing" on remote clients, which
-// route here (gateway.js /v1/chat/completions) while the desktop uses gateway-agent.js.
-// Normalize both to a plain object. (gateway-agent.js has its own copy of this.)
-function parseToolArgs(raw) {
-  if (raw && typeof raw === 'object') return raw;
-  if (typeof raw === 'string' && raw.trim()) {
-    try { return JSON.parse(raw); } catch { return {}; }
-  }
-  return {};
-}
+const { parseToolArgs } = require('./tool-args');
 
 const MAX_TOOL_ROUNDS = 4; // safety cap so a confused model can't loop forever
 // Owner multi-step tasks (download N files, run a script, inspect, refine, loop)
@@ -382,4 +369,4 @@ function isEnabled() {
   return toolSettings.getEnabledToolNames().length > 0;
 }
 
-module.exports = { runAgent, runAgentValidated, isEnabled };
+module.exports = { runAgent, runAgentValidated, isEnabled, parseToolArgs };

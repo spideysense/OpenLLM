@@ -27,6 +27,7 @@ const modelDebug = require('./model-debug');
 
 const OLLAMA_HOST = '127.0.0.1';
 const OLLAMA_PORT = 11434;
+const { parseToolArgs } = require('./tool-args');
 const MAX_TOOL_ROUNDS = 4;
 // Owner agentic tasks (download N files, run scripts, inspect, refine) need more
 // iterations than a one-shot lookup. Local models are free to run, so a deeper
@@ -186,18 +187,6 @@ const GATEWAY_COMPUTER_TOOL_DEFS = [
   },
 ];
 
-// Tool-call arguments arrive in TWO shapes: Ollama's native /api/chat returns them
-// as an already-parsed OBJECT ({query:"x"}), while the OpenAI format and our
-// text-tool-call fallback return them as a JSON STRING ('{"query":"x"}'). Calling
-// JSON.parse on the object form coerces it to "[object Object]" and throws, silently
-// dropping every argument. This normalizes both to a plain object.
-function parseToolArgs(raw) {
-  if (raw && typeof raw === 'object') return raw;
-  if (typeof raw === 'string' && raw.trim()) {
-    try { return JSON.parse(raw); } catch { return {}; }
-  }
-  return {};
-}
 
 function getToolDefs(isOwner, allowed = null, allowComputer = false) {
   let names = isOwner ? [...SAFE_TOOLS, ...DANGEROUS_TOOLS] : [...SAFE_TOOLS];
@@ -958,4 +947,4 @@ async function* runValidated(args, _run = run) {
   yield { type: 'done' };
 }
 
-module.exports = { run, runValidated, plainChatRetry, messageNeedsTools, SAFE_TOOLS, DANGEROUS_TOOLS, GATEWAY_COMPUTER_TOOL_DEFS, decideCodingModel };
+module.exports = { run, runValidated, plainChatRetry, messageNeedsTools, SAFE_TOOLS, DANGEROUS_TOOLS, GATEWAY_COMPUTER_TOOL_DEFS, decideCodingModel, parseToolArgs };
