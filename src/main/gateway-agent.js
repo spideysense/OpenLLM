@@ -186,6 +186,19 @@ const GATEWAY_COMPUTER_TOOL_DEFS = [
   },
 ];
 
+// Tool-call arguments arrive in TWO shapes: Ollama's native /api/chat returns them
+// as an already-parsed OBJECT ({query:"x"}), while the OpenAI format and our
+// text-tool-call fallback return them as a JSON STRING ('{"query":"x"}'). Calling
+// JSON.parse on the object form coerces it to "[object Object]" and throws, silently
+// dropping every argument. This normalizes both to a plain object.
+function parseToolArgs(raw) {
+  if (raw && typeof raw === 'object') return raw;
+  if (typeof raw === 'string' && raw.trim()) {
+    try { return JSON.parse(raw); } catch { return {}; }
+  }
+  return {};
+}
+
 function getToolDefs(isOwner, allowed = null, allowComputer = false) {
   let names = isOwner ? [...SAFE_TOOLS, ...DANGEROUS_TOOLS] : [...SAFE_TOOLS];
   // Capability gate: drop any tool the model/machine can't reliably use.
@@ -846,8 +859,7 @@ Do NOT write code or a code block for casual, personal, or emotional messages ("
 
       for (const call of toolCalls) {
         const name = call.function?.name || '';
-        let args = {};
-        try { args = JSON.parse(call.function?.arguments || '{}'); } catch {}
+        const args = parseToolArgs(call.function?.arguments);
 
         const statusText = tools.describeToolStatus(name, args);
         console.log(`[TOOLDBG] call: ${name} ${JSON.stringify(args).slice(0, 160)}`);
