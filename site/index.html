@@ -238,12 +238,17 @@ footer{border-top:1px solid var(--brd);padding:2rem 0}
   var grid=document.getElementById('gallery-grid'), sec=document.getElementById('see');
   if(!grid) return;
   var shots=[
-    {src:'/screenshots/chat.png',     t:'Just chat',         d:'Download, open, ask. No terminal, no config.'},
-    {src:'/screenshots/tools.png',    t:'It uses tools',     d:'Web search, shell commands, fetching URLs, git — built in.'},
-    {src:'/screenshots/voice.png',    t:'Talk to it',        d:'Hands-free voice mode with a natural neural voice.'},
-    {src:'/screenshots/ios.png',      t:'On your phone',     d:'The iPhone app connects back to your own machine.'},
-    {src:'/screenshots/artifact.png', t:'Live artifacts',    d:'Code and pages render and run right in the chat.'},
-    {src:'/aspen-device.png',         t:'The Aspen device',  d:'Optional always-on machine for the biggest models.'}
+    {src:'/screenshots/chat.png',      t:'Just chat',             d:'Download, open, ask. No terminal, no config.'},
+    {src:'/screenshots/voice.png',     t:'Talk to it',            d:'Hands-free voice mode with a natural neural voice.'},
+    {src:'/screenshots/tools.png',     t:'It uses tools',         d:'Web search, shell commands, fetching URLs, git — built in.'},
+    {src:'/screenshots/vision.png',    t:'It sees images',        d:'Drop in a photo and a local vision model reads it — never leaves your machine.'},
+    {src:'/screenshots/artifact.png',  t:'Live artifacts',        d:'Code and pages render and run right in the chat.'},
+    {src:'/screenshots/websearch.png', t:'Current, with sources', d:'Searches the live web from your own machine and cites where the answer came from.'},
+    {src:'/screenshots/models.png',    t:'Any local model',       d:'Qwen, Llama, Gemma — pick the model that fits your machine.'},
+    {src:'/screenshots/memory.png',    t:'It remembers you',      d:'A private world model, built from your chats, that never leaves your computer.'},
+    {src:'/screenshots/webapp.png',    t:'From any browser',      d:'Reach your own machine\'s AI from anywhere — nothing to install.'},
+    {src:'/screenshots/savings.png',   t:'Watch the savings',     d:'Every exchange tracked against what the cloud would have cost.'},
+    {src:'/aspen-device.png',          t:'The Aspen device',      d:'Optional always-on machine for the biggest models.'}
   ];
   var shown=0;
   shots.forEach(function(s){
@@ -303,6 +308,7 @@ footer{border-top:1px solid var(--brd);padding:2rem 0}
 <p style="font-size:.88rem;color:var(--t2);font-weight:300;line-height:1.6">Your conversations, documents, and data never leave the box. Not for updates. Not for analytics. Not ever.</p>
 </div>
 </div>
+<div class="shot-single rv"><img src="/screenshots/models.png" loading="lazy" alt="Aspen model library"><div class="shot-cap">Pick from the latest open models — Aspen flags which ones fit your machine.</div></div>
 </div>
 </section>
 
@@ -313,6 +319,19 @@ footer{border-top:1px solid var(--brd);padding:2rem 0}
 </div>
 </section>
 
+<style>
+.shotrow{display:grid;gap:1.2rem;max-width:940px;margin:2.5rem auto 0;padding:0 1.5rem}
+.shotrow.two{grid-template-columns:1fr 1fr}
+.shotrow.two img{aspect-ratio:16/10;object-fit:cover;object-position:center top}
+.shotrow.phones{grid-template-columns:repeat(3,minmax(0,1fr));max-width:780px}
+.shotrow figure{margin:0}
+.shotrow img{width:100%;display:block;border:1px solid var(--brd);border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,.06);background:var(--wh)}
+.shotrow.phones img{border-radius:26px}
+.shotrow figcaption,.shot-cap{font-size:.82rem;color:var(--t3);text-align:center;margin-top:.6rem}
+.shot-single{max-width:820px;margin:2.5rem auto 0;padding:0 1.5rem}
+.shot-single img{width:100%;display:block;border:1px solid var(--brd);border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,.06)}
+@media(max-width:680px){.shotrow.two{grid-template-columns:1fr}.shotrow.phones{grid-template-columns:1fr 1fr}}
+</style>
 <section class="sw" id="software">
 <div class="w">
 <div class="cn">
@@ -326,32 +345,34 @@ footer{border-top:1px solid var(--brd);padding:2rem 0}
 <div style="padding:1.1rem 1.2rem;border:1px solid rgba(93,78,55,.12);border-radius:14px;background:rgba(255,255,255,.5)"><h3 style="margin:0 0 .35rem;font-size:1rem">Reach it anywhere</h3><p style="margin:0;font-size:.88rem;color:#5d4e37;line-height:1.55">Aspen gives you a secure private URL, so you can chat with the AI on your home machine from your phone, wherever you are.</p></div>
 </div>
 </div>
-<div class="sw-app rv">
-<div class="sw-bar"><div class="sw-d"></div><div class="sw-d"></div><div class="sw-d"></div></div>
-<div class="sw-bd">
-<div class="sw-sd">
-<div class="sw-mi act"><div class="sw-dt"></div>Qwen 2.5</div>
-<div class="sw-mi"><div class="sw-dt"></div>Llama 3.2</div>
-<div class="sw-mi"><div class="sw-dt"></div>DeepSeek R1</div>
-<div class="sw-mi"><div class="sw-dt"></div>Mistral</div>
-</div>
-<div class="sw-ch">
-<div class="sw-m sw-u">Help me write a bedtime story about a fox who learns to fly</div>
-<div><div class="sw-lb">Qwen 2.5 &middot; Running locally on your machine</div>
-<div class="sw-m sw-a">Once, in a forest where the trees grew so tall they tickled the clouds, there lived a fox named Sable who was absolutely certain she could fly. Every evening she climbed the highest hill, spread her russet arms wide, and leapt. Every evening, she tumbled. But one night, a barn owl named Orla landed beside her and said, &ldquo;You're not failing, dear. You're practicing.&rdquo; And that night, for the first time, the wind caught her.</div></div>
-</div>
-</div>
+<div class="shotrow two rv">
+<figure><img src="/screenshots/chat.png" loading="lazy" alt="Aspen desktop chat answering a question"><figcaption>Chat — runs locally, no setup.</figcaption></figure>
+<figure><img src="/screenshots/artifact.png" loading="lazy" alt="A live artifact rendering inside Aspen"><figcaption>Code — artifacts render right in the chat.</figcaption></figure>
 </div>
 </div>
 </section>
 
 
 
+<section style="padding:4rem 0 1rem">
+<div class="w cn">
+<span class="tg rv">On every device</span>
+<h2 class="rv">In your pocket, too.</h2>
+<p class="sb rv" style="max-width:470px;margin:.8rem auto 0">The same private AI on iPhone — voice, vision, and live web search, all talking back to your own machine.</p>
+</div>
+<div class="shotrow phones rv">
+<figure><img src="/screenshots/voice.png" loading="lazy" alt="Aspen iPhone voice mode listening"><figcaption>Hands-free voice</figcaption></figure>
+<figure><img src="/screenshots/vision.png" loading="lazy" alt="Aspen iPhone reading an uploaded photo"><figcaption>Reads your photos</figcaption></figure>
+<figure><img src="/screenshots/websearch.png" loading="lazy" alt="Aspen iPhone answering from a live web search with the source cited"><figcaption>Live web, with sources</figcaption></figure>
+</div>
+</section>
+
 <section class="priv" id="privacy">
 <div class="w cn">
 <span class="tg rv">Privacy</span>
 <h2 class="rv">We didn't add privacy.<br>We removed the server.</h2>
 <p class="sb rv" style="max-width:520px;margin:.8rem auto 0">Your data never leaves your machine. There is no data to encrypt in transit because there is no transit. There is only Aspen, on your hardware, running on localhost, under your control.</p>
+<div class="shot-single rv"><img src="/screenshots/memory.png" loading="lazy" alt="Aspen World Model settings — 100% local, never leaves your machine"><div class="shot-cap">Its memory of you is a local file on your machine — never uploaded, never used for training.</div></div>
 <div class="priv-pts">
 <div class="priv-p rv d1"><div class="priv-n">01</div><div class="priv-t"><h3>Zero data collection</h3><p>No telemetry. No analytics. No tracking. We literally cannot see what you do with your device.</p></div></div>
 <div class="priv-p rv d2"><div class="priv-n">02</div><div class="priv-t"><h3>Never used for training</h3><p>Your conversations are never fed into any model. Your data exists to serve you and no one else.</p></div></div>
@@ -382,6 +403,10 @@ footer{border-top:1px solid var(--brd);padding:2rem 0}
     <span class="cf">content</span>: <span class="cs">'Hello'</span> }],
 });</pre></div>
 </div>
+<div class="shotrow two rv" style="margin-top:2.5rem">
+<figure><img src="/screenshots/tools.png" loading="lazy" alt="Aspen tools settings — web search, calculator, run commands, git"><figcaption>Built-in tools your local model can call.</figcaption></figure>
+<figure><img src="/screenshots/webapp.png" loading="lazy" alt="Aspen running in a browser, reaching your own machine"><figcaption>Reach your machine from any browser.</figcaption></figure>
+</div>
 </div>
 </section>
 
@@ -410,7 +435,8 @@ footer{border-top:1px solid var(--brd);padding:2rem 0}
     <h2 class="rv" style="margin-bottom:.5rem">Real savings, real people.</h2>
     <p class="sb rv" style="max-width:460px;margin:.5rem auto 0">Aspen users anonymously share how much they've saved vs. paying for cloud AI. No names. Just the number.</p>
   </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:2rem" id="savings-stats">
+  <div class="shot-single rv" style="margin-top:2rem"><img src="/screenshots/savings.png" loading="lazy" alt="Aspen home dashboard showing total saved vs cloud AI"><div class="shot-cap">One user's dashboard — every exchange tallied against what the cloud would have cost.</div></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:2rem" id="savings-stats">
     <div style="background:var(--bg);border:1px solid var(--brd);border-radius:16px;padding:1.75rem 2rem;text-align:center">
       <div style="font-size:.7rem;font-weight:700;letter-spacing:.08em;color:var(--gd);text-transform:uppercase;margin-bottom:.5rem">Community Total Saved</div>
       <div id="community-total" style="font-family:var(--ser);font-size:2.8rem;font-weight:400;color:var(--bk);line-height:1">$—</div>

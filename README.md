@@ -14,10 +14,14 @@ Aspen is a desktop app (macOS, Windows, Linux) and a native iPhone app for runni
 
 | | |
 |---|---|
-| ![Chat](site/screenshots/chat.png) | ![Tools](site/screenshots/tools.png) |
-| **Just chat** — download, open, ask. | **It uses tools** — web search, shell, fetch, git. |
-| ![Voice](site/screenshots/voice.png) | ![iPhone](site/screenshots/ios.png) |
-| **Talk to it** — hands-free voice mode. | **On your phone** — connects back to your own machine. |
+| ![Chat](site/screenshots/chat.png) | ![Voice](site/screenshots/voice.png) |
+| **Just chat** — download, open, ask. | **Talk to it** — hands-free voice mode. |
+| ![Tools](site/screenshots/tools.png) | ![Vision](site/screenshots/vision.png) |
+| **It uses tools** — web search, shell, fetch, git. | **It sees images** — a local vision model reads your photos. |
+| ![Artifacts](site/screenshots/artifact.png) | ![Web search](site/screenshots/websearch.png) |
+| **Live artifacts** — code and pages render in chat. | **Current, with sources** — live web search, cited. |
+| ![Models](site/screenshots/models.png) | ![Browser](site/screenshots/webapp.png) |
+| **Any local model** — Qwen, Llama, Gemma, your pick. | **From any browser** — reach your machine from anywhere. |
 
 ---
 
