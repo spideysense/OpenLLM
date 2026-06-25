@@ -126,7 +126,18 @@ async function fetchModelMeta(model) {
       const data = await res.json();
       const caps = Array.isArray(data.capabilities) ? data.capabilities : [];
       const sizeB = parseSizeB(data.details && data.details.parameter_size, model);
-      if (caps.length > 0) return { tools: caps.includes('tools'), vision: caps.includes('vision'), sizeB };
+      if (caps.length > 0) {
+        // Ollama's manifest is authoritative when it lists capabilities, EXCEPT it's
+        // sometimes bare for newer/custom tags (e.g. a fresh qwen3.6 build that omits
+        // 'tools'). For a known tool family, trust the heuristic too — a curated family
+        // is tool-capable even if this particular tag's manifest forgot to declare it.
+        const heur = heuristicCaps(model);
+        return {
+          tools: caps.includes('tools') || heur.tools,
+          vision: caps.includes('vision') || heur.vision,
+          sizeB,
+        };
+      }
       return { ...heuristicCaps(model), sizeB };
     }
   } catch { /* fall through */ }
