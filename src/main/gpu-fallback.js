@@ -18,18 +18,9 @@
 
 // Durable signatures of a GPU runtime crash (vs an ordinary app-level error).
 // Matched case-insensitively against the Ollama error body / thrown message.
-// GENUINE GPU runtime crash: the card cannot run models at all (missing kernels for
-// its compute capability, mismatched CUDA, a hard llama-server crash). These warrant a
-// PERMANENT switch to CPU for the session, because retrying the GPU will keep crashing.
-// NOTE: a plain out-of-memory is deliberately NOT here — that's "this model is too big",
-// not "this GPU is broken", and is handled separately by isGpuOom (non-sticky). Letting
-// OOM flip the permanent flag was the bug behind "the big model was slow, and then every
-// smaller model I switched to was slow too": one oversized model demoted the whole
-// session to CPU, including models that would have fit the GPU fine.
 function isGpuRuntimeFailure(text) {
   const t = String((text && text.message) || text || '').toLowerCase();
   if (!t) return false;
-  if (t.includes('out of memory')) return false; // OOM is a sizing problem, not a dead GPU
   return (
     t.includes('cuda error') ||
     t.includes('device kernel image is invalid') ||
@@ -38,18 +29,9 @@ function isGpuRuntimeFailure(text) {
     t.includes('llama-server process has terminated') ||
     t.includes('ggml_cuda') ||
     t.includes('cublas') ||
-    t.includes('cudnn')
+    t.includes('cudnn') ||
+    (t.includes('cuda') && t.includes('out of memory'))
   );
-}
-
-// An out-of-memory means the GPU works fine but this model is too big for its VRAM. It
-// must NOT permanently demote the GPU — the next, smaller model should get a clean GPU
-// attempt. Handled as a one-off, per-call CPU retry instead of a sticky flip.
-function isGpuOom(text) {
-  const t = String((text && text.message) || text || '').toLowerCase();
-  if (!t) return false;
-  return t.includes('out of memory') &&
-    (t.includes('cuda') || t.includes('vram') || t.includes('cublas') || t.includes('gpu'));
 }
 
 // Process-level flag. Desktop (ollama.js) and gateway (gateway-agent.js) run in
@@ -80,16 +62,7 @@ async function withGpuFallback(attempt) {
   try {
     return await attempt(gpuOptions());
   } catch (e) {
-    // Model too big for VRAM: retry THIS call on CPU, but DON'T set FORCE_CPU — a
-    // smaller model next still gets a clean GPU attempt. This is the fix for an
-    // oversized recommended model poisoning every later (smaller) model with CPU mode.
-    if (!FORCE_CPU && isGpuOom(e)) {
-      console.warn('[GPU] model too big for VRAM — running this one on CPU; GPU stays enabled for smaller models');
-      return await attempt({ num_gpu: 0 });
-    }
-    // Card genuinely can't run models: permanent CPU for the rest of the session.
     if (!FORCE_CPU && isGpuRuntimeFailure(e)) {
-      console.warn('[GPU] runtime crash — switching this session to CPU mode:', String((e && e.message) || e).slice(0, 100));
       setForceCpu(true);
       return await attempt({ num_gpu: 0 }); // single CPU retry
     }
@@ -99,7 +72,6 @@ async function withGpuFallback(attempt) {
 
 module.exports = {
   isGpuRuntimeFailure,
-  isGpuOom,
   forceCpu,
   setForceCpu,
   resetForceCpu,
