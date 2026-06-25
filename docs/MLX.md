@@ -29,65 +29,66 @@ and streaming are easy because mlx_lm.server is already OpenAI-shaped.
 
 ## Architecture
 
-Single seam: `src/main/backend.js` resolves the upstream `{host, port}` for the active
-backend. Default is Ollama. On Apple Silicon, when MLX is enabled AND its server is
-confirmed healthy, the resolver returns the MLX host/port instead. Every place in
-`main/` that currently hardcodes `127.0.0.1:11434` reads from this resolver instead.
+Two refinements the first pass missed, both load-bearing:
+
+1. **MLX replaces inference only.** `/api/tags`, `/api/pull`, `/api/delete`, `/api/ps`
+   are Ollama-specific with no MLX equivalent (mlx-lm pulls from HuggingFace). Only
+   chat/generate ever routes to MLX. `backend.managementBackend()` is always Ollama.
+2. **It's an API translation, not a host swap.** mlx_lm.server speaks OpenAI
+   `/v1/chat/completions`; the gateway speaks Ollama-native `/api/chat` (with `think`,
+   `keep_alive`, native object-form `tool_calls`). So MLX needs an adapter that
+   translates request options and stream deltas between the two shapes.
 
 ```
-Chat UI ──▶ Gateway (OpenAI format, unchanged)
-                │
-                ▼  backend.resolveBackend()
+Chat path ─▶ backend.inferenceBackend(pref)
+                │  (Apple Silicon AND enabled AND mlx healthy AND model mapped?)
         ┌───────┴────────┐
         ▼                ▼
-   Ollama :11434    mlx_lm.server :8081   (Apple Silicon, opt-in, healthy)
+   Ollama /api/chat   mlx.chat() ──▶ mlx_lm.server :8081 /v1/chat/completions
+   (unchanged)        (OpenAI adapter, same event shape back to the gateway)
+
+Model mgmt ─▶ backend.managementBackend()  ─▶ always Ollama
 ```
 
-The gateway does not care which one answers; both speak `/v1/chat/completions` with SSE
-streaming. That is the whole point of routing at the backend, not the app, layer.
+## What is built (in repo, tested where testable)
 
-## Phases
+- [x] `src/main/backend.js` — `inferenceBackend(pref)` (MLX-health-aware) and
+      `managementBackend()` (always Ollama). Defaults to Ollama; verified inert off-Mac.
+- [x] `src/main/mlx.js` — the whole MLX subsystem, isolated:
+      - Pure (unit-tested, `tests/main/mlx.test.js`, 11/11): `mlxModelFor` (mapping,
+        null for unmapped so we stay on Ollama), `serverArgs`, `toOpenAIChatBody`
+        (num_predict→max_tokens, drops keep_alive/think), `parseOpenAISSELine`.
+      - Lifecycle (Mac-only, untestable here): `ensureRunning`/`stop`/`health`/`status`,
+        spawn + health-poll + crash handling, fail-closed to Ollama.
+      - `chat()` async-generator adapter: yields the SAME `{kind:'content'|'tools'|'done'}`
+        events the gateway already consumes, so the call site swap is minimal.
 
-### Phase 0 — foundation (in repo now, inert, zero risk)
-- [x] `src/main/backend.js`: backend constants, `isAppleSilicon()`, `resolveBackend()`.
-      Defaults to Ollama always. Not yet wired into the hardcoded references, so the
-      live app is unchanged.
+## Phase 1 — remaining, MUST be done & tested on Apple Silicon
 
-### Phase 1 — opt-in routing (Mac, the real v1)
-Bring-your-own MLX first. Sidesteps bundling so Mac power users get the speedup now.
-1. Settings toggle: "Apple Silicon acceleration (MLX) — experimental." Visible only
-   when `isAppleSilicon()`.
-2. On enable: detect `python3` + `mlx_lm`. If missing, show the one-line install hint
-   (`pip install mlx-lm`) rather than failing silently.
-3. Spawn `mlx_lm.server --model <mlx-model> --port 8081`. Health-check `GET /v1/models`
-   before flipping the backend. Persist a per-model handle; serialize model switches.
-4. Flip the resolver: set backend pref to `mlx`, `mlxHealthy=true`. The four call sites
-   now route to :8081.
-5. Model mapping: maintain MLX equivalents (`mlx-community/...`) for the catalog. Pull
-   via mlx_lm auto-download with progress.
-6. Fallback discipline: ANY failure (spawn, health, OOM, crash) reverts to Ollama and
-   surfaces a clear message. Never leave the user with a dead chat.
+1. **Wire the seam.** At the gateway's inference call site (`ollamaStreamTools` in
+   gateway-agent.js), branch once: `if (backend.inferenceBackend(pref).kind === 'mlx')
+   yield* mlx.chat(model, convo, { tools, options }); else <existing Ollama path>`.
+   The existing Ollama path stays untouched; MLX is an additive branch.
+2. **Settings toggle + IPC.** A Settings switch (visible only when `isAppleSilicon()`):
+   on enable, `await mlx.ensureRunning(activeModel)`; if it returns false, surface
+   `mlx.status().lastError` (e.g. "pip install mlx-lm") and leave pref on Ollama.
+3. **Model coverage.** Extend `MLX_MODEL_MAP` for whatever models you ship; unmapped
+   models intentionally stay on Ollama (no guessing repos that may not exist).
+4. **Switch handling.** Changing models calls `ensureRunning` again (mlx_lm.server is
+   one-model-at-a-time); it restarts the server for the new model.
 
-### Phase 2 — bundle the runtime (polish, defer)
+## Mac validation (cannot be done from Linux)
+1. `pip install mlx-lm`
+2. `python3 -m mlx_lm.server --model mlx-community/Qwen3-32B-4bit --port 8081`
+3. `curl localhost:8081/v1/chat/completions -d '{"model":"mlx-community/Qwen3-32B-4bit","messages":[{"role":"user","content":"hi"}],"stream":true}'`
+   — confirm it STREAMS with the buttery cadence, and tools round-trip.
+4. Measure tok/s vs the same model on Ollama. Confirm the 30-50% gain is real on YOUR
+   chip before exposing the toggle. If marginal, don't ship Phase 2 packaging.
+5. Only then wire the seam (step 1 above) and test the toggle end to end.
+
+## Phase 2 — bundle the runtime (defer until Phase 1 proven)
 Ship a frozen `mlx_lm.server` (PyInstaller) or an app-managed `uv` venv so users never
-touch Python. This is the fiddly Mac packaging work. Defer until Phase 1 is proven.
-
-## Integration points (the four hardcoded references)
-Replace the literal `OLLAMA_HOST`/`OLLAMA_PORT` with `backend.resolveBackend()`:
-- `src/main/gateway.js` (the streaming chat path — change minimally, test streaming smoothness on Mac before shipping)
-- `src/main/gateway-agent.js`
-- `src/main/world-model.js`
-- `src/main/models.js`
-
-## Mac-side manual steps (cannot be done or verified from Linux)
-1. `pip install mlx-lm` (or `uv pip install mlx-lm`).
-2. Manually verify the server:
-   `mlx_lm.server --model mlx-community/Qwen2.5-7B-Instruct-4bit --port 8081`
-   then `curl localhost:8081/v1/chat/completions` with a test message.
-3. Confirm it STREAMS (SSE) the same way Ollama does, with the buttery cadence intact.
-4. Measure tokens/sec vs the same model on Ollama. Confirm the 30 to 50 percent gain is
-   real on your hardware before exposing the toggle.
-5. Only then wire the resolver into the four files and test the Settings toggle end to end.
+touch Python. `ASPEN_MLX_PYTHON` env already lets the lifecycle point at a bundled binary.
 
 ## Honest caveats
 - Apple Silicon + macOS 14+ only. No effect anywhere else.

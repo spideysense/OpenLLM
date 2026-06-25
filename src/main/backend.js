@@ -10,6 +10,9 @@
 const OLLAMA = { host: '127.0.0.1', port: 11434, kind: 'ollama' };
 const MLX = { host: '127.0.0.1', port: 8081, kind: 'mlx' };
 
+let mlx = null;
+try { mlx = require('./mlx'); } catch { mlx = null; }
+
 // True only on M-series Macs (where MLX/Metal applies). Mirrors the platform/arch
 // check already used in tunnel.js.
 function isAppleSilicon() {
@@ -29,4 +32,17 @@ function resolveBackend({ pref = 'ollama', mlxHealthy = false } = {}) {
   return OLLAMA;
 }
 
-module.exports = { OLLAMA, MLX, isAppleSilicon, resolveBackend };
+// INFERENCE-only resolver, the one the chat path should use. Reads live MLX health
+// from the lifecycle manager. CRITICAL: only chat/generate ever routes to MLX —
+// model management (tags/pull/delete/ps) has no MLX equivalent and ALWAYS uses Ollama.
+function inferenceBackend(pref = 'ollama') {
+  const mlxHealthy = !!(mlx && mlx.status && mlx.status().healthy);
+  return resolveBackend({ pref, mlxHealthy });
+}
+
+// Management endpoints are never MLX. Explicit so call sites read clearly.
+function managementBackend() {
+  return OLLAMA;
+}
+
+module.exports = { OLLAMA, MLX, isAppleSilicon, resolveBackend, inferenceBackend, managementBackend };
