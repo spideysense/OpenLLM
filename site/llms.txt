@@ -1,49 +1,43 @@
 # Aspen
 
-> Aspen is private AI that runs on your own hardware. Download the free desktop app for Mac or Windows, or get the free iPhone app. For always-on local AI, preorder the dedicated Aspen device. Your data never leaves your machine.
+> Aspen is private AI that runs on your own hardware. Free desktop app for Mac and Windows, free iPhone app, or the optional dedicated Aspen device. No subscriptions, no cloud, no one reading your conversations.
 
 ## What is Aspen?
 
-Aspen lets anyone run powerful AI models locally and privately, with no data sent to any company's servers. The desktop app (Mac and Windows) is free. There is a free iPhone app that connects to the AI on your own computer. For people who want a dedicated, always-on local AI appliance, Aspen sells a hardware device available by preorder.
+Aspen lets anyone run powerful AI models locally and privately, with no data sent to any company's servers. Download, open, and ask. Core chat and coding work fully offline.
 
-Aspen works as a drop-in, OpenAI-compatible replacement for cloud AI APIs. Point your tools at your own machine instead of a third party.
+## Key facts
 
-## Key Facts
+- The desktop app (Mac, Windows) and the iPhone app ("Aspen Local AI") are free, with no account.
+- Everything runs on your own hardware — prompts, files, and data never leave your device and are never used for training.
+- Runs the latest open models including Llama, Qwen, DeepSeek, Mistral, and Gemma; auto-detects your hardware and recommends a fit.
+- Works offline for core chat and coding once a model is downloaded.
+- Exposes an OpenAI-compatible API at http://localhost:4000/v1 (plus an optional private tunnel URL); works with the OpenAI and Claude SDKs, LangChain, Cursor, and Continue.dev.
+- The Aspen device is an optional, always-on machine for the largest models — about 1 petaflop, 128GB unified memory, up to ~200B parameters. You never need it.
 
-- The desktop software (Mac, Windows) is free.
-- There is a free iPhone app, "Aspen Local AI," on the Apple App Store: https://apps.apple.com/app/id6775307566
-- Everything runs on your own hardware. Your prompts, files, and data never leave your device.
-- Runs the latest open models including Llama, Qwen, DeepSeek, Mistral, and Gemma.
-- Auto-detects your hardware and recommends the best model to run.
-- Generates a public HTTPS URL via Cloudflare so your local AI is reachable from your phone or other apps.
-- OpenAI-compatible API works with LangChain, Cursor, Continue.dev, n8n, Zapier, and similar tools.
-- Supports image and file attachments with vision models (llava, moondream) for analyzing screenshots and photos locally.
-- Renders code artifacts with a live preview panel, like a local coding assistant.
-- Connects to tools like GitHub via open MCP connectors; access tokens are encrypted and stay on your device.
+## Documentation
 
-## The Aspen Device
+Full documentation: https://runonaspen.com/docs
+Machine-readable full text: https://runonaspen.com/llms-full.txt
 
-- A dedicated AI machine for your home or office: silent, always on, runs large models locally.
-- Available by preorder at https://runonaspen.com
-- Pairs with the free Aspen desktop and mobile software.
+- Overview: What Aspen is and how it runs AI privately on your own machine. (https://runonaspen.com/docs#overview)
+- Install: Get Aspen running on Mac, Windows, or iPhone in a couple of minutes. (https://runonaspen.com/docs#install)
+- Quickstart: Open Aspen, pick a model, and ask your first question. (https://runonaspen.com/docs#quickstart)
+- Choosing a model: How to pick the right local model for your machine. (https://runonaspen.com/docs#models)
+- Chat & artifacts: Conversational AI with live code and HTML previews. (https://runonaspen.com/docs#chat)
+- Voice: Hands-free voice conversations, processed on-device. (https://runonaspen.com/docs#voice)
+- Vision: Analyze images and screenshots with a local vision model. (https://runonaspen.com/docs#vision)
+- Tools: Web search, URL fetch, shell commands, and more — all run on your machine. (https://runonaspen.com/docs#tools)
+- Memory (World Model): A private, local memory that personalizes answers. (https://runonaspen.com/docs#memory)
+- Privacy: Why Aspen is private by design. (https://runonaspen.com/docs#privacy)
+- Developer API: Drop-in, OpenAI-compatible API for your own apps. (https://runonaspen.com/docs#api)
+- Connectors (MCP): Connect tools like GitHub through open MCP connectors. (https://runonaspen.com/docs#connectors)
+- The Aspen device: Optional always-on hardware for the largest models. (https://runonaspen.com/docs#device)
+- Troubleshooting: Common issues and quick fixes. (https://runonaspen.com/docs#troubleshooting)
 
-## Download
+## Links
 
-- Mac: https://github.com/spideysense/OpenLLM/releases/latest/download/Aspen-mac.dmg
-- Windows: https://github.com/spideysense/OpenLLM/releases/latest/download/Aspen-win.exe
-- iPhone: https://apps.apple.com/app/id6775307566
-- Web app: https://runonaspen.com/app
-
-## Pricing
-
-- Desktop software: free.
-- iPhone app: free.
-- Aspen hardware device: available by preorder (premium dedicated appliance).
-
-## How It Works
-
-1. Download Aspen free for Mac or Windows (or get the free iPhone app).
-2. Open the app. It auto-detects your hardware and recommends a model.
-3. Download a model in the background.
-4. Start chatting. Your AI runs entirely on your own machine.
-5. Use the generated Cloudflare URL to reach your AI from your phone or plug it into tools like Cursor and Zapier.
+- Home: https://runonaspen.com
+- Try in browser: https://runonaspen.com/app
+- iPhone app: https://apps.apple.com/app/id6775307566
+- Source: https://github.com/spideysense/OpenLLM

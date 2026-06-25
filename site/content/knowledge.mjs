@@ -1,0 +1,321 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// Aspen website knowledge — SINGLE SOURCE OF TRUTH
+// The homepage FAQ, the /docs page, the JSON-LD structured data, llms.txt and
+// llms-full.txt are all GENERATED from this file by `node site/build.mjs`.
+// Edit here, run the build, commit. Do not hand-edit the generated blocks.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const site = {
+  name: 'Aspen',
+  url: 'https://runonaspen.com',
+  tagline: 'Own your intelligence.',
+  description: 'Aspen is private AI that runs on your own hardware. Free desktop app for Mac and Windows, free iPhone app, or the optional dedicated Aspen device. No subscriptions, no cloud, no one reading your conversations.',
+  appStore: 'https://apps.apple.com/app/id6775307566',
+  github: 'https://github.com/spideysense/OpenLLM',
+  appPath: '/app',
+  updated: '2026-06-25',
+};
+
+// FAQ groups. Answers are plain prose (best for AEO + FAQPage JSON-LD).
+export const faqGroups = [
+  {
+    id: 'about-aspen',
+    title: 'About Aspen',
+    items: [
+      { q: 'What is Aspen?',
+        a: 'Aspen is private AI that runs 100% locally on your own device. You download a free app for Mac, Windows, or iPhone, open it, and start chatting, coding, or analyzing images. There is no cloud, no server in the middle, no subscription, and no account. The model runs on your hardware, so your conversations never leave your machine.' },
+      { q: 'Is Aspen free?',
+        a: 'Yes. The app is free forever on the devices you already own: Mac, Windows, and iPhone. No subscription, no account. The Aspen device is a separate, optional product you can preorder, but you never need it to use Aspen.' },
+      { q: 'How do I install Aspen?',
+        a: 'Download the free app for Mac or Windows from runonaspen.com, or run one command in your terminal — curl -fsSL https://runonaspen.com/install.sh | sh — which installs everything and adds Aspen to your apps menu. After that you never need the terminal. On iPhone, install "Aspen Local AI" from the App Store.' },
+      { q: 'Do I need to know how to code to use Aspen?',
+        a: 'No. Aspen is a normal chat app: download, open, and ask. There is no terminal or configuration required for everyday use. Developers can optionally use the built-in OpenAI-compatible API, but most people never touch it.' },
+      { q: 'Does Aspen work offline?',
+        a: 'Yes. Because the model runs on your machine, core chat and coding work with no internet at all. You only need a connection for optional tools like live web search, or to download a new model the first time.' },
+      { q: 'What models does Aspen run?',
+        a: 'The latest open models, including Llama, Qwen, DeepSeek, Mistral, and Gemma. Aspen detects your hardware and recommends a model that fits it, and can update to a newer, better model automatically when one is released.' },
+      { q: 'Is there an iPhone app?',
+        a: 'Yes. "Aspen Local AI" is free on the App Store. It connects to the AI running on your own computer, so you can chat with your private models from your phone, anywhere.' },
+      { q: 'Then what is the $10,000 Aspen device?',
+        a: 'It is a dedicated, always-on machine for people who want to run the largest models around the clock without using their own computer. Think of the free app as the product for almost everyone, and the device as the optional high end for power users. It delivers about 1 petaflop of AI performance, 128GB of unified memory, runs models up to roughly 200B parameters, and is silent. You never need it to use Aspen.' },
+      { q: 'Can I use Aspen as an API for my own apps?',
+        a: 'Yes. Aspen exposes an OpenAI-compatible API. Change the base_url and api_key — two lines of code — and your existing tools run against your own private AI. It works with the ChatGPT and Claude SDKs, plus tools like LangChain, Cursor, and Continue.dev.' },
+      { q: 'Why does Windows show a "Windows protected your PC" warning?',
+        a: 'It is normal and safe. Windows shows this for any new app it has not seen many times yet, because Aspen is from an independent developer. Click More info, then Run anyway. If Windows Defender blocked the download, open your Downloads folder, right-click the Aspen file, choose Properties, check Unblock at the bottom, then run it. Windows code signing is rolling out to remove the warning entirely.' },
+    ],
+  },
+  {
+    id: 'local-llms',
+    title: 'Local LLMs',
+    items: [
+      { q: 'What is a local LLM?',
+        a: 'A local LLM is a large language model — the kind of AI that powers chat assistants — that runs directly on your own computer instead of on a company\'s servers. Your prompts are processed on your hardware and never sent to the cloud, which makes local LLMs private by default and usable offline.' },
+      { q: 'How do local LLMs work?',
+        a: 'You download the model\'s weights (a large file) once, and an inference engine on your machine uses your CPU or GPU to generate responses token by token. Tools like Aspen package the model, the engine, and a friendly interface together so you do not have to set any of it up yourself.' },
+      { q: 'Are local LLMs as good as ChatGPT or Claude?',
+        a: 'For most everyday tasks — writing, summarizing, answering questions, coding help, analyzing a document or image — modern open models running locally are genuinely good and often indistinguishable from cloud AI. The largest cloud models still lead on the hardest reasoning tasks, but the gap narrows every few months, and local models win decisively on privacy, cost, and offline use.' },
+      { q: 'What can you do with a local LLM?',
+        a: 'Chat and brainstorm, write and edit text, generate and debug code, summarize documents, analyze images with a vision model, search the web and cite sources, and power your own apps through an API — all without sending anything to a third party.' },
+      { q: 'Do local LLMs need an internet connection?',
+        a: 'No, not for core use. Once the model is downloaded, chat and coding run fully offline. You only need a connection to download a new model or to use optional online tools such as live web search.' },
+      { q: 'What hardware do I need to run an LLM locally?',
+        a: 'A modern laptop or desktop is enough for capable models. Apple Silicon Macs (M1 and newer) are excellent because memory is shared with the GPU. On Windows or Linux, more RAM and a recent GPU let you run larger, faster models. Aspen checks your hardware and picks a model that fits, so it works on a wide range of machines.' },
+      { q: 'How much RAM do I need to run a local LLM?',
+        a: 'As a rough guide: 8GB runs small models (around 3B parameters), 16GB comfortably runs 7–8B models, 32GB runs 13–14B models, and 64GB or more runs 30B+ models. Quantized models need less. Aspen estimates the requirement for each model and flags ones that may be too large for your machine.' },
+      { q: 'Can I run an LLM without a GPU?',
+        a: 'Yes. Many models run on CPU alone, just more slowly. Apple Silicon is a sweet spot because its unified memory acts like fast GPU memory. A dedicated GPU mainly helps with speed and lets you run larger models.' },
+      { q: 'What is the difference between a local LLM and a cloud LLM?',
+        a: 'A cloud LLM runs on a company\'s servers: it can be very powerful but it sees your data, usually costs a subscription or per-token fee, and needs internet. A local LLM runs on your machine: it is private, free to run, and works offline, with capability bounded by your hardware.' },
+      { q: 'Is it legal to run LLMs locally?',
+        a: 'Yes. The open models Aspen uses are released under licenses that permit local use, and in most cases commercial use as well. Running them on your own hardware is entirely legal; you simply follow each model\'s license, which Aspen surfaces for you.' },
+    ],
+  },
+  {
+    id: 'free-llms',
+    title: 'Free LLMs',
+    items: [
+      { q: 'Are there free LLMs?',
+        a: 'Yes. There is a large ecosystem of high-quality open-weight models — Llama, Qwen, DeepSeek, Mistral, Gemma and others — that are free to download and run. Aspen bundles these so you can use them with no cost and no account.' },
+      { q: 'What is the best free local LLM?',
+        a: 'It depends on your hardware and task. For most machines, a mid-sized Qwen or Llama model is the best all-round choice for chat, tools, and coding. Smaller Gemma or Qwen models are great on lighter laptops, while 30B+ models shine on high-memory machines. Aspen recommends a good default for your specific computer.' },
+      { q: 'Are free LLMs any good?',
+        a: 'Yes — modern open models are strong. For writing, summarizing, coding assistance, and everyday questions they perform at a level that surprises most first-time users. The very largest paid cloud models still lead on the hardest tasks, but free local models are more than capable for the vast majority of real work.' },
+      { q: 'Is it really free, or is there a catch?',
+        a: 'It is genuinely free. The Aspen app is free forever, and the models are open weights. The "cost" is that the AI runs on your own electricity and hardware instead of someone else\'s servers — which is exactly what keeps it private. The only paid product is the optional Aspen hardware device, which you never need.' },
+      { q: 'Free vs paid LLMs — what is the difference?',
+        a: 'Paid cloud LLMs charge a subscription or per-token fee and run on remote servers that process your data. Free local LLMs run on your machine at no cost, keep your data private, and work offline. Many people use free local models for daily work and reserve a paid cloud model only for occasional heavy reasoning.' },
+      { q: 'Can I use free LLMs commercially?',
+        a: 'Usually yes. Most popular open models permit commercial use under their licenses, though terms vary by model and some have conditions at very large scale. Aspen shows each model\'s license so you can confirm before using it in a business.' },
+      { q: 'Do free LLMs collect my data?',
+        a: 'When you run them locally with Aspen, no. The model has no network connection of its own; your prompts are processed on your device and are never uploaded or used for training. "Free" cloud chatbots, by contrast, often do log and train on your conversations.' },
+    ],
+  },
+  {
+    id: 'privacy',
+    title: 'Privacy & security',
+    items: [
+      { q: 'Is local AI actually private?',
+        a: 'Yes. With Aspen, the model runs on your own hardware and there is no server in the middle. Your prompts, files, and conversations are never transmitted anywhere and are never used to train any model.' },
+      { q: 'Does my data leave my computer?',
+        a: 'No. Everything runs on your own hardware. The only time anything touches the network is if you explicitly use an online tool like web search, and even then the request goes out from your own machine and IP, not through Aspen\'s servers.' },
+      { q: 'Is my data used to train models?',
+        a: 'Never. Because nothing is uploaded, there is nothing for anyone to train on. Aspen\'s memory of you — its "World Model" — is a plain file on your own computer that you can view, edit, or delete at any time.' },
+      { q: 'Is it safe to paste API keys or secrets into a local AI?',
+        a: 'With a local LLM the conversation stays on your machine, so it is far safer than pasting secrets into a cloud chatbot. As always, treat any credential carefully, but there is no third-party server receiving it.' },
+    ],
+  },
+  {
+    id: 'performance',
+    title: 'Hardware & performance',
+    items: [
+      { q: 'How fast are local LLMs?',
+        a: 'On a modern Apple Silicon Mac or a recent GPU, a well-sized model streams text about as fast as you can read it. Speed depends on the model size relative to your hardware: smaller models are faster, larger models are slower but more capable. Aspen picks a size that runs smoothly on your machine.' },
+      { q: 'Why is my local model slow?',
+        a: 'Usually the model is large relative to your memory, forcing the system to swap. Choosing a smaller or more heavily quantized model, closing memory-hungry apps, or using a machine with more RAM all help. Aspen flags models that may be too big for your hardware.' },
+      { q: 'What do "parameters" and "7B" or "70B" mean?',
+        a: 'Parameters are the internal values a model learned during training; "7B" means seven billion of them. More parameters generally means more capable but also larger and slower. The right number depends on your hardware — many people run 7–14B models happily on a laptop.' },
+      { q: 'What is quantization?',
+        a: 'Quantization compresses a model\'s numbers to use less memory and run faster, with a small and usually unnoticeable quality cost. It is what lets large models fit on consumer hardware. Aspen uses sensible quantized versions by default.' },
+      { q: 'Do I need the Aspen device?',
+        a: 'No. The free app runs well on a modern Mac or PC, and the better your machine, the better it runs. The Aspen device is simply the top of that range — a silent, always-on machine for running the largest models continuously. It is completely optional.' },
+    ],
+  },
+  {
+    id: 'developers',
+    title: 'For developers',
+    items: [
+      { q: 'Does Aspen have an OpenAI-compatible API?',
+        a: 'Yes. Aspen runs a local gateway that speaks the OpenAI API format. Point any OpenAI-style client at http://localhost:4000/v1 with an Aspen API key and it works unchanged.' },
+      { q: 'How do I point my app at Aspen?',
+        a: 'Set the base URL to your Aspen endpoint and use an Aspen API key. For example, with the OpenAI Python SDK: OpenAI(base_url="http://localhost:4000/v1", api_key="YOUR-ASPEN-KEY"). That is the whole change — two lines.' },
+      { q: 'What tools and SDKs work with Aspen?',
+        a: 'Anything that speaks the OpenAI API: the official OpenAI and Anthropic (Claude) SDKs, LangChain, Cursor, Continue.dev, n8n, Zapier, and similar tools. You just swap the base_url and api_key.' },
+      { q: 'Can I reach my local AI from another machine or my phone?',
+        a: 'Yes. Aspen can expose a private HTTPS URL (a secure tunnel) so your own apps and your phone can reach the AI on your computer from anywhere, while the model and data stay on your machine.' },
+      { q: 'What API key types does Aspen have?',
+        a: 'Three. An Owner key has full access including computer use and shared memory — only for devices that are you. A Family/member key gets its own private memory plus safe tools, with no computer use. An Anonymous guest key allows chat and safe tools only, is ephemeral, and is safe to share widely.' },
+    ],
+  },
+];
+
+// Documentation sections. Blocks: ['p',text] ['h',text] ['ul',[...]] ['ol',[...]]
+// ['code',lang,text] ['note',text].
+export const docs = [
+  {
+    id: 'overview',
+    title: 'Overview',
+    summary: 'What Aspen is and how it runs AI privately on your own machine.',
+    blocks: [
+      ['p', 'Aspen is private AI that runs entirely on your own hardware. Instead of sending your prompts to a company\'s servers, Aspen runs an open large language model locally and gives you a clean app to chat with it. Nothing leaves your device.'],
+      ['p', 'Aspen has three parts that work together: the model (an open LLM such as Llama, Qwen, DeepSeek, or Mistral that runs on your machine), a local gateway (an OpenAI-compatible server on your computer that handles requests, tools, and memory), and the apps (desktop for Mac and Windows, plus a free iPhone app that connects back to your own machine).'],
+      ['note', 'There is no cloud and no account. Core chat and coding work fully offline once a model is downloaded.'],
+    ],
+  },
+  {
+    id: 'install',
+    title: 'Install',
+    summary: 'Get Aspen running on Mac, Windows, or iPhone in a couple of minutes.',
+    blocks: [
+      ['h', 'Mac and Windows'],
+      ['p', 'Download the free app from runonaspen.com and open it. There is no terminal or configuration required. On first launch, Aspen detects your hardware and recommends a model to download.'],
+      ['p', 'Prefer the command line? One command installs everything and adds Aspen to your apps menu:'],
+      ['code', 'bash', 'curl -fsSL https://runonaspen.com/install.sh | sh'],
+      ['note', 'Windows may show a "Windows protected your PC" warning on first run because Aspen is from an independent developer. Click More info, then Run anyway. It is safe.'],
+      ['h', 'iPhone'],
+      ['p', 'Install "Aspen Local AI" free from the App Store. The phone app connects to the AI running on your own computer, so you can use your private models from anywhere.'],
+    ],
+  },
+  {
+    id: 'quickstart',
+    title: 'Quickstart',
+    summary: 'Open Aspen, pick a model, and ask your first question.',
+    blocks: [
+      ['ol', [
+        'Open Aspen. It detects your hardware and suggests a model that fits.',
+        'Let the recommended model download (one time). Smaller models download and load faster.',
+        'Type a question in the chat box and press enter. The reply streams back, generated on your machine.',
+        'Try voice, attach an image, or ask it to write and run code — all locally.',
+      ]],
+      ['p', 'That is the whole setup. Everything after this is optional configuration for power users and developers.'],
+    ],
+  },
+  {
+    id: 'models',
+    title: 'Choosing a model',
+    summary: 'How to pick the right local model for your machine.',
+    blocks: [
+      ['p', 'Aspen runs the latest open models and shows a library you can browse in Settings. Each model lists its size and the memory it needs, and Aspen flags any that may be too large for your machine.'],
+      ['h', 'Rough hardware guide'],
+      ['ul', [
+        '8GB RAM: small models around 3B parameters.',
+        '16GB RAM: 7–8B models, a great all-round sweet spot.',
+        '32GB RAM: 13–14B models.',
+        '64GB+ RAM: 30B+ models for the strongest local quality.',
+      ]],
+      ['p', 'For most people a mid-sized Qwen or Llama model is the best default for chat, tool use, and coding. Aspen can update to a newer, better model automatically as the open ecosystem improves.'],
+      ['note', 'Quantized models use less memory and run faster with little quality loss — Aspen uses sensible quantized versions by default.'],
+    ],
+  },
+  {
+    id: 'chat',
+    title: 'Chat & artifacts',
+    summary: 'Conversational AI with live code and HTML previews.',
+    blocks: [
+      ['p', 'The chat works like any modern AI assistant: ask questions, brainstorm, write and edit text, or get coding help. Responses stream in real time, generated locally.'],
+      ['p', 'When you ask Aspen to build something on the web — a page, a small app, a visualization — it renders a live artifact with a preview panel right in the chat, so you can see and run the result immediately.'],
+    ],
+  },
+  {
+    id: 'voice',
+    title: 'Voice',
+    summary: 'Hands-free voice conversations, processed on-device.',
+    blocks: [
+      ['p', 'Aspen includes a hands-free voice mode with a natural neural voice. Speak your question and hear the answer back, with speech handled on your machine.'],
+    ],
+  },
+  {
+    id: 'vision',
+    title: 'Vision',
+    summary: 'Analyze images and screenshots with a local vision model.',
+    blocks: [
+      ['p', 'Attach a photo or screenshot and Aspen reads it with a local vision model. Ask it to describe an image, critique a design, extract text, or explain a chart. The image never leaves your machine.'],
+    ],
+  },
+  {
+    id: 'tools',
+    title: 'Tools',
+    summary: 'Web search, URL fetch, shell commands, and more — all run on your machine.',
+    blocks: [
+      ['p', 'Tools let your local model do things beyond chat. Every tool runs on your own computer and uses your own network; nothing is routed through Aspen\'s servers. Toggle each one in Settings.'],
+      ['ul', [
+        'Web search — current information from the live web, with the source cited. Runs from your machine and your IP.',
+        'Read web page — fetch and read the text of a specific URL.',
+        'Run commands — execute shell commands to clone repos, read and write files, and run scripts (works best with larger models).',
+        'Download files — fetch a file to work with locally.',
+        'Calculator and date/time — quick deterministic helpers.',
+        'Git — clone, status, and commit/push helpers.',
+      ]],
+      ['note', 'For real-time questions (weather, news, prices), enable Web Search so the model answers from live results instead of memory.'],
+    ],
+  },
+  {
+    id: 'memory',
+    title: 'Memory (World Model)',
+    summary: 'A private, local memory that personalizes answers.',
+    blocks: [
+      ['p', 'Aspen can build a "World Model" — a set of facts about you, learned from your conversations, that makes its answers more personal and context-aware. It is stored as a plain file on your own computer.'],
+      ['p', 'After each conversation, your local model quietly extracts useful facts (name, job, preferences, projects) and prepends them to new chats so the AI remembers who you are. You can view, edit, or delete any fact at any time.'],
+      ['note', '100% local — these facts never leave your machine and are never sent to any server.'],
+    ],
+  },
+  {
+    id: 'privacy',
+    title: 'Privacy',
+    summary: 'Why Aspen is private by design.',
+    blocks: [
+      ['p', 'Privacy is the whole point. The model runs on your hardware, there is no server in the middle, and your conversations are never transmitted or used for training.'],
+      ['p', 'The only time anything touches the network is when you explicitly use an online tool such as web search — and that request goes out from your own machine and IP, not through Aspen. You stay in control.'],
+    ],
+  },
+  {
+    id: 'api',
+    title: 'Developer API',
+    summary: 'Drop-in, OpenAI-compatible API for your own apps.',
+    blocks: [
+      ['p', 'Aspen runs a local gateway that speaks the OpenAI API format. Point any OpenAI-style client at your Aspen endpoint and it works unchanged — your tools now run against your own private AI.'],
+      ['h', 'Endpoints'],
+      ['ul', [
+        'Same machine: http://localhost:4000/v1',
+        'From anywhere: a private HTTPS tunnel URL Aspen can generate for you, so your phone and other apps reach your machine securely.',
+      ]],
+      ['h', 'Python (OpenAI SDK)'],
+      ['code', 'python', 'from openai import OpenAI\n\nclient = OpenAI(\n    base_url="http://localhost:4000/v1",\n    api_key="YOUR-ASPEN-KEY",\n)\n\nresp = client.chat.completions.create(\n    model="local",   # the model name shown in the Aspen app\n    messages=[{"role": "user", "content": "Hello from my own machine"}],\n)\nprint(resp.choices[0].message.content)'],
+      ['h', 'JavaScript (fetch)'],
+      ['code', 'javascript', 'const r = await fetch("http://localhost:4000/v1/chat/completions", {\n  method: "POST",\n  headers: {\n    "Content-Type": "application/json",\n    "Authorization": "Bearer YOUR-ASPEN-KEY",\n  },\n  body: JSON.stringify({\n    model: "local",\n    messages: [{ role: "user", content: "Hello" }],\n  }),\n});\nconst data = await r.json();\nconsole.log(data.choices[0].message.content);'],
+      ['h', 'API key tiers'],
+      ['ul', [
+        'Owner — full access including computer use and shared memory. Only for devices that are you.',
+        'Family / member — its own private memory plus safe tools; no computer use.',
+        'Anonymous guest — chat and safe tools only, ephemeral, safe to share widely.',
+      ]],
+      ['p', 'Aspen works with the OpenAI and Anthropic SDKs, LangChain, Cursor, Continue.dev, n8n, Zapier, and similar tools — anything that accepts a custom base URL and key.'],
+    ],
+  },
+  {
+    id: 'connectors',
+    title: 'Connectors (MCP)',
+    summary: 'Connect tools like GitHub through open MCP connectors.',
+    blocks: [
+      ['p', 'Aspen supports connectors built on the open Model Context Protocol (MCP), letting your local AI work with services like GitHub. Access tokens are encrypted and stay on your device.'],
+    ],
+  },
+  {
+    id: 'device',
+    title: 'The Aspen device',
+    summary: 'Optional always-on hardware for the largest models.',
+    blocks: [
+      ['p', 'The Aspen device is an optional, dedicated machine for running the largest models around the clock without using your own computer. You never need it to use Aspen — the free app runs well on a modern Mac or PC.'],
+      ['ul', [
+        'About 1 petaflop of AI performance',
+        '128GB unified memory',
+        'Runs models up to roughly 200B parameters',
+        'Silent and always on',
+        'About 5.9" x 5.9" x 2"',
+      ]],
+      ['p', 'It is available by preorder with a $1 deposit.'],
+    ],
+  },
+  {
+    id: 'troubleshooting',
+    title: 'Troubleshooting',
+    summary: 'Common issues and quick fixes.',
+    blocks: [
+      ['h', 'Windows "protected your PC" warning'],
+      ['p', 'Normal and safe for a new app from an independent developer. Click More info, then Run anyway. If the download was blocked, right-click the file, choose Properties, check Unblock, then run it.'],
+      ['h', 'A model is slow or crashes'],
+      ['p', 'The model is probably large relative to your memory. Pick a smaller or more quantized model, close memory-heavy apps, or use a machine with more RAM. Aspen flags models that may be too big for your hardware.'],
+      ['h', 'It says it cannot get current information'],
+      ['p', 'Enable the Web Search tool in Settings so the model can answer real-time questions from the live web with cited sources.'],
+    ],
+  },
+];

@@ -2,6 +2,10 @@
   "outputDirectory": "site",
   "rewrites": [
     {
+      "source": "/docs",
+      "destination": "/docs/index.html"
+    },
+    {
       "source": "/app",
       "destination": "/app/index.html"
     },

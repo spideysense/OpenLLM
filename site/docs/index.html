@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aspen Documentation — Run private, local AI on your own machine</title>
+<meta name="description" content="Complete Aspen documentation: install on Mac, Windows, or iPhone; choose a local LLM for your hardware; use tools, voice, and vision; and connect the OpenAI-compatible API. Private, free, runs on your own machine.">
+<meta name="keywords" content="Aspen documentation, local LLM, run AI locally, private AI, free local LLM, OpenAI compatible API, local AI setup, offline AI">
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
+<link rel="canonical" href="https://runonaspen.com/docs">
+<meta property="og:title" content="Aspen Documentation">
+<meta property="og:description" content="Install, choose a model, and connect the API. Private AI that runs on your own machine.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://runonaspen.com/docs">
+<meta property="og:image" content="https://runonaspen.com/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Aspen Documentation">
+<meta name="twitter:description" content="Install, choose a model, and connect the API. Private AI on your own machine.">
+<meta name="theme-color" content="#FAFAF7">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="sitemap" type="application/xml" href="/sitemap.xml">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://runonaspen.com/"},{"@type":"ListItem","position":2,"name":"Documentation","item":"https://runonaspen.com/docs"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Aspen Documentation","description":"Complete guide to Aspen: install, choose a local model, tools, voice, vision, privacy, and the OpenAI-compatible developer API.","url":"https://runonaspen.com/docs","dateModified":"2026-06-25","author":{"@type":"Organization","name":"Aspen","url":"https://runonaspen.com"},"publisher":{"@type":"Organization","name":"Aspen","url":"https://runonaspen.com"},"articleSection":["Overview","Install","Quickstart","Choosing a model","Chat & artifacts","Voice","Vision","Tools","Memory (World Model)","Privacy","Developer API","Connectors (MCP)","The Aspen device","Troubleshooting"]}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#FAFAF7;--wh:#fff;--bk:#1D1D1F;--t2:#6E6E73;--body:#4f463a;--gd:#B8860B;--brd:rgba(0,0,0,.08);--ser:'DM Serif Display',Georgia,serif;--san:'Outfit',-apple-system,sans-serif;--mon:'SF Mono','JetBrains Mono',ui-monospace,monospace}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:90px}
+body{font-family:var(--san);background:var(--bg);color:var(--body);line-height:1.65;font-weight:300;-webkit-font-smoothing:antialiased}
+a{color:var(--gd);text-decoration:none}a:hover{text-decoration:underline}
+header{position:sticky;top:0;z-index:20;background:rgba(250,250,247,.85);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);border-bottom:1px solid var(--brd)}
+.hw{max-width:1180px;margin:0 auto;padding:.9rem 1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem}
+.brand{font-weight:700;letter-spacing:.04em;color:var(--bk);font-size:1.05rem}
+.brand .b{font-size:9px;font-weight:700;background:var(--gd);color:#fff;padding:1px 5px;border-radius:4px;letter-spacing:.5px;margin-left:5px;vertical-align:middle}
+.hn{display:flex;gap:1.4rem;align-items:center;font-size:.92rem}
+.hn a{color:var(--t2)}.hn a:hover{color:var(--gd)}
+.wrap{max-width:1180px;margin:0 auto;padding:2.5rem 1.5rem 5rem;display:grid;grid-template-columns:230px 1fr;gap:3rem;align-items:start}
+.toc{position:sticky;top:80px}
+.toc .lbl{font-size:.74rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--t2);margin-bottom:.7rem}
+.toc ul{list-style:none}
+.toc li{margin:.15rem 0}
+.toc a{display:block;padding:.32rem .5rem;border-radius:7px;color:var(--t2);font-size:.9rem}
+.toc a:hover{background:rgba(184,134,11,.08);color:var(--gd);text-decoration:none}
+main{min-width:0;max-width:760px}
+.lead{font-size:1.05rem;color:var(--t2);margin-bottom:.4rem}
+.updated{font-size:.8rem;color:var(--t2);margin-bottom:2.5rem}
+h1{font-family:var(--ser);font-weight:400;font-size:clamp(2.4rem,5vw,3.2rem);line-height:1.05;letter-spacing:-.02em;color:var(--bk);margin-bottom:.6rem}
+main section{padding:2.2rem 0;border-top:1px solid var(--brd)}
+main section:first-of-type{border-top:none;padding-top:.5rem}
+h2{font-family:var(--ser);font-weight:400;font-size:1.9rem;letter-spacing:-.01em;color:var(--bk);margin-bottom:1rem;scroll-margin-top:90px}
+h3{font-size:1.05rem;font-weight:600;color:var(--bk);margin:1.6rem 0 .5rem}
+p{margin:.7rem 0}
+ul,ol{margin:.7rem 0 .7rem 1.3rem}li{margin:.3rem 0}
+pre{background:#1d1d1f;color:#f5f5f0;border-radius:12px;padding:1.1rem 1.2rem;overflow-x:auto;margin:1rem 0;font-family:var(--mon);font-size:.86rem;line-height:1.55}
+code{font-family:var(--mon);font-size:.9em}
+p code,li code{background:rgba(184,134,11,.1);color:#8a6608;padding:.1em .4em;border-radius:5px;font-size:.86em}
+.note{background:rgba(184,134,11,.07);border-left:3px solid var(--gd);border-radius:0 10px 10px 0;padding:.85rem 1.1rem;margin:1rem 0;font-size:.95rem;color:#5d4e37}
+.cta{margin-top:3rem;padding:1.6rem;border:1px solid var(--brd);border-radius:16px;background:var(--wh);text-align:center}
+footer{border-top:1px solid var(--brd);padding:2rem 1.5rem;text-align:center;color:var(--t2);font-size:.85rem}
+@media(max-width:820px){.wrap{grid-template-columns:1fr;gap:1.5rem}.toc{position:static;border-bottom:1px solid var(--brd);padding-bottom:1rem}.toc ul{columns:2}}
+</style>
+</head>
+<body>
+<header><div class="hw">
+<a class="brand" href="/">Aspen<span class="b">DOCS</span></a>
+<nav class="hn"><a href="/">Home</a><a href="/#faq">FAQ</a><a href="/app">Try Free</a><a href="https://github.com/spideysense/OpenLLM">GitHub</a></nav>
+</div></header>
+<div class="wrap">
+<aside class="toc"><div class="lbl">Documentation</div><ul>
+<li><a href="#overview">Overview</a></li>
+<li><a href="#install">Install</a></li>
+<li><a href="#quickstart">Quickstart</a></li>
+<li><a href="#models">Choosing a model</a></li>
+<li><a href="#chat">Chat &amp; artifacts</a></li>
+<li><a href="#voice">Voice</a></li>
+<li><a href="#vision">Vision</a></li>
+<li><a href="#tools">Tools</a></li>
+<li><a href="#memory">Memory (World Model)</a></li>
+<li><a href="#privacy">Privacy</a></li>
+<li><a href="#api">Developer API</a></li>
+<li><a href="#connectors">Connectors (MCP)</a></li>
+<li><a href="#device">The Aspen device</a></li>
+<li><a href="#troubleshooting">Troubleshooting</a></li>
+<li><a href="/#faq">FAQ</a></li>
+</ul></aside>
+<main>
+<h1>Aspen Documentation</h1>
+<p class="lead">Everything you need to run private, local AI on your own machine — install, choose a model, use tools, and connect the developer API.</p>
+<p class="updated">Last updated 2026-06-25</p>
+<section id="overview">
+<h2>Overview</h2>
+<p>Aspen is private AI that runs entirely on your own hardware. Instead of sending your prompts to a company's servers, Aspen runs an open large language model locally and gives you a clean app to chat with it. Nothing leaves your device.</p>
+<p>Aspen has three parts that work together: the model (an open LLM such as Llama, Qwen, DeepSeek, or Mistral that runs on your machine), a local gateway (an OpenAI-compatible server on your computer that handles requests, tools, and memory), and the apps (desktop for Mac and Windows, plus a free iPhone app that connects back to your own machine).</p>
+<div class="note">There is no cloud and no account. Core chat and coding work fully offline once a model is downloaded.</div>
+</section>
+
+<section id="install">
+<h2>Install</h2>
+<h3>Mac and Windows</h3>
+<p>Download the free app from runonaspen.com and open it. There is no terminal or configuration required. On first launch, Aspen detects your hardware and recommends a model to download.</p>
+<p>Prefer the command line? One command installs everything and adds Aspen to your apps menu:</p>
+<pre><code class="language-bash">curl -fsSL https://runonaspen.com/install.sh | sh</code></pre>
+<div class="note">Windows may show a "Windows protected your PC" warning on first run because Aspen is from an independent developer. Click More info, then Run anyway. It is safe.</div>
+<h3>iPhone</h3>
+<p>Install "Aspen Local AI" free from the App Store. The phone app connects to the AI running on your own computer, so you can use your private models from anywhere.</p>
+</section>
+
+<section id="quickstart">
+<h2>Quickstart</h2>
+<ol><li>Open Aspen. It detects your hardware and suggests a model that fits.</li><li>Let the recommended model download (one time). Smaller models download and load faster.</li><li>Type a question in the chat box and press enter. The reply streams back, generated on your machine.</li><li>Try voice, attach an image, or ask it to write and run code — all locally.</li></ol>
+<p>That is the whole setup. Everything after this is optional configuration for power users and developers.</p>
+</section>
+
+<section id="models">
+<h2>Choosing a model</h2>
+<p>Aspen runs the latest open models and shows a library you can browse in Settings. Each model lists its size and the memory it needs, and Aspen flags any that may be too large for your machine.</p>
+<h3>Rough hardware guide</h3>
+<ul><li>8GB RAM: small models around 3B parameters.</li><li>16GB RAM: 7–8B models, a great all-round sweet spot.</li><li>32GB RAM: 13–14B models.</li><li>64GB+ RAM: 30B+ models for the strongest local quality.</li></ul>
+<p>For most people a mid-sized Qwen or Llama model is the best default for chat, tool use, and coding. Aspen can update to a newer, better model automatically as the open ecosystem improves.</p>
+<div class="note">Quantized models use less memory and run faster with little quality loss — Aspen uses sensible quantized versions by default.</div>
+</section>
+
+<section id="chat">
+<h2>Chat &amp; artifacts</h2>
+<p>The chat works like any modern AI assistant: ask questions, brainstorm, write and edit text, or get coding help. Responses stream in real time, generated locally.</p>
+<p>When you ask Aspen to build something on the web — a page, a small app, a visualization — it renders a live artifact with a preview panel right in the chat, so you can see and run the result immediately.</p>
+</section>
+
+<section id="voice">
+<h2>Voice</h2>
+<p>Aspen includes a hands-free voice mode with a natural neural voice. Speak your question and hear the answer back, with speech handled on your machine.</p>
+</section>
+
+<section id="vision">
+<h2>Vision</h2>
+<p>Attach a photo or screenshot and Aspen reads it with a local vision model. Ask it to describe an image, critique a design, extract text, or explain a chart. The image never leaves your machine.</p>
+</section>
+
+<section id="tools">
+<h2>Tools</h2>
+<p>Tools let your local model do things beyond chat. Every tool runs on your own computer and uses your own network; nothing is routed through Aspen's servers. Toggle each one in Settings.</p>
+<ul><li>Web search — current information from the live web, with the source cited. Runs from your machine and your IP.</li><li>Read web page — fetch and read the text of a specific URL.</li><li>Run commands — execute shell commands to clone repos, read and write files, and run scripts (works best with larger models).</li><li>Download files — fetch a file to work with locally.</li><li>Calculator and date/time — quick deterministic helpers.</li><li>Git — clone, status, and commit/push helpers.</li></ul>
+<div class="note">For real-time questions (weather, news, prices), enable Web Search so the model answers from live results instead of memory.</div>
+</section>
+
+<section id="memory">
+<h2>Memory (World Model)</h2>
+<p>Aspen can build a "World Model" — a set of facts about you, learned from your conversations, that makes its answers more personal and context-aware. It is stored as a plain file on your own computer.</p>
+<p>After each conversation, your local model quietly extracts useful facts (name, job, preferences, projects) and prepends them to new chats so the AI remembers who you are. You can view, edit, or delete any fact at any time.</p>
+<div class="note">100% local — these facts never leave your machine and are never sent to any server.</div>
+</section>
+
+<section id="privacy">
+<h2>Privacy</h2>
+<p>Privacy is the whole point. The model runs on your hardware, there is no server in the middle, and your conversations are never transmitted or used for training.</p>
+<p>The only time anything touches the network is when you explicitly use an online tool such as web search — and that request goes out from your own machine and IP, not through Aspen. You stay in control.</p>
+</section>
+
+<section id="api">
+<h2>Developer API</h2>
+<p>Aspen runs a local gateway that speaks the OpenAI API format. Point any OpenAI-style client at your Aspen endpoint and it works unchanged — your tools now run against your own private AI.</p>
+<h3>Endpoints</h3>
+<ul><li>Same machine: http://localhost:4000/v1</li><li>From anywhere: a private HTTPS tunnel URL Aspen can generate for you, so your phone and other apps reach your machine securely.</li></ul>
+<h3>Python (OpenAI SDK)</h3>
+<pre><code class="language-python">from openai import OpenAI
+
+client = OpenAI(
+    base_url="http://localhost:4000/v1",
+    api_key="YOUR-ASPEN-KEY",
+)
+
+resp = client.chat.completions.create(
+    model="local",   # the model name shown in the Aspen app
+    messages=[{"role": "user", "content": "Hello from my own machine"}],
+)
+print(resp.choices[0].message.content)</code></pre>
+<h3>JavaScript (fetch)</h3>
+<pre><code class="language-javascript">const r = await fetch("http://localhost:4000/v1/chat/completions", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "Authorization": "Bearer YOUR-ASPEN-KEY",
+  },
+  body: JSON.stringify({
+    model: "local",
+    messages: [{ role: "user", content: "Hello" }],
+  }),
+});
+const data = await r.json();
+console.log(data.choices[0].message.content);</code></pre>
+<h3>API key tiers</h3>
+<ul><li>Owner — full access including computer use and shared memory. Only for devices that are you.</li><li>Family / member — its own private memory plus safe tools; no computer use.</li><li>Anonymous guest — chat and safe tools only, ephemeral, safe to share widely.</li></ul>
+<p>Aspen works with the OpenAI and Anthropic SDKs, LangChain, Cursor, Continue.dev, n8n, Zapier, and similar tools — anything that accepts a custom base URL and key.</p>
+</section>
+
+<section id="connectors">
+<h2>Connectors (MCP)</h2>
+<p>Aspen supports connectors built on the open Model Context Protocol (MCP), letting your local AI work with services like GitHub. Access tokens are encrypted and stay on your device.</p>
+</section>
+
+<section id="device">
+<h2>The Aspen device</h2>
+<p>The Aspen device is an optional, dedicated machine for running the largest models around the clock without using your own computer. You never need it to use Aspen — the free app runs well on a modern Mac or PC.</p>
+<ul><li>About 1 petaflop of AI performance</li><li>128GB unified memory</li><li>Runs models up to roughly 200B parameters</li><li>Silent and always on</li><li>About 5.9" x 5.9" x 2"</li></ul>
+<p>It is available by preorder with a $1 deposit.</p>
+</section>
+
+<section id="troubleshooting">
+<h2>Troubleshooting</h2>
+<h3>Windows "protected your PC" warning</h3>
+<p>Normal and safe for a new app from an independent developer. Click More info, then Run anyway. If the download was blocked, right-click the file, choose Properties, check Unblock, then run it.</p>
+<h3>A model is slow or crashes</h3>
+<p>The model is probably large relative to your memory. Pick a smaller or more quantized model, close memory-heavy apps, or use a machine with more RAM. Aspen flags models that may be too big for your hardware.</p>
+<h3>It says it cannot get current information</h3>
+<p>Enable the Web Search tool in Settings so the model can answer real-time questions from the live web with cited sources.</p>
+</section>
+<div class="cta"><p style="margin:0 0 .8rem;color:var(--bk);font-size:1.05rem;font-weight:500">Ready to own your intelligence?</p>
+<p style="margin:0"><a href="/app" style="font-weight:600">Try Aspen free in your browser &rarr;</a></p></div>
+</main>
+</div>
+<footer>&copy; 2025 Aspen &middot; <a href="/">Home</a> &middot; <a href="/#faq">FAQ</a> &middot; <a href="https://github.com/spideysense/OpenLLM">GitHub</a> &middot; Open source, MIT License</footer>
+</body>
+</html>
