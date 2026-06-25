@@ -852,5 +852,33 @@ draw()})();
   Array.prototype.forEach.call(chips.querySelectorAll('.try-chip'),function(c){ c.addEventListener('click',function(){ send(c.textContent); }); });
 })();
 </script>
+<!-- Lightbox: click any screenshot to view it full-size -->
+<style>
+.shot img,.shotrow img,.shot-single img{cursor:zoom-in}
+#lb{position:fixed;inset:0;z-index:9999;display:none;align-items:center;justify-content:center;background:rgba(20,16,10,.88);backdrop-filter:blur(4px);padding:3vmin;cursor:zoom-out;opacity:0;transition:opacity .18s ease}
+#lb.show{display:flex;opacity:1}
+#lb img{max-width:94vw;max-height:92vh;width:auto;height:auto;border-radius:12px;box-shadow:0 24px 80px rgba(0,0,0,.5);cursor:default;transform:scale(.98);transition:transform .18s ease}
+#lb.show img{transform:scale(1)}
+#lb-x{position:absolute;top:max(1rem,2vmin);right:max(1rem,2vmin);width:42px;height:42px;border:none;border-radius:50%;background:rgba(255,255,255,.14);color:#fff;font-size:1.4rem;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s}
+#lb-x:hover{background:rgba(255,255,255,.28)}
+</style>
+<div id="lb" role="dialog" aria-modal="true" aria-label="Image viewer">
+  <button id="lb-x" aria-label="Close">&times;</button>
+  <img id="lb-img" alt="">
+</div>
+<script>
+(function(){
+  var lb=document.getElementById('lb'), lbImg=document.getElementById('lb-img');
+  function open(src,alt){ lbImg.src=src; lbImg.alt=alt||''; lb.classList.add('show'); document.body.style.overflow='hidden'; }
+  function close(){ lb.classList.remove('show'); document.body.style.overflow=''; setTimeout(function(){ if(!lb.classList.contains('show')) lbImg.src=''; },200); }
+  // Delegated: works for the static inline shots and the gallery images built at runtime
+  document.addEventListener('click', function(e){
+    var img=e.target.closest && e.target.closest('.shot img, .shotrow img, .shot-single img');
+    if(img){ e.preventDefault(); open(img.currentSrc||img.src, img.alt); }
+  });
+  lb.addEventListener('click', function(e){ if(e.target!==lbImg) close(); });
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape' && lb.classList.contains('show')) close(); });
+})();
+</script>
 </body>
 </html>
