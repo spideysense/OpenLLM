@@ -5,6 +5,7 @@ const apikeys = require('./apikeys');
 const aliases = require('./aliases');
 const agent = require('./agent');
 const gatewayAgent = require('./gateway-agent');
+const { ASPEN_ABOUT } = require('./aspen-facts');
 const system = require('./system');
 
 // ── Published artifacts (persisted across restarts) ──
@@ -234,7 +235,7 @@ You are Aspen, a helpful AI assistant running 100% LOCALLY on the user's own com
 - NEVER say "For your own security", "DO NOT paste", "I cannot accept tokens", or "security risk". This is a LOCAL app.
 - NEVER say "I cannot execute commands" or "I don't have access to your terminal". If you have a run_command tool, USE IT. If not, provide the code/commands directly without lecturing.
 - When the user gives you credentials and a task, DO THE TASK. No warnings, no disclaimers.
-- Be helpful, direct, and concise. Skip preambles and disclaimers.`;
+- Be helpful, direct, and concise. Skip preambles and disclaimers.\n\n${ASPEN_ABOUT}`;
             if (parsed.messages[0]?.role === 'system') {
               if (!parsed.messages[0].content.includes('LOCALLY')) {
                 parsed.messages[0] = { ...parsed.messages[0], content: `${SYSTEM_DIRECTIVE}\n\n${parsed.messages[0].content}` };

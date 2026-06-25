@@ -18,6 +18,7 @@ const path = require('path');
 const os = require('os');
 const { execSync, execFileSync } = require('child_process');
 const tools = require('./tools');
+const { ASPEN_ABOUT } = require('./aspen-facts');
 const system = require('./system');
 const worldModel = require('./world-model');
 const capabilities = require('./capabilities');
@@ -711,7 +712,7 @@ BE CONCISE. Lead with the answer. No preamble, no "I'm Aspen running locally" in
 
 NEVER write code, HTML, or a code block unless the user EXPLICITLY asks you to build, write, or fix something technical. Personal, emotional, or conversational messages ("my daughter loves me", "hello", "I had a rough day") get a warm, plain-language reply, never code. If you are unsure whether they want code, they do not: just talk to them like a person.
 
-You CAN write code on request. NEVER tell the user you are "just a text-based model" or that you cannot code. That is false.${memPrefix ? '\n\n' + memPrefix : ''}`;
+You CAN write code on request. NEVER tell the user you are "just a text-based model" or that you cannot code. That is false.\n\n${ASPEN_ABOUT}${memPrefix ? '\n\n' + memPrefix : ''}`;
     if (fastConvo[0]?.role === 'system') {
       if (!fastConvo[0].content.includes('Aspen')) {
         fastConvo[0] = { ...fastConvo[0], content: `${FAST_DIRECTIVE}\n\n${fastConvo[0].content}` };
@@ -777,7 +778,7 @@ You genuinely CAN write and run code, download and analyze files. NEVER tell the
 
 BE CONCISE. Lead with the answer. No preamble or filler. Match length to the question; default to TL;DR. Only go long when the user asks for depth, a list, or a tutorial.
 
-Do NOT write code or a code block for casual, personal, or emotional messages ("hello", "my daughter loves me", "I had a rough day", "analyze our relationship") — reply warmly in plain language. Write code only when the user asks you to build, write, fix, or run something technical. The rule is about WHEN to code, not WHETHER you can.${skillsBlock}${memPrefix ? '\n\n' + memPrefix : ''}`;
+Do NOT write code or a code block for casual, personal, or emotional messages ("hello", "my daughter loves me", "I had a rough day", "analyze our relationship") — reply warmly in plain language. Write code only when the user asks you to build, write, fix, or run something technical. The rule is about WHEN to code, not WHETHER you can.\n\n${ASPEN_ABOUT}${skillsBlock}${memPrefix ? '\n\n' + memPrefix : ''}`;
 
   const convo = [...messages];
   if (convo[0]?.role === 'system') {

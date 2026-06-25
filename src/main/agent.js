@@ -10,6 +10,7 @@
  */
 const http = require('http');
 const tools = require('./tools');
+const { ASPEN_ABOUT } = require('./aspen-facts');
 const toolSettings = require('./tool-settings');
 const system = require('./system');
 const skills = require('./skills');
@@ -112,7 +113,7 @@ async function runAgent({ model, messages, retryCount = 0, isOwner = true, onEve
         const block = `\n\n--- Content fetched from ${urlMatch[0]} ---\n${pageText}\n--- End of fetched content ---\n\nUse the fetched content above to answer the user's question about this link. If it's a YouTube video you have its title/channel/description but cannot see the footage — be honest about that.`;
         messages = messages[0]?.role === 'system'
           ? [{ ...messages[0], content: messages[0].content + block }, ...messages.slice(1)]
-          : [{ role: 'system', content: `You are a helpful assistant.${block}` }, ...messages];
+          : [{ role: 'system', content: `You are a helpful assistant.\n\n${ASPEN_ABOUT}${block}` }, ...messages];
       }
     }
   } catch {}
