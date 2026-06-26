@@ -575,7 +575,7 @@ const TOOLS = {
       type: 'function',
       function: {
         name: 'run_command',
-        description: 'Execute ANY shell command on the user\'s machine. You MUST use this for: git clone/add/commit/push, writing files (cat > file << EOF), reading files (cat), mkdir, ls, npm, pip, and all terminal tasks. NEVER tell the user to run commands — call this tool instead. Returns stdout/stderr.',
+        description: 'Execute ANY shell command on the user\'s machine. You MUST use this for: git clone/add/commit/push, writing files (cat > file << EOF), reading files (cat), mkdir, ls, npm, pip, and all terminal tasks. NEVER tell the user to run commands — call this tool instead. Returns stdout/stderr. EXCEPTION: to SHOW the user an HTML or SVG page, card, or app, output it inline as a fenced html/svg code block (a renderable artifact) instead of writing it to a file — only write a file when they explicitly ask to save one.',
         parameters: {
           type: 'object',
           properties: {
