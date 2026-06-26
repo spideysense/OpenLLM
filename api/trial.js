@@ -79,6 +79,14 @@ export default async function handler(req) {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors(origin) });
   if (req.method !== 'POST') return jsonErr(origin, 'POST only', 405);
 
+  // Kill-switch: set TRIAL_ENABLED=false on Vercel to instantly take ALL public
+  // trial load off the host box (e.g. while it's busy serving you). Reversible —
+  // flip back to true to re-enable. Default on, so nothing changes until you set it.
+  const trialEnabled = ((typeof process !== 'undefined' && process.env.TRIAL_ENABLED) || 'true').toLowerCase() !== 'false';
+  if (!trialEnabled) {
+    return jsonErr(origin, 'The cloud trial is paused right now. Download Aspen to run it locally — free.', 503, { unavailable: true });
+  }
+
   // If the trial isn't fully configured, fail CLOSED — never run uncapped.
   if (!KV_URL || !KV_TOKEN || !TRIAL_TUNNEL_URL) {
     return jsonErr(origin, 'Cloud trial is not available right now.', 503, { unavailable: true });

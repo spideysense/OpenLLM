@@ -1277,9 +1277,12 @@ modelSelect.addEventListener('change',updateModelFooter);
 function updateModelFooter(){modelFooter.textContent=modelSelect.value?.split(':')[0]||'–'}
 
 // Status
-function startStatusCheck(){checkStatus();statusInterval=setInterval(checkStatus,15000)}
+function startStatusCheck(){checkStatus();statusInterval=setInterval(checkStatus,60000);document.addEventListener('visibilitychange',function(){if(!document.hidden)checkStatus();});}
 async function checkStatus(){
   if(trialMode){statusDot.className='dot online';statusText.textContent=`Cloud trial · ${trialMsgsLeft} left`;settingsStatus.textContent='Cloud trial';offlineBanner.classList.remove('visible');return;}
+  // Don't poll the box mid-stream or from a background tab — it just adds load
+  // and competes with an in-flight generation (multi-tab contention).
+  if(isStreaming||document.hidden)return;
   statusDot.className='dot checking';statusText.textContent='Checking…';settingsStatus.textContent='Checking…';
   try{
     const res=await fetch(`${config.tunnelUrl}/v1/models`,{headers:config.apiKey?{'Authorization':`Bearer ${config.apiKey}`}:{},signal:AbortSignal.timeout(5000)});
