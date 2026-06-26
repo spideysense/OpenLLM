@@ -18,6 +18,7 @@ const path = require('path');
 const os = require('os');
 const { execSync, execFileSync } = require('child_process');
 const tools = require('./tools');
+const { makeArtifactFencer } = require('./artifact-fence');
 const { ASPEN_ABOUT } = require('./aspen-facts');
 const system = require('./system');
 const worldModel = require('./world-model');
@@ -677,7 +678,7 @@ async function plainChatRetry(model, messages, _chat = ollamaChat) {
 //   { type: 'done' }                            — stream complete
 //   { type: 'error', text: string }             — fatal error
 // ─────────────────────────────────────────────────────────────────────────────
-async function* run({ model, messages, isOwner = false, memoryKeyId = null, allowComputerUse = false }) {
+async function* runRaw({ model, messages, isOwner = false, memoryKeyId = null, allowComputerUse = false }) {
   if (!model || !Array.isArray(messages) || messages.length === 0) {
     yield { type: 'error', text: 'model and messages are required' };
     return;
@@ -904,6 +905,25 @@ Do NOT write code or a code block for casual, personal, or emotional messages ("
 // the exact errors back to the model for a bounded number of fixes — BEFORE the
 // user sees it. Non-coding turns stream straight through, unchanged.
 // ─────────────────────────────────────────────────────────────────────────────
+// Public entry point. Identical to runRaw but normalizes the content stream so a
+// bare <figure>/<svg>/<img> the model forgot to fence still renders as an
+// artifact on every client. Non-content events pass straight through.
+async function* run(args) {
+  const fz = makeArtifactFencer();
+  for await (const ev of runRaw(args)) {
+    if (ev.type === 'content') {
+      const t = fz.push(ev.text);
+      if (t) yield { type: 'content', text: t };
+    } else if (ev.type === 'done' || ev.type === 'error') {
+      const tail = fz.end();
+      if (tail) yield { type: 'content', text: tail };
+      yield ev;
+    } else {
+      yield ev;
+    }
+  }
+}
+
 async function* runValidated(args, _run = run) {
   const messages = args.messages || [];
   const lastUser = [...messages].reverse().find((m) => m.role === 'user');
