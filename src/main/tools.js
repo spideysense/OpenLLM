@@ -355,9 +355,8 @@ async function runFindImage(args) {
       (im.source ? `\n   source: ${im.source}` : '')
     ).join('\n');
     return `Found ${imgs.length} real image(s) for "${query}" on Wikimedia Commons:\n\n${list}\n\n`
-      + 'TO DISPLAY THE BEST MATCH to the user, reply with an HTML artifact (an html code block) containing exactly this \u2014 the URL is real and already verified, do not change it:\n\n'
-      + snippet
-      + '\n\nAlways use one of the URLs above verbatim; never invent a different image URL.';
+      + 'TO SHOW THE IMAGE: your reply MUST contain the block below EXACTLY AS-IS, keeping the opening ```html line and the closing ``` line. That fence is what renders the image; HTML pasted WITHOUT the ``` fence shows as plain text and the user sees no image. Do not change the URL. Add at most one short sentence before the block, and nothing after.\n\n'
+      + '```html\n' + snippet + '\n```';
   } catch (e) {
     return `Image lookup failed: ${e.message}. Tell the user you could not fetch an image to show; do not invent an image URL.`;
   }
