@@ -64,13 +64,18 @@ function createWindow() {
     mainWindow.loadFile(hotUpdater.resolveRendererPath());
   }
 
-  // Set COOP/COEP headers so SharedArrayBuffer works for Piper WASM TTS
+  // Set COOP/COEP headers so SharedArrayBuffer works for Piper WASM TTS.
+  // COEP is 'credentialless' (not 'require-corp') so the page stays
+  // crossOriginIsolated for SharedArrayBuffer while still allowing cross-origin
+  // images (e.g. Wikimedia photos in a rendered artifact) to load — require-corp
+  // blocks any cross-origin subresource that lacks a CORP header, which shows up
+  // as a broken-image icon in artifact previews.
   mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
     callback({
       responseHeaders: {
         ...details.responseHeaders,
         'Cross-Origin-Opener-Policy': ['same-origin'],
-        'Cross-Origin-Embedder-Policy': ['require-corp'],
+        'Cross-Origin-Embedder-Policy': ['credentialless'],
       },
     });
   });
