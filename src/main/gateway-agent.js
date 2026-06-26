@@ -113,7 +113,7 @@ function messageNeedsTools(messages) {
 // Safe tools: anyone with a valid API key can use them.
 // Dangerous tools: owner key only.
 // ─────────────────────────────────────────────────────────────────────────────
-const SAFE_TOOLS = ['web_search', 'calculate', 'get_datetime', 'fetch_url', 'deep_research'];
+const SAFE_TOOLS = ['web_search', 'find_image', 'calculate', 'get_datetime', 'fetch_url', 'deep_research'];
 const DANGEROUS_TOOLS = ['run_command', 'download_file', 'git_clone', 'git_status', 'git_commit_push', 'computer_screenshot', 'computer_click', 'computer_type', 'computer_key', 'computer_scroll'];
 
 // Computer tool definitions in OpenAI/Ollama format (tools.js uses Anthropic
@@ -712,7 +712,7 @@ BE CONCISE. Lead with the answer. No preamble, no "I'm Aspen running locally" in
 
 NEVER write code, HTML, or a code block unless the user EXPLICITLY asks you to build, write, or fix something technical. Personal, emotional, or conversational messages ("my daughter loves me", "hello", "I had a rough day") get a warm, plain-language reply, never code. If you are unsure whether they want code, they do not: just talk to them like a person.
 
-You CAN write code on request. NEVER tell the user you are "just a text-based model" or that you cannot code. That is false.\n\n${ASPEN_ABOUT}${memPrefix ? '\n\n' + memPrefix : ''}`;
+You CAN write code on request. NEVER tell the user you are "just a text-based model" or that you cannot code. That is false. You cannot fetch or display images in this mode — if asked to show a picture, say so honestly instead of pretending you showed one.\n\n${ASPEN_ABOUT}${memPrefix ? '\n\n' + memPrefix : ''}`;
     if (fastConvo[0]?.role === 'system') {
       if (!fastConvo[0].content.includes('Aspen')) {
         fastConvo[0] = { ...fastConvo[0], content: `${FAST_DIRECTIVE}\n\n${fastConvo[0].content}` };
@@ -775,6 +775,8 @@ You have real tools on this machine: web search, fetch URL, run commands, and do
 You DO have live web access through web_search. For ANY question about real-time or current information — weather, news, prices, stock or sports scores, anything with "today", "now", "latest", or "current" — you MUST call web_search FIRST and answer from the results. NEVER tell the user you lack internet access, cannot get live data, or to "check weather.com" or another site yourself. That is FALSE and not allowed: call web_search instead.
 
 You genuinely CAN write and run code, download and analyze files. NEVER tell the user you cannot code, cannot run things, or are "just a text-based model" — that is false. For multi-step jobs (download something then analyze it, scrape then summarize), call a tool, read the result, call the next, and keep going until it is done; you do not need permission between steps.
+
+SHOW IMAGES: You can display a real image to the user. When they ask to see, show, or display a picture, photo, scan, diagram, artwork, map, or "what does X look like", call find_image with a short description. It returns real, verified image URLs. Then reply with an HTML artifact (a fenced html code block) containing an <img> that uses one of those exact URLs — a small <figure> with a caption is ideal. The app renders it in the preview panel. NEVER invent, guess, or reuse a URL you did not get from find_image, and NEVER claim to have shown an image you did not actually retrieve. If find_image returns nothing usable, tell the user you could not find a real image.
 
 BE CONCISE. Lead with the answer. No preamble or filler. Match length to the question; default to TL;DR. Only go long when the user asks for depth, a list, or a tutorial.
 

@@ -89,7 +89,7 @@ function computeProfile({ tools = false, vision = false, sizeB = null } = {}, ha
   // The tool NAMES this combo may use. The agent intersects this with the user's
   // enabled-tools setting; if the result is empty the model runs as plain chat.
   const allowedTools = [];
-  if (features.webSearch) allowedTools.push('web_search', 'fetch_url');
+  if (features.webSearch) allowedTools.push('web_search', 'fetch_url', 'find_image');
   if (features.calculator) allowedTools.push('calculate', 'get_datetime');
   if (features.runCommand) allowedTools.push('run_command', 'download_file');
   if (features.deepResearch) allowedTools.push('deep_research');

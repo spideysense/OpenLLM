@@ -1184,6 +1184,17 @@ function CodeBlock({ lang, code, onOpenArtifact }) {
   const [copied, setCopied] = useState(false);
   const norm = normLang(lang, code);
   const canPreview = RUNNABLE.includes(norm);
+  // Auto-open image-only HTML artifacts (e.g. a fetched photo via find_image) so
+  // "show me X" displays immediately instead of needing a click. Code/app artifacts
+  // (which contain <script>) still open on demand.
+  const autoOpened = useRef(false);
+  useEffect(() => {
+    if (autoOpened.current) return;
+    if (norm === 'html' && /<img[\s>]/i.test(code) && !/<script/i.test(code)) {
+      autoOpened.current = true;
+      onOpenArtifact?.(code, norm);
+    }
+  }, [norm, code, onOpenArtifact]);
 
   function copy(e) {
     e.stopPropagation();

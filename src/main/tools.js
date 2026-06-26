@@ -310,6 +310,59 @@ function decodeEntities(s) {
 // TOOL: deep_research — multi-step search + synthesis
 // ═══════════════════════════════════════════════════
 
+async function runFindImage(args) {
+  const query = (args.query || '').trim();
+  if (!query) return 'No query provided.';
+  const RENDERABLE = /^image\/(jpeg|png|gif|webp|svg\+xml)$/i;
+  try {
+    const api = 'https://commons.wikimedia.org/w/api.php?action=query&format=json'
+      + '&generator=search&gsrnamespace=6&gsrlimit=6'
+      + '&gsrsearch=' + encodeURIComponent(query)
+      + '&prop=imageinfo&iiprop=url|mime|extmetadata&iiurlwidth=1200';
+    const raw = await fetchText(api, { timeoutMs: 9000, maxBytes: 800000 });
+    const data = JSON.parse(raw);
+    const pages = data && data.query && data.query.pages ? Object.values(data.query.pages) : [];
+    const imgs = [];
+    for (const pg of pages) {
+      const info = pg.imageinfo && pg.imageinfo[0];
+      if (!info) continue;
+      const src = info.thumburl || (RENDERABLE.test(info.mime || '') ? info.url : null);
+      if (!src) continue;
+      const md = info.extmetadata || {};
+      const license = md.LicenseShortName && md.LicenseShortName.value ? htmlToText(String(md.LicenseShortName.value)) : '';
+      const artist = md.Artist && md.Artist.value ? htmlToText(String(md.Artist.value)).slice(0, 120) : '';
+      imgs.push({
+        title: (pg.title || 'Image').replace(/^File:/, '').replace(/\.[a-z0-9]+$/i, ''),
+        url: src,
+        source: info.descriptionurl || '',
+        license, artist,
+      });
+      if (imgs.length >= 4) break;
+    }
+    if (!imgs.length) {
+      return `No displayable image was found for "${query}" on Wikimedia Commons. Tell the user you could not find a real image to show. Do NOT invent or guess an image URL.`;
+    }
+    const best = imgs[0];
+    const cap = [best.title, best.license ? `via Wikimedia Commons (${best.license})` : 'via Wikimedia Commons'].filter(Boolean).join(' \u2014 ');
+    const snippet =
+      '<figure style="margin:0;text-align:center;font-family:system-ui,-apple-system,sans-serif">\n' +
+      `  <img src="${best.url}" alt="${best.title.replace(/"/g, '')}" style="max-width:100%;height:auto;border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.12)">\n` +
+      `  <figcaption style="font-size:.85rem;color:#666;margin-top:.6rem">${cap}</figcaption>\n` +
+      '</figure>';
+    const list = imgs.map((im, i) =>
+      `${i + 1}. ${im.title}\n   url: ${im.url}` +
+      (im.license ? `\n   license: ${im.license}${im.artist ? ` \u2014 ${im.artist}` : ''}` : '') +
+      (im.source ? `\n   source: ${im.source}` : '')
+    ).join('\n');
+    return `Found ${imgs.length} real image(s) for "${query}" on Wikimedia Commons:\n\n${list}\n\n`
+      + 'TO DISPLAY THE BEST MATCH to the user, reply with an HTML artifact (an html code block) containing exactly this \u2014 the URL is real and already verified, do not change it:\n\n'
+      + snippet
+      + '\n\nAlways use one of the URLs above verbatim; never invent a different image URL.';
+  } catch (e) {
+    return `Image lookup failed: ${e.message}. Tell the user you could not fetch an image to show; do not invent an image URL.`;
+  }
+}
+
 async function runDeepResearch({ topic }) {
   if (!topic) return 'No topic provided.';
 
@@ -434,6 +487,7 @@ function describeToolStatus(name, args = {}) {
     case 'calculate':        return a.expression ? `🔢 Calculating ${clip(a.expression, 40)}` : '🔢 Calculating…';
     case 'get_datetime':     return '🕐 Checking the date & time';
     case 'run_command':      return a.command ? `⚡ Running: ${clip(a.command, 50)}` : '⚡ Running a command…';
+    case 'find_image':       return a.query ? `🖼️ Finding an image of “${clip(a.query, 40)}”` : '🖼️ Finding an image…';
     case 'download_file':    return a.url ? `⬇️ Downloading ${host(a.url)}` : '⬇️ Downloading a file…';
     case 'computer_screenshot': return '📸 Taking a screenshot';
     case 'computer_click':   return (a.x != null && a.y != null) ? `🖱️ Clicking (${Math.round(a.x)}, ${Math.round(a.y)})` : '🖱️ Clicking…';
@@ -500,6 +554,21 @@ const TOOLS = {
       },
     },
     run: runFetchUrl,
+  },
+  find_image: {
+    definition: {
+      type: 'function',
+      function: {
+        name: 'find_image',
+        description: 'Find a REAL, displayable image for a query - a photo, scan, artwork, manuscript page, diagram, map, landmark, animal, etc. Use this whenever the user asks to see, show, or display a picture, or asks "what does X look like". Returns real, verified image URLs (from Wikimedia) that you put inside an HTML artifact to actually show the image. NEVER invent image URLs - always get them from this tool.',
+        parameters: {
+          type: 'object',
+          properties: { query: { type: 'string', description: 'What to find an image of, e.g. "Voynich manuscript folio 1r" or "Eiffel Tower at night"' } },
+          required: ['query'],
+        },
+      },
+    },
+    run: runFindImage,
   },
   run_command: {
     definition: {
