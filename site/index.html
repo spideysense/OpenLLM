@@ -170,39 +170,72 @@ footer{border-top:1px solid var(--brd);padding:2rem 0}
 <h1>Own your<br><em>intelligence.</em></h1>
 <p class="sb">Private AI that runs on your machine. No subscriptions. No cloud. No one reading your conversations. No terminal, no configuration. Just download, open, and ask.</p>
 <style>
-.try-card{max-width:560px;margin:0 auto 2rem;background:var(--wh);border:1px solid var(--brd);border-radius:20px;padding:1rem;box-shadow:0 10px 40px rgba(0,0,0,.05);position:relative;z-index:2;text-align:left}
-.try-msgs{display:none;max-height:320px;overflow-y:auto;padding:.2rem .2rem .6rem;flex-direction:column;gap:.6rem}
-.try-msgs.show{display:flex}
-.try-msg{font-size:.94rem;line-height:1.6;padding:.65rem .9rem;border-radius:14px;max-width:90%;white-space:pre-wrap;word-wrap:break-word}
-.try-msg.user{align-self:flex-end;background:var(--bk);color:var(--bg)}
-.try-msg.bot{align-self:flex-start;background:var(--gd3);color:var(--bk)}
-.try-msg.typing{color:var(--t3)}
-.try-leaf{width:22px;height:22px;display:block;animation:leafspin 1.2s ease-in-out infinite;transform-origin:50% 60%}
-@keyframes leafspin{0%{transform:rotate(-12deg) scale(.92);opacity:.55}50%{transform:rotate(12deg) scale(1);opacity:1}100%{transform:rotate(-12deg) scale(.92);opacity:.55}}
-.try-input-row{display:flex;gap:.5rem;align-items:center}
-.try-input{flex:1;border:1.5px solid var(--brd);border-radius:14px;padding:.85rem 1rem;font-family:var(--san);font-size:1rem;outline:none;background:var(--bg);color:var(--bk)}
-.try-input:focus{border-color:var(--gd)}
-.try-send{width:46px;height:46px;border:none;border-radius:13px;background:var(--gd);color:#fff;font-size:1.3rem;cursor:pointer;flex-shrink:0;transition:background .2s;line-height:1}
-.try-send:hover{background:var(--gd2)}.try-send:disabled{opacity:.5;cursor:default}
-.try-chips{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.7rem}
-.try-chip{font-size:.8rem;color:var(--t2);background:transparent;border:1px solid var(--brd);border-radius:20px;padding:.4rem .8rem;cursor:pointer;font-family:var(--san);transition:all .2s}
-.try-chip:hover{border-color:var(--gd);color:var(--gd)}
-.try-meta{font-size:.72rem;color:var(--t4);margin-top:.7rem;text-align:center}
-.try-meta a{color:var(--gd);font-weight:600;text-decoration:none}
+.show-wrap{max-width:560px;margin:0 auto 2rem;position:relative;z-index:2}
+.show-tabs{display:flex;gap:.4rem;justify-content:center;flex-wrap:wrap;margin-bottom:.9rem}
+.show-tab{font-size:.78rem;color:var(--t2);background:transparent;border:1px solid var(--brd);border-radius:20px;padding:.34rem .8rem;cursor:pointer;font-family:var(--san);transition:all .25s;line-height:1}
+.show-tab:hover{border-color:var(--gd);color:var(--gd)}
+.show-tab.on{border-color:var(--gd);color:#fff;background:var(--gd)}
+.show-card{background:var(--wh);border:1px solid var(--brd);border-radius:20px;box-shadow:0 10px 40px rgba(0,0,0,.05);text-align:left;overflow:hidden;position:relative;min-height:196px}
+.show-slide{position:absolute;inset:0;padding:1.15rem 1.15rem 1.35rem;display:flex;flex-direction:column;gap:.55rem;opacity:0;transform:translateY(10px);transition:opacity .55s ease,transform .55s ease;pointer-events:none}
+.show-slide.on{opacity:1;transform:none;pointer-events:auto;position:relative}
+.show-cat{position:absolute;top:.7rem;right:.95rem;font-size:.64rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--gd);opacity:.8}
+.sm{font-size:.93rem;line-height:1.55;padding:.6rem .85rem;border-radius:15px;max-width:92%}
+.sm.user{align-self:flex-end;background:var(--bk);color:var(--bg)}
+.sm.bot{align-self:flex-start;background:var(--gd3);color:var(--bk)}
+.show-code{align-self:flex-start;background:#1d1d1f;color:#f3f3ee;border-radius:13px;padding:.75rem .9rem;font-size:.8rem;line-height:1.55;max-width:96%;overflow:auto;white-space:pre;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.show-img{align-self:flex-start;border-radius:12px;width:210px;max-width:64%;display:block;box-shadow:0 4px 16px rgba(0,0,0,.12)}
+.show-wave{display:inline-flex;align-items:center;gap:3px;height:20px;vertical-align:middle}
+.show-wave i{width:3px;height:6px;background:var(--bg);border-radius:2px;animation:showwv 1s ease-in-out infinite}
+@keyframes showwv{0%,100%{height:5px}50%{height:18px}}
+.show-src{font-size:.72rem;color:var(--t3);align-self:flex-start;margin-top:-.1rem}
+.show-dots{display:flex;gap:.4rem;justify-content:center;margin-top:.9rem}
+.show-dot{width:7px;height:7px;border-radius:50%;background:var(--brd);border:none;padding:0;cursor:pointer;transition:all .25s;background:rgba(0,0,0,.12)}
+.show-dot.on{background:var(--gd);transform:scale(1.25)}
+@media(prefers-reduced-motion:reduce){.show-slide{transition:none}.show-wave i{animation:none;height:11px}}
 </style>
-<div class="try-card" id="try-aspen">
-  <div class="try-msgs" id="try-msgs"></div>
-  <div class="try-input-row">
-    <input class="try-input" id="try-input" placeholder="Ask Aspen anything…" autocomplete="off" aria-label="Ask Aspen">
-    <button class="try-send" id="try-send" aria-label="Send">&rarr;</button>
-  </div>
-  <div class="try-chips" id="try-chips">
-    <button class="try-chip">Write a haiku about privacy</button>
-    <button class="try-chip">How does local AI keep my data private?</button>
-    <button class="try-chip">Draft a cold email to a recruiter</button>
-  </div>
-  <div class="try-meta" id="try-meta">Try it right here &middot; free &middot; runs on a real Aspen machine &middot; no account</div>
+<div class="show-wrap" id="showcase">
+  <div class="show-tabs" id="show-tabs"></div>
+  <div class="show-card" id="show-card"></div>
+  <div class="show-dots" id="show-dots"></div>
 </div>
+<script>
+(function(){
+  var IMG='<svg class="show-img" viewBox="0 0 210 128" width="210" height="128" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Eiffel Tower at sunset">'
+    +'<defs><linearGradient id="scsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fcd9a8"/><stop offset="1" stop-color="#f3a679"/></linearGradient></defs>'
+    +'<rect width="210" height="128" fill="url(#scsky)"/><circle cx="150" cy="46" r="19" fill="#fff4e2" opacity=".95"/>'
+    +'<g fill="#7a5230" opacity=".92"><path d="M96 30 l8 0 l9 78 l-26 0 z"/><path d="M88 108 l34 0 l5 12 l-44 0 z"/></g>'
+    +'<path d="M101 30 q4 26 20 50 M109 30 q-4 26 -20 50" stroke="#7a5230" stroke-width="2" fill="none" opacity=".7"/>'
+    +'<rect y="118" width="210" height="10" fill="#6b4a22"/></svg>';
+  var LEAF='<svg width="22" height="22" viewBox="0 0 24 24" style="vertical-align:-5px;margin-right:2px" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6 2 2 6.5 2 12.5 2 18 6 22 12 22c0-5-1-8-1-8s3 1 3.2 5C18 18 22 13 22 7c0-3.5-4-5-10-5Z" fill="#3a7d3a"/></svg>';
+  var BARS=''; for(var b=0;b<8;b++){BARS+='<i style="animation-delay:'+(b*0.09).toFixed(2)+'s"></i>';}
+
+  var S=[
+    {t:'Chat',html:'<div class="sm user">Explain entropy like I\'m five.</div><div class="sm bot">Imagine your bedroom. It takes effort to keep tidy, but it gets messy on its own. Entropy is just nature\u2019s love of mess \u2014 energy spreading out into the most jumbled, likely state.</div>'},
+    {t:'Code',html:'<div class="sm user">Write a tip calculator.</div><pre class="show-code">function tip(bill, pct = 18) {\n  return (bill * pct / 100).toFixed(2);\n}\ntip(54.00);  // \u2192 "9.72"</pre>'},
+    {t:'Image',html:'<div class="sm user">Show me a photo of the Eiffel Tower.</div>'+IMG+'<div class="show-src">\u21B3 fetched live and rendered right in chat</div>'},
+    {t:'Voice',html:'<div class="sm user"><span class="show-wave">'+BARS+'</span>  \u201cA good 5-minute morning stretch?\u201d</div><div class="sm bot">Neck rolls, shoulder circles, a standing forward fold, a gentle spinal twist each side, then a calf stretch \u2014 hold each about 30 seconds.</div>'},
+    {t:'Vision',html:'<div class="sm user">'+LEAF+'What plant is this?</div><div class="sm bot">A Monstera deliciosa \u2014 the split leaves give it away. Bright indirect light, water when the top inch of soil is dry.</div>'},
+    {t:'Web search',html:'<div class="sm user">What\'s the weather in Tokyo right now?</div><div class="sm bot">About 24\u00B0C and clear in Tokyo this evening, with light winds.</div><div class="show-src">\u21B3 searched the live web \u00B7 source: weather.com</div>'},
+  ];
+
+  var card=document.getElementById('show-card'), tabs=document.getElementById('show-tabs'), dots=document.getElementById('show-dots');
+  if(!card) return;
+  var i=0, timer=null, REDUCE=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  S.forEach(function(s,idx){
+    var el=document.createElement('div'); el.className='show-slide'; el.innerHTML='<span class="show-cat">'+s.t+'</span>'+s.html; card.appendChild(el); s.el=el;
+    var tb=document.createElement('button'); tb.className='show-tab'; tb.type='button'; tb.textContent=s.t; tb.setAttribute('aria-label','Show '+s.t+' example'); tb.onclick=function(){go(idx,true);}; tabs.appendChild(tb); s.tab=tb;
+    var d=document.createElement('button'); d.className='show-dot'; d.type='button'; d.setAttribute('aria-label',s.t); d.onclick=function(){go(idx,true);}; dots.appendChild(d); s.dot=d;
+  });
+  function go(n,manual){ S[i].el.classList.remove('on'); S[i].tab.classList.remove('on'); S[i].dot.classList.remove('on'); i=n; S[i].el.classList.add('on'); S[i].tab.classList.add('on'); S[i].dot.classList.add('on'); if(manual) restart(); }
+  function next(){ go((i+1)%S.length); }
+  function restart(){ if(timer) clearInterval(timer); if(!REDUCE) timer=setInterval(next,3900); }
+  S[0].el.classList.add('on'); S[0].tab.classList.add('on'); S[0].dot.classList.add('on'); restart();
+  var wrap=document.getElementById('showcase');
+  wrap.addEventListener('mouseenter',function(){ if(timer) clearInterval(timer); });
+  wrap.addEventListener('mouseleave',restart);
+})();
+</script>
+
 <div class="hero-btns">
 <a href="https://github.com/spideysense/OpenLLM/releases/latest/download/Aspen-mac.dmg" class="nb nb-g nb-l" id="download-primary">Download Free for Mac</a>
 <a href="#device" class="nb nb-o nb-l">See the Aspen device</a>
