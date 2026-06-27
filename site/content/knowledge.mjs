@@ -13,7 +13,7 @@ export const site = {
   appStore: 'https://apps.apple.com/app/id6775307566',
   github: 'https://github.com/spideysense/OpenLLM',
   appPath: '/app',
-  updated: '2026-06-25',
+  updated: '2026-06-26',
 };
 
 // FAQ groups. Answers are plain prose (best for AEO + FAQPage JSON-LD).

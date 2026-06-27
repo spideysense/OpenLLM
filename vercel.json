@@ -129,6 +129,11 @@
       "source": "/download/win",
       "destination": "https://github.com/spideysense/OpenLLM/releases/latest/download/Aspen-win.exe",
       "permanent": false
+    },
+    {
+      "source": "/blog/local-ai-vs-chatgpt-honest-comparison-from-someone-who-uses-.html",
+      "destination": "/blog/local-ai-vs-chatgpt-honest-comparison.html",
+      "permanent": true
     }
   ]
 }

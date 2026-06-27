@@ -10,7 +10,7 @@
 // Edit knowledge.mjs, run this, commit. Generated regions are marked and should
 // not be hand-edited.
 // ─────────────────────────────────────────────────────────────────────────────
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { site, faqGroups, docs } from './content/knowledge.mjs';
@@ -255,11 +255,25 @@ function sitemap() {
     { loc: URL + '/blog/', changefreq: 'weekly', priority: '0.7' },
     { loc: URL + '/privacy', changefreq: 'yearly', priority: '0.4' },
   ];
+  // Enumerate every blog post so each article is in the sitemap, dated from its
+  // own article:published_time. New posts are picked up automatically.
+  try {
+    const dir = join(SITE_DIR, 'blog');
+    for (const f of readdirSync(dir).sort()) {
+      if (!f.endsWith('.html') || f === 'index.html') continue;
+      let lastmod = site.updated;
+      try {
+        const m = readFileSync(join(dir, f), 'utf8').match(/article:published_time"\s+content="(\d{4}-\d{2}-\d{2})/);
+        if (m) lastmod = m[1];
+      } catch { /* ignore */ }
+      urls.push({ loc: `${URL}/blog/${f}`, changefreq: 'monthly', priority: '0.6', lastmod });
+    }
+  } catch { /* no blog dir */ }
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${urls.map((u) => `  <url>
     <loc>${u.loc}</loc>
-    <lastmod>${site.updated}</lastmod>
+    <lastmod>${u.lastmod || site.updated}</lastmod>
     <changefreq>${u.changefreq}</changefreq>
     <priority>${u.priority}</priority>
   </url>`).join('\n')}
