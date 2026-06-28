@@ -123,6 +123,7 @@ ${d.blocks.map(blockHtml).join('\n')}
 <meta name="twitter:description" content="Install, choose a model, and connect the API. Private AI on your own machine.">
 <meta name="theme-color" content="#FAFAF7">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="stylesheet" href="/leaf.css">
 <link rel="sitemap" type="application/xml" href="/sitemap.xml">
 <script type="application/ld+json">${breadcrumb}</script>
 <script type="application/ld+json">${article}</script>
@@ -168,7 +169,7 @@ footer{border-top:1px solid var(--brd);padding:2rem 1.5rem;text-align:center;col
 </head>
 <body>
 <header><div class="hw">
-<a class="brand" href="/">${esc(site.name)}<span class="b">DOCS</span></a>
+<a class="brand" href="/"><img src="/leaf.svg" class="leaf" alt=""> ${esc(site.name)}<span class="b">DOCS</span></a>
 <nav class="hn"><a href="/">Home</a><a href="/#faq">FAQ</a><a href="${site.appPath}">Try Free</a><a href="${site.github}">GitHub</a></nav>
 </div></header>
 <div class="wrap">

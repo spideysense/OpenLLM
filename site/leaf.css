@@ -1,0 +1,12 @@
+/* Aspen brand leaf — one mark, used site-wide.
+   Static by default. Gentle sway on hover of a logo/link. Continuous sway only
+   for the loading ("thinking") indicator. Honors prefers-reduced-motion. */
+.leaf{height:1.05em;width:auto;display:inline-block;vertical-align:-0.15em;transform-origin:50% 85%}
+.leaf--white{filter:brightness(0) invert(1)}
+a:hover > .leaf, a:hover .leaf, .leaf-hover:hover .leaf{animation:leaf-sway 1.5s ease-in-out infinite}
+.leaf-loading{animation:leaf-sway 1.2s ease-in-out infinite}
+/* homepage nav logo is an inline gold SVG; sway it on hover too */
+.nl svg{transform-origin:50% 80%}
+.nl:hover svg{animation:leaf-sway 1.5s ease-in-out infinite}
+@keyframes leaf-sway{0%,100%{transform:rotate(-10deg) scale(.95);opacity:.85}50%{transform:rotate(10deg) scale(1);opacity:1}}
+@media (prefers-reduced-motion:reduce){.leaf,.leaf-loading,.nl svg{animation:none!important}}

@@ -34,11 +34,12 @@ a.btn:hover{transform:translateY(-2px)}
 .loading{padding:48px;text-align:center;color:var(--text-light);font-size:16px}
 .error{color:#E74C3C;margin-top:16px;font-size:14px}
 </style>
+<link rel="stylesheet" href="/leaf.css">
 </head>
 <body>
 <div class="card" id="content">
   <div class="loading" id="loading">
-    <div class="aspen-icon">🌿</div>
+    <div class="aspen-icon"><img src="/leaf.svg" class="leaf" alt=""></div>
     <p>Setting up your account...</p>
   </div>
 </div>
@@ -53,7 +54,7 @@ async function load(){
 
   if(!sessionId){
     document.getElementById('content').innerHTML=`
-      <div class="aspen-icon">🌿</div>
+      <div class="aspen-icon"><img src="/leaf.svg" class="leaf" alt=""></div>
       <h1>Oops!</h1>
       <p class="sub">No checkout session found. <a href="/#pricing">Go back to pricing</a>.</p>
     `;
@@ -72,7 +73,7 @@ async function load(){
 
   if(!data){
     document.getElementById('content').innerHTML=`
-      <div class="aspen-icon">🌿</div>
+      <div class="aspen-icon"><img src="/leaf.svg" class="leaf" alt=""></div>
       <h1>Almost there!</h1>
       <p class="sub">Your account is being set up. Please refresh in a few seconds.</p>
       <a class="btn" href="" onclick="location.reload();return false">Refresh</a>
@@ -84,7 +85,7 @@ async function load(){
   const baseUrl=data.api_base_url||'https://api.runonaspen.com/v1';
 
   document.getElementById('content').innerHTML=`
-    <div class="aspen-icon">🌿</div>
+    <div class="aspen-icon"><img src="/leaf.svg" class="leaf" alt=""></div>
     <h1>Welcome to Aspen!</h1>
     <div class="plan-badge">${data.plan_name} — Active</div>
     <p class="sub">You're all set. Here's your API key and everything you need to start using AI in the cloud.</p>

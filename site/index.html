@@ -140,10 +140,11 @@ footer{border-top:1px solid var(--brd);padding:2rem 0}
 
 @media(max-width:768px){.priv-pts{grid-template-columns:1fr}.nr a:not(.nb){display:none}.exp-item{grid-template-columns:1fr;gap:.5rem}.api-grid{grid-template-columns:1fr}.sw-sd{display:none}.hero-btns,.cta-btns{flex-direction:column;align-items:center}.hero{padding-top:8rem}}
 </style>
+<link rel="stylesheet" href="/leaf.css">
 </head>
 <body>
 <div id="beta-banner" style="position:fixed;top:0;left:0;right:0;background:linear-gradient(90deg,#b8860b,#daa520);color:#fff;padding:8px 16px;font-size:13px;text-align:center;z-index:101;display:flex;align-items:center;justify-content:center;gap:10px">
-<span>🌿 <strong>Aspen is in Beta.</strong> We're actively improving it and would love your feedback — <a href="#" onclick="document.getElementById('feedback-modal').style.display='flex';return false" style="color:#fff;text-decoration:underline">share your thoughts</a>.</span>
+<span><img src="/leaf.svg" class="leaf leaf--white" alt=""> <strong>Aspen is in Beta.</strong> We're actively improving it and would love your feedback — <a href="#" onclick="document.getElementById('feedback-modal').style.display='flex';return false" style="color:#fff;text-decoration:underline">share your thoughts</a>.</span>
 <button onclick="document.getElementById('beta-banner').style.display='none';document.querySelector('nav').style.top='0'" style="background:rgba(255,255,255,.25);border:none;color:#fff;width:20px;height:20px;border-radius:50%;cursor:pointer;font-size:13px;line-height:1;flex-shrink:0" aria-label="Dismiss">×</button>
 </div>
 
@@ -691,7 +692,7 @@ function submitContact(e){
     if (!recent.length) { list.innerHTML = '<div style="padding:1.5rem;text-align:center;color:#AEAEB2;font-size:.85rem">No shares yet — be the first!</div>'; return; }
     list.innerHTML = recent.map(function(e) {
       return '<div style="display:flex;align-items:center;justify-content:space-between;padding:.65rem 1.25rem;border-bottom:1px solid rgba(0,0,0,.04);font-size:.85rem">'
-        + '<span style="color:#6E6E73">🌿 Saved <strong style="color:#1D1D1F">$' + e.saved.toFixed(2) + '</strong> across ' + e.exchanges.toLocaleString() + ' exchanges</span>'
+        + '<span style="color:#6E6E73"><img src="/leaf.svg" class="leaf" alt=""> Saved <strong style="color:#1D1D1F">$' + e.saved.toFixed(2) + '</strong> across ' + e.exchanges.toLocaleString() + ' exchanges</span>'
         + '<span style="font-size:.72rem;color:#AEAEB2">' + timeAgo(e.ts) + '</span>'
         + '</div>';
     }).join('');
@@ -885,7 +886,7 @@ draw()})();
     busy=true; sendBtn.disabled=true; input.value=''; chips.style.display='none';
     addMsg('user',text); history.push({role:'user',content:text});
     if(!(await ensureToken())){ busy=false; sendBtn.disabled=false; return; }
-    const bot=addMsg('bot',''); bot.classList.add('typing'); bot.innerHTML='<img src="/aspen-leaf.png" class="try-leaf" alt="">';
+    const bot=addMsg('bot',''); bot.classList.add('typing'); bot.innerHTML='<img src="/leaf.svg" class="leaf leaf-loading" alt="">';
     let full='';
     try{
       const res=await fetch('/api/trial',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'chat',token,messages:history.slice(-20)})});
