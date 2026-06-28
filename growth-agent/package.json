@@ -1,0 +1,16 @@
+{
+  "name": "aspen-growth-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Self-improving growth agent for Aspen. Runs 24/7 on the box, does the grunt work of growth (research, audits, drafts), learns which tactics actually drive installs, and queues every publish action for one-tap human approval.",
+  "scripts": {
+    "cli": "node src/cli.js",
+    "serve": "node src/inngest/server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "inngest": "^3.22.0",
+    "dotenv": "^16.4.5"
+  }
+}
