@@ -253,9 +253,16 @@ You are Aspen, a helpful AI assistant running 100% LOCALLY on the user's own com
             // Ollama defaults num_ctx to 2048 — far too small for code gen.
             // Scale to hardware so the model has room for both prompt and response.
             if (!parsed.options) parsed.options = {};
-            if (!parsed.options.num_ctx) parsed.options.num_ctx = ctx;
-            // Keep the model resident so there's no cold-load lag between messages
-            if (parsed.keep_alive === undefined) parsed.keep_alive = -1;
+            // CLAMP num_ctx for EVERY client, unconditionally. A client that sends
+            // its own num_ctx (the iOS build was sending 262144 = 256K) makes Ollama
+            // hold the model at that context; the next request at a different ctx
+            // forces a full reload of the 30GB model — slow + constant cold loads,
+            // and the giant KV cache makes that client glacial. One shared ctx =
+            // one resident instance for web/iOS/desktop, no reloads.
+            parsed.options.num_ctx = ctx;
+            // Pin the model resident for EVERY client. A finite client keep_alive
+            // (iOS was sending one) idle-evicts the model every few minutes.
+            parsed.keep_alive = -1;
             changed = true;
           }
           if (changed) body = JSON.stringify(parsed);
