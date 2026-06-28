@@ -531,6 +531,29 @@ function tryListen(port) {
         warmReq.end();
       } catch {}
     }, 2000);
+
+    // ── Keep the active model hot ────────────────────────────────────────────
+    // keep_alive:-1 should keep the model resident, but memory pressure from
+    // other apps, an Ollama restart, or a 3rd model briefly loading (vision /
+    // coder / extraction) can still evict it. A cheap preload every 45s repairs
+    // any eviction in the BACKGROUND, so the user's next message never pays the
+    // cold-load. This is the fix for the recurring "Loading <model> into
+    // memory…" message. /api/generate with no prompt loads+pins without
+    // generating; num_ctx matches every other path so it never triggers a reload.
+    if (!global.__aspenKeepWarm) {
+      global.__aspenKeepWarm = setInterval(() => {
+        try {
+          const model = require('./store').get('activeModel');
+          if (!model) return;
+          const b = JSON.stringify({ model, keep_alive: -1, options: { num_ctx: system.getRecommendedContext() } });
+          const rq = http.request({ hostname: '127.0.0.1', port: 11434, path: '/api/generate', method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(b) } },
+            (r) => { r.on('data', () => {}); r.on('end', () => {}); });
+          rq.on('error', () => {});
+          rq.write(b); rq.end();
+        } catch {}
+      }, 45000);
+    }
   });
 
   server.on('error', (err) => {

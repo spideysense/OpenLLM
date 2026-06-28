@@ -327,7 +327,7 @@ async function ensureRunning(onProgress) {
           // Allow the chat model AND a small extraction model to stay resident
           // together — otherwise loading one evicts the other, and every message
           // pays a full cold-load. Plenty of headroom on this class of machine.
-          OLLAMA_MAX_LOADED_MODELS: '2',
+          OLLAMA_MAX_LOADED_MODELS: '3',
         },
       });
       ollamaProcess.unref();
@@ -399,7 +399,7 @@ async function ensureCurrent(onProgress, { force = false } = {}) {
 
     ollamaProcess = spawn(newPath, ['serve'], {
       detached: true, stdio: 'ignore',
-      env: { ...process.env, OLLAMA_HOST: '127.0.0.1:11434', OLLAMA_MODELS: path.join(MONET_DIR, 'models'), OLLAMA_CONTEXT_LENGTH: String(system.getRecommendedContext()), OLLAMA_NUM_PARALLEL: '2' },
+      env: { ...process.env, OLLAMA_HOST: '127.0.0.1:11434', OLLAMA_MODELS: path.join(MONET_DIR, 'models'), OLLAMA_CONTEXT_LENGTH: String(system.getRecommendedContext()), OLLAMA_NUM_PARALLEL: '2', OLLAMA_MAX_LOADED_MODELS: '3' },
     });
     ollamaProcess.unref();
 
