@@ -7,6 +7,8 @@ human approval. Inference runs on the box, so the loop is free.
 
 Goal it optimizes toward: **net new downloads/day (App Store + web)**.
 
+It also **maintains Aspen itself** — health checks (incl. the "Loading qwen" regression guard), and a weekly digest of upstream commits/models worth pulling. Like growth, ops is diagnose-and-draft: it files proposals; a human merges code and cuts releases. It never auto-modifies the running box.
+
 ## Why it's built this way (read this first)
 
 - **The iOS app is a companion to the Mac app.** Downloads that stick come from
@@ -40,6 +42,8 @@ collect (App Store, Reddit, HN, GitHub, GSC)   → data/metrics
 | `aso` | weekly | read live listing + reviews; propose title/subtitle/keywords/screenshots → queue |
 | `strategy` | weekly | the brain: diagnose vs goal, pick the week's 3 highest-leverage actions, weighted by what's worked |
 | `outcome` | on event | you report downloads from a shipped action → the playbook updates |
+| `health` | hourly | Aspen treats itself: checks the box. Specifically re-checks the **"Loading qwen into memory"** regression (active model resident AND pinned via keep_alive:-1), gateway up + latency. Files a proposal on any regression. |
+| `upgrades` | weekly | scans last week's upstream commits + model freshness; drafts a "pull & test" maintenance digest. Never auto-applies. |
 
 ## Run it
 
@@ -52,6 +56,8 @@ node src/cli.js pulse
 node src/cli.js radar
 node src/cli.js aso
 node src/cli.js strategy
+node src/cli.js health             # self-diagnostics (the qwen-loading regression guard)
+node src/cli.js upgrades           # maintenance digest: new commits + models to pull/test
 node src/cli.js queue              # show pending proposals
 node src/cli.js rank               # show tactic scores (what's working)
 node src/cli.js outcome reddit_localllama 40   # teach it: that reply drove 40 dls

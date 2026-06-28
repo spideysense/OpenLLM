@@ -17,6 +17,13 @@ export const cfg = {
   slackWebhook: process.env.SLACK_WEBHOOK_URL || '',
   gsc: { credsPath: process.env.GSC_CREDENTIALS_JSON || '', site: process.env.GSC_SITE_URL || '' },
   allowAutopublish: String(process.env.ALLOW_AUTOPUBLISH || 'false') === 'true',
+  ops: {
+    ollamaUrl: process.env.OLLAMA_URL || 'http://127.0.0.1:11434',
+    gatewayUrl: process.env.GATEWAY_URL || 'http://localhost:4000',
+    activeModel: process.env.ASPEN_ACTIVE_MODEL || '', // e.g. qwen3.6:35b-a3b; empty => infer from /api/ps
+    // models you want kept current on the box; flagged if missing/outdated
+    recommendedModels: (process.env.RECOMMENDED_MODELS || 'qwen3.6:35b-a3b').split(',').map((m) => m.trim()).filter(Boolean),
+  },
 };
 
 // The single source of truth about the product. Keep this honest.
