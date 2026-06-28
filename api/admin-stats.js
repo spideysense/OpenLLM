@@ -109,11 +109,14 @@ export default async function handler(req, res) {
       for (const rel of releases) {
         let live = 0;
         for (const a of rel.assets || []) {
-          // Count every real download. Exclude ONLY the two files the installed
-          // app fetches by itself on an update-check timer (.yml manifest and
-          // .blockmap diff) — those tick up with no human downloading anything.
+          // Count ONLY real installers a human downloads — .dmg/.exe (Mac/Windows)
+          // and .AppImage/.deb (Linux). Everything else (.yml/.yaml/.blockmap/.zip)
+          // is auto-update machinery the installed app fetches on a timer, which
+          // would inflate "downloads" with update-check traffic.
           const name = (a.name || '').toLowerCase();
-          if (name.endsWith('.yml') || name.endsWith('.yaml') || name.endsWith('.blockmap')) continue;
+          const isInstaller = name.endsWith('.dmg') || name.endsWith('.exe') ||
+            name.endsWith('.appimage') || name.endsWith('.deb');
+          if (!isInstaller) continue;
           live += a.download_count || 0;
         }
         const tag = rel.tag_name;

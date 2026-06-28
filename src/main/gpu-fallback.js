@@ -18,9 +18,21 @@
 
 // Durable signatures of a GPU runtime crash (vs an ordinary app-level error).
 // Matched case-insensitively against the Ollama error body / thrown message.
+// Out-of-memory is a SIZING problem ("this model is too big for VRAM"), not a
+// broken GPU. It must never flip the permanent CPU flag, or one oversized model
+// poisons every smaller model after it. Detected separately so the caller can
+// fall back to CPU for THIS call only.
+function isGpuOom(text) {
+  const t = String((text && text.message) || text || '').toLowerCase();
+  if (!t) return false;
+  return t.includes('out of memory') &&
+    (t.includes('cuda') || t.includes('cublas') || t.includes('gpu') || t.includes('vram') || t.includes('ggml'));
+}
+
 function isGpuRuntimeFailure(text) {
   const t = String((text && text.message) || text || '').toLowerCase();
   if (!t) return false;
+  if (isGpuOom(t)) return false;                      // OOM = sizing, not a dead GPU
   return (
     t.includes('cuda error') ||
     t.includes('device kernel image is invalid') ||
@@ -29,8 +41,7 @@ function isGpuRuntimeFailure(text) {
     t.includes('llama-server process has terminated') ||
     t.includes('ggml_cuda') ||
     t.includes('cublas') ||
-    t.includes('cudnn') ||
-    (t.includes('cuda') && t.includes('out of memory'))
+    t.includes('cudnn')
   );
 }
 
@@ -62,6 +73,12 @@ async function withGpuFallback(attempt) {
   try {
     return await attempt(gpuOptions());
   } catch (e) {
+    // OOM: model too big for VRAM. Run THIS call on CPU, but do NOT demote the
+    // session — a smaller model should still get a clean GPU attempt next.
+    if (!FORCE_CPU && isGpuOom(e)) {
+      return await attempt({ num_gpu: 0 });
+    }
+    // Hard GPU runtime crash (dead kernels): demote the whole session to CPU.
     if (!FORCE_CPU && isGpuRuntimeFailure(e)) {
       setForceCpu(true);
       return await attempt({ num_gpu: 0 }); // single CPU retry
@@ -72,6 +89,7 @@ async function withGpuFallback(attempt) {
 
 module.exports = {
   isGpuRuntimeFailure,
+  isGpuOom,
   forceCpu,
   setForceCpu,
   resetForceCpu,

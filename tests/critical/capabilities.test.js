@@ -103,7 +103,7 @@ describe('capability gating is wired into both agent paths', () => {
   it('gateway agent forces the fast path for chat-tier and filters tool defs', () => {
     expect(gw).toMatch(/getProfile\(model\)/);
     expect(gw).toMatch(/chatTier/);
-    expect(gw).toMatch(/getToolDefs\(isOwner, allowedTools\)/);
+    expect(gw).toMatch(/getToolDefs\(isOwner, allowedTools/); // 3rd arg (allowComputerUse) added for computer-use gating
   });
   it('profile is exposed via IPC + preload', () => {
     expect(index).toMatch(/'model:getProfile'/);

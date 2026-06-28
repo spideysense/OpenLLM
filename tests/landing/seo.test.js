@@ -329,7 +329,7 @@ describe('Performance: Page structure', () => {
 
   it('should have minimal JavaScript at the end', () => {
     const scriptTags = html.match(/<script(?! type="application\/ld)/g) || [];
-    expect(scriptTags.length).toBeLessThanOrEqual(3); // scroll observer, savings widget, visit counter
+    expect(scriptTags.length).toBeLessThanOrEqual(8); // setup, hero showcase, contact form, attribution+visit, savings widget, trial chat, preorder
   });
 
   it('should be a reasonable file size (under 50KB)', () => {

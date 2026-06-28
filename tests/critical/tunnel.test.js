@@ -50,9 +50,9 @@ describe('Web app tunnel connectivity', () => {
     expect(src).toContain('offline');
   });
 
-  it('web app polls tunnel status every 15 seconds', () => {
+  it('web app polls tunnel status every 60 seconds (throttled to cut box contention)', () => {
     const src = fs.readFileSync('site/app/index.html', 'utf8');
-    expect(src).toContain('15000');
+    expect(src).toContain('60000');
     expect(src).toContain('checkStatus');
   });
 

@@ -131,7 +131,7 @@ export const faqGroups = [
       { q: 'What tools and SDKs work with Aspen?',
         a: 'Anything that speaks the OpenAI API: the official OpenAI and Anthropic (Claude) SDKs, LangChain, Cursor, Continue.dev, n8n, Zapier, and similar tools. You just swap the base_url and api_key.' },
       { q: 'Can I reach my local AI from another machine or my phone?',
-        a: 'Yes. Aspen can expose a private HTTPS URL (a secure tunnel) so your own apps and your phone can reach the AI on your computer from anywhere, while the model and data stay on your machine.' },
+        a: 'Yes. Aspen can expose a private, secure HTTPS URL so your own apps and your phone can reach the AI on your computer from anywhere, while the model and data stay on your machine.' },
       { q: 'What API key types does Aspen have?',
         a: 'Three. An Owner key has full access including computer use and shared memory — only for devices that are you. A Family/member key gets its own private memory plus safe tools, with no computer use. An Anonymous guest key allows chat and safe tools only, is ephemeral, and is safe to share widely.' },
     ],
@@ -266,7 +266,7 @@ export const docs = [
       ['h', 'Endpoints'],
       ['ul', [
         'Same machine: http://localhost:4000/v1',
-        'From anywhere: a private HTTPS tunnel URL Aspen can generate for you, so your phone and other apps reach your machine securely.',
+        'From anywhere: a private, secure HTTPS URL Aspen can generate for you, so your phone and other apps reach your machine securely.',
       ]],
       ['h', 'Python (OpenAI SDK)'],
       ['code', 'python', 'from openai import OpenAI\n\nclient = OpenAI(\n    base_url="http://localhost:4000/v1",\n    api_key="YOUR-ASPEN-KEY",\n)\n\nresp = client.chat.completions.create(\n    model="local",   # the model name shown in the Aspen app\n    messages=[{"role": "user", "content": "Hello from my own machine"}],\n)\nprint(resp.choices[0].message.content)'],
