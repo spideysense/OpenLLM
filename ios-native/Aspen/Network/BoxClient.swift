@@ -38,10 +38,52 @@ final class BoxClient {
     }
 
     /// Stream a chat turn from the box. Callbacks fire as SSE arrives.
+    /// Retries once on a fresh connection if the first attempt dies on a stale
+    /// pooled socket (URLSession reuses keep-alive connections; right after the
+    /// box/tunnel restarts, the reused socket is dead and the first request fails
+    /// with -1005 "network connection was lost"). The retry is guarded so it only
+    /// fires before any token streamed — no duplicated output mid-stream.
     static func chat(
         config: Config,
         model: String,
         messages: [ChatTurn],
+        onStatus: @escaping (String) -> Void,
+        onModel: @escaping (String) -> Void,
+        onToken: @escaping (String) -> Void
+    ) async throws {
+        var tokenSeen = false
+        let token: (String) -> Void = { t in tokenSeen = true; onToken(t) }
+        do {
+            try await performChat(config: config, model: model, messages: messages,
+                                  session: .shared,
+                                  onStatus: onStatus, onModel: onModel, onToken: token)
+        } catch let err as URLError where !tokenSeen && isStaleConnection(err) {
+            // Dead pooled socket. Open a brand-new connection (ephemeral session
+            // has its own pool) and try once more. Safe: nothing streamed yet.
+            let fresh = URLSession(configuration: .ephemeral)
+            try await performChat(config: config, model: model, messages: messages,
+                                  session: fresh,
+                                  onStatus: onStatus, onModel: onModel, onToken: token)
+        }
+    }
+
+    /// Connection-level failures worth one fresh-socket retry (vs. real errors
+    /// like a 4xx/5xx or upstream message, which must surface).
+    private static func isStaleConnection(_ err: URLError) -> Bool {
+        switch err.code {
+        case .networkConnectionLost, .timedOut, .cannotConnectToHost,
+             .cannotFindHost, .dnsLookupFailed, .notConnectedToInternet:
+            return true
+        default:
+            return false
+        }
+    }
+
+    private static func performChat(
+        config: Config,
+        model: String,
+        messages: [ChatTurn],
+        session: URLSession,
         onStatus: @escaping (String) -> Void,
         onModel: @escaping (String) -> Void,
         onToken: @escaping (String) -> Void
@@ -59,7 +101,7 @@ final class BoxClient {
         )
         req.httpBody = try JSONEncoder().encode(payload)
 
-        let (bytes, resp) = try await URLSession.shared.bytes(for: req)
+        let (bytes, resp) = try await session.bytes(for: req)
         guard let http = resp as? HTTPURLResponse, http.statusCode == 200 else { throw BoxError.badStatus }
 
         for try await line in bytes.lines {
