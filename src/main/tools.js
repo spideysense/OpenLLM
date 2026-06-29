@@ -162,50 +162,173 @@ async function searxngResults(query) {
   }
 }
 
+// ── Bundled metasearch (zero setup, works for every user) ────────────────────
+// Queries several keyless engines in parallel from the user's own machine, then
+// merges and dedupes. Same resilience principle as SearXNG — one engine being
+// blocked can't zero out the result set — but nothing to install: it runs
+// in-process over the existing fetchText (real UA, redirects, size cap). Every
+// engine returns [] on any failure and is bounded by a per-engine timeout so one
+// slow/blocked source can't stall the whole search.
+
+function metaTimeout(p, ms = 7000) {
+  return Promise.race([p, new Promise((res) => setTimeout(() => res([]), ms))]);
+}
+
+function normUrl(u) {
+  try {
+    const x = new URL(u);
+    x.hash = '';
+    for (const p of ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'ref', 'fbclid']) {
+      x.searchParams.delete(p);
+    }
+    return x.toString().replace(/\/$/, '').toLowerCase();
+  } catch {
+    return String(u || '').toLowerCase();
+  }
+}
+
+// DuckDuckGo HTML — the original parser, now one engine among many.
+async function engDdgHtml(query) {
+  try {
+    const html = await fetchText(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}&kl=us-en`);
+    const out = [];
+    for (const block of html.split(/class="result[ "]/).slice(1)) {
+      if (out.length >= 6) break;
+      const titleM = block.match(/result__a[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/);
+      if (!titleM) continue;
+      const snipM = block.match(/result__snippet[^>]*>([\s\S]*?)<\/a>/);
+      let link = titleM[1];
+      const uddg = link.match(/uddg=([^&]+)/);
+      if (uddg) { try { link = decodeURIComponent(uddg[1]); } catch {} }
+      const title = htmlToText(titleM[2]);
+      if (title) out.push({ title, snippet: snipM ? htmlToText(snipM[1]) : '', link });
+    }
+    return out;
+  } catch { return []; }
+}
+
+// DuckDuckGo Lite — a much simpler page, often reachable when the main HTML
+// endpoint is throttled.
+async function engDdgLite(query) {
+  try {
+    const html = await fetchText(`https://lite.duckduckgo.com/lite/?q=${encodeURIComponent(query)}`);
+    const out = [];
+    const re = /<a[^>]*class="result-link"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g;
+    let m;
+    while ((m = re.exec(html)) && out.length < 6) {
+      let link = m[1];
+      const uddg = link.match(/uddg=([^&]+)/);
+      if (uddg) { try { link = decodeURIComponent(uddg[1]); } catch {} }
+      const title = htmlToText(m[2]);
+      if (title && /^https?:\/\//.test(link)) out.push({ title, snippet: '', link });
+    }
+    return out;
+  } catch { return []; }
+}
+
+// Bing — large independent index, tolerant of light scraping with a real UA.
+async function engBing(query) {
+  try {
+    const html = await fetchText(`https://www.bing.com/search?q=${encodeURIComponent(query)}&setlang=en-us`);
+    const out = [];
+    for (const block of html.split(/<li class="b_algo"/).slice(1)) {
+      if (out.length >= 6) break;
+      const titleM = block.match(/<h2>[\s\S]*?<a[^>]*href="(https?:\/\/[^"]+)"[^>]*>([\s\S]*?)<\/a>/);
+      if (!titleM) continue;
+      const snipM = block.match(/<p[^>]*>([\s\S]*?)<\/p>/);
+      const title = htmlToText(titleM[2]);
+      if (title) out.push({ title, snippet: snipM ? htmlToText(snipM[1]) : '', link: titleM[1] });
+    }
+    return out;
+  } catch { return []; }
+}
+
+// Mojeek — an independent crawler (not a Google/Bing reseller), so it rarely
+// fails at the same time as the others.
+async function engMojeek(query) {
+  try {
+    const html = await fetchText(`https://www.mojeek.com/search?q=${encodeURIComponent(query)}`);
+    const out = [];
+    const re = /<a[^>]*class="[^"]*title[^"]*"[^>]*href="(https?:\/\/[^"]+)"[^>]*>([\s\S]*?)<\/a>/g;
+    let m;
+    while ((m = re.exec(html)) && out.length < 6) {
+      const title = htmlToText(m[2]);
+      if (title) out.push({ title, snippet: '', link: m[1] });
+    }
+    return out;
+  } catch { return []; }
+}
+
+// Wikipedia — clean JSON API, never blocks; a reliable factual anchor.
+async function engWikipedia(query) {
+  try {
+    const raw = await fetchText(
+      `https://en.wikipedia.org/w/api.php?action=query&list=search&format=json&srlimit=4&srsearch=${encodeURIComponent(query)}`
+    );
+    const data = JSON.parse(raw);
+    const hits = (data && data.query && data.query.search) || [];
+    return hits
+      .map((h) => ({
+        title: htmlToText(String(h.title || '')),
+        snippet: htmlToText(String(h.snippet || '')),
+        link: `https://en.wikipedia.org/wiki/${encodeURIComponent(String(h.title || '').replace(/ /g, '_'))}`,
+      }))
+      .filter((r) => r.title);
+  } catch { return []; }
+}
+
+const META_ENGINES = [engDdgHtml, engDdgLite, engBing, engMojeek, engWikipedia];
+
+// Run every engine in parallel, merge, and rank by cross-engine consensus (how
+// many engines independently surfaced the same URL). Resilient by construction:
+// if any subset is blocked or slow, whatever the rest return still stands.
+async function metaSearch(query) {
+  const settled = await Promise.allSettled(META_ENGINES.map((fn) => metaTimeout(fn(query))));
+  const byUrl = new Map();
+  for (const s of settled) {
+    if (s.status !== 'fulfilled' || !Array.isArray(s.value)) continue;
+    for (const r of s.value) {
+      if (!r || !r.title || !/^https?:\/\//.test(r.link || '')) continue;
+      const key = normUrl(r.link);
+      const cur = byUrl.get(key);
+      if (cur) {
+        cur.hits++;
+        if ((r.snippet || '').length > (cur.snippet || '').length) cur.snippet = r.snippet;
+      } else {
+        byUrl.set(key, { title: r.title, snippet: r.snippet || '', link: r.link, hits: 1 });
+      }
+    }
+  }
+  return [...byUrl.values()]
+    .sort((a, b) => b.hits - a.hits)
+    .slice(0, 8)
+    .map(({ title, snippet, link }) => ({ title, snippet, link }));
+}
+
 async function runSearch(args) {
   const query = (args.query || '').trim();
   if (!query) return 'No query provided.';
 
   try {
+    // DDG Instant Answer JSON — a quick, keyless factual hit (definitions, some
+    // live values). Cheap and rarely blocked; prepended when present.
     let instant = '';
-    // Primary: self-hosted SearXNG metasearch (if SEARXNG_URL is set). Fans the
-    // query across many engines from the box's own IP — so no single-source
-    // block can zero out results, and no query leaves via a third-party API key.
+    try {
+      const iaRaw = await fetchText(
+        `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_redirect=1&no_html=1&skip_disambig=1`
+      );
+      const ia = JSON.parse(iaRaw);
+      if (ia.AbstractText) instant += `${ia.Heading || query}: ${ia.AbstractText}\n`;
+      if (ia.Answer) instant += `Answer: ${ia.Answer}\n`;
+      if (ia.Definition) instant += `Definition: ${ia.Definition}\n`;
+    } catch {}
+
+    // Primary: self-hosted SearXNG (operators who set SEARXNG_URL).
     let results = await searxngResults(query);
 
-    // Fallback: DuckDuckGo, used only when SearXNG is unconfigured or empty.
-    if (results.length === 0) {
-      // DDG Instant Answer JSON — clean structured facts, no scraping.
-      try {
-        const iaRaw = await fetchText(
-          `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_redirect=1&no_html=1&skip_disambig=1`
-        );
-        const ia = JSON.parse(iaRaw);
-        if (ia.AbstractText) instant += `${ia.Heading || query}: ${ia.AbstractText}\n`;
-        if (ia.Answer) instant += `Answer: ${ia.Answer}\n`;
-        if (ia.Definition) instant += `Definition: ${ia.Definition}\n`;
-      } catch {}
-
-      const html = await fetchText(
-        `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}&kl=us-en`
-      );
-
-      // Parse per DDG result block: split on the result boundary and pull each
-      // piece out independently so element-order changes can't break extraction.
-      const blocks = html.split(/class="result[ "]/).slice(1);
-      for (const block of blocks) {
-        if (results.length >= 6) break;
-        const titleM = block.match(/result__a[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/);
-        const snipM = block.match(/result__snippet[^>]*>([\s\S]*?)<\/a>/);
-        if (!titleM) continue;
-        const title = htmlToText(titleM[2]);
-        let link = titleM[1];
-        const uddg = link.match(/uddg=([^&]+)/);
-        if (uddg) { try { link = decodeURIComponent(uddg[1]); } catch {} }
-        const snippet = snipM ? htmlToText(snipM[1]) : '';
-        if (title) results.push({ title, snippet, link });
-      }
-    }
+    // Default for everyone: bundled in-process metasearch — parallel multi-engine,
+    // merged and deduped, no setup and no third-party API key.
+    if (results.length === 0) results = await metaSearch(query);
 
     if (results.length === 0) return `No results found for "${query}".`;
 
