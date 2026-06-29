@@ -321,9 +321,12 @@ async function ensureRunning(onProgress) {
           // request crawls through a 256K window — minutes per "hi". This forces
           // every model to load at a sane size regardless of what it declares.
           OLLAMA_CONTEXT_LENGTH: String(system.getRecommendedContext()),
-          // Let extraction + chat run concurrently so a background job never
-          // blocks the user's next message.
-          OLLAMA_NUM_PARALLEL: '2',
+          // Concurrent generation slots: serve several clients (web, desktop,
+          // mobile) plus background extraction at once without queueing. The
+          // model frees its slot during tool/web-search waits, so this covers
+          // more than 4 simultaneous users in practice. Each slot adds KV-cache
+          // memory; this class of machine has ample headroom to go higher.
+          OLLAMA_NUM_PARALLEL: '4',
           // Allow the chat model AND a small extraction model to stay resident
           // together — otherwise loading one evicts the other, and every message
           // pays a full cold-load. Plenty of headroom on this class of machine.
@@ -399,7 +402,7 @@ async function ensureCurrent(onProgress, { force = false } = {}) {
 
     ollamaProcess = spawn(newPath, ['serve'], {
       detached: true, stdio: 'ignore',
-      env: { ...process.env, OLLAMA_HOST: '127.0.0.1:11434', OLLAMA_MODELS: path.join(MONET_DIR, 'models'), OLLAMA_CONTEXT_LENGTH: String(system.getRecommendedContext()), OLLAMA_NUM_PARALLEL: '2', OLLAMA_MAX_LOADED_MODELS: '3' },
+      env: { ...process.env, OLLAMA_HOST: '127.0.0.1:11434', OLLAMA_MODELS: path.join(MONET_DIR, 'models'), OLLAMA_CONTEXT_LENGTH: String(system.getRecommendedContext()), OLLAMA_NUM_PARALLEL: '4', OLLAMA_MAX_LOADED_MODELS: '3' },
     });
     ollamaProcess.unref();
 
