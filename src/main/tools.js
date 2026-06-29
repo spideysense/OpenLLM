@@ -130,51 +130,81 @@ function htmlToText(html) {
 }
 
 // ═══════════════════════════════════════════════════
-// TOOL: web_search — runs from the USER's machine/IP (distributed, private)
+// TOOL: web_search — runs from the box's own IP (private, no third-party key)
 // ═══════════════════════════════════════════════════
+
+// Self-hosted SearXNG instance (private metasearch on the box). Empty unless
+// the operator sets SEARXNG_URL (e.g. http://127.0.0.1:8888).
+const SEARXNG_URL = (process.env.SEARXNG_URL || '').replace(/\/+$/, '');
+
+// Query SearXNG's JSON API. Returns [{title, snippet, link}] (max 6) or [] on any
+// failure (unconfigured, network error, JSON disabled → 403, no results). Never
+// throws — the caller treats [] as "fall back to DuckDuckGo".
+async function searxngResults(query) {
+  if (!SEARXNG_URL) return [];
+  try {
+    const raw = await fetchText(
+      `${SEARXNG_URL}/search?q=${encodeURIComponent(query)}&format=json&safesearch=0&language=en`
+    );
+    const data = JSON.parse(raw);
+    if (!data || !Array.isArray(data.results)) return [];
+    const out = [];
+    for (const r of data.results) {
+      if (out.length >= 6) break;
+      const link = String(r.url || '');
+      const title = htmlToText(String(r.title || ''));
+      const snippet = htmlToText(String(r.content || ''));
+      if (title && /^https?:\/\//.test(link)) out.push({ title, snippet, link });
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
 async function runSearch(args) {
   const query = (args.query || '').trim();
   if (!query) return 'No query provided.';
 
-  // DuckDuckGo HTML endpoint — queried directly from the user's own machine.
-  // Because each user searches from their own IP, there is no single-IP
-  // rate-limit cliff (the failure mode of a central server).
   try {
-    // Layer 1: DDG Instant Answer JSON — clean structured data (definitions,
-    // facts, some live values), no scraping. Runs from the user's machine.
     let instant = '';
-    try {
-      const iaRaw = await fetchText(
-        `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_redirect=1&no_html=1&skip_disambig=1`
+    // Primary: self-hosted SearXNG metasearch (if SEARXNG_URL is set). Fans the
+    // query across many engines from the box's own IP — so no single-source
+    // block can zero out results, and no query leaves via a third-party API key.
+    let results = await searxngResults(query);
+
+    // Fallback: DuckDuckGo, used only when SearXNG is unconfigured or empty.
+    if (results.length === 0) {
+      // DDG Instant Answer JSON — clean structured facts, no scraping.
+      try {
+        const iaRaw = await fetchText(
+          `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_redirect=1&no_html=1&skip_disambig=1`
+        );
+        const ia = JSON.parse(iaRaw);
+        if (ia.AbstractText) instant += `${ia.Heading || query}: ${ia.AbstractText}\n`;
+        if (ia.Answer) instant += `Answer: ${ia.Answer}\n`;
+        if (ia.Definition) instant += `Definition: ${ia.Definition}\n`;
+      } catch {}
+
+      const html = await fetchText(
+        `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}&kl=us-en`
       );
-      const ia = JSON.parse(iaRaw);
-      if (ia.AbstractText) instant += `${ia.Heading || query}: ${ia.AbstractText}\n`;
-      if (ia.Answer) instant += `Answer: ${ia.Answer}\n`;
-      if (ia.Definition) instant += `Definition: ${ia.Definition}\n`;
-    } catch {}
 
-    const html = await fetchText(
-      `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}&kl=us-en`
-    );
-
-    // Parse per result block. DDG groups each hit under a container that holds a
-    // .result__a (title+link) and a .result__snippet. We split on the result
-    // boundary and pull each piece out INDEPENDENTLY, so a change in element
-    // order or extra attributes can't break extraction (the old single combined
-    // regex required an exact title→snippet ordering and silently matched 0).
-    const results = [];
-    const blocks = html.split(/class="result[ "]/).slice(1);
-    for (const block of blocks) {
-      if (results.length >= 6) break;
-      const titleM = block.match(/result__a[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/);
-      const snipM = block.match(/result__snippet[^>]*>([\s\S]*?)<\/a>/);
-      if (!titleM) continue;
-      const title = htmlToText(titleM[2]);
-      let link = titleM[1];
-      const uddg = link.match(/uddg=([^&]+)/);
-      if (uddg) { try { link = decodeURIComponent(uddg[1]); } catch {} }
-      const snippet = snipM ? htmlToText(snipM[1]) : '';
-      if (title) results.push({ title, snippet, link });
+      // Parse per DDG result block: split on the result boundary and pull each
+      // piece out independently so element-order changes can't break extraction.
+      const blocks = html.split(/class="result[ "]/).slice(1);
+      for (const block of blocks) {
+        if (results.length >= 6) break;
+        const titleM = block.match(/result__a[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/);
+        const snipM = block.match(/result__snippet[^>]*>([\s\S]*?)<\/a>/);
+        if (!titleM) continue;
+        const title = htmlToText(titleM[2]);
+        let link = titleM[1];
+        const uddg = link.match(/uddg=([^&]+)/);
+        if (uddg) { try { link = decodeURIComponent(uddg[1]); } catch {} }
+        const snippet = snipM ? htmlToText(snipM[1]) : '';
+        if (title) results.push({ title, snippet, link });
+      }
     }
 
     if (results.length === 0) return `No results found for "${query}".`;
