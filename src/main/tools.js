@@ -287,7 +287,7 @@ const META_ENGINES = [engDdgHtml, engDdgLite, engBing, engMojeek, engWikipedia];
 const META_DEADLINE_MS = 4000;
 const META_ENOUGH = 6;
 
-function metaSearch(query) {
+function metaSearch(query, engines = META_ENGINES, deadlineMs = META_DEADLINE_MS) {
   const byUrl = new Map();
   const absorb = (arr) => {
     if (!Array.isArray(arr)) return;
@@ -318,15 +318,15 @@ function metaSearch(query) {
       clearTimeout(timer);
       resolve(rank());
     };
-    const timer = setTimeout(finish, META_DEADLINE_MS);
-    for (const fn of META_ENGINES) {
+    const timer = setTimeout(finish, deadlineMs);
+    for (const fn of engines) {
       Promise.resolve()
         .then(() => fn(query))
         .then(absorb)
         .catch(() => {})
         .finally(() => {
           done++;
-          if (byUrl.size >= META_ENOUGH || done === META_ENGINES.length) finish();
+          if (byUrl.size >= META_ENOUGH || done === engines.length) finish();
         });
     }
   });
@@ -988,4 +988,4 @@ function parseTextToolCalls(content, validNames) {
   return calls;
 }
 
-module.exports = { getToolDefinitions, executeTool, ALL_TOOL_NAMES, runFetchUrl, hostIsBlocked, ipIsBlocked, describeToolStatus, parseTextToolCalls };
+module.exports = { getToolDefinitions, executeTool, ALL_TOOL_NAMES, runFetchUrl, hostIsBlocked, ipIsBlocked, describeToolStatus, parseTextToolCalls, normUrl, metaSearch, searxngResults };

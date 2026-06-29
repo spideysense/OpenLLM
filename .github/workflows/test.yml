@@ -24,6 +24,13 @@ jobs:
       - name: Run tests
         run: npx vitest run
 
+      - name: Run module tests (src/main)
+        run: |
+          for f in src/main/*.test.js; do
+            echo "▶ $f"
+            node "$f" || exit 1
+          done
+
       - name: Verify no TunnelBear branding
         run: |
           if grep -rni "tunnelbear" --include="*.js" --include="*.jsx" --include="*.css" --include="*.html" --include="*.json" . \
