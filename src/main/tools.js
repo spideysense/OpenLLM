@@ -279,15 +279,19 @@ async function engWikipedia(query) {
 
 const META_ENGINES = [engDdgHtml, engDdgLite, engBing, engMojeek, engWikipedia];
 
-// Run every engine in parallel, merge, and rank by cross-engine consensus (how
-// many engines independently surfaced the same URL). Resilient by construction:
-// if any subset is blocked or slow, whatever the rest return still stands.
-async function metaSearch(query) {
-  const settled = await Promise.allSettled(META_ENGINES.map((fn) => metaTimeout(fn(query))));
+// Run every engine in parallel, but DON'T block on the slowest. Resolve as soon
+// as we have enough merged results, OR all engines finish, OR a hard deadline
+// hits — whichever comes first. Without this, one slow/blocked engine added its
+// full timeout to EVERY search round, and a multi-round agent search stacked
+// those waits into a minute-plus of silence.
+const META_DEADLINE_MS = 4000;
+const META_ENOUGH = 6;
+
+function metaSearch(query) {
   const byUrl = new Map();
-  for (const s of settled) {
-    if (s.status !== 'fulfilled' || !Array.isArray(s.value)) continue;
-    for (const r of s.value) {
+  const absorb = (arr) => {
+    if (!Array.isArray(arr)) return;
+    for (const r of arr) {
       if (!r || !r.title || !/^https?:\/\//.test(r.link || '')) continue;
       const key = normUrl(r.link);
       const cur = byUrl.get(key);
@@ -298,11 +302,34 @@ async function metaSearch(query) {
         byUrl.set(key, { title: r.title, snippet: r.snippet || '', link: r.link, hits: 1 });
       }
     }
-  }
-  return [...byUrl.values()]
-    .sort((a, b) => b.hits - a.hits)
-    .slice(0, 8)
-    .map(({ title, snippet, link }) => ({ title, snippet, link }));
+  };
+  const rank = () =>
+    [...byUrl.values()]
+      .sort((a, b) => b.hits - a.hits)
+      .slice(0, 8)
+      .map(({ title, snippet, link }) => ({ title, snippet, link }));
+
+  return new Promise((resolve) => {
+    let settled = false;
+    let done = 0;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(rank());
+    };
+    const timer = setTimeout(finish, META_DEADLINE_MS);
+    for (const fn of META_ENGINES) {
+      Promise.resolve()
+        .then(() => fn(query))
+        .then(absorb)
+        .catch(() => {})
+        .finally(() => {
+          done++;
+          if (byUrl.size >= META_ENOUGH || done === META_ENGINES.length) finish();
+        });
+    }
+  });
 }
 
 async function runSearch(args) {
@@ -332,15 +359,13 @@ async function runSearch(args) {
 
     if (results.length === 0) return `No results found for "${query}".`;
 
-    // Snippets are often just link descriptions ("the most accurate forecast...")
-    // and don't contain the actual answer (the live temperature, the price). So we
-    // also FETCH the top result page(s) and include their readable text — this is
-    // where the real value lives. Without this, the model only has links and can
-    // only say "check these sites" instead of answering. Fetch the top 2 in
-    // parallel, keep it cheap, and never let a slow/blocked page break the search.
+    // Snippets are often just link descriptions and don't contain the actual
+    // answer (the live score, the price). So we also FETCH the top result page(s)
+    // and include their readable text. Fetch the top 2 in parallel, keep it cheap,
+    // and never let a slow/blocked page break or stall the search.
     let pageContext = '';
     try {
-      const top = results.slice(0, 3).filter((r) => r.link && /^https?:\/\//.test(r.link));
+      const top = results.slice(0, 2).filter((r) => r.link && /^https?:\/\//.test(r.link));
       const pages = await Promise.all(
         top.map(async (r) => {
           try {
