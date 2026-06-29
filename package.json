@@ -1,6 +1,6 @@
 {
   "name": "aspen",
-  "version": "0.7.2",
+  "version": "0.7.7",
   "description": "Run the best open source AI locally. No API keys. No subscriptions. No terminal.",
   "main": "src/main/index.js",
   "scripts": {
