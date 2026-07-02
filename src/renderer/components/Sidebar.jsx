@@ -9,6 +9,15 @@ export default function Sidebar() {
   const [appVersion, setAppVersion] = useState('...');
   const [searchQuery, setSearchQuery] = useState('');
   const [editingTitle, setEditingTitle] = useState(null);
+  const [streak, setStreak] = useState(null);
+
+  useEffect(() => {
+    // Local-only usage counter written by the main process on launch. Read via
+    // the existing store bridge; nothing is transmitted anywhere.
+    if (bridge?.store?.get) {
+      bridge.store.get('privacyStreak').then((s) => s && setStreak(s)).catch(() => {});
+    }
+  }, [bridge]);
 
   useEffect(() => {
     if (bridge?.app?.getVersion) {
@@ -190,7 +199,14 @@ export default function Sidebar() {
         </div>
       )}
 
-      <div style={{ padding: '6px 14px', fontSize: 10, color: 'var(--t4, #AEAEB2)', letterSpacing: '.02em' }}>v{appVersion}</div>
+      <div style={{ padding: '6px 14px', fontSize: 10, color: 'var(--t4, #AEAEB2)', letterSpacing: '.02em' }}>
+        v{appVersion}
+        {streak?.totalDays >= 2 && (
+          <span title={streak.streak >= 2 ? `${streak.streak}-day streak` : undefined}>
+            {' · '}{streak.totalDays} days private — nothing ever left this machine
+          </span>
+        )}
+      </div>
     </aside>
   );
 }

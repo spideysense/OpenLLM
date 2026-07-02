@@ -120,6 +120,22 @@ function createTray() {
 // ═══════════════════════════════════════════════════
 
 app.whenReady().then(async () => {
+  // ── Local activation streak ────────────────────────────────────────────────
+  // Counts the days Aspen was used, entirely in the local store — the private
+  // counterpart to analytics. Never transmitted; surfaced in the sidebar as
+  // "N days private" so the user sees the habit (and we honor no-telemetry).
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const s = store.get('privacyStreak') || { totalDays: 0, streak: 0, lastDay: '' };
+    if (s.lastDay !== today) {
+      const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+      s.streak = s.lastDay === yesterday ? (s.streak || 0) + 1 : 1;
+      s.totalDays = (s.totalDays || 0) + 1;
+      s.lastDay = today;
+      store.set('privacyStreak', s);
+    }
+  } catch {}
+
   // Request mic access upfront so macOS grants it once permanently
   if (process.platform === 'darwin' && systemPreferences.getMediaAccessStatus('microphone') !== 'granted') {
     await systemPreferences.askForMediaAccess('microphone').catch(() => {});
