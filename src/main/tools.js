@@ -312,18 +312,33 @@ function metaSearch(query, engines = META_ENGINES, deadlineMs = META_DEADLINE_MS
   return new Promise((resolve) => {
     let settled = false;
     let done = 0;
+    const counts = {};
     const finish = () => {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
+      // Per-engine visibility on the live path: which sources answered, how many,
+      // and the merged total. `-1` = errored/blocked, `·` = didn't beat the
+      // deadline. Distinguishes "search is thin" from other quality issues.
+      if (engines === META_ENGINES) {
+        try {
+          const line = engines.map((f) => `${f.name || 'eng'}=${f.name in counts ? counts[f.name] : '·'}`).join(' ');
+          console.log(`[SEARCHDBG] "${query}" ${line} -> merged ${byUrl.size}`);
+        } catch {}
+      }
       resolve(rank());
     };
     const timer = setTimeout(finish, deadlineMs);
     for (const fn of engines) {
       Promise.resolve()
         .then(() => fn(query))
-        .then(absorb)
-        .catch(() => {})
+        .then((arr) => {
+          counts[fn.name] = Array.isArray(arr) ? arr.length : 0;
+          absorb(arr);
+        })
+        .catch(() => {
+          counts[fn.name] = -1;
+        })
         .finally(() => {
           done++;
           if (byUrl.size >= META_ENOUGH || done === engines.length) finish();

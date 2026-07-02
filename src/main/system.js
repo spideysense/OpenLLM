@@ -148,9 +148,13 @@ function getHardwareTier() {
 function getRecommendedContext() {
   const tier = getHardwareTier();
   switch (tier) {
-    case 'ultra':  return 16384;  // 16k — fast, ~40 pages of context
-    case 'heavy':  return 16384;  // 16k
-    case 'medium': return 8192;   // 8k
+    // Sized so multi-turn research (conversation + several 2k-char web_search
+    // results per turn) doesn't overflow and silently drop earlier messages or
+    // the agent's own findings. KV cache scales with ctx * NUM_PARALLEL, so these
+    // stay within headroom on their respective tiers.
+    case 'ultra':  return 49152;  // 48k — 128GB-class boxes (GB10 etc.)
+    case 'heavy':  return 32768;  // 32k
+    case 'medium': return 16384;  // 16k
     default:       return 4096;   // 4k — safe for 8GB machines
   }
 }
