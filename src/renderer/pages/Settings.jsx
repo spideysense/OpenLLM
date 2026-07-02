@@ -20,6 +20,7 @@ const TOOL_LABELS = {
 // One stop in the settings jump-nav.
 const SECTIONS = [
   { id: 'set-models', label: 'Models' },
+  { id: 'set-cloud', label: 'Cloud' },
   { id: 'set-tools', label: 'Tools' },
   { id: 'set-memory', label: 'Memory' },
   { id: 'set-appsetup', label: 'App Setup' },
@@ -34,6 +35,14 @@ export default function Settings() {
   const [appVersion, setAppVersion] = useState('...');
   const [toolStates, setToolStates] = useState([]);
   const [customInstructions, setCustomInstructions] = useState('');
+  const [cloudMode, setCloudMode] = useState('off');
+  const [cloudKeys, setCloudKeys] = useState({});
+
+  useEffect(() => {
+    if (!bridge?.store) return;
+    bridge.store.get('cloudMode').then((v) => { if (typeof v === 'string') setCloudMode(v); }).catch(() => {});
+    bridge.store.get('cloudKeys').then((v) => { if (v && typeof v === 'object') setCloudKeys(v); }).catch(() => {});
+  }, [bridge]);
 
   useEffect(() => {
     if (bridge?.store) bridge.store.get('customInstructions').then(v => { if (v && typeof v === 'string') setCustomInstructions(v); }).catch(() => {});
@@ -89,6 +98,49 @@ export default function Settings() {
 
       {/* Models */}
       <section id="set-models" className="settings-section"><ModelHub /></section>
+
+      {/* Cloud Boost */}
+      <section id="set-cloud" className="settings-section settings-pad">
+        <div className="card">
+          <div className="card-title">☁️ Cloud Boost</div>
+          <div className="card-sub" style={{ marginBottom: 8 }}>
+            Optional. Off by default — Aspen is fully local unless you turn this on.
+            When enabled, a request you explicitly boost is first stripped of personal details
+            (emails, keys, paths, identifiers) and sent to a free-tier cloud model for a stronger answer.
+            Free tiers rotate automatically; nothing is charged unless you add your own paid key.
+          </div>
+          <select
+            value={cloudMode}
+            onChange={(e) => { setCloudMode(e.target.value); bridge?.store?.set('cloudMode', e.target.value); }}
+            style={{ padding: '8px 10px', border: '1.5px solid rgba(0,0,0,.12)', borderRadius: 8, fontSize: 14, background: 'var(--cloud)', color: 'var(--text-dark)' }}
+          >
+            <option value="off">Off — never use the cloud (default)</option>
+            <option value="boost">Boost — only when I explicitly ask on a message</option>
+            <option value="auto">Auto — boost, plus fall back if the local model fails</option>
+          </select>
+          {cloudMode !== 'off' && (
+            <div style={{ marginTop: 12 }}>
+              <div className="card-sub" style={{ marginBottom: 6 }}>
+                Provider keys (stored only on this machine). Add at least one free-tier key — each provider gives a free monthly allowance, no card needed.
+              </div>
+              {[['GEMINI_API_KEY', 'Gemini (free tier)'], ['GROQ_API_KEY', 'Groq (free tier)'], ['OPENROUTER_API_KEY', 'OpenRouter (free tier)']].map(([k, label]) => (
+                <input
+                  key={k}
+                  type="password"
+                  value={cloudKeys[k] || ''}
+                  onChange={(e) => { const next = { ...cloudKeys, [k]: e.target.value }; setCloudKeys(next); bridge?.store?.set('cloudKeys', next); }}
+                  placeholder={label}
+                  autoComplete="off"
+                  style={{ width: '100%', padding: '8px 10px', border: '1.5px solid rgba(0,0,0,.12)', borderRadius: 8, fontSize: 13, fontFamily: 'var(--font-mono, monospace)', marginBottom: 6, background: 'var(--cloud)', color: 'var(--text-dark)', boxSizing: 'border-box' }}
+                />
+              ))}
+              <div className="card-sub" style={{ fontSize: 12, opacity: 0.8 }}>
+                Cloud answers are marked, so you always know when something left the machine.
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
 
       {/* Tools */}
       <section id="set-tools" className="settings-section settings-pad">

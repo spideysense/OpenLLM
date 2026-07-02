@@ -68,4 +68,19 @@ const read = (p) => fs.readFileSync(path.join(__dirname, p), 'utf8');
   assert.ok(/tokenSeen/.test(box), 'retry guarded so it cannot duplicate streamed tokens');
 })();
 
+// ── Cloud Boost: default OFF, explicit opt-in, minimizer on the path ─────────
+// Why: the product promise is "nothing leaves the machine". Cloud assist exists
+// but must stay opt-in — default off, fires only on an explicit per-request
+// boost (or user-chosen auto fallback), always through the context minimizer.
+(function cloudOptIn() {
+  const cloud = read('cloud.js');
+  assert.ok(/CLOUD_MODE \|\| 'off'/.test(cloud), "cloud mode must default to 'off'");
+  const gw = read('gateway.js');
+  assert.ok(/x-aspen-boost|parsedBody\.boost === true/.test(gw), 'boost requires an explicit per-request flag');
+  assert.ok(/syncFromStore/.test(gw), 'gateway reads the user Setting (store) before any cloud call');
+  const router = read('cloud-router.js');
+  const minimizerOnPath = /minimi/i.test(router) || /minimi/i.test(cloud);
+  assert.ok(minimizerOnPath, 'context minimizer must remain on the cloud path');
+})();
+
 console.log('regression-guards.test.js: all checks passed');

@@ -197,7 +197,7 @@ function start() {
     // ── Read body ──
     let body = '';
     req.on('data', chunk => { body += chunk; });
-    req.on('end', () => {
+    req.on('end', async () => {
       // ── Model aliasing + force-English on chat requests ──
       if (body) {
         try {
@@ -440,6 +440,37 @@ You are Aspen, a helpful AI assistant running 100% LOCALLY on the user's own com
       // POST /v1/chat/completions → Ollama /v1/chat/completions (native support)
       // Ollama already handles /v1/* routes natively
 
+      // ── Cloud Boost (opt-in, default OFF) ────────────────────────────────
+      // Fires ONLY when the user enabled it in Settings AND this request
+      // explicitly asks ({boost:true} in the body or x-aspen-boost header).
+      // The request passes the context minimizer inside cloud.boost() before
+      // anything leaves the machine; the reply is marked as cloud-answered.
+      if (req.method === 'POST' && req.url.includes('chat/completions')) {
+        try {
+          const parsedBody = JSON.parse(body);
+          const wantsBoost = parsedBody.boost === true || req.headers['x-aspen-boost'] === '1';
+          if (wantsBoost) {
+            const cloud = require('./cloud');
+            cloud.syncFromStore();
+            if (cloud.enabled()) {
+              const out = await cloud.boost(parsedBody.messages || []);
+              if (out && out.text) {
+                const modelName = `cloud:${out.provider || 'boost'}`;
+                res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
+                const chunk = { id: 'boost-' + Date.now(), object: 'chat.completion.chunk', model: modelName, choices: [{ index: 0, delta: { content: out.text + (out.marker || '') }, finish_reason: null }] };
+                res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+                res.write(`data: ${JSON.stringify({ ...chunk, choices: [{ index: 0, delta: {}, finish_reason: 'stop' }] })}\n\n`);
+                res.write('data: [DONE]\n\n');
+                res.end();
+                return; // cloud answered; skip Ollama entirely
+              }
+            }
+            // Boost requested but unavailable (off / no keys / all providers
+            // cooling down): fall through to the local model rather than fail.
+          }
+        } catch {}
+      }
+
       const proxyReq = http.request(
         {
           hostname: OLLAMA_HOST,
@@ -480,11 +511,32 @@ You are Aspen, a helpful AI assistant running 100% LOCALLY on the user's own com
         }
       );
 
-      proxyReq.on('error', (err) => {
-        res.writeHead(502, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-          error: { message: 'Cannot reach Ollama. Is it running?', type: 'proxy_error' },
-        }));
+      proxyReq.on('error', async (err) => {
+        // Mode 'auto' (opt-in in Settings): if the local model is unreachable,
+        // try the cloud instead of failing — same minimizer chokepoint.
+        try {
+          const cloud = require('./cloud');
+          cloud.syncFromStore();
+          if (cloud.getMode() === 'auto' && req.method === 'POST' && req.url.includes('chat/completions')) {
+            const parsedBody = JSON.parse(body);
+            const out = await cloud.autoFallback(parsedBody.messages || [], { localFailed: true });
+            if (out && out.text && !res.headersSent) {
+              res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
+              const chunk = { id: 'boost-' + Date.now(), object: 'chat.completion.chunk', model: `cloud:${out.provider || 'auto'}`, choices: [{ index: 0, delta: { content: out.text + (out.marker || '') }, finish_reason: null }] };
+              res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+              res.write(`data: ${JSON.stringify({ ...chunk, choices: [{ index: 0, delta: {}, finish_reason: 'stop' }] })}\n\n`);
+              res.write('data: [DONE]\n\n');
+              res.end();
+              return;
+            }
+          }
+        } catch {}
+        if (!res.headersSent) {
+          res.writeHead(502, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            error: { message: 'Cannot reach Ollama. Is it running?', type: 'proxy_error' },
+          }));
+        }
       });
 
       proxyReq.write(body);
