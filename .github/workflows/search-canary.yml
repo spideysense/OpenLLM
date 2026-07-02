@@ -1,0 +1,55 @@
+name: Search Canary
+
+# Weekly live test of the bundled metasearch engines. The engine parsers scrape
+# real HTML (Bing/Mojeek/DDG), which can silently rot when a site changes layout.
+# Shipped apps have no telemetry (by design), so this canary is how we find out
+# BEFORE users do. Runs from the GitHub runner's IP; individual engines being
+# blocked is tolerated — the failure condition is the MERGED result going thin,
+# which is what users would actually experience.
+
+on:
+  schedule:
+    - cron: '0 14 * * 1'   # Mondays 14:00 UTC
+  workflow_dispatch: {}     # allow manual runs
+
+jobs:
+  canary:
+    name: Live metasearch canary
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run live engine canary
+        run: |
+          node - <<'EOF'
+          const { metaSearch } = require('./src/main/tools.js');
+
+          const QUERIES = [
+            'latest macbook air price',
+            'who won the champions league',
+            'python list comprehension example',
+          ];
+
+          (async () => {
+            let failures = 0;
+            for (const q of QUERIES) {
+              const results = await metaSearch(q);
+              const withSnippets = results.filter(r => (r.snippet || '').length > 20).length;
+              console.log(`"${q}" -> ${results.length} merged, ${withSnippets} with substantive snippets`);
+              for (const r of results.slice(0, 3)) console.log(`   - ${r.title} | ${r.link}`);
+              // Failure = what a user would experience: a thin merged set.
+              if (results.length < 3) {
+                console.error(`   ✗ THIN: merged ${results.length} (<3) — parser rot or broad blocking`);
+                failures++;
+              }
+            }
+            if (failures > 0) {
+              console.error(`\n${failures}/${QUERIES.length} queries thin. Check engine parsers in src/main/tools.js (engBing/engMojeek/engDdgHtml/engDdgLite).`);
+              process.exit(1);
+            }
+            console.log('\nCanary healthy: merged results are substantive for all queries.');
+          })().catch((e) => { console.error('Canary crashed:', e); process.exit(1); });
+          EOF
