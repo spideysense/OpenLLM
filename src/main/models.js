@@ -191,10 +191,14 @@ function getRecommendation(tier, registry) {
   }
   // Fallback (registry unavailable) — tool-capable defaults.
   const fallbacks = {
+    // On unified-memory boxes (Mac / DGX Spark-class) generation speed is bound
+    // by MEMORY BANDWIDTH, so what matters is ACTIVE params, not total. Low-active
+    // MoE models give big-model quality at small-model speed. Dense 32B/70B models
+    // are avoided here — they measure single-digit tok/s on this class of hardware.
     light: { model: 'llama3.2:3b', name: 'Llama 3.2 3B', why: 'Fast, tool-capable, runs anywhere', sizeGB: '2.0' },
     medium: { model: 'qwen2.5:7b', name: 'Qwen 2.5 7B', why: 'Reliable tools, great quality', sizeGB: '4.7' },
-    heavy: { model: 'qwen2.5:32b', name: 'Qwen 2.5 32B', why: 'GPT-4-class with solid tools', sizeGB: '20' },
-    ultra: { model: 'llama4:scout', name: 'Llama 4 Scout', why: "Meta's open flagship", sizeGB: '65' },
+    heavy: { model: 'qwen3.6:35b-a3b', name: 'Qwen3.6 35B-A3B', why: 'MoE, only 3B active — fast, with vision + tools', sizeGB: '23' },
+    ultra: { model: 'gpt-oss:120b', name: 'GPT-OSS 120B', why: '120B brain, ~5B active — big-model quality at small-model speed; strong tool use', sizeGB: '66' },
   };
   return fallbacks[tier] || fallbacks.medium;
 }
