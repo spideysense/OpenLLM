@@ -258,23 +258,21 @@ struct MessageBubble: View {
                 if !message.content.isEmpty {
                     Text(message.content)
                         .padding(.horizontal, 16).padding(.vertical, 11)
-                        .background(AnyShapeStyle(Color.primary), in: RoundedRectangle(cornerRadius: 20))
-                        .foregroundStyle(Color(.systemBackground))
+                        .background(AnyShapeStyle(Color(.secondarySystemBackground)), in: RoundedRectangle(cornerRadius: 20))
+                        .foregroundStyle(Color.primary)
                         .textSelection(.enabled)
                 }
             }
         } else if isStreaming {
             // STREAMING PATH — plain text only, never parse mid-stream.
             Text(message.content.isEmpty ? " " : message.content)
-                .padding(.horizontal, 16).padding(.vertical, 11)
-                .background(AnyShapeStyle(Color(.secondarySystemBackground)), in: RoundedRectangle(cornerRadius: 20))
+                .padding(.horizontal, 4).padding(.vertical, 4)
                 .foregroundStyle(Color.primary)
                 .textSelection(.enabled)
         } else {
             // COMPLETED PATH — rich render with artifacts.
             MessageContentView(content: message.content, boxConfig: boxConfig)
-                .padding(.horizontal, 16).padding(.vertical, 11)
-                .background(AnyShapeStyle(Color(.secondarySystemBackground)), in: RoundedRectangle(cornerRadius: 20))
+                .padding(.horizontal, 4).padding(.vertical, 4)
         }
     }
 }
