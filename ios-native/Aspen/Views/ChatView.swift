@@ -170,7 +170,7 @@ struct ChatView: View {
                 TextField("Message your Aspen…", text: $vm.input, axis: .vertical)
                     .lineLimit(1...5)
                     .padding(.horizontal, 16).padding(.vertical, 12)
-                    .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 22))
+                    .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 26))
                 Button {
                     if vm.streaming { vm.stop() }
                     else if hasDraft { vm.send() }
