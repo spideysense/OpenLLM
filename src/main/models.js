@@ -191,14 +191,17 @@ function getRecommendation(tier, registry) {
   }
   // Fallback (registry unavailable) — tool-capable defaults.
   const fallbacks = {
-    // On unified-memory boxes (Mac / DGX Spark-class) generation speed is bound
-    // by MEMORY BANDWIDTH, so what matters is ACTIVE params, not total. Low-active
-    // MoE models give big-model quality at small-model speed. Dense 32B/70B models
-    // are avoided here — they measure single-digit tok/s on this class of hardware.
+    // On unified-memory boxes generation speed is bound by MEMORY BANDWIDTH, so
+    // what governs speed is ACTIVE params, not total. But raw speed/benchmarks are
+    // not the whole story: the default must be MULTIMODAL (Aspen has vision) and
+    // reliable at tool-calling. gpt-oss-120b was fast but is text-only and weak at
+    // tools in practice, so it's intentionally NOT the default. Qwen3.6 35B-A3B is
+    // the reliable pick (vision + tools, 3B active = fast). qwen3.5 (122B/~10B
+    // active) is the optional heavier upgrade — more per-token reasoning, slower.
     light: { model: 'llama3.2:3b', name: 'Llama 3.2 3B', why: 'Fast, tool-capable, runs anywhere', sizeGB: '2.0' },
     medium: { model: 'qwen2.5:7b', name: 'Qwen 2.5 7B', why: 'Reliable tools, great quality', sizeGB: '4.7' },
-    heavy: { model: 'qwen3.6:35b-a3b', name: 'Qwen3.6 35B-A3B', why: 'MoE, only 3B active — fast, with vision + tools', sizeGB: '23' },
-    ultra: { model: 'gpt-oss:120b', name: 'GPT-OSS 120B', why: '120B brain, ~5B active — big-model quality at small-model speed; strong tool use', sizeGB: '66' },
+    heavy: { model: 'qwen3.6:35b-a3b', name: 'Qwen3.6 35B-A3B', why: 'MoE, 3B active — fast, reliable, with vision + tools', sizeGB: '23' },
+    ultra: { model: 'qwen3.6:35b-a3b', name: 'Qwen3.6 35B-A3B', why: 'Reliable + fast + multimodal; qwen3.5 available as a heavier optional upgrade', sizeGB: '23' },
   };
   return fallbacks[tier] || fallbacks.medium;
 }

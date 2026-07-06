@@ -20,6 +20,7 @@ const TOOL_LABELS = {
 // One stop in the settings jump-nav.
 const SECTIONS = [
   { id: 'set-models', label: 'Models' },
+  { id: 'set-modelupdates', label: 'Model updates' },
   { id: 'set-cloud', label: 'Cloud' },
   { id: 'set-tools', label: 'Tools' },
   { id: 'set-memory', label: 'Memory' },
@@ -36,6 +37,12 @@ export default function Settings() {
   const [toolStates, setToolStates] = useState([]);
   const [customInstructions, setCustomInstructions] = useState('');
   const [cloudMode, setCloudMode] = useState('off');
+  const [modelAutonomy, setModelAutonomy] = useState('rankings');
+
+  useEffect(() => {
+    if (!bridge?.store) return;
+    bridge.store.get('modelAutonomy').then((v) => { if (typeof v === 'string') setModelAutonomy(v); }).catch(() => {});
+  }, [bridge]);
   const [cloudKeys, setCloudKeys] = useState({});
 
   useEffect(() => {
@@ -98,6 +105,30 @@ export default function Settings() {
 
       {/* Models */}
       <section id="set-models" className="settings-section"><ModelHub /></section>
+
+      {/* Model updates (autonomy) */}
+      <section id="set-modelupdates" className="settings-section settings-pad">
+        <div className="card">
+          <div className="card-title">🔄 Model updates</div>
+          <div className="card-sub" style={{ marginBottom: 8 }}>
+            Aspen can keep your model current on its own — research the best open models for your
+            hardware and, if you let it, pull, smoke-test, and switch to a better one automatically.
+            Your working model is never removed until a replacement is proven good.
+          </div>
+          <select
+            value={modelAutonomy}
+            onChange={(e) => { setModelAutonomy(e.target.value); bridge?.store?.set('modelAutonomy', e.target.value); }}
+            style={{ padding: '8px 10px', border: '1.5px solid rgba(0,0,0,.12)', borderRadius: 8, fontSize: 14, background: 'var(--cloud)', color: 'var(--text-dark)' }}
+          >
+            <option value="off">Off — never change my model</option>
+            <option value="rankings">Keep rankings fresh — research only, tell me, don't change anything (default)</option>
+            <option value="full">Full auto — pull, smoke-test, and switch to the best model for my hardware</option>
+          </select>
+          <div className="card-sub" style={{ fontSize: 12, opacity: 0.8, marginTop: 6 }}>
+            Runs quietly in the background. "Full auto" only swaps after the new model passes a live test.
+          </div>
+        </div>
+      </section>
 
       {/* Cloud Boost */}
       <section id="set-cloud" className="settings-section settings-pad">
