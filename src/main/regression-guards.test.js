@@ -83,4 +83,16 @@ const read = (p) => fs.readFileSync(path.join(__dirname, p), 'utf8');
   assert.ok(minimizerOnPath, 'context minimizer must remain on the cloud path');
 })();
 
+// ── Action tools survive the capability allow-list ───────────────────────────
+// Why: git_* and publish_app are gated by isOwner AND intersected with the
+// capabilities allow-list. They were absent from that list, so they were stripped
+// before ever reaching the model — which then hallucinated a broken 'GitHub API'.
+// They must stay in allowedTools (under runCommand) or the tools silently vanish.
+(function actionToolsInAllowList() {
+  const caps = read('capabilities.js');
+  for (const t of ['git_clone', 'git_status', 'git_commit_push', 'git_create_repo', 'publish_app']) {
+    assert.ok(caps.includes(`'${t}'`), `${t} must be in the capabilities allowedTools list (else it's stripped before the model sees it)`);
+  }
+})();
+
 console.log('regression-guards.test.js: all checks passed');
