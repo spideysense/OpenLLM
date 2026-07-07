@@ -678,6 +678,22 @@ async function plainChatRetry(model, messages, _chat = ollamaChat) {
 //   { type: 'done' }                            — stream complete
 //   { type: 'error', text: string }             — fatal error
 // ─────────────────────────────────────────────────────────────────────────────
+// Pull the most recent complete HTML document out of the conversation (fenced
+// ```html block or a raw <!DOCTYPE …</html>), so "publish this" can reuse what
+// the model just built instead of forcing it to re-emit the whole thing.
+function lastHtmlArtifact(messages) {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m = messages[i];
+    if (!m || m.role !== 'assistant' || typeof m.content !== 'string') continue;
+    const fence = m.content.match(/```(?:html)?\s*(<!DOCTYPE[\s\S]*?<\/html>)\s*```/i)
+      || m.content.match(/```(?:html)?\s*([\s\S]*?<\/html>)\s*```/i);
+    if (fence && fence[1]) return fence[1].trim();
+    const raw = m.content.match(/<!DOCTYPE html[\s\S]*?<\/html>/i) || m.content.match(/<html[\s\S]*?<\/html>/i);
+    if (raw) return raw[0].trim();
+  }
+  return null;
+}
+
 async function* runRaw({ model, messages, isOwner = false, memoryKeyId = null, allowComputerUse = false }) {
   if (!model || !Array.isArray(messages) || messages.length === 0) {
     yield { type: 'error', text: 'model and messages are required' };
@@ -781,7 +797,7 @@ DO NOT FLIP-FLOP. If the user pushes back or insists ("check again", "are you su
 
 You genuinely CAN write and run code, download and analyze files.
 
-SHIPPING APPS — make it effortless. When the user wants an app, page, site, tool, or game they can open or share, WRITE the complete self-contained HTML and call publish_app to make it live instantly at a URL on their own Aspen — then give them the link. No git, no accounts, no setup, no explaining deployment. Only reach for the git_* tools if the user specifically asks to put it in a GitHub repo; for "build me an X," publish_app is the answer. Never make the user copy code or run commands just to see their app. NEVER tell the user you cannot code, cannot run things, or are "just a text-based model" — that is false. For multi-step jobs (download something then analyze it, scrape then summarize), call a tool, read the result, call the next, and keep going until it is done; you do not need permission between steps.
+SHIPPING APPS — make it effortless. When the user wants an app, page, site, tool, or game they can open or share, WRITE the complete self-contained HTML and call publish_app to make it live instantly at a URL on their own Aspen — then give them the link. No git, no accounts, no setup, no explaining deployment. If the user says "publish this" / "put this online" / "make it live" about something you ALREADY generated, just call publish_app — you do NOT need to paste the HTML again; the system reuses the page you just made. Only reach for the git_* tools if the user specifically asks to put it in a GitHub repo; for "build me an X" or "publish this," publish_app is the answer. Never make the user copy code or run commands just to see their app. NEVER tell the user you cannot code, cannot run things, or are "just a text-based model" — that is false. For multi-step jobs (download something then analyze it, scrape then summarize), call a tool, read the result, call the next, and keep going until it is done; you do not need permission between steps.
 
 SHOW IMAGES: You can display a real image to the user. When they ask to see, show, or display a picture, photo, scan, diagram, artwork, map, or "what does X look like", call find_image with a short description. It returns real, verified image URLs. find_image hands you a ready-made fenced code block. Output that block VERBATIM as your reply — keep the opening fence line (three backtick characters followed by html) and the closing fence line (three backtick characters) exactly as given. The fence is what makes it render; HTML pasted without the fence just shows as plain text and the user sees no image. NEVER invent, guess, or reuse a URL you did not get from find_image, and NEVER claim to have shown an image you did not actually retrieve. If find_image returns nothing usable, tell the user you could not find a real image.
 
@@ -861,6 +877,15 @@ Do NOT write code or a code block for casual, personal, or emotional messages ("
       for (const call of toolCalls) {
         const name = call.function?.name || '';
         const args = parseToolArgs(call.function?.arguments);
+
+        // "publish this" / "commit this": the model shouldn't have to re-emit the
+        // (often huge) HTML it just generated as a tool argument — small models
+        // choke on that and return nothing. If publish_app is called without the
+        // html, grab the last full HTML doc from the conversation automatically.
+        if (name === 'publish_app' && (!args.html || String(args.html).trim().length < 40)) {
+          const last = lastHtmlArtifact(convo);
+          if (last) args.html = last;
+        }
 
         const statusText = tools.describeToolStatus(name, args);
         console.log(`[TOOLDBG] call: ${name} ${JSON.stringify(args).slice(0, 160)}`);
