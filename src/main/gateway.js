@@ -136,9 +136,10 @@ function start() {
       });
       req.on('end', () => {
         try {
-          const { html } = JSON.parse(body);
+          const { html, name } = JSON.parse(body);
           if (!html || typeof html !== 'string') { res.writeHead(400); res.end('{"error":"html required"}'); return; }
-          const id = require('crypto').randomBytes(4).toString('hex');
+          const slug = name ? String(name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 24) : '';
+          const id = (slug ? slug + '-' : '') + require('crypto').randomBytes(3).toString('hex');
           artifacts.set(id, html);
           try { fs.writeFileSync(artifactsPath, JSON.stringify([...artifacts])); } catch {}
           res.writeHead(200, { 'Content-Type': 'application/json' });

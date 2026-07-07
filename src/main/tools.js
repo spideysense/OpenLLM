@@ -594,6 +594,39 @@ const os = require('os');
 const path = require('path');
 const gitTools = require('./git-tools');
 
+// TOOL: publish_app — make an HTML app/page instantly live at a public URL on the
+// user's OWN Aspen, through the private tunnel that's already running. No git, no
+// deploy, no accounts. Publishes via the local gateway's /publish-artifact route
+// (served at /artifacts/<id>), authenticating with the owner key.
+async function publishApp({ html, name } = {}) {
+  if (!html || typeof html !== 'string' || html.trim().length < 20) {
+    return 'Provide the complete, self-contained HTML document for the app.';
+  }
+  try {
+    const http = require('http');
+    let key = '';
+    try { key = (require('./apikeys').listKeys().find((k) => k.owner) || {}).secret || ''; } catch {}
+    const body = JSON.stringify({ html, name: name || '' });
+    const res = await new Promise((resolve) => {
+      const rq = http.request(
+        { hostname: '127.0.0.1', port: 4000, path: '/publish-artifact', method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body), ...(key ? { Authorization: `Bearer ${key}` } : {}) } },
+        (r) => { let d = ''; r.on('data', (c) => (d += c)); r.on('end', () => resolve({ status: r.statusCode, body: d })); }
+      );
+      rq.on('error', (e) => resolve({ status: 0, body: String(e.message) }));
+      rq.write(body); rq.end();
+    });
+    if (res.status === 200) {
+      const p = JSON.parse(res.body).path; // e.g. /artifacts/recipe-app-ab12cd
+      return `Published and live now. Open it here: ${p}\nThe link works from anywhere through the user's own Aspen URL — nothing was sent to any outside server; it's served from this machine.`;
+    }
+    if (res.status === 401) return 'Publishing needs an owner key configured on this Aspen.';
+    return `Could not publish (HTTP ${res.status}).`;
+  } catch (e) {
+    return `Publish failed: ${e.message}`;
+  }
+}
+
 function runCommand({ command, cwd }) {
   if (!command || typeof command !== 'string') return 'Error: command is required';
   const workDir = cwd || os.homedir();
@@ -868,6 +901,24 @@ const TOOLS = {
       },
     },
     run: (a) => gitTools.gitCreateRepo(a || {}),
+  },
+  publish_app: {
+    definition: {
+      type: 'function',
+      function: {
+        name: 'publish_app',
+        description: "Make an HTML app or page INSTANTLY LIVE at a public URL on the user's own Aspen — no git, no deploy, no setup, no accounts. This is the easy way to ship something the user can open or share. Whenever the user asks to build/make an app, site, page, tool, or game they want to USE or SHARE, write the complete self-contained HTML and call this. Prefer this over git for anything the user just wants live.",
+        parameters: {
+          type: 'object',
+          properties: {
+            html: { type: 'string', description: 'The COMPLETE, self-contained HTML document (inline CSS/JS). Must render on its own.' },
+            name: { type: 'string', description: 'Short friendly name for the app — used in the URL (e.g. "recipe-box").' },
+          },
+          required: ['html'],
+        },
+      },
+    },
+    run: (a) => publishApp(a || {}),
   },
   deep_research: {
     definition: {
