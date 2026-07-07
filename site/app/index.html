@@ -89,7 +89,7 @@ body.is-mobile .sidebar.open{transform:translateX(0)!important;box-shadow:4px 0 
 body.is-mobile .chat-main{width:100%!important;min-width:0}
 body.is-mobile .header-hamburger{display:flex!important}
 body.is-mobile .header-new-btn{display:flex!important}
-body.is-mobile .tunnel-badge{display:none!important}
+.sidebar-footer .tunnel-badge{margin-top:.45rem}
 body.is-mobile .chat-delete{opacity:.4!important}
 .drawer-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:19;backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
 .sidebar-header{padding:.85rem 1rem .75rem}
@@ -129,6 +129,7 @@ body.is-mobile .chat-delete{opacity:.4!important}
 /* MAIN */
 .chat-main{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
 .chat-header{height:var(--header);flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:0 1rem;gap:.75rem;border-bottom:1px solid var(--brd);background:rgba(255,255,255,.85);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding-top:var(--safe-top);height:calc(var(--header) + var(--safe-top))}
+body:not(.is-mobile) .chat-header{display:none}
 .header-hamburger{width:36px;height:36px;display:none;align-items:center;justify-content:center;background:transparent;border:none;cursor:pointer;border-radius:8px;flex-shrink:0;color:var(--bk);-webkit-appearance:none}
 .header-hamburger:active{background:rgba(0,0,0,.06)}
 .chat-title{font-size:.86rem;font-weight:500;color:var(--bk);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;visibility:hidden}
@@ -426,6 +427,7 @@ select.settings-select{font-family:var(--san);font-size:.84rem;color:var(--bk);b
       <div class="chat-list" id="chat-list"></div>
       <div class="sidebar-footer">
         <div class="status-dot"><span class="dot checking" id="status-dot"></span><span id="status-text">Connecting…</span></div>
+        <span class="tunnel-badge"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><code id="tunnel-display"></code></span>
       </div>
     </aside>
 
@@ -442,7 +444,6 @@ select.settings-select{font-family:var(--san);font-size:.84rem;color:var(--bk);b
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
           </button>
           <span class="chat-title" id="chat-title">New chat</span>
-          <span class="tunnel-badge"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><code id="tunnel-display"></code></span>
           <button class="header-new-btn" id="header-new-btn" aria-label="New chat">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           </button>
