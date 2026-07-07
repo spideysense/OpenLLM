@@ -40,27 +40,33 @@ function repoSlug(repo) {
   return null;
 }
 function cleanUrl(slug) { return `https://github.com/${slug}.git`; }
-function authedUrl(slug) {
-  const token = secrets.getSecret('github_token');
+function authedUrl(slug, overrideToken) {
+  // A token passed in for THIS call (e.g. one the owner pasted into chat) wins;
+  // otherwise fall back to the saved owner token. Either way it's used inline
+  // only and never written to .git/config (callers reset origin to cleanUrl).
+  const token = (overrideToken && String(overrideToken).trim()) || secrets.getSecret('github_token');
   return token ? `https://${token}@github.com/${slug}.git` : cleanUrl(slug);
 }
 
 function git(args, cwd) {
   return new Promise((resolve) => {
     execFile('git', args, { cwd, timeout: 120000, maxBuffer: 8 * 1024 * 1024 }, (err, stdout, stderr) => {
-      const output = secrets.redact(`${stdout || ''}${stderr || ''}`.trim());
+      // Redact registered secrets, then also strip any raw token pattern (covers a
+      // pasted PAT that isn't in the secret store) so it can never surface in output.
+      const output = secrets.redact(`${stdout || ''}${stderr || ''}`.trim())
+        .replace(/(github_pat_[A-Za-z0-9_]+|ghp_[A-Za-z0-9]+|x-access-token:[^@\s]+)/g, '***');
       resolve({ ok: !err, code: err ? (err.code ?? 1) : 0, output });
     });
   });
 }
 
-async function gitClone({ repo, dir } = {}) {
+async function gitClone({ repo, dir, token } = {}) {
   const slug = repoSlug(repo);
   if (!slug) return 'Only https://github.com/<owner>/<name> repositories are supported.';
   fs.mkdirSync(WORKSPACE, { recursive: true });
   const name = dir || slug.split('/')[1];
   const dest = safeDir(name);
-  const r = await git(['clone', authedUrl(slug), dest], WORKSPACE);
+  const r = await git(['clone', authedUrl(slug, token), dest], WORKSPACE);
   if (!r.ok) return `Clone failed:\n${r.output}`;
   // Do NOT leave the token in .git/config — reset origin to the clean URL.
   await git(['remote', 'set-url', 'origin', cleanUrl(slug)], dest);
@@ -73,7 +79,7 @@ async function gitStatus({ dir } = {}) {
   return r.output || '(clean working tree)';
 }
 
-async function gitCommitPush({ dir, message, branch } = {}) {
+async function gitCommitPush({ dir, message, branch, token } = {}) {
   const d = safeDir(dir);
   if (!message) return 'A commit message is required.';
   // Guard against ref/option injection — a branch like "--upload-pack=…" must not
@@ -100,7 +106,7 @@ async function gitCommitPush({ dir, message, branch } = {}) {
   const remote = await git(['remote', 'get-url', 'origin'], d);
   const slug = repoSlug(remote.output);
   if (!slug) return secrets.redact(`Committed, but could not determine a github.com origin to push to:\n${remote.output}`);
-  const push = await git(['push', authedUrl(slug), target], d);
+  const push = await git(['push', authedUrl(slug, token), target], d);
   if (!push.ok) return secrets.redact(`Committed, but push failed:\n${push.output}`);
   return `Committed and pushed to ${slug}. ${/auto-deploy|vercel/i.test('') ? '' : 'If the repo auto-deploys on push, the deploy is now running.'}`.trim();
 }

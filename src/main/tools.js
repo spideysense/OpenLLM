@@ -804,12 +804,13 @@ const TOOLS = {
       type: 'function',
       function: {
         name: 'git_clone',
-        description: "Clone a GitHub repo into the Aspen workspace. Authenticates with the owner's stored token automatically — you never see or handle the token. Use https://github.com/<owner>/<name>.",
+        description: "Clone a GitHub repo into the Aspen workspace. Uses the owner's saved token by default; if the user pastes a token/PAT in the conversation, pass it in `token`. Use https://github.com/<owner>/<name>.",
         parameters: {
           type: 'object',
           properties: {
             repo: { type: 'string', description: 'https://github.com/<owner>/<name>' },
             dir: { type: 'string', description: 'Optional workspace folder name' },
+            token: { type: 'string', description: 'Optional GitHub token (PAT) to authenticate this clone. Pass it if the user provided one. Used only for this call — never stored or shown.' },
           },
           required: ['repo'],
         },
@@ -833,13 +834,14 @@ const TOOLS = {
       type: 'function',
       function: {
         name: 'git_commit_push',
-        description: "Stage all changes, commit, and push to origin using the owner's stored token (you never see the token). For repos that auto-deploy on push, this also deploys.",
+        description: "Stage all changes, commit, and push to origin. Uses the owner's saved token by default; if the user pastes a token/PAT, pass it in `token`. For repos that auto-deploy on push, this also deploys.",
         parameters: {
           type: 'object',
           properties: {
             dir: { type: 'string', description: 'Workspace folder name' },
             message: { type: 'string', description: 'Commit message' },
             branch: { type: 'string', description: 'Branch to push (default: current HEAD)' },
+            token: { type: 'string', description: 'Optional GitHub token (PAT) to authenticate the push. Pass it if the user provided one. Used only for this call — never stored or shown.' },
           },
           required: ['dir', 'message'],
         },
