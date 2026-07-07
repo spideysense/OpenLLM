@@ -131,7 +131,7 @@ body.is-mobile .chat-delete{opacity:.4!important}
 .chat-header{height:var(--header);flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:0 1rem;gap:.75rem;border-bottom:1px solid var(--brd);background:rgba(255,255,255,.85);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding-top:var(--safe-top);height:calc(var(--header) + var(--safe-top))}
 .header-hamburger{width:36px;height:36px;display:none;align-items:center;justify-content:center;background:transparent;border:none;cursor:pointer;border-radius:8px;flex-shrink:0;color:var(--bk);-webkit-appearance:none}
 .header-hamburger:active{background:rgba(0,0,0,.06)}
-.chat-title{font-size:.86rem;font-weight:500;color:var(--bk);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chat-title{font-size:.86rem;font-weight:500;color:var(--bk);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;visibility:hidden}
 .tunnel-badge{font-size:.65rem;color:var(--t3);display:flex;align-items:center;gap:.3rem;flex-shrink:0}
 .tunnel-badge code{font-family:var(--mono);font-size:.63rem;color:var(--gd);background:var(--gd-light);padding:.1rem .35rem;border-radius:4px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
 .header-new-btn{width:32px;height:32px;display:none;align-items:center;justify-content:center;background:transparent;border:none;cursor:pointer;border-radius:8px;color:var(--bk);flex-shrink:0;-webkit-appearance:none}
@@ -409,7 +409,7 @@ select.settings-select{font-family:var(--san);font-size:.84rem;color:var(--bk);b
   <div class="app-layout">
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
-        <div class="sb-logo"><span>ASPEN</span><span style="font-size:9px;font-weight:600;background:#ECECEE;color:var(--t2);padding:1px 5px;border-radius:4px;letter-spacing:.5px;margin-left:4px;vertical-align:middle">BETA</span></div>
+        <div class="sb-logo"><img src="/favicon.svg" alt=""><span>ASPEN</span><span style="font-size:9px;font-weight:600;background:#ECECEE;color:var(--t2);padding:1px 5px;border-radius:4px;letter-spacing:.5px;margin-left:4px;vertical-align:middle">BETA</span></div>
         <button class="new-chat-btn" id="new-chat-btn">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>New chat
           <span class="nc-kbd">⌘⇧O</span>
