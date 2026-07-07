@@ -111,6 +111,49 @@ async function gitCommitPush({ dir, message, branch, token } = {}) {
   return `Committed and pushed to ${slug}. ${/auto-deploy|vercel/i.test('') ? '' : 'If the repo auto-deploys on push, the deploy is now running.'}`.trim();
 }
 
+// Create a new GitHub repo via the API (git itself can't create repos). Uses a
+// pasted token or the saved owner token. Creates with an initial commit so it's
+// immediately clonable. Free on GitHub (public + private, unlimited).
+function githubApi(method, path, token, body) {
+  const https = require('https');
+  const payload = body ? JSON.stringify(body) : null;
+  return new Promise((resolve) => {
+    const req = https.request(
+      {
+        hostname: 'api.github.com', path, method,
+        headers: {
+          Authorization: `token ${token}`,
+          'User-Agent': 'Aspen',
+          Accept: 'application/vnd.github+json',
+          ...(payload ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) } : {}),
+        },
+      },
+      (res) => { let d = ''; res.on('data', (c) => (d += c)); res.on('end', () => resolve({ status: res.statusCode, body: d })); }
+    );
+    req.on('error', (e) => resolve({ status: 0, body: String(e.message) }));
+    if (payload) req.write(payload);
+    req.end();
+  });
+}
+
+async function gitCreateRepo({ name, private: isPriv = true, description = '', token } = {}) {
+  const tok = (token && String(token).trim()) || secrets.getSecret('github_token');
+  if (!tok) return 'No GitHub token available — paste one or save it in Settings.';
+  if (!name || !/^[\w.-]+(\/[\w.-]+)?$/.test(String(name))) return 'Provide a repo name like "crowdpick" or "owner/crowdpick".';
+  const repoName = String(name).split('/').pop();
+  const r = await githubApi('POST', '/user/repos', tok, {
+    name: repoName, private: !!isPriv, description: String(description || ''), auto_init: true,
+  });
+  if (r.status === 201) {
+    let full = repoName;
+    try { full = JSON.parse(r.body).full_name || repoName; } catch {}
+    return `Created ${isPriv ? 'private' : 'public'} repo ${full}. Next: git_clone https://github.com/${full}, add your files, then git_commit_push.`;
+  }
+  if (r.status === 422) return `Repo "${repoName}" already exists (or the name is taken) — you can clone it directly.`;
+  if (r.status === 401 || r.status === 403) return 'GitHub rejected the token — it needs the "repo" scope to create repositories.';
+  return secrets.redact(`Could not create repo (HTTP ${r.status}): ${String(r.body).slice(0, 300)}`);
+}
+
 module.exports = {
   WORKSPACE,
   safeDir,
@@ -120,4 +163,5 @@ module.exports = {
   gitClone,
   gitStatus,
   gitCommitPush,
+  gitCreateRepo,
 };

@@ -115,7 +115,7 @@ function messageNeedsTools(messages) {
 // Dangerous tools: owner key only.
 // ─────────────────────────────────────────────────────────────────────────────
 const SAFE_TOOLS = ['web_search', 'find_image', 'calculate', 'get_datetime', 'fetch_url', 'deep_research'];
-const DANGEROUS_TOOLS = ['run_command', 'download_file', 'git_clone', 'git_status', 'git_commit_push', 'computer_screenshot', 'computer_click', 'computer_type', 'computer_key', 'computer_scroll'];
+const DANGEROUS_TOOLS = ['run_command', 'download_file', 'git_clone', 'git_status', 'git_commit_push', 'git_create_repo', 'computer_screenshot', 'computer_click', 'computer_type', 'computer_key', 'computer_scroll'];
 
 // Computer tool definitions in OpenAI/Ollama format (tools.js uses Anthropic
 // input_schema format for desktop; here we use the parameters format that

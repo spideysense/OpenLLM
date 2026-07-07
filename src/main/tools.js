@@ -849,6 +849,26 @@ const TOOLS = {
     },
     run: (a) => gitTools.gitCommitPush(a || {}),
   },
+  git_create_repo: {
+    definition: {
+      type: 'function',
+      function: {
+        name: 'git_create_repo',
+        description: "Create a new GitHub repository (git can't create repos — this does, via the API). Use when the target repo doesn't exist yet, then git_clone + git_commit_push. Uses the owner's saved token or a pasted `token`. Free on GitHub.",
+        parameters: {
+          type: 'object',
+          properties: {
+            name: { type: 'string', description: 'Repo name, e.g. "crowdpick" or "owner/crowdpick"' },
+            private: { type: 'boolean', description: 'Make it private? Default true.' },
+            description: { type: 'string', description: 'Optional repo description' },
+            token: { type: 'string', description: 'Optional GitHub token (PAT), needs "repo" scope. Pass it if the user provided one. Used only for this call — never stored or shown.' },
+          },
+          required: ['name'],
+        },
+      },
+    },
+    run: (a) => gitTools.gitCreateRepo(a || {}),
+  },
   deep_research: {
     definition: {
       type: 'function',
