@@ -215,7 +215,7 @@ The latest open models, including Llama, Qwen, DeepSeek, Mistral, and Gemma. Asp
 
 Yes. "Aspen Local AI" is free on the App Store. It connects to the AI running on your own computer, so you can chat with your private models from your phone, anywhere.
 
-### Then what is the $10,000 Aspen device?
+### Then what is the $4,000 Aspen device?
 
 It is a dedicated, always-on machine for people who want to run the largest models around the clock without using their own computer. Think of the free app as the product for almost everyone, and the device as the optional high end for power users. It delivers about 1 petaflop of AI performance, 128GB of unified memory, runs models up to roughly 200B parameters, and is silent. You never need it to use Aspen.
 

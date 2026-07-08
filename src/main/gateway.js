@@ -589,6 +589,30 @@ function tryListen(port) {
         warmReq.on('error', () => {});
         warmReq.write(warmBody);
         warmReq.end();
+        // Two-model setup: also pre-warm the coder the router would pick, so its
+        // first coding turn never shows "Loading…". Both stay pinned (keep_alive:-1),
+        // and MAX_LOADED_MODELS=3 leaves room. No-op when the chat model codes for
+        // itself (then no separate coder ever loads). Fire-and-forget; can't affect boot.
+        try {
+          const { decideCodingModel } = require('./model-router');
+          const osMod = require('os');
+          http.get('http://127.0.0.1:11434/api/tags', (tr) => {
+            let td = '';
+            tr.on('data', (c) => (td += c));
+            tr.on('end', () => {
+              try {
+                const list = (JSON.parse(td).models || []).map((m) => ({ name: m.name, size: m.size }));
+                const coder = decideCodingModel({ requested: activeModel, text: 'write a python function', list, ramBytes: osMod.totalmem(), ctx: system.getRecommendedContext() });
+                if (coder && coder !== activeModel) {
+                  const cb = JSON.stringify({ model: coder, messages: [{ role: 'user', content: 'hi' }], stream: false, keep_alive: -1, options: { num_predict: 1, num_ctx: system.getRecommendedContext() } });
+                  const cr = http.request({ hostname: '127.0.0.1', port: 11434, path: '/api/chat', method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(cb) } }, (r) => { r.on('data', () => {}); r.on('end', () => console.log(`[Aspen] Warmed coder (both models pinned): ${coder}`)); });
+                  cr.on('error', () => {});
+                  cr.write(cb); cr.end();
+                }
+              } catch {}
+            });
+          }).on('error', () => {});
+        } catch {}
       } catch {}
     }, 2000);
   });

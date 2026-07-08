@@ -20,7 +20,7 @@ const os = require('os');
 
 const MODELS = process.argv.slice(2).length
   ? process.argv.slice(2)
-  : ['qwen3.6:35b-a3b', 'qwen3.5', 'gpt-oss:120b'];
+  : ['qwen3.6:35b-a3b', 'qwen3-coder:30b'];
 
 // A small spread: raw speed, reasoning, coding (for the daughter's use case),
 // and strict instruction-following (proxy for how well it obeys the agent rules).
@@ -28,6 +28,7 @@ const PROMPTS = [
   { label: 'Speed (200-word explainer)', prompt: 'Write a clear 200-word explanation of how a bill becomes law in the United States.' },
   { label: 'Reasoning', prompt: 'A bat and a ball cost $1.10 total. The bat costs $1.00 more than the ball. How much does the ball cost? Show your reasoning step by step, then give the final answer.' },
   { label: 'Coding', prompt: 'Write a Python function that returns the nth Fibonacci number using memoization. Include a docstring and one example call. Return only the code.' },
+  { label: 'Coding (harder)', prompt: 'Write a Python class LRUCache with get(key) and put(key, value) both O(1), using a dict plus a doubly linked list. Include a short docstring and handle the capacity-eviction case. Return only the code.' },
   { label: 'Instruction-following', prompt: 'Reply with exactly three bullet points, each starting with a capital letter and ending with a period, naming three uses for a paperclip. No preamble, no other text.' },
 ];
 

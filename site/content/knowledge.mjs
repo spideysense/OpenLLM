@@ -36,7 +36,7 @@ export const faqGroups = [
         a: 'The latest open models, including Llama, Qwen, DeepSeek, Mistral, and Gemma. Aspen detects your hardware and recommends a model that fits it, and can update to a newer, better model automatically when one is released.' },
       { q: 'Is there an iPhone app?',
         a: 'Yes. "Aspen Local AI" is free on the App Store. It connects to the AI running on your own computer, so you can chat with your private models from your phone, anywhere.' },
-      { q: 'Then what is the $10,000 Aspen device?',
+      { q: 'Then what is the $4,000 Aspen device?',
         a: 'It is a dedicated, always-on machine for people who want to run the largest models around the clock without using their own computer. Think of the free app as the product for almost everyone, and the device as the optional high end for power users. It delivers about 1 petaflop of AI performance, 128GB of unified memory, runs models up to roughly 200B parameters, and is silent. You never need it to use Aspen.' },
       { q: 'Can I use Aspen as an API for my own apps?',
         a: 'Yes. Aspen exposes an OpenAI-compatible API. Change the base_url and api_key — two lines of code — and your existing tools run against your own private AI. It works with the ChatGPT and Claude SDKs, plus tools like LangChain, Cursor, and Continue.dev.' },
