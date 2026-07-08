@@ -581,14 +581,28 @@ function tryListen(port) {
           if (r.evicted.length) console.log(`[Aspen] Evicted from memory: ${r.evicted.join(', ')}`);
           if (r.retired.length) console.log(`[Aspen] Retired superseded models: ${r.retired.join(', ')} (freed ~${r.freedGB.toFixed(0)}GB)`);
         } catch (e) { console.log('[Aspen] model manager skipped:', e.message); }
-        const warmBody = JSON.stringify({ model: activeModel, messages: [{ role: 'user', content: 'hi' }], stream: false, keep_alive: -1, options: { num_predict: 1, num_ctx: system.getRecommendedContext() } });
-        const warmReq = http.request({
-          hostname: '127.0.0.1', port: 11434, path: '/api/chat', method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(warmBody) },
-        }, (r) => { r.on('data', () => {}); r.on('end', () => console.log(`[Aspen] Warmed model: ${activeModel}`)); });
-        warmReq.on('error', () => {});
-        warmReq.write(warmBody);
-        warmReq.end();
+        const warmModel = (model, label) => {
+          const body = JSON.stringify({ model, messages: [{ role: 'user', content: 'hi' }], stream: false, keep_alive: -1, options: { num_predict: 1, num_ctx: system.getRecommendedContext() } });
+          const rq = http.request({
+            hostname: '127.0.0.1', port: 11434, path: '/api/chat', method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
+          }, (r) => { r.on('data', () => {}); r.on('end', () => console.log(`[Aspen] Warmed ${label}: ${model}`)); });
+          rq.on('error', () => {});
+          rq.write(body); rq.end();
+        };
+        warmModel(activeModel, 'model');
+        // Pre-warm a co-fitting installed coder too, so the FIRST coding turn never
+        // shows "Loading …". keep_alive:-1 keeps both pinned; MAX_LOADED_MODELS=3
+        // leaves room. Staggered so the chat model loads first.
+        (async () => {
+          try {
+            const modelRouter = require('./model-router');
+            const os = require('os');
+            const list = await modelRouter.installedModelsDetailed();
+            const coder = modelRouter.coderToWarm({ requested: activeModel, list, ramBytes: os.totalmem(), ctx: system.getRecommendedContext() });
+            if (coder && coder !== activeModel) setTimeout(() => warmModel(coder, 'coder'), 4000);
+          } catch {}
+        })();
         // Two-model setup: also pre-warm the coder the router would pick, so its
         // first coding turn never shows "Loading…". Both stay pinned (keep_alive:-1),
         // and MAX_LOADED_MODELS=3 leaves room. No-op when the chat model codes for

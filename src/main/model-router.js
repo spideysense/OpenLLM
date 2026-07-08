@@ -36,15 +36,33 @@ function isSelfSufficientCoder(name) {
 
 function decideCodingModel({ requested, text, list, ramBytes, ctx }) {
   if (isCoderName(requested)) return requested;            // already a coder
-  if (isSelfSufficientCoder(requested)) return requested;  // codes well itself — one model, no thrash
-  if (!CODING_RX.test(text || '')) return requested;       // not a coding turn
+  if (!CODING_RX.test(text || '')) return requested;       // not a coding turn → keep loaded model
+  // Coding turn: if the user installed a dedicated coder that co-fits alongside the
+  // chat model, route to it (both stay pinned in memory — no thrash). Installing a
+  // coder is an explicit opt-in, so it takes priority over "self-sufficient".
   const coders = (list || []).filter((m) => isCoderName(m.name)).sort((a, b) => (b.size || 0) - (a.size || 0));
-  if (!coders.length) return requested;                    // no coder installed
+  if (coders.length) {
+    const coder = coders[0];
+    const chatSize = modelSizeFromList(list, requested);
+    const kvPer = Math.max(1.5e9, ((ctx || 16384) / 16384) * 6e9); // rough KV per model
+    const coFits = chatSize > 0 && (chatSize + (coder.size || 0) + 2 * kvPer) <= ramBytes * 0.88;
+    if (coFits) return coder.name;                         // co-fit → route + pin both
+  }
+  if (isSelfSufficientCoder(requested)) return requested;  // no co-fitting coder; base codes well itself
+  return requested;
+}
+
+// Which coder (if any) should be pre-warmed at startup so a coding turn never
+// cold-loads. Same co-fit logic, but ignores the per-turn text (we warm ahead).
+function coderToWarm({ requested, list, ramBytes, ctx }) {
+  if (isCoderName(requested)) return null;
+  const coders = (list || []).filter((m) => isCoderName(m.name)).sort((a, b) => (b.size || 0) - (a.size || 0));
+  if (!coders.length) return null;
   const coder = coders[0];
   const chatSize = modelSizeFromList(list, requested);
-  const kvPer = Math.max(1.5e9, ((ctx || 16384) / 16384) * 6e9); // rough KV per model
+  const kvPer = Math.max(1.5e9, ((ctx || 16384) / 16384) * 6e9);
   const coFits = chatSize > 0 && (chatSize + (coder.size || 0) + 2 * kvPer) <= ramBytes * 0.88;
-  return coFits ? coder.name : requested;                  // co-fit → pin both & route; else stay put
+  return coFits ? coder.name : null;
 }
 
 // Pure decision (unit-tested): when a coder model is requested for a NON-coding
@@ -109,4 +127,4 @@ async function routeModel(requested, messages) {
   }
 }
 
-module.exports = { CODING_RX, isCoderName, modelSizeFromList, decideCodingModel, decideChatModel, installedModelsDetailed, routeModel };
+module.exports = { CODING_RX, isCoderName, modelSizeFromList, decideCodingModel, coderToWarm, decideChatModel, installedModelsDetailed, routeModel };

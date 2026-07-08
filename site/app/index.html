@@ -151,6 +151,7 @@ body:not(.is-mobile) .chat-header{display:none}
 @media(max-width:480px){.msg-row{padding:.18rem .75rem}.msg-bubble{max-width:90%;font-size:.88rem;padding:.7rem .9rem}}
 .msg-row.user .msg-bubble{background:#F4F4F5;color:var(--bk);border-radius:18px;border-bottom-right-radius:6px}
 .msg-row.assistant .msg-bubble{background:transparent;color:var(--bk);border:none;box-shadow:none;padding:.1rem 0;max-width:100%;border-radius:0}
+.cloud-badge{display:inline-block;font-size:.68rem;font-weight:600;color:var(--gd);background:rgba(0,0,0,.04);border:1px solid var(--brd);border-radius:999px;padding:.12rem .55rem;margin-bottom:.5rem;letter-spacing:.02em}
 .msg-bubble p{margin-bottom:.55rem}.msg-bubble p:last-child{margin-bottom:0}
 .msg-bubble code{font-family:var(--mono);font-size:.8em;background:rgba(0,0,0,.06);padding:.1em .32em;border-radius:4px}
 .msg-row.user .msg-bubble code{background:rgba(255,255,255,.15)}
@@ -1198,7 +1199,7 @@ async function sendMessage(autoRespond){
       }
       throw new Error(e.error||`HTTP ${res.status}`);
     }
-    const reader=res.body.getReader(),decoder=new TextDecoder();let buf='';
+    let cloudFrom=null;const reader=res.body.getReader(),decoder=new TextDecoder();let buf='';
     while(true){
       const{done,value}=await reader.read();if(done)break;
       buf+=decoder.decode(value,{stream:true});
@@ -1213,7 +1214,9 @@ async function sendMessage(autoRespond){
           if(j.error){throw new Error(j.error);}
           // The gateway routes per-turn server-side and reports the model it
           // actually used — show the truth, not the dropdown selection.
-          if(j.aspen_model){modelFooter.textContent=String(j.aspen_model).split(':')[0];}
+          if(j.aspen_model){modelFooter.textContent=String(j.aspen_model).split(':')[0];
+            if(String(j.aspen_model).startsWith('cloud:')&&!cloudFrom){cloudFrom=String(j.aspen_model).split(':')[1]||'cloud';lockThinking(bubble,'⚡ Bursting to the cloud ('+cloudFrom+')…');}
+          }
           // Accumulate agent activity (reasoning + tool steps) as a visible trail
           if(j.aspen_status||j.aspen_tool){
             const msg=j.aspen_status||'';
@@ -1250,7 +1253,7 @@ async function sendMessage(autoRespond){
     }
   }
   stopThinking(bubble);
-  bubble.innerHTML=fullText?formatMessage(fullText):'<em style="color:var(--t3);font-size:.8rem">No response</em>';
+  bubble.innerHTML=(cloudFrom?'<span class="cloud-badge">⚡ answered via cloud · '+escHtml(cloudFrom)+'</span>':'')+(fullText?formatMessage(fullText):'<em style="color:var(--t3);font-size:.8rem">No response</em>');
   if(fullText){
     const c=chats[activeChatId];
     if(c){c.messages.push({role:'assistant',content:fullText});saveChats();extractFacts(c.messages.filter(m=>m.role==='user').slice(-1)[0]?.content||'',fullText)}
