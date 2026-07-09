@@ -597,48 +597,29 @@ const pairScreen=$('pair-screen'), appScreen=$('app-screen');
 const tunnelInput=$('tunnel-input'), apikeyInput=$('apikey-input'), connectBtn=$('connect-btn'), pairErr=$('pair-err');
 const sidebar=$('sidebar'), drawerOverlay=$('drawer-overlay');
 const chatList=$('chat-list'), newChatBtn=$('new-chat-btn'), headerNewBtn=$('header-new-btn');
-const missionListEl=$('mission-list');
-let activeMissionId=null, missionsCache=[];
+let missionsCache=[];
 
 async function fetchMissions(){
   if(!config?.tunnelUrl||config.tunnelUrl==='__TRIAL__')return;
+  let missions=[];
   try{
     const res=await fetch(config.tunnelUrl+'/missions',{headers:{'Authorization':'Bearer '+(config.apiKey||'')},signal:AbortSignal.timeout(8000)});
-    if(!res.ok)return;
-    const j=await res.json();missionsCache=(j.missions||[]);
-    renderMissions();
-    if(activeMissionId){const m=missionsCache.find(x=>x.id===activeMissionId);if(m)renderMissionView(m);}
-  }catch{}
-}
-function renderMissions(){
-  if(!missionListEl)return;
-  const active=missionsCache.filter(m=>m.status==='active');
-  const rest=missionsCache.filter(m=>m.status!=='active').slice(-3);
-  const show=[...active,...rest];
-  if(!show.length){missionListEl.innerHTML='';return;}
-  missionListEl.innerHTML='<div class="mission-head">⚡ Missions</div>'+show.map(m=>
-    `<div class="mission-item${m.id===activeMissionId?' active':''}" data-mid="${m.id}"><span class="mission-dot ${m.status}"></span><span class="mission-goal">${escHtml(m.goal)}</span><span class="mission-steps">${m.steps}</span></div>`
-  ).join('');
-  missionListEl.querySelectorAll('.mission-item').forEach(el=>el.onclick=()=>{
-    activeMissionId=el.dataset.mid;const m=missionsCache.find(x=>x.id===activeMissionId);
-    if(m)renderMissionView(m);renderMissions();
-  });
-}
-function renderMissionView(m){
-  if(chatMain)chatMain.classList.remove('empty');
-  const statusLabel={active:'Working…',done:'Done',blocked:'Blocked',stopped:'Stopped'}[m.status]||m.status;
-  const steps=(m.journal||[]);
-  const header=`<div style="max-width:720px;margin:0 auto;padding:1.2rem 1rem .4rem">
-    <div style="font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--t3)">Mission · ${escHtml(statusLabel)} · ${m.steps} steps</div>
-    <h2 style="font-size:1.25rem;margin:.35rem 0 .7rem;font-weight:600">${escHtml(m.goal)}</h2>
-    ${m.status==='active'?'<button class="mission-stop" style="font-size:.78rem;padding:.35rem .8rem;border:1px solid var(--brd);border-radius:8px;background:var(--wh);color:var(--bk);cursor:pointer">Stop mission</button>':''}
-  </div>`;
-  const body=steps.length
-    ? steps.map((s,i)=>`<div class="mission-step"><div class="mission-step-n">Step ${i+1}</div>${formatMessage(s)}</div>`).join('')
-    : '<div style="color:var(--t3);padding:1rem 0">No steps yet — the first one runs shortly.</div>';
-  messagesEl.innerHTML=header+`<div style="max-width:720px;margin:0 auto;padding:0 1rem 2rem">${body}</div>`;
-  const stopBtn=messagesEl.querySelector('.mission-stop');
-  if(stopBtn)stopBtn.onclick=async()=>{stopBtn.textContent='Stopping…';try{await fetch(config.tunnelUrl+'/missions/stop',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(config.apiKey||'')},body:JSON.stringify({id:m.id})});}catch{}setTimeout(fetchMissions,400);};
+    if(!res.ok)return;missions=(await res.json()).missions||[];missionsCache=missions;
+  }catch{return}
+  let listChanged=false,activeChanged=false;
+  for(const id of Object.keys(chats)){
+    const c=chats[id];if(!c.missionId)continue;
+    const mis=missions.find(m=>m.id===c.missionId);if(!mis)continue;
+    if(mis.status!==c.missionStatus){c.missionStatus=mis.status;listChanged=true;}
+    const journal=mis.journal||[];const shown=c.missionShown||0;
+    if(journal.length>shown){
+      for(let i=shown;i<journal.length;i++)c.messages.push({role:'assistant',content:journal[i]});
+      c.missionShown=journal.length;listChanged=true;
+      if(id===activeChatId)activeChanged=true;
+    }
+  }
+  if(listChanged){saveChats();renderChatList();}
+  if(activeChanged)renderMessages();
 }
 const messagesEl=$('messages'), emptyState=$('empty-state');
 const chatMain=document.querySelector('.chat-main');
@@ -955,13 +936,12 @@ document.addEventListener('keydown',(e)=>{
 headerNewBtn.addEventListener('click',()=>newChat());
 function newChat(){
   const id='c'+Date.now();chats[id]={id,title:'New chat',messages:[]};activeChatId=id;
-  activeMissionId=null;
   try{localStorage.setItem(ACTIVE_KEY,id)}catch{}
   saveChats();renderChatList();renderMessages();chatTitle.textContent='New chat';
   setTimeout(()=>inputBox.focus(),100);
 }
 function switchChat(id){
-  if(isStreaming)return;activeChatId=id;activeMissionId=null;try{localStorage.setItem(ACTIVE_KEY,id)}catch{}renderChatList();renderMessages();
+  if(isStreaming)return;activeChatId=id;try{localStorage.setItem(ACTIVE_KEY,id)}catch{}renderChatList();renderMessages();
   chatTitle.textContent=chats[id]?.title||'Chat';switchToChat();
 }
 function deleteChat(id,e){
@@ -972,14 +952,27 @@ function deleteChat(id,e){
 function saveChats(){const ids=Object.keys(chats);if(ids.length>40)ids.slice(0,ids.length-40).forEach(id=>delete chats[id]);localStorage.setItem(CHATS_KEY,JSON.stringify(chats))}
 function renderChatList(){
   chatList.innerHTML='';const ids=Object.keys(chats).reverse();if(!ids.length)return;
-  const lbl=document.createElement('div');lbl.className='chat-section-label';lbl.textContent='Recent';chatList.appendChild(lbl);
-  ids.forEach(id=>{
+  const dotColor={active:'#22c55e',done:'var(--t3)',blocked:'#ef4444',stopped:'var(--t4)'};
+  const mkItem=(id,isMission)=>{
     const btn=document.createElement('button');btn.className='chat-item'+(id===activeChatId?' active':'');
-    btn.innerHTML=`<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>${escHtml(chats[id].title)}</span><button class="chat-delete" title="Delete">×</button>`;
+    const icon=isMission
+      ? `<span style="width:7px;height:7px;border-radius:50%;flex-shrink:0;background:${dotColor[chats[id].missionStatus]||'#22c55e'}"></span>`
+      : `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
+    btn.innerHTML=`${icon}<span>${escHtml(chats[id].title)}</span><button class="chat-delete" title="Delete">×</button>`;
     btn.addEventListener('click',()=>switchChat(id));
     btn.querySelector('.chat-delete').addEventListener('click',e=>deleteChat(id,e));
     chatList.appendChild(btn);
-  });
+  };
+  const missionIds=ids.filter(id=>chats[id].missionId);
+  const chatIds=ids.filter(id=>!chats[id].missionId);
+  if(missionIds.length){
+    const ml=document.createElement('div');ml.className='chat-section-label';ml.textContent='⚡ Missions';chatList.appendChild(ml);
+    missionIds.forEach(id=>mkItem(id,true));
+  }
+  if(chatIds.length){
+    const lbl=document.createElement('div');lbl.className='chat-section-label';lbl.textContent='Recent';chatList.appendChild(lbl);
+    chatIds.forEach(id=>mkItem(id,false));
+  }
 }
 
 // Messages
@@ -1196,7 +1189,6 @@ function handleFileDrop(files){
 
 let pendingFollowUp=false;
 async function sendMessage(autoRespond){
-  if(activeMissionId){activeMissionId=null;renderMissions();}
   if(!autoRespond){
     const text=inputBox.value.trim();if(!text)return;
     const chat=chats[activeChatId];if(!chat)return;
@@ -1301,7 +1293,7 @@ async function sendMessage(autoRespond){
             fullText+=delta;bubble._fullText=fullText;
             // Keep the (now-finished) step trail collapsed above the answer
             const trail=bubble._steps&&bubble._steps.length?renderStepsHTML(bubble._steps,false):'';
-            bubble.innerHTML=trail+formatMessage(fullText)+'<span class="cursor"></span>';
+            bubble.innerHTML=trail+formatMessage(fullText);
             scrollToBottom();
           }
         }catch(err){if(err.message&&err.message!=='Unexpected end of JSON input'&&!d.startsWith('{')){/*surface real upstream errors*/}}
@@ -1318,7 +1310,13 @@ async function sendMessage(autoRespond){
   bubble.innerHTML=(cloudFrom?'<span class="cloud-badge">⚡ answered via cloud · '+escHtml(cloudFrom)+'</span>':'')+(fullText?formatMessage(fullText):'<em style="color:var(--t3);font-size:.8rem">No response</em>');
   if(fullText){
     const c=chats[activeChatId];
-    if(c){c.messages.push({role:'assistant',content:fullText});saveChats();extractFacts(c.messages.filter(m=>m.role==='user').slice(-1)[0]?.content||'',fullText)}
+    if(c){c.messages.push({role:'assistant',content:fullText});saveChats();extractFacts(c.messages.filter(m=>m.role==='user').slice(-1)[0]?.content||'',fullText)
+      // If this response started a background mission, THIS chat becomes the
+      // mission: it moves to the Missions section and keeps working on its own,
+      // while staying a normal chat you can talk in.
+      const _mid=/(?:\(ID:\s*|stop mission\s+)([a-z0-9]{5,})/i.exec(fullText);
+      if(_mid&&!c.missionId){c.missionId=_mid[1];c.missionShown=0;c.missionStatus='active';if(!c.title||c.title==='New chat'){c.title=(c.messages.find(m=>m.role==='user')?.content||'Mission').slice(0,42);}saveChats();renderChatList();fetchMissions();}
+    }
     if(bubble.parentNode)buildActions(bubble.parentNode,fullText);
     // Auto-open artifact panel if response contains HTML/SVG code
     const artMatch=fullText.match(/```(html|svg)\n?([\s\S]*?)```/);
@@ -1469,7 +1467,7 @@ async function sendVoiceMessage(text){
         const d=t.slice(6);if(d==='[DONE]')continue;
         try{
           const j=JSON.parse(d);const delta=j.choices&&j.choices[0]&&j.choices[0].delta&&j.choices[0].delta.content;
-          if(delta){fullText+=delta;sentBuf+=delta;bubble.innerHTML=formatMessage(fullText)+'<span class="cursor"></span>';scrollToBottom();trySpeakSentence();}
+          if(delta){fullText+=delta;sentBuf+=delta;bubble.innerHTML=formatMessage(fullText);scrollToBottom();trySpeakSentence();}
         }catch(e2){}
       }
     }
