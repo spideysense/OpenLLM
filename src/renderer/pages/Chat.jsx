@@ -28,6 +28,7 @@ export default function Chat() {
   // Live reasoning trail (status + tool steps) for the in-progress message.
   const [trail, setTrail] = useState([]);
   const trailRef = useRef([]);
+  const streamConvIdRef = useRef(null); // which conversation the live stream belongs to
   const [attachments, setAttachments] = useState([]); // { type: 'image'|'text', name, data, preview }
   const [isListening, setIsListening] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(false);
@@ -234,9 +235,10 @@ export default function Chat() {
         streamBufferRef.current = '';
         setStreamBuffer('');
 
+        const targetConvId = streamConvIdRef.current ?? activeConvo;
         setConversations((cs) =>
           cs.map((c) =>
-            c.id === activeConvo
+            c.id === targetConvId
               ? {
                   ...c,
                   messages: [...c.messages, { role: 'assistant', content: finalContent, trail: finishedTrail.length ? finishedTrail : undefined }],
@@ -245,6 +247,7 @@ export default function Chat() {
               : c
           )
         );
+        streamConvIdRef.current = null;
 
         if (voiceModeRef.current) {
           const sentences = tts.splitIntoSentences(finalContent);
@@ -304,6 +307,7 @@ export default function Chat() {
 
     setInput('');
     setAttachments([]);
+    streamConvIdRef.current = activeConvo;
     setIsStreaming(true);
     setStreamBuffer('');
     trailRef.current = [];
@@ -550,7 +554,7 @@ export default function Chat() {
         onScroll={(e) => { const el = e.target; setShowScrollBtn(el.scrollHeight - el.scrollTop - el.clientHeight > 200); }}
         style={dragOver ? { outline: '2px dashed var(--gold)', outlineOffset: -4, background: 'rgba(0,0,0,0.04)' } : {}}
       >
-        {messages.length === 0 && !streamBuffer && (
+        {messages.length === 0 && !(streamBuffer && streamConvIdRef.current === activeConvo) && (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 24px' }}>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>What can I help with?</div>
             <div style={{ fontSize: 13, color: 'var(--text-light)', marginBottom: 24, textAlign: 'center' }}>100% private — everything stays on your machine</div>
@@ -634,7 +638,7 @@ export default function Chat() {
           </div>
         ))}
 
-        {(isStreaming || streamBuffer) && (
+        {(isStreaming || streamBuffer) && streamConvIdRef.current === activeConvo && (
           <div className="chat-message assistant">
             <div className="chat-avatar"></div>
             <div className="chat-bubble">
