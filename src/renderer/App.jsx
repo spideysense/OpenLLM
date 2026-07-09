@@ -47,6 +47,8 @@ export default function App() {
   // Conversations live here (lifted from Chat) so the sidebar can own the list, Ollama-style.
   const [conversations, setConversations] = useState([{ id: 1, title: 'New Chat', messages: [] }]);
   const [activeConvo, setActiveConvo] = useState(1);
+  const [missions, setMissions] = useState([]);
+  const [viewingMissionId, setViewingMissionId] = useState(null);
   const saveTimer = useRef(null);
 
   useEffect(() => {
@@ -220,8 +222,18 @@ export default function App() {
     return () => clearTimeout(saveTimer.current);
   }, [bridge, conversations]);
 
+  useEffect(() => {
+    if (!bridge?.missions?.list) return;
+    let alive = true;
+    const pull = () => bridge.missions.list().then((m) => { if (alive) setMissions(Array.isArray(m) ? m : []); }).catch(() => {});
+    pull();
+    const t = setInterval(pull, 15000);
+    return () => { alive = false; clearInterval(t); };
+  }, [bridge]);
+
   const newConvo = useCallback(() => {
     const id = Date.now();
+    setViewingMissionId(null);
     setConversations((prev) => [...prev, { id, title: 'New Chat', messages: [] }]);
     setActiveConvo(id);
     setPage('chat');
@@ -255,6 +267,8 @@ export default function App() {
     isOnboarded, completeOnboarding,
     conversations, setConversations,
     activeConvo, setActiveConvo,
+    missions, setMissions,
+    viewingMissionId, setViewingMissionId,
     newConvo, deleteConvo,
   };
 

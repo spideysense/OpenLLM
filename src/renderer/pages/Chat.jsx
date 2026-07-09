@@ -20,7 +20,8 @@ function isVisionModel(modelName) {
 
 export default function Chat() {
   const { bridge, activeModel, selectModel, models, setPage, modelProfile,
-    conversations, setConversations, activeConvo, setActiveConvo, newConvo, deleteConvo } = useApp();
+    conversations, setConversations, activeConvo, setActiveConvo, newConvo, deleteConvo,
+    missions, viewingMissionId, setViewingMissionId } = useApp();
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamBuffer, setStreamBuffer] = useState('');
@@ -307,6 +308,7 @@ export default function Chat() {
 
     setInput('');
     setAttachments([]);
+    setViewingMissionId(null);
     streamConvIdRef.current = activeConvo;
     setIsStreaming(true);
     setStreamBuffer('');
@@ -554,7 +556,29 @@ export default function Chat() {
         onScroll={(e) => { const el = e.target; setShowScrollBtn(el.scrollHeight - el.scrollTop - el.clientHeight > 200); }}
         style={dragOver ? { outline: '2px dashed var(--gold)', outlineOffset: -4, background: 'rgba(0,0,0,0.04)' } : {}}
       >
-        {messages.length === 0 && !(streamBuffer && streamConvIdRef.current === activeConvo) && (
+        {viewingMissionId && (() => {
+          const m = (missions || []).find((x) => x.id === viewingMissionId);
+          if (!m) return <div style={{ padding: 24, color: 'var(--text-light)' }}>Mission not found.</div>;
+          const journal = m.journal || [];
+          const label = { active: 'Working…', done: 'Done', blocked: 'Blocked', stopped: 'Stopped' }[m.status] || m.status;
+          return (
+            <div style={{ maxWidth: 720, margin: '0 auto', padding: '1.5rem 1rem 3rem' }}>
+              <div style={{ fontSize: 11, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--text-light)' }}>Mission · {label} · {m.steps} steps</div>
+              <h2 style={{ fontSize: '1.35rem', margin: '.4rem 0 1rem', fontWeight: 600 }}>{m.goal}</h2>
+              {m.status === 'active' && (
+                <button onClick={() => bridge?.missions?.stop(m.id)} style={{ fontSize: 12, padding: '5px 12px', border: '1px solid rgba(0,0,0,.12)', borderRadius: 8, background: 'transparent', cursor: 'pointer', marginBottom: 20 }}>Stop mission</button>
+              )}
+              {journal.length ? journal.map((s, i) => (
+                <div key={i} style={{ padding: '14px 0', borderBottom: '1px solid rgba(0,0,0,.06)', whiteSpace: 'pre-wrap', lineHeight: 1.6, fontSize: 14 }}>
+                  <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--text-light)', marginBottom: 4 }}>Step {i + 1}</div>
+                  {String(s)}
+                </div>
+              )) : <div style={{ color: 'var(--text-light)', padding: '1rem 0' }}>Getting started — the first update appears here shortly.</div>}
+            </div>
+          );
+        })()}
+
+        {!viewingMissionId && messages.length === 0 && !(streamBuffer && streamConvIdRef.current === activeConvo) && (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 24px' }}>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>What can I help with?</div>
             <div style={{ fontSize: 13, color: 'var(--text-light)', marginBottom: 24, textAlign: 'center' }}>100% private — everything stays on your machine</div>
@@ -608,7 +632,7 @@ export default function Chat() {
           </div>
         )}
 
-        {messages.map((msg, i) => (
+        {!viewingMissionId && messages.map((msg, i) => (
           <div key={i} className={`chat-message ${msg.role}`}>
             <div className="chat-avatar">{msg.role === 'assistant' ? '' : ''}</div>
             <div className="chat-bubble">
@@ -638,7 +662,7 @@ export default function Chat() {
           </div>
         ))}
 
-        {(isStreaming || streamBuffer) && streamConvIdRef.current === activeConvo && (
+        {!viewingMissionId && (isStreaming || streamBuffer) && streamConvIdRef.current === activeConvo && (
           <div className="chat-message assistant">
             <div className="chat-avatar"></div>
             <div className="chat-bubble">
