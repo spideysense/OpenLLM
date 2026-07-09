@@ -108,6 +108,21 @@ body.is-mobile .chat-delete{opacity:.4!important}
 .sb-nav-item svg{flex-shrink:0;opacity:.5}
 .sb-nav-item.active svg{opacity:.8}
 .chat-list{flex:1;overflow-y:auto;padding:.4rem .6rem;-webkit-overflow-scrolling:touch}
+.mission-list{padding:0 .6rem;flex-shrink:0}
+.mission-list:empty{display:none}
+.mission-head{font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;color:var(--t4);padding:.5rem .4rem .25rem;display:flex;align-items:center;gap:.35rem}
+.mission-item{padding:.4rem .5rem;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:.45rem;font-size:.82rem;color:var(--bk)}
+.mission-item:hover{background:rgba(0,0,0,.04)}
+.mission-item.active{background:rgba(0,0,0,.06)}
+.mission-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.mission-dot.active{background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.15)}
+.mission-dot.done{background:var(--t3)}
+.mission-dot.blocked{background:#ef4444}
+.mission-dot.stopped{background:var(--t4)}
+.mission-goal{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.mission-steps{font-size:.68rem;color:var(--t3)}
+.mission-step{padding:.9rem 0;border-bottom:1px solid var(--brd)}
+.mission-step-n{font-size:.68rem;letter-spacing:.05em;text-transform:uppercase;color:var(--t3);margin-bottom:.3rem}
 .chat-list::-webkit-scrollbar{display:none}
 .chat-item{padding:.5rem .7rem;border-radius:8px;font-size:.78rem;color:var(--t2);cursor:pointer;display:flex;align-items:center;gap:.45rem;transition:background .15s;white-space:nowrap;overflow:hidden;margin-bottom:2px;border:none;background:transparent;font-family:var(--san);width:100%;text-align:left;-webkit-appearance:none;min-height:36px}
 .chat-item:active{background:rgba(0,0,0,.05)}
@@ -425,6 +440,7 @@ select.settings-select{font-family:var(--san);font-size:.84rem;color:var(--bk);b
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Settings
         </button>
       </div>
+      <div class="mission-list" id="mission-list"></div>
       <div class="chat-list" id="chat-list"></div>
       <div class="sidebar-footer">
         <div class="status-dot"><span class="dot checking" id="status-dot"></span><span id="status-text">Connecting…</span></div>
@@ -581,6 +597,49 @@ const pairScreen=$('pair-screen'), appScreen=$('app-screen');
 const tunnelInput=$('tunnel-input'), apikeyInput=$('apikey-input'), connectBtn=$('connect-btn'), pairErr=$('pair-err');
 const sidebar=$('sidebar'), drawerOverlay=$('drawer-overlay');
 const chatList=$('chat-list'), newChatBtn=$('new-chat-btn'), headerNewBtn=$('header-new-btn');
+const missionListEl=$('mission-list');
+let activeMissionId=null, missionsCache=[];
+
+async function fetchMissions(){
+  if(!config?.tunnelUrl||config.tunnelUrl==='__TRIAL__')return;
+  try{
+    const res=await fetch(config.tunnelUrl+'/missions',{headers:{'Authorization':'Bearer '+(config.apiKey||'')},signal:AbortSignal.timeout(8000)});
+    if(!res.ok)return;
+    const j=await res.json();missionsCache=(j.missions||[]);
+    renderMissions();
+    if(activeMissionId){const m=missionsCache.find(x=>x.id===activeMissionId);if(m)renderMissionView(m);}
+  }catch{}
+}
+function renderMissions(){
+  if(!missionListEl)return;
+  const active=missionsCache.filter(m=>m.status==='active');
+  const rest=missionsCache.filter(m=>m.status!=='active').slice(-3);
+  const show=[...active,...rest];
+  if(!show.length){missionListEl.innerHTML='';return;}
+  missionListEl.innerHTML='<div class="mission-head">⚡ Missions</div>'+show.map(m=>
+    `<div class="mission-item${m.id===activeMissionId?' active':''}" data-mid="${m.id}"><span class="mission-dot ${m.status}"></span><span class="mission-goal">${escHtml(m.goal)}</span><span class="mission-steps">${m.steps}</span></div>`
+  ).join('');
+  missionListEl.querySelectorAll('.mission-item').forEach(el=>el.onclick=()=>{
+    activeMissionId=el.dataset.mid;const m=missionsCache.find(x=>x.id===activeMissionId);
+    if(m)renderMissionView(m);renderMissions();
+  });
+}
+function renderMissionView(m){
+  if(chatMain)chatMain.classList.remove('empty');
+  const statusLabel={active:'Working…',done:'Done',blocked:'Blocked',stopped:'Stopped'}[m.status]||m.status;
+  const steps=(m.journal||[]);
+  const header=`<div style="max-width:720px;margin:0 auto;padding:1.2rem 1rem .4rem">
+    <div style="font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--t3)">Mission · ${escHtml(statusLabel)} · ${m.steps} steps</div>
+    <h2 style="font-size:1.25rem;margin:.35rem 0 .7rem;font-weight:600">${escHtml(m.goal)}</h2>
+    ${m.status==='active'?'<button class="mission-stop" style="font-size:.78rem;padding:.35rem .8rem;border:1px solid var(--brd);border-radius:8px;background:var(--wh);color:var(--bk);cursor:pointer">Stop mission</button>':''}
+  </div>`;
+  const body=steps.length
+    ? steps.map((s,i)=>`<div class="mission-step"><div class="mission-step-n">Step ${i+1}</div>${formatMessage(s)}</div>`).join('')
+    : '<div style="color:var(--t3);padding:1rem 0">No steps yet — the first one runs shortly.</div>';
+  messagesEl.innerHTML=header+`<div style="max-width:720px;margin:0 auto;padding:0 1rem 2rem">${body}</div>`;
+  const stopBtn=messagesEl.querySelector('.mission-stop');
+  if(stopBtn)stopBtn.onclick=async()=>{stopBtn.textContent='Stopping…';try{await fetch(config.tunnelUrl+'/missions/stop',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(config.apiKey||'')},body:JSON.stringify({id:m.id})});}catch{}setTimeout(fetchMissions,400);};
+}
 const messagesEl=$('messages'), emptyState=$('empty-state');
 const chatMain=document.querySelector('.chat-main');
 
@@ -770,6 +829,7 @@ function showApp(){
   if(savedId&&chats[savedId]){activeChatId=savedId;renderChatList();renderMessages();chatTitle.textContent=chats[savedId].title||'New chat';}
   else if(ids.length){activeChatId=ids[ids.length-1];renderChatList();renderMessages();chatTitle.textContent=chats[activeChatId].title||'New chat';}
   else{newChat();}
+  fetchMissions();setInterval(fetchMissions,20000);
   loadModels();startStatusCheck();
   // Show memory button for connected users (not trial)
   if(!trialMode)$('memory-btn').style.display='inline-block';
@@ -895,12 +955,13 @@ document.addEventListener('keydown',(e)=>{
 headerNewBtn.addEventListener('click',()=>newChat());
 function newChat(){
   const id='c'+Date.now();chats[id]={id,title:'New chat',messages:[]};activeChatId=id;
+  activeMissionId=null;
   try{localStorage.setItem(ACTIVE_KEY,id)}catch{}
   saveChats();renderChatList();renderMessages();chatTitle.textContent='New chat';
   setTimeout(()=>inputBox.focus(),100);
 }
 function switchChat(id){
-  if(isStreaming)return;activeChatId=id;try{localStorage.setItem(ACTIVE_KEY,id)}catch{}renderChatList();renderMessages();
+  if(isStreaming)return;activeChatId=id;activeMissionId=null;try{localStorage.setItem(ACTIVE_KEY,id)}catch{}renderChatList();renderMessages();
   chatTitle.textContent=chats[id]?.title||'Chat';switchToChat();
 }
 function deleteChat(id,e){
@@ -1135,6 +1196,7 @@ function handleFileDrop(files){
 
 let pendingFollowUp=false;
 async function sendMessage(autoRespond){
+  if(activeMissionId){activeMissionId=null;renderMissions();}
   if(!autoRespond){
     const text=inputBox.value.trim();if(!text)return;
     const chat=chats[activeChatId];if(!chat)return;

@@ -177,6 +177,30 @@ function start() {
     }
 
     // ── World Model (owner-only — not accessible by shared/demo keys) ──
+    // ── Background missions (for the in-chat missions view) ──
+    if (req.url === '/missions' && req.method === 'GET') {
+      if (!apikeys.isOwnerKey(authToken)) { res.writeHead(403, { 'Content-Type': 'application/json' }); res.end('{"error":"owner only"}'); return; }
+      try {
+        const missions = require('./always-on').load();
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ missions }));
+      } catch { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end('{"missions":[]}'); }
+      return;
+    }
+    if (req.url === '/missions/stop' && req.method === 'POST') {
+      if (!apikeys.isOwnerKey(authToken)) { res.writeHead(403, { 'Content-Type': 'application/json' }); res.end('{"error":"owner only"}'); return; }
+      let b = ''; req.on('data', (c) => (b += c));
+      req.on('end', () => {
+        try {
+          const { id } = JSON.parse(b || '{}');
+          const ao = require('./always-on');
+          if (String(id).toLowerCase() === 'all') ao.stopAll(); else ao.stop(id);
+          res.writeHead(200, { 'Content-Type': 'application/json' }); res.end('{"ok":true}');
+        } catch { res.writeHead(400, { 'Content-Type': 'application/json' }); res.end('{"error":"bad request"}'); }
+      });
+      return;
+    }
+
     if (req.url === '/world-model' && req.method === 'GET') {
       if (!apikeys.isOwnerKey(authToken)) {
         res.writeHead(403, { 'Content-Type': 'application/json' });
