@@ -944,6 +944,33 @@ Do NOT write code or a code block for casual, personal, or emotional messages ("
 // bare <figure>/<svg>/<img> the model forgot to fence still renders as an
 // artifact on every client. Non-content events pass straight through.
 async function* run(args) {
+  // Deterministic "publish this": if the latest user message is a short publish/
+  // ship command and there's an HTML page earlier in the conversation, publish it
+  // directly — the model never gets to ask "which thing?" or wander into memory.
+  const _msgs = args.messages || [];
+  const _lastUser = [..._msgs].reverse().find((m) => m.role === 'user');
+  const _u = String(_lastUser?.content || '').trim();
+  const _wantsGit = /\bgit\b|\brepo\b|\bgithub\b/i.test(_u);
+  const _isPublishCmd = _u.length <= 60 && !_wantsGit && (
+    /^(publish|ship it|ship|deploy)[\s.!?]*$/i.test(_u)
+    || /\b(put (?:this|it) online|make (?:this|it) live)\b/i.test(_u)
+    || /\b(publish|ship|deploy)\b[\s\S]*\b(this|it)\b/i.test(_u)
+  );
+  if (args.isOwner && _isPublishCmd) {
+    const html = lastHtmlArtifact(_msgs);
+    if (html) {
+      yield { type: 'status', text: 'Publishing…', transient: true };
+      try {
+        const out = await executeAnyTool('publish_app', { html }, true);
+        yield { type: 'content', text: typeof out === 'string' ? out : (out?.content || 'Published.') };
+      } catch (e) {
+        yield { type: 'content', text: 'Could not publish: ' + e.message };
+      }
+      yield { type: 'done' };
+      return;
+    }
+  }
+
   const fz = makeArtifactFencer();
   for await (const ev of runRaw(args)) {
     if (ev.type === 'content') {
