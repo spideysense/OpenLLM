@@ -90,7 +90,7 @@ async function runStep(mission) {
   const model = _deps.getActiveModel();
   const messages = [{ role: 'user', content: buildPrompt(mission) }];
   let out = '';
-  for await (const ev of _deps.runAgent({ model, messages, isOwner: true })) {
+  for await (const ev of _deps.runAgent({ model, messages, isOwner: true, background: true })) {
     if (ev.type === 'content') out += ev.text;
   }
   return out.trim() || '(no output this step)';

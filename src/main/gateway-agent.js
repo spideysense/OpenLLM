@@ -716,7 +716,13 @@ async function* runRaw({ model, messages, isOwner = false, memoryKeyId = null, a
   const chatTier = capProfile && capProfile.tier === 'chat';
   const memPrefix = worldModel.getSystemPrefix(memoryKeyId);
 
-  const toolDefs = (supportsTools && !chatTier) ? getToolDefs(isOwner, allowedTools, allowComputerUse) : [];
+  let toolDefs = (supportsTools && !chatTier) ? getToolDefs(isOwner, allowedTools, allowComputerUse) : [];
+  // A background mission STEP must never start/stop missions (that recurses — a
+  // mission spawning missions). Remove those tools when running a step.
+  if (args.background) {
+    const MISSION_TOOLS = new Set(['start_mission', 'mission_status', 'stop_mission']);
+    toolDefs = toolDefs.filter((t) => !MISSION_TOOLS.has(t.function?.name));
+  }
 
   // ─── NO-TOOLS FAST PATH ───
   // Chat-tier / tool-incompatible / small models can't use tools, so stream
@@ -958,7 +964,7 @@ async function* run(args) {
     || /\b(put (?:this|it) online|make (?:this|it) live)\b/i.test(_u)
     || /\b(publish|ship|deploy)\b[\s\S]*\b(this|it)\b/i.test(_u)
   );
-  if (args.isOwner && _isPublishCmd) {
+  if (args.isOwner && !args.background && _isPublishCmd) {
     const html = lastHtmlArtifact(_msgs);
     if (html) {
       yield { type: 'status', text: 'Publishing…', transient: true };
@@ -977,7 +983,7 @@ async function* run(args) {
   // stop / in the background" request starts a real mission, so it runs
   // continuously instead of the model just doing one inline turn and stopping.
   const CONTINUE_RX = /\b(keep (?:going|at it|working)|work on (?:this|it) (?:continuously|in the background)|(?:until|till)\b[\s\S]{0,30}\b(?:solved|solve it|done|finished|figured out|cracked|crack it)|don'?t stop|never stop|24[\/\-]?7|around the clock|in the background)\b/i;
-  if (args.isOwner && _u.length > 15 && CONTINUE_RX.test(_u) && !/^(mission|stop mission|status\b)/i.test(_u)) {
+  if (args.isOwner && !args.background && _u.length > 15 && CONTINUE_RX.test(_u) && !/^(mission|stop mission|status\b)/i.test(_u)) {
     try {
       const ao = require('./always-on');
       const goal = _u.replace(/[.\s]*(?:and\s+)?(?:please\s+)?(?:keep (?:going|at it|working)|don'?t stop|never stop|(?:until|till)\b[\s\S]*)$/i, '').trim() || _u;
