@@ -24,7 +24,17 @@ function persist(m) { try { store.set(KEY, m); } catch {} }
 
 function init(deps) {
   _deps = deps;
+  purgeBogus();
   if (load().some((m) => m.status === 'active')) ensureScheduler();
+}
+
+// Remove the junk missions the old recursion bug created (their goal is the
+// engine's own step prompt). Also collapses accidental duplicates of a goal.
+const BOGUS_RX = /^\s*You are working autonomously/i;
+function purgeBogus() {
+  const m = load();
+  const clean = m.filter((x) => !BOGUS_RX.test(String(x.goal || '')));
+  if (clean.length !== m.length) persist(clean);
 }
 
 function ensureScheduler() {
@@ -36,6 +46,7 @@ function ensureScheduler() {
 function start(goal, { maxSteps = DEFAULT_MAX_STEPS, intervalMs = MIN_INTERVAL_MS } = {}) {
   const g = String(goal || '').trim();
   if (!g) return { error: 'A mission needs a goal.' };
+  if (BOGUS_RX.test(g)) return { error: 'Invalid mission goal.' };
   const missions = load();
   const active = missions.filter((m) => m.status === 'active').length;
   if (active >= 3) return { error: 'Already running 3 missions. Stop one first.' };
