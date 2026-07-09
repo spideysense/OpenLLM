@@ -973,6 +973,23 @@ async function* run(args) {
     }
   }
 
+  // Deterministic background mission: a "keep going / 24-7 / until solved / don't
+  // stop / in the background" request starts a real mission, so it runs
+  // continuously instead of the model just doing one inline turn and stopping.
+  const CONTINUE_RX = /\b(keep (?:going|at it|working)|work on (?:this|it) (?:continuously|in the background)|(?:until|till)\b[\s\S]{0,30}\b(?:solved|solve it|done|finished|figured out|cracked|crack it)|don'?t stop|never stop|24[\/\-]?7|around the clock|in the background)\b/i;
+  if (args.isOwner && _u.length > 15 && CONTINUE_RX.test(_u) && !/^(mission|stop mission|status\b)/i.test(_u)) {
+    try {
+      const ao = require('./always-on');
+      const goal = _u.replace(/[.\s]*(?:and\s+)?(?:please\s+)?(?:keep (?:going|at it|working)|don'?t stop|never stop|(?:until|till)\b[\s\S]*)$/i, '').trim() || _u;
+      const r = ao.start(goal);
+      if (r && !r.error) {
+        yield { type: 'content', text: `Started a background mission: "${r.goal}". I'll work on it step by step in the background — even after this chat. It'll show up under **Missions** in the sidebar; ask "mission status" anytime, or "stop mission ${r.id}" to end it.` };
+        yield { type: 'done' };
+        return;
+      }
+    } catch {}
+  }
+
   const fz = makeArtifactFencer();
   for await (const ev of runRaw(args)) {
     if (ev.type === 'content') {
