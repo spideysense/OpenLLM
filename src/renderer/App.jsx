@@ -220,6 +220,49 @@ export default function App() {
     return () => clearTimeout(saveTimer.current);
   }, [bridge, conversations]);
 
+  // Missions live IN the chat that started them: when a chat's reply announces a
+  // mission, link it, then stream each new background step into that same chat as
+  // a message. No separate missions list — the chat IS the mission.
+  useEffect(() => {
+    if (!bridge?.missions?.list) return;
+    let alive = true;
+    const poll = async () => {
+      let missions = [];
+      try { missions = await bridge.missions.list(); } catch { return; }
+      if (!alive || !Array.isArray(missions)) return;
+      setConversations((prev) => {
+        let changed = false;
+        const next = prev.map((c) => {
+          let conv = c;
+          if (!conv.missionId) {
+            const lastA = [...(conv.messages || [])].reverse().find((m) => m.role === 'assistant');
+            const mm = lastA && /(?:\(ID:\s*|stop mission\s+)([a-z0-9]{5,})/i.exec(lastA.content || '');
+            if (mm) { conv = { ...conv, missionId: mm[1], missionShown: 0 }; changed = true; }
+          }
+          if (conv.missionId) {
+            const mis = missions.find((x) => x.id === conv.missionId);
+            if (mis) {
+              const journal = mis.journal || [];
+              const shown = conv.missionShown || 0;
+              if (journal.length > shown) {
+                const add = journal.slice(shown).map((s, i) => ({ role: 'assistant', mission: true, content: `**Step ${shown + i + 1}**\n\n${s}` }));
+                conv = { ...conv, messages: [...(conv.messages || []), ...add], missionShown: journal.length, missionStatus: mis.status };
+                changed = true;
+              } else if (mis.status !== conv.missionStatus) {
+                conv = { ...conv, missionStatus: mis.status }; changed = true;
+              }
+            }
+          }
+          return conv;
+        });
+        return changed ? next : prev;
+      });
+    };
+    poll();
+    const t = setInterval(poll, 15000);
+    return () => { alive = false; clearInterval(t); };
+  }, [bridge]);
+
   const newConvo = useCallback(() => {
     const id = Date.now();
     setConversations((prev) => [...prev, { id, title: 'New Chat', messages: [] }]);
