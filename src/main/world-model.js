@@ -109,10 +109,16 @@ function getFacts(keyId) {
 /**
  * Build a system prompt prefix from a user's world model.
  */
+// Facts too sensitive to ever inject into the always-on prompt. A small model
+// will lead with whatever it sees, so mental-health / health / other private
+// topics are kept OUT of the background context entirely — the model can still
+// respond if the USER raises them in their message, it just won't volunteer them.
+const SENSITIVE_RX = /\b(depress|anxiet|suicid|self.?harm|mental[\s-]?health|therap|counsel|bipolar|schizo|ptsd|trauma|diagnos|cancer|illness|disease|chronic|disorder|medicat|addict|alcohol|rehab|divorc|breakup|grief|griev|miscarri|pregnan|abuse|fired|laid off|bankrupt|debt)/i;
+
 function getSystemPrefix(keyId) {
-  const facts = getFacts(keyId);
+  const facts = getFacts(keyId).filter((f) => !SENSITIVE_RX.test(String(f)));
   if (facts.length === 0) return '';
-  return `Here is what you know about the user from past conversations (use naturally, don't list back):\n${facts.map(f => `- ${f}`).join('\n')}\n\n`;
+  return `Background on the user from past chats — CONTEXT ONLY. Do NOT list these back, open a reply with them, or bring any of them up unless the user's current message is directly about that specific topic. Answer what the user actually asked, first and directly.\n${facts.map((f) => `- ${f}`).join('\n')}\n\n`;
 }
 
 /**
