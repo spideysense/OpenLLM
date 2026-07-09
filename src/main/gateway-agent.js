@@ -694,7 +694,7 @@ function lastHtmlArtifact(messages) {
   return null;
 }
 
-async function* runRaw({ model, messages, isOwner = false, memoryKeyId = null, allowComputerUse = false }) {
+async function* runRaw({ model, messages, isOwner = false, memoryKeyId = null, allowComputerUse = false, background = false }) {
   if (!model || !Array.isArray(messages) || messages.length === 0) {
     yield { type: 'error', text: 'model and messages are required' };
     return;
@@ -719,7 +719,7 @@ async function* runRaw({ model, messages, isOwner = false, memoryKeyId = null, a
   let toolDefs = (supportsTools && !chatTier) ? getToolDefs(isOwner, allowedTools, allowComputerUse) : [];
   // A background mission STEP must never start/stop missions (that recurses — a
   // mission spawning missions). Remove those tools when running a step.
-  if (args.background) {
+  if (background) {
     const MISSION_TOOLS = new Set(['start_mission', 'mission_status', 'stop_mission']);
     toolDefs = toolDefs.filter((t) => !MISSION_TOOLS.has(t.function?.name));
   }
