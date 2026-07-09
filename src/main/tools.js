@@ -920,6 +920,52 @@ const TOOLS = {
     },
     run: (a) => publishApp(a || {}),
   },
+  start_mission: {
+    definition: {
+      type: 'function',
+      function: {
+        name: 'start_mission',
+        description: "Start a long-running BACKGROUND mission that Aspen keeps working on 24/7, one step at a time, even after this chat ends — it journals progress and resumes across restarts. Use when the user says 'keep working on X', 'run this in the background', 'keep at it', 'work on this continuously/24-7'. Be honest that hard open problems (e.g. deciphering an unsolved manuscript) may never fully complete, but it will keep making and recording progress.",
+        parameters: {
+          type: 'object',
+          properties: {
+            goal: { type: 'string', description: 'The mission goal, e.g. "decipher the Voynich manuscript"' },
+            minutes: { type: 'number', description: 'Minutes between steps (default 3, minimum 1)' },
+          },
+          required: ['goal'],
+        },
+      },
+    },
+    run: (a) => {
+      const ao = require('./always-on');
+      const r = ao.start(a.goal, { intervalMs: Math.max(1, a.minutes || 3) * 60000 });
+      return r.error ? r.error : `Mission started (${r.id}). Aspen will keep working on "${r.goal}" in the background, step by step. Ask "mission status" anytime to see progress, or "stop mission ${r.id}" to end it.`;
+    },
+  },
+  mission_status: {
+    definition: {
+      type: 'function',
+      function: { name: 'mission_status', description: 'Report the status and latest progress of background missions.', parameters: { type: 'object', properties: {} } },
+    },
+    run: () => {
+      const ao = require('./always-on');
+      const s = ao.status();
+      if (!s.length) return 'No background missions right now.';
+      return s.map((m) => `• [${m.status}] ${m.goal} — ${m.steps} steps${m.lastStep ? `, last ${m.lastStep}` : ''}\n  Latest: ${(m.latest[m.latest.length - 1] || '(none yet)').slice(0, 400)}`).join('\n\n');
+    },
+  },
+  stop_mission: {
+    definition: {
+      type: 'function',
+      function: { name: 'stop_mission', description: 'Stop a background mission by id, or "all" to stop every mission.', parameters: { type: 'object', properties: { id: { type: 'string', description: 'Mission id, or "all"' } }, required: ['id'] } },
+    },
+    run: (a) => {
+      const ao = require('./always-on');
+      if (String(a.id).toLowerCase() === 'all') { ao.stopAll(); return 'All missions stopped.'; }
+      const r = ao.stop(a.id);
+      return r.stopped ? 'Mission stopped.' : 'No active mission with that id.';
+    },
+  },
   deep_research: {
     definition: {
       type: 'function',

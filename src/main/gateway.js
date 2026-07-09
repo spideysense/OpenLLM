@@ -591,6 +591,14 @@ function tryListen(port) {
           rq.write(body); rq.end();
         };
         warmModel(activeModel, 'model');
+        // Bring the always-on mission engine online: it can run background missions
+        // through the full agent (tools + owner), and resumes any active ones.
+        try {
+          require('./always-on').init({
+            runAgent: gatewayAgent.run,
+            getActiveModel: () => store.get('activeModel') || activeModel || 'llama3',
+          });
+        } catch {}
         // Pre-warm a co-fitting installed coder too, so the FIRST coding turn never
         // shows "Loading …". keep_alive:-1 keeps both pinned; MAX_LOADED_MODELS=3
         // leaves room. Staggered so the chat model loads first.

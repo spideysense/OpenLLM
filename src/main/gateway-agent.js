@@ -115,7 +115,7 @@ function messageNeedsTools(messages) {
 // Dangerous tools: owner key only.
 // ─────────────────────────────────────────────────────────────────────────────
 const SAFE_TOOLS = ['web_search', 'find_image', 'calculate', 'get_datetime', 'fetch_url', 'deep_research'];
-const DANGEROUS_TOOLS = ['run_command', 'download_file', 'git_clone', 'git_status', 'git_commit_push', 'git_create_repo', 'publish_app', 'computer_screenshot', 'computer_click', 'computer_type', 'computer_key', 'computer_scroll'];
+const DANGEROUS_TOOLS = ['run_command', 'download_file', 'git_clone', 'git_status', 'git_commit_push', 'git_create_repo', 'publish_app', 'start_mission', 'mission_status', 'stop_mission', 'computer_screenshot', 'computer_click', 'computer_type', 'computer_key', 'computer_scroll'];
 
 // Computer tool definitions in OpenAI/Ollama format (tools.js uses Anthropic
 // input_schema format for desktop; here we use the parameters format that
@@ -194,7 +194,7 @@ function getToolDefs(isOwner, allowed = null, allowComputer = false) {
   let names = isOwner ? [...SAFE_TOOLS, ...DANGEROUS_TOOLS] : [...SAFE_TOOLS];
   // Capability gate: drop any tool the model/machine can't reliably use.
   if (Array.isArray(allowed)) names = names.filter((n) => allowed.includes(n));
-  const builtins = tools.getToolDefinitions(names.filter(n => SAFE_TOOLS.includes(n) || n === 'run_command' || n === 'download_file' || n === 'publish_app' || n.startsWith('git_')));
+  const builtins = tools.getToolDefinitions(names.filter(n => SAFE_TOOLS.includes(n) || n === 'run_command' || n === 'download_file' || n === 'publish_app' || n === 'start_mission' || n === 'mission_status' || n === 'stop_mission' || n.startsWith('git_')));
   // Computer use (screenshot/click on THIS machine) is OFF unless explicitly opted in.
   // A remote phone/web chat must never get it: 'weather here' should search the web,
   // not screenshot the box and dump 6 MB into context.
@@ -801,7 +801,9 @@ SHIPPING APPS — make it effortless. When the user wants an app, page, site, to
 
 CRITICAL — "publish this" / "PUBLISH THIS" / "put this online" / "make it live" / "ship it": if you (or an earlier turn) generated HTML anywhere in THIS conversation, "this" ALWAYS means that generated page. Call publish_app IMMEDIATELY. Do NOT ask which thing to publish. Do NOT offer a numbered list of options. Do NOT mention anything from memory (past projects, webinars, unrelated work) — memory is background, never the target of "this". Do NOT paste the HTML again; publish_app reuses the page you just made. The ONLY correct response is to call publish_app and hand back the live link. If the user adds "to git" / "to a repo," use git_create_repo + git_commit_push on that same generated page instead; still never ask which thing.
 
-Only reach for the git_* tools if the user specifically asks for a GitHub repo; otherwise publish_app is the answer. Never make the user copy code or run commands just to see their app. NEVER tell the user you cannot code, cannot run things, or are "just a text-based model" — that is false. For multi-step jobs (download something then analyze it, scrape then summarize), call a tool, read the result, call the next, and keep going until it is done; you do not need permission between steps.
+Only reach for the git_* tools if the user specifically asks for a GitHub repo; otherwise publish_app is the answer. Never make the user copy code or run commands just to see their app.
+
+BACKGROUND MISSIONS — when the user wants something worked on continuously ("keep working on X", "keep at it", "run this 24/7", "work on this in the background", "decipher the Voynich manuscript and don't stop"), call start_mission with their goal. Aspen will then work it step by step in the background, on its own, even after this chat. Tell them it's running and that they can ask "mission status" or "stop mission" anytime. Be honest: for genuinely hard open problems it may never fully finish, but it will keep making and recording real progress. Use mission_status / stop_mission when they ask about or want to end a mission. NEVER tell the user you cannot code, cannot run things, or are "just a text-based model" — that is false. For multi-step jobs (download something then analyze it, scrape then summarize), call a tool, read the result, call the next, and keep going until it is done; you do not need permission between steps.
 
 SHOW IMAGES: You can display a real image to the user. When they ask to see, show, or display a picture, photo, scan, diagram, artwork, map, or "what does X look like", call find_image with a short description. It returns real, verified image URLs. find_image hands you a ready-made fenced code block. Output that block VERBATIM as your reply — keep the opening fence line (three backtick characters followed by html) and the closing fence line (three backtick characters) exactly as given. The fence is what makes it render; HTML pasted without the fence just shows as plain text and the user sees no image. NEVER invent, guess, or reuse a URL you did not get from find_image, and NEVER claim to have shown an image you did not actually retrieve. If find_image returns nothing usable, tell the user you could not find a real image.
 
