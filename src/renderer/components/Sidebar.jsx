@@ -10,6 +10,19 @@ export default function Sidebar() {
   const [searchQuery, setSearchQuery] = useState('');
   const [editingTitle, setEditingTitle] = useState(null);
   const [streak, setStreak] = useState(null);
+  const [missions, setMissions] = useState([]);
+  const [openMission, setOpenMission] = useState(null);
+
+  useEffect(() => {
+    if (!bridge?.missions?.list) return;
+    let alive = true;
+    const pull = () => bridge.missions.list().then((m) => { if (alive) setMissions(Array.isArray(m) ? m : []); }).catch(() => {});
+    pull();
+    const t = setInterval(pull, 20000);
+    return () => { alive = false; clearInterval(t); };
+  }, [bridge]);
+
+  const stopMission = (id) => { bridge?.missions?.stop(id).then(() => bridge.missions.list().then(setMissions)); };
 
   useEffect(() => {
     // Local-only usage counter written by the main process on launch. Read via
@@ -114,6 +127,51 @@ export default function Sidebar() {
           {item.label}
         </button>
       ))}
+
+      {(() => {
+        const shown = [...missions.filter((m) => m.status === 'active'), ...missions.filter((m) => m.status !== 'active').slice(-3)];
+        if (!shown.length) return null;
+        const dotColor = { active: '#22c55e', done: '#9A9AA0', blocked: '#ef4444', stopped: '#AEAEB2' };
+        return (
+          <div className="sidebar-chats" style={{ paddingBottom: 4 }}>
+            <div className="sidebar-chats-head"><span className="sidebar-chats-title">⚡ Missions</span></div>
+            <div>
+              {shown.map((m) => {
+                const open = openMission === m.id;
+                const journal = m.journal || [];
+                return (
+                  <div key={m.id} style={{ marginBottom: 2 }}>
+                    <div
+                      onClick={() => setOpenMission(open ? null : m.id)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 8px', borderRadius: 8, cursor: 'pointer', fontSize: 13 }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(0,0,0,.04)')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                    >
+                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: dotColor[m.status] || '#9A9AA0', flexShrink: 0 }} />
+                      <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={m.goal}>{m.goal}</span>
+                      <span style={{ fontSize: 11, color: 'var(--text-light, #9A9AA0)' }}>{m.steps}</span>
+                    </div>
+                    {open && (
+                      <div style={{ padding: '4px 10px 10px', fontSize: 12, color: 'var(--text-light, #6E6E73)', lineHeight: 1.5 }}>
+                        <div style={{ marginBottom: 6, textTransform: 'uppercase', letterSpacing: '.04em', fontSize: 10, opacity: .7 }}>{m.status} · {m.steps} steps</div>
+                        {journal.length ? journal.slice(-4).map((s, i) => (
+                          <div key={i} style={{ marginBottom: 8, paddingBottom: 8, borderBottom: '1px solid rgba(0,0,0,.06)' }}>
+                            <div style={{ fontSize: 10, opacity: .6, marginBottom: 2 }}>Step {journal.length - Math.min(4, journal.length) + i + 1}</div>
+                            {String(s).slice(0, 500)}
+                          </div>
+                        )) : <div style={{ opacity: .6 }}>No steps yet — the first runs shortly.</div>}
+                        {m.status === 'active' && (
+                          <button onClick={(e) => { e.stopPropagation(); stopMission(m.id); }} style={{ fontSize: 11, padding: '3px 9px', border: '1px solid rgba(0,0,0,.12)', borderRadius: 7, background: 'transparent', cursor: 'pointer', marginTop: 4 }}>Stop</button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
       <div className="sidebar-chats">
         <div className="sidebar-chats-head">

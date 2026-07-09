@@ -655,6 +655,17 @@ ipcMain.handle('store:get', async (event, key) => {
   return store.get(key);
 });
 
+ipcMain.handle('missions:list', async () => {
+  try { return require('./always-on').load(); } catch { return []; }
+});
+ipcMain.handle('missions:stop', async (event, id) => {
+  try {
+    const ao = require('./always-on');
+    if (String(id).toLowerCase() === 'all') ao.stopAll(); else ao.stop(id);
+    return true;
+  } catch { return false; }
+});
+
 ipcMain.handle('store:set', async (event, key, value) => {
   if (!STORE_ALLOWLIST.has(key)) {
     console.warn('[Security] Blocked store:set for non-allowlisted key:', key);
