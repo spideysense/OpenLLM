@@ -983,11 +983,7 @@ async function* run(args) {
   // stop / in the background" request starts a real mission, so it runs
   // continuously instead of the model just doing one inline turn and stopping.
   const CONTINUE_RX = /\b(keep (?:going|at it|working)|work on (?:this|it) (?:continuously|in the background)|(?:until|till)\b[\s\S]{0,30}\b(?:solved|solve it|done|finished|figured out|cracked|crack it)|don'?t stop|never stop|24[\/\-]?7|around the clock|in the background)\b/i;
-  // Mission start accepts any validated key (owner or web-app non-owner), matching
-  // the relaxed GET /missions + POST /missions/stop. Note: once started, missions
-  // run with owner tool access via always-on.js (isOwner:true). The background
-  // guard prevents a mission step from recursively spawning missions.
-  if (!args.background && _u.length > 15 && CONTINUE_RX.test(_u) && !/^(mission|stop mission|status\b)/i.test(_u)) {
+  if (args.isOwner && !args.background && _u.length > 15 && CONTINUE_RX.test(_u) && !/^(mission|stop mission|status\b)/i.test(_u)) {
     try {
       const ao = require('./always-on');
       const goal = _u.replace(/[.\s]*(?:and\s+)?(?:please\s+)?(?:keep (?:going|at it|working)|don'?t stop|never stop|(?:until|till)\b[\s\S]*)$/i, '').trim() || _u;
