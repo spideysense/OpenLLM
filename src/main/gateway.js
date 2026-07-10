@@ -179,7 +179,7 @@ function start() {
     // ── World Model (owner-only — not accessible by shared/demo keys) ──
     // ── Background missions (for the in-chat missions view) ──
     if (req.url === '/missions' && req.method === 'GET') {
-      if (!apikeys.isOwnerKey(authToken)) { res.writeHead(403, { 'Content-Type': 'application/json' }); res.end('{"error":"owner only"}'); return; }
+      if (!apikeys.validateKey(authToken)) { res.writeHead(403, { 'Content-Type': 'application/json' }); res.end('{"error":"invalid key"}'); return; }
       try {
         const missions = require('./always-on').load();
         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -188,7 +188,7 @@ function start() {
       return;
     }
     if (req.url === '/missions/stop' && req.method === 'POST') {
-      if (!apikeys.isOwnerKey(authToken)) { res.writeHead(403, { 'Content-Type': 'application/json' }); res.end('{"error":"owner only"}'); return; }
+      if (!apikeys.validateKey(authToken)) { res.writeHead(403, { 'Content-Type': 'application/json' }); res.end('{"error":"invalid key"}'); return; }
       let b = ''; req.on('data', (c) => (b += c));
       req.on('end', () => {
         try {
