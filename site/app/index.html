@@ -1229,7 +1229,7 @@ async function sendMessage(autoRespond){
   const bubble=appendMessage('assistant','',true);
   isStreaming=true;sendBtn.classList.add('hidden');stopBtn.classList.remove('hidden');sendBtn.disabled=true;
   const history=chat.messages.slice(-20).map(m=>(m.images&&m.images.length?{role:m.role,content:m.content,images:m.images.map(u=>String(u).replace(/^data:[^;]+;base64,/,""))}:{role:m.role,content:m.content}));
-  streamController=new AbortController();let fullText='';
+  streamController=new AbortController();let fullText='';let cloudFrom=null;
   try{
     const sys=worldModelSystemPrompt();
     const fullMsgs=sys?[{role:'system',content:sys},...history]:history;
@@ -1253,7 +1253,7 @@ async function sendMessage(autoRespond){
       }
       throw new Error(e.error||`HTTP ${res.status}`);
     }
-    let cloudFrom=null;const reader=res.body.getReader(),decoder=new TextDecoder();let buf='';
+    const reader=res.body.getReader(),decoder=new TextDecoder();let buf='';
     while(true){
       const{done,value}=await reader.read();if(done)break;
       buf+=decoder.decode(value,{stream:true});
