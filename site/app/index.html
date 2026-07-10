@@ -937,11 +937,11 @@ headerNewBtn.addEventListener('click',()=>newChat());
 function newChat(){
   const id='c'+Date.now();chats[id]={id,title:'New chat',messages:[]};activeChatId=id;
   try{localStorage.setItem(ACTIVE_KEY,id)}catch{}
-  saveChats();renderChatList();renderMessages();chatTitle.textContent='New chat';
+  saveChats();renderChatList();renderMessages();closeArtifactPanel();chatTitle.textContent='New chat';
   setTimeout(()=>inputBox.focus(),100);
 }
 function switchChat(id){
-  if(isStreaming)return;activeChatId=id;try{localStorage.setItem(ACTIVE_KEY,id)}catch{}renderChatList();renderMessages();
+  if(isStreaming)return;activeChatId=id;try{localStorage.setItem(ACTIVE_KEY,id)}catch{}renderChatList();renderMessages();closeArtifactPanel();
   chatTitle.textContent=chats[id]?.title||'Chat';switchToChat();
 }
 function deleteChat(id,e){
