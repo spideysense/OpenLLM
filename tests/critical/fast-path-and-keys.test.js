@@ -139,7 +139,7 @@ describe('Speed optimizations', () => {
   });
   it('gateway warms the model on start', () => {
     const src = fs.readFileSync(path.resolve('src/main/gateway.js'), 'utf8');
-    expect(src).toContain('Warmed model');
+    expect(src).toMatch(/warmModel\(activeModel/);
   });
 });
 

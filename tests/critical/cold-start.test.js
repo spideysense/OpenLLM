@@ -38,7 +38,7 @@ describe('Every chat path keeps the model resident (keep_alive:-1)', () => {
 describe('Warm triggers cover boot and model switch', () => {
   it('gateway warms the active model on startup', () => {
     expect(gateway).toMatch(/Warm the active model|Warmed model/);
-    const warmBlock = gateway.slice(gateway.indexOf('warmBody'), gateway.indexOf('warmBody') + 200);
+    const warmBlock = gateway.slice(gateway.indexOf('const warmModel ='), gateway.indexOf('const warmModel =') + 300);
     expect(warmBlock).toMatch(/keep_alive:\s*-1/);
   });
   it('ollama.js exports a reusable warmModel', () => {

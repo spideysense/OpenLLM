@@ -1011,7 +1011,7 @@ function lockThinking(bubble,txt){
 }
 function stopThinking(bubble){if(bubble&&bubble._thinkTimer){clearInterval(bubble._thinkTimer);bubble._thinkTimer=null;}}
 function appendMessage(role,content,stream=false,images){
-  emptyState.style.display='none';if(emptyState.parentNode===messagesEl)messagesEl.removeChild(emptyState);
+  emptyState.style.display='none';if(emptyState.parentNode===messagesEl)messagesEl.removeChild(emptyState);if(chatMain)chatMain.classList.remove('empty');
   const row=document.createElement('div');row.className=`msg-row ${role}`;
   const bubble=document.createElement('div');bubble.className='msg-bubble';
   if(stream&&role==='assistant'){row.appendChild(bubble);messagesEl.appendChild(row);startThinking(bubble);scrollToBottom();return bubble;}

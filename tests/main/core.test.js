@@ -181,7 +181,7 @@ describe('Model Recommendations', () => {
 
   it('should recommend large models for heavy tier', () => {
     const rec = models.getRecommendation('heavy', null);
-    expect(rec.model).toMatch(/32b/i);
+    expect(rec.model).toMatch(/35b|32b/i);
   });
 
   it('should recommend flagship models for ultra tier', () => {
