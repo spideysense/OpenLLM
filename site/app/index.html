@@ -941,7 +941,7 @@ function newChat(){
   setTimeout(()=>inputBox.focus(),100);
 }
 function switchChat(id){
-  if(isStreaming)return;activeChatId=id;try{localStorage.setItem(ACTIVE_KEY,id)}catch{}renderChatList();renderMessages();closeArtifactPanel();
+  activeChatId=id;try{localStorage.setItem(ACTIVE_KEY,id)}catch{}renderChatList();renderMessages();closeArtifactPanel();
   chatTitle.textContent=chats[id]?.title||'Chat';switchToChat();
 }
 function deleteChat(id,e){
@@ -956,7 +956,7 @@ function renderChatList(){
   const mkItem=(id,isMission)=>{
     const btn=document.createElement('button');btn.className='chat-item'+(id===activeChatId?' active':'');
     const icon=isMission
-      ? `<span style="width:7px;height:7px;border-radius:50%;flex-shrink:0;background:${dotColor[chats[id].missionStatus]||'#22c55e'}"></span>`
+      ? `<span style="width:7px;height:7px;border-radius:50%;flex:0 0 auto;background:${dotColor[chats[id].missionStatus]||'#22c55e'}"></span>`
       : `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
     btn.innerHTML=`${icon}<span>${escHtml(chats[id].title)}</span><button class="chat-delete" title="Delete">×</button>`;
     btn.addEventListener('click',()=>switchChat(id));
@@ -1224,6 +1224,7 @@ async function sendMessage(autoRespond){
   }
 
   const chat=chats[activeChatId];if(!chat)return;
+  const originId=activeChatId;
   const model=modelSelect.value||'llama3';
   stickToBottom=true;scrollToBottom(true);
   const bubble=appendMessage('assistant','',true);
@@ -1309,7 +1310,7 @@ async function sendMessage(autoRespond){
   stopThinking(bubble);
   bubble.innerHTML=(cloudFrom?'<span class="cloud-badge">⚡ answered via cloud · '+escHtml(cloudFrom)+'</span>':'')+(fullText?formatMessage(fullText):'<em style="color:var(--t3);font-size:.8rem">No response</em>');
   if(fullText){
-    const c=chats[activeChatId];
+    const c=chats[originId];
     if(c){c.messages.push({role:'assistant',content:fullText});saveChats();extractFacts(c.messages.filter(m=>m.role==='user').slice(-1)[0]?.content||'',fullText)
       // If this response started a background mission, THIS chat becomes the
       // mission: it moves to the Missions section and keeps working on its own,
@@ -1318,9 +1319,12 @@ async function sendMessage(autoRespond){
       if(_mid&&!c.missionId){c.missionId=_mid[1];c.missionShown=0;c.missionStatus='active';if(!c.title||c.title==='New chat'){c.title=(c.messages.find(m=>m.role==='user')?.content||'Mission').slice(0,42);}saveChats();renderChatList();fetchMissions();}
     }
     if(bubble.parentNode)buildActions(bubble.parentNode,fullText);
-    // Auto-open artifact panel if response contains HTML/SVG code
+    // Auto-open artifact panel only if still viewing the chat that produced it
     const artMatch=fullText.match(/```(html|svg)\n?([\s\S]*?)```/);
-    if(artMatch){openArtifactPanel(artMatch[2].replace(/\n+$/,''),artMatch[1]);}
+    if(artMatch&&activeChatId===originId){openArtifactPanel(artMatch[2].replace(/\n+$/,''),artMatch[1]);}
+    // If the user navigated back to the origin chat mid-stream, the live bubble
+    // was detached on switch — re-render so the finished reply shows.
+    if(activeChatId===originId&&!bubble.parentNode)renderMessages();
   }
   isStreaming=false;sendBtn.classList.remove('hidden');stopBtn.classList.add('hidden');sendBtn.disabled=false;streamController=null;inputBox.focus();
 }
