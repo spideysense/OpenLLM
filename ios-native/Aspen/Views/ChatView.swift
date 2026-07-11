@@ -121,8 +121,12 @@ struct ChatView: View {
                 .padding()
                 .animation(.spring(response: 0.35, dampingFraction: 0.8), value: vm.messages)
             }
+            .defaultScrollAnchor(.bottom)
             .scrollDismissesKeyboard(.interactively)
             .onChange(of: vm.messages.last?.content) { _, _ in
+                withAnimation(.easeOut(duration: 0.2)) { proxy.scrollTo(bottomID, anchor: .bottom) }
+            }
+            .onChange(of: vm.messages.count) { _, _ in
                 withAnimation(.easeOut(duration: 0.2)) { proxy.scrollTo(bottomID, anchor: .bottom) }
             }
         }
