@@ -11,6 +11,7 @@ struct ConnectView: View {
     @State private var key = ""
     @State private var connecting = false
     @State private var error = ""
+    @State private var showScanner = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -23,6 +24,23 @@ struct ConnectView: View {
             Text("Connect your Aspen").font(.system(size: 26, weight: .bold))
             Text("Run the big models on your own Mac or Aspen box. Your messages go only to your machine.")
                 .font(.subheadline).foregroundStyle(.secondary).padding(.top, 8)
+
+            Button {
+                showScanner = true
+            } label: {
+                HStack {
+                    Image(systemName: "qrcode.viewfinder")
+                    Text("Scan QR code").fontWeight(.semibold)
+                }
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity).padding(.vertical, 15)
+                .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 14))
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 24)
+
+            HStack { Rectangle().fill(Color(.separator)).frame(height: 1); Text("or enter manually").font(.caption).foregroundStyle(.secondary).fixedSize(); Rectangle().fill(Color(.separator)).frame(height: 1) }
+                .padding(.top, 20)
 
             VStack(spacing: 12) {
                 TextField("Address (e.g. https://xxxx.runonaspen.com)", text: $url)
@@ -61,6 +79,43 @@ struct ConnectView: View {
                 .frame(maxWidth: .infinity)
         }
         .padding(24)
+        .sheet(isPresented: $showScanner) {
+            QRScannerView(
+                onScan: { scanned in showScanner = false; handleScan(scanned) },
+                onCancel: { showScanner = false }
+            )
+            .ignoresSafeArea()
+            .overlay(alignment: .top) {
+                Button("Cancel") { showScanner = false }
+                    .padding(12).background(.ultraThinMaterial, in: Capsule()).padding(.top, 50)
+            }
+        }
+    }
+
+    /// Parse a pairing URL of the form https://runonaspen.com/app#tunnel=<enc>&key=<enc>
+    private func handleScan(_ s: String) {
+        guard let hashIdx = s.firstIndex(of: "#") else {
+            error = "That QR code isn’t an Aspen pairing code."
+            return
+        }
+        let frag = String(s[s.index(after: hashIdx)...])
+        var t: String?
+        var k = ""
+        for pair in frag.split(separator: "&") {
+            let kv = pair.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
+            guard kv.count == 2 else { continue }
+            let name = String(kv[0])
+            let val = String(kv[1]).removingPercentEncoding ?? String(kv[1])
+            if name == "tunnel" { t = val }
+            if name == "key" { k = val }
+        }
+        guard let tunnel = t, !tunnel.isEmpty else {
+            error = "That QR code isn’t an Aspen pairing code."
+            return
+        }
+        url = tunnel
+        key = k
+        Task { await connect() }
     }
 
     private func connect() async {

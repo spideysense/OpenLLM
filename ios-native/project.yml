@@ -50,6 +50,7 @@ targets:
         INFOPLIST_KEY_CFBundleDisplayName: Aspen
         INFOPLIST_KEY_NSMicrophoneUsageDescription: "Aspen uses the microphone for hands-free voice conversations with your local AI."
         INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: "Aspen transcribes your speech on-device so you can talk to your AI instead of typing."
+        INFOPLIST_KEY_NSCameraUsageDescription: "Aspen uses the camera to scan the pairing QR code from your Mac, so you can connect without typing."
         INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
         CODE_SIGN_STYLE: Automatic
         SWIFT_VERSION: "5.9"

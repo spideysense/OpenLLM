@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useApp } from '../App';
+import PairDeviceModal from '../components/PairDeviceModal';
 
 export default function APIKeys() {
   const { bridge, gatewayStatus } = useApp();
@@ -10,6 +11,7 @@ export default function APIKeys() {
   const [copied, setCopied] = useState(null);
   const [tunnelStatus, setTunnelStatus] = useState({ connected: false, url: null });
   const [newlyCreatedKey, setNewlyCreatedKey] = useState(null);
+  const [showPair, setShowPair] = useState(false);
 
   const loadKeys = useCallback(async () => {
     if (!bridge) return;
@@ -80,6 +82,11 @@ export default function APIKeys() {
       <div className="page-sub">
         Generate keys so your apps can talk to Aspen.
       </div>
+
+      {showPair && <PairDeviceModal bridge={bridge} onClose={() => setShowPair(false)} />}
+      <button onClick={() => setShowPair(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '4px 0 20px', border: 'none', background: 'var(--gd,#5B8C6E)', color: '#fff', borderRadius: 10, padding: '10px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+        📱 Add a phone or browser 2014 scan a QR
+      </button>
 
       {/* ── URL display ── */}
       <div style={{ marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
