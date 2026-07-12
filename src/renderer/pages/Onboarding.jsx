@@ -199,7 +199,7 @@ export default function Onboarding() {
 
           {error && (
             <div style={{ color: 'var(--danger)', marginBottom: 16, fontSize: 14 }}>
-              {error}
+              {typeof error === 'string' ? error : (error?.message || 'Something went wrong. Please try again.')}
               <br />
               <button className="btn btn-sm btn-secondary mt-2" onClick={handleDownload}>
                 Try Again

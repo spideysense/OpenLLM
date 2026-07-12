@@ -25,6 +25,7 @@ export default function Chat() {
     missions, viewingMissionId, setViewingMissionId } = useApp();
   const [input, setInput] = useState('');
   const [bgMode, setBgMode] = useState(false);
+  const [plusOpen, setPlusOpen] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamBuffer, setStreamBuffer] = useState('');
@@ -600,13 +601,10 @@ export default function Chat() {
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10, width: '100%', maxWidth: 500 }}>
               {[
-                { icon: '📸', label: 'Analyze a photo', prompt: 'I\'ll share a photo — please describe what you see and answer any questions about it.' },
                 { icon: '🎮', label: 'Build me an app', prompt: 'Build me a fun interactive web app — surprise me with something creative and visually polished!' },
+                { icon: '📸', label: 'Analyze a photo', prompt: 'I\'ll share a photo — please describe what you see and answer any questions about it.' },
                 { icon: '🔍', label: 'Research a topic', prompt: 'Research the latest developments in AI and give me a comprehensive summary with sources.' },
-                { icon: '🧑‍🏫', label: 'Teach me something', prompt: 'Teach me something fascinating I probably don\'t know — explain it simply with examples, like I\'m a curious beginner.' },
                 { icon: '💡', label: 'Brainstorm ideas', prompt: 'Help me brainstorm creative ideas. Ask me what topic or problem I\'m working on and then generate 10 unique approaches.' },
-                { icon: '🌐', label: 'Translate text', prompt: 'I\'ll share some text — please translate it. Ask me what language I want it in.' },
-                { icon: '👋', label: 'Get to know me', prompt: 'Let\'s get to know each other! Ask me 5 questions one at a time about myself — my name, what I do, where I live, my interests, and what I\'m working on. Wait for my answer before asking the next one. Be warm and conversational. At the end, summarize what you learned about me.' },
               ].map((card, i) => (
                 <button key={i} onClick={() => { setInput(card.prompt); setTimeout(() => inputRef.current?.focus(), 50); }}
                   style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px', border: '1.5px solid rgba(0,0,0,.1)', borderRadius: 12, background: 'var(--cloud, #fff)', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--text-dark)', textAlign: 'left', transition: 'all .15s' }}
@@ -846,44 +844,33 @@ export default function Chat() {
           onChange={handleFileSelect}
         />
 
-        {/* Attach button */}
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          disabled={!activeModel}
-          title="Attach file or image"
-          style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(0,0,0,.08)', border: '1.5px solid rgba(0,0,0,.1)', cursor: 'pointer', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, opacity: activeModel ? 1 : 0.4 }}
-        >
-          📎
-        </button>
-
-        {/* Voice button — tap for STT, long press / hold for full voice mode */}
-        {voiceSupported && (
+        {/* Single + menu: attach / voice / run in background */}
+        <div style={{ position: 'relative', flexShrink: 0 }}>
           <button
-            onClick={ttsDownloading ? undefined : (ttsReady ? enterVoiceMode : toggleVoice)}
-            disabled={!activeModel || isStreaming}
-            title={ttsDownloading ? `Downloading voice model ${ttsProgress}%` : ttsReady ? 'Voice conversation mode' : 'Voice input'}
-            style={{
-              width: 40, height: 40, borderRadius: '50%', border: 'none', cursor: 'pointer', fontSize: 18,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-              background: isListening ? 'rgba(231,76,60,.15)' : ttsReady ? 'rgba(0,0,0,.15)' : 'rgba(0,0,0,.08)',
-              animation: isListening ? 'pulse 1s infinite' : 'none',
-              opacity: (activeModel && !isStreaming) ? 1 : 0.4,
-              position: 'relative',
-            }}
-          >
-            {ttsDownloading ? '⬇️' : ttsReady ? '🎙️' : '🎙️'}
-            {ttsDownloading && (
-              <span style={{ position: 'absolute', bottom: -16, left: '50%', transform: 'translateX(-50%)', fontSize: 9, color: 'var(--text-light)', whiteSpace: 'nowrap' }}>{ttsProgress}%</span>
-            )}
-          </button>
-        )}
-
-        <button
-          className="chat-bg-toggle"
-          onClick={() => setBgMode((v) => !v)}
-          title="Run in the background — Aspen keeps working on this even after you close the chat, as a Mission"
-          style={{ border: 'none', background: bgMode ? 'var(--gd,#5B8C6E)' : 'transparent', color: bgMode ? '#fff' : 'var(--text-light,#8A8A8E)', borderRadius: 8, padding: '6px 9px', fontSize: 14, cursor: 'pointer', flexShrink: 0 }}
-        >⚡</button>
+            onClick={() => setPlusOpen((v) => !v)}
+            disabled={!activeModel}
+            title="Add"
+            style={{ width: 40, height: 40, borderRadius: '50%', background: plusOpen ? 'rgba(0,0,0,.15)' : 'rgba(0,0,0,.08)', border: '1.5px solid rgba(0,0,0,.1)', cursor: 'pointer', fontSize: 22, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: activeModel ? 1 : 0.4 }}
+          >+</button>
+          {plusOpen && (
+            <>
+              <div onClick={() => setPlusOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
+              <div style={{ position: 'absolute', bottom: 48, left: 0, background: 'var(--cloud,#fff)', border: '1.5px solid rgba(0,0,0,.12)', borderRadius: 12, boxShadow: '0 8px 30px rgba(0,0,0,.15)', padding: 6, display: 'flex', flexDirection: 'column', gap: 2, minWidth: 200, zIndex: 50 }}>
+                <button onClick={() => { setPlusOpen(false); fileInputRef.current?.click(); }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', border: 'none', background: 'transparent', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--text-dark)', textAlign: 'left' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,.05)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>📎 Attach file or image</button>
+                {voiceSupported && (
+                  <button onClick={() => { setPlusOpen(false); (ttsReady ? enterVoiceMode : toggleVoice)(); }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', border: 'none', background: 'transparent', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--text-dark)', textAlign: 'left' }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,.05)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>🎙️ Voice mode</button>
+                )}
+                <button onClick={() => { setPlusOpen(false); setBgMode((v) => !v); }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', border: 'none', background: 'transparent', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: bgMode ? 700 : 600, color: bgMode ? 'var(--gd,#5B8C6E)' : 'var(--text-dark)', textAlign: 'left' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,.05)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>⚡ Run in background{bgMode ? '  ✓' : ''}</button>
+              </div>
+            </>
+          )}
+        </div>
 
         <textarea
           ref={inputRef}
@@ -906,7 +893,7 @@ export default function Chat() {
             disabled={(!input.trim() && attachments.length === 0) || !activeModel}
             title="Send"
           >
-            🖌️
+            ↑
           </button>
         )}
       </div>
