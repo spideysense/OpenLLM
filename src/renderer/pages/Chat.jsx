@@ -597,7 +597,12 @@ export default function Chat() {
         {!viewingMissionId && messages.length === 0 && !(streamBuffer && streamConvIdRef.current === activeConvo) && (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 24px' }}>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>What can I help with?</div>
-            <div style={{ fontSize: 13, color: 'var(--text-light)', marginBottom: 24, textAlign: 'center' }}>100% private — everything stays on your machine</div>
+            <div style={{ fontSize: 13, color: 'var(--text-light)', marginBottom: 18, textAlign: 'center' }}>100% private — everything stays on your machine</div>
+
+            <button
+              onClick={() => { setInput("Give me a warm, quick 2-minute tour of what you can do. Introduce yourself as Aspen — my private AI that runs fully on my own machine. Then walk me through your top capabilities one at a time, each with a one-line description and a concrete example I could try: (1) everyday chat and questions, (2) building apps and websites, (3) researching topics with sources, (4) analyzing photos I share, (5) voice conversations, and (6) Missions — running a task in the background that keeps going even after I close the chat. Keep it concise and friendly. At the end, ask me which one I'd like to try first."); setTimeout(() => inputRef.current?.focus(), 50); }}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 22, padding: '10px 20px', border: 'none', borderRadius: 22, background: 'var(--gd,#5B8C6E)', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+            >👋 New here? Take a 2-minute tour</button>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10, width: '100%', maxWidth: 500 }}>
               {[
