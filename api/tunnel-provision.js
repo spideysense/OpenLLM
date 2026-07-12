@@ -24,6 +24,8 @@
  *   PROVISION_SECRET — Shared secret so only the Aspen app can call this
  */
 
+import { track } from './_track.js';
+
 const CF_API = 'https://api.cloudflare.com/client/v4';
 
 export default async function handler(req, res) {
@@ -112,6 +114,7 @@ export default async function handler(req, res) {
     }
 
     // ── Done! Return token + stable URL ──
+    track('box_provisioned');
     return res.status(200).json({
       tunnelId,
       token: tunnelToken,

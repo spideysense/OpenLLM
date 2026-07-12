@@ -108,6 +108,8 @@ export default async function handler(req) {
       const token = randToken();
       await kv(['SET', `trial:sess:${token}`, '0']);
       await kv(['EXPIRE', `trial:sess:${token}`, String(SESSION_TTL_SEC)]);
+      kv(['INCR', 'aspen:ct:trial_started']).catch(() => {});
+      kv(['INCR', `aspen:ct:trial_started:${new Date().toISOString().slice(0, 10)}`]).catch(() => {});
       return new Response(JSON.stringify({ token, messagesLeft: MSGS_PER_SESSION }), {
         status: 200, headers: { ...cors(origin), 'Content-Type': 'application/json' },
       });

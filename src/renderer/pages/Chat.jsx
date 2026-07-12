@@ -24,6 +24,7 @@ export default function Chat() {
     conversations, setConversations, activeConvo, setActiveConvo, newConvo, deleteConvo,
     missions, viewingMissionId, setViewingMissionId } = useApp();
   const [input, setInput] = useState('');
+  const [bgMode, setBgMode] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamBuffer, setStreamBuffer] = useState('');
@@ -303,6 +304,8 @@ export default function Chat() {
       userMsg.content = textContent + (text ? `\n\n${text}` : '');
     }
 
+    // Run-in-background: append the mission trigger so the box starts a background mission.
+    if (bgMode) { userMsg.content = userMsg.content + '\n\nKeep going in the background until this is fully done.'; }
     // Include image previews in UI message
     const uiMsg = { ...userMsg, attachmentPreviews: attachments.map((a) => ({ name: a.name, type: a.type, preview: a.preview })) };
     const updatedMessages = [...messages, uiMsg];
@@ -317,6 +320,7 @@ export default function Chat() {
 
     setInput('');
     setAttachments([]);
+    setBgMode(false);
     setViewingMissionId(null);
     streamConvIdRef.current = activeConvo;
     setIsStreaming(true);
@@ -329,7 +333,7 @@ export default function Chat() {
       const apiMessages = updatedMessages.map(({ attachmentPreviews, ...m }) => m);
       await bridge.chat.send(activeModel, apiMessages);
     }
-  }, [input, attachments, isStreaming, activeModel, messages, bridge, activeConvo]);
+  }, [input, attachments, isStreaming, activeModel, messages, bridge, activeConvo, bgMode]);
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
@@ -900,10 +904,17 @@ export default function Chat() {
           </button>
         )}
 
+        <button
+          className="chat-bg-toggle"
+          onClick={() => setBgMode((v) => !v)}
+          title="Run in the background — Aspen keeps working on this even after you close the chat, as a Mission"
+          style={{ border: 'none', background: bgMode ? 'var(--gd,#5B8C6E)' : 'transparent', color: bgMode ? '#fff' : 'var(--text-light,#8A8A8E)', borderRadius: 8, padding: '6px 9px', fontSize: 14, cursor: 'pointer', flexShrink: 0 }}
+        >⚡</button>
+
         <textarea
           ref={inputRef}
           className="chat-input"
-          placeholder={isListening ? 'Listening...' : activeModel ? 'Type a message or use 🎙️...' : 'Install a model first →'}
+          placeholder={isListening ? 'Listening...' : bgMode ? 'Describe a task to run in the background…' : activeModel ? 'Type a message or use 🎙️...' : 'Install a model first →'}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}

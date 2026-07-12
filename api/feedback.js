@@ -10,6 +10,8 @@
  *
  * Vercel env: RESEND_API_KEY
  */
+import { track } from './_track.js';
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', 'https://runonaspen.com');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -65,6 +67,7 @@ export default async function handler(req, res) {
         }),
       });
       if (!r.ok) { console.error('Resend error:', await r.text()); return res.status(500).json({ error: 'Failed to send' }); }
+      track(status === 'complete' ? 'feedback_complete' : 'feedback_partial');
       return res.status(200).json({ ok: true });
     } catch (err) {
       console.error('Feedback (convo) error:', err);
