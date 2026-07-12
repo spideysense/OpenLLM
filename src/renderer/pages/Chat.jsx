@@ -855,8 +855,8 @@ export default function Chat() {
             onClick={() => setPlusOpen((v) => !v)}
             disabled={!activeModel}
             title="Add"
-            style={{ width: 40, height: 40, borderRadius: '50%', background: plusOpen ? 'rgba(0,0,0,.15)' : 'rgba(0,0,0,.08)', border: '1.5px solid rgba(0,0,0,.1)', cursor: 'pointer', fontSize: 22, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: activeModel ? 1 : 0.4 }}
-          >+</button>
+            style={{ width: 40, height: 40, borderRadius: '50%', background: plusOpen ? 'rgba(0,0,0,.15)' : 'rgba(0,0,0,.08)', border: '1.5px solid rgba(0,0,0,.1)', cursor: 'pointer', color: 'var(--text-mid,#555)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: activeModel ? 1 : 0.4 }}
+          ><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
           {plusOpen && (
             <>
               <div onClick={() => setPlusOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
@@ -890,7 +890,7 @@ export default function Chat() {
         />
 
         {isStreaming ? (
-          <button className="chat-send" onClick={stopStreaming} title="Stop">⏹</button>
+          <button className="chat-send" onClick={stopStreaming} title="Stop"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/></svg></button>
         ) : (
           <button
             className="chat-send"
@@ -898,7 +898,7 @@ export default function Chat() {
             disabled={(!input.trim() && attachments.length === 0) || !activeModel}
             title="Send"
           >
-            ↑
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
           </button>
         )}
       </div>
