@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../App';
+import PairDeviceModal from '../components/PairDeviceModal';
 
 const STEPS = ['welcome', 'detect', 'recommend', 'download', 'ready'];
 
@@ -11,6 +12,7 @@ export default function Onboarding() {
   const [downloadStatus, setDownloadStatus] = useState('');
   const [downloadPhase, setDownloadPhase] = useState('downloading');
   const [error, setError] = useState(null);
+  const [showPair, setShowPair] = useState(false);
 
   const currentStep = STEPS[step];
 
@@ -219,11 +221,20 @@ export default function Onboarding() {
             Zero subscriptions. Zero data sharing. Everything local.
           </p>
 
+          <div style={{ marginTop: 4, marginBottom: 20, padding: '16px 18px', background: 'rgba(0,0,0,.04)', border: '1.5px solid rgba(0,0,0,.1)', borderRadius: 12, maxWidth: 460 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 6 }}>📱 Use Aspen on your phone & everywhere</div>
+            <p style={{ fontSize: 13, color: 'var(--text-light)', margin: '0 0 12px', lineHeight: 1.5 }}>
+              Chat with your Aspen from your phone or any browser — it still runs here, on this machine, privately. Scan a QR to connect instantly, or open <strong>runonaspen.com/app</strong>. Prefer an app? Get Aspen on the App Store.
+            </p>
+            <button className="btn btn-sm btn-primary" onClick={() => setShowPair(true)}>Scan QR to add a device</button>
+          </div>
+
           <div className="flex gap-3">
             <button className="btn btn-primary" onClick={completeOnboarding}>
               Start Chatting 
             </button>
           </div>
+          {showPair && <PairDeviceModal bridge={bridge} onClose={() => setShowPair(false)} />}
         </>
       )}
     </div>
