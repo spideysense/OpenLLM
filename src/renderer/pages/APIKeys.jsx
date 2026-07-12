@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useApp } from '../App';
 import PairDeviceModal from '../components/PairDeviceModal';
+import InviteFamilyModal from '../components/InviteFamilyModal';
 
 export default function APIKeys() {
   const { bridge, gatewayStatus } = useApp();
@@ -12,6 +13,7 @@ export default function APIKeys() {
   const [tunnelStatus, setTunnelStatus] = useState({ connected: false, url: null });
   const [newlyCreatedKey, setNewlyCreatedKey] = useState(null);
   const [showPair, setShowPair] = useState(false);
+  const [showInvite, setShowInvite] = useState(false);
 
   const loadKeys = useCallback(async () => {
     if (!bridge) return;
@@ -84,6 +86,10 @@ export default function APIKeys() {
       </div>
 
       {showPair && <PairDeviceModal bridge={bridge} onClose={() => setShowPair(false)} />}
+      {showInvite && <InviteFamilyModal bridge={bridge} onClose={() => setShowInvite(false)} />}
+      <button onClick={() => setShowInvite(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '4px 0 10px', border: '1px solid var(--brd,#E5E5EA)', background: 'transparent', color: 'var(--bk,#1D1D1F)', borderRadius: 10, padding: '10px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+        👪 Invite a family member
+      </button>
       <button onClick={() => setShowPair(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '4px 0 20px', border: 'none', background: 'var(--gd,#5B8C6E)', color: '#fff', borderRadius: 10, padding: '10px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
         📱 Add a phone or browser 2014 scan a QR
       </button>

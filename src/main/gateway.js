@@ -109,7 +109,11 @@ function start() {
       const id = req.url.split('/artifacts/')[1]?.split('?')[0];
       if (req.method === 'GET' && id && artifacts.has(id)) {
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end(artifacts.get(id));
+        const _html = artifacts.get(id);
+        const _badge = '<a href="https://runonaspen.com/?utm_source=artifact&utm_medium=badge&utm_campaign=made_with_aspen" target="_blank" rel="noopener" style="position:fixed;bottom:12px;right:12px;z-index:2147483647;font:600 12px/1 -apple-system,BlinkMacSystemFont,sans-serif;color:#fff;background:#5B8C6E;padding:7px 11px;border-radius:999px;text-decoration:none;box-shadow:0 2px 10px rgba(0,0,0,.18)">\uD83C\uDF3F Made with Aspen</a>';
+        const _out = /Made with Aspen/i.test(_html) ? _html
+          : (_html.includes('</body>') ? _html.replace('</body>', _badge + '</body>') : _html + _badge);
+        res.end(_out);
         return;
       }
       res.writeHead(404, { 'Content-Type': 'text/html' });
