@@ -9,6 +9,7 @@ struct ChatView: View {
     @State private var showConnect = false
     @State private var showMenu = false
     @State private var showVoice = false
+    @State private var showFeedback = false
     @State private var pickerItems: [PhotosPickerItem] = []
     @Namespace private var bottomID
 
@@ -44,6 +45,19 @@ struct ChatView: View {
                 .transition(.move(edge: .leading))
                 .shadow(radius: 12)
             }
+        }
+        .sheet(isPresented: $showFeedback) {
+            FeedbackView(vm: vm, isPresented: $showFeedback)
+        }
+        .onChange(of: vm.streaming) { _, isStreaming in
+            // After the first reply completes: once per user, box-connected only.
+            guard !isStreaming,
+                  vm.boxConfig != nil,
+                  !UserDefaults.standard.bool(forKey: "aspenFeedbackV1"),
+                  vm.messages.contains(where: { $0.role == "assistant" && !$0.content.isEmpty })
+            else { return }
+            UserDefaults.standard.set(true, forKey: "aspenFeedbackV1")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { showFeedback = true }
         }
         .sheet(isPresented: $showTier) {
             TierSheet(

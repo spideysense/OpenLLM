@@ -74,6 +74,11 @@ contextBridge.exposeInMainWorld('aspen', {
     },
   },
 
+  // ── Feedback (isolated non-streaming completion for the feedback dialog) ──
+  feedback: {
+    chat: (model, messages) => ipcRenderer.invoke('feedback:chat', { model, messages }),
+  },
+
   // ── Gateway ──
   gateway: {
     status: () => ipcRenderer.invoke('gateway:status'),

@@ -493,6 +493,24 @@ ipcMain.handle('models:recommend', async () => {
 // IPC Handlers — Chat
 // ═══════════════════════════════════════════════════
 
+// Non-streaming one-shot for the feedback conversation. Deliberately isolated
+// from chat:send: no reasoning-trail events, no world-model, no agent tools —
+// just a direct Ollama completion so it can't collide with the main chat stream.
+ipcMain.handle('feedback:chat', async (_event, { model, messages }) => {
+  try {
+    const r = await fetch('http://127.0.0.1:11434/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: model || 'llama3', messages, stream: false }),
+    });
+    if (!r.ok) return '';
+    const j = await r.json();
+    return (j && j.message && j.message.content) || '';
+  } catch {
+    return '';
+  }
+});
+
 ipcMain.handle('chat:send', async (event, { model, messages }) => {
   // Prepend system prompt so the model knows it's running locally
   const now = new Date();

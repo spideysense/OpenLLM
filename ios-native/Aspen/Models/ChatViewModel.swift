@@ -87,6 +87,22 @@ final class ChatViewModel: ObservableObject {
         setTier(.local)
     }
 
+    // Run a single non-streaming completion on the user's box (used by the
+    // feedback conversation, which is separate from the main chat stream).
+    func askOneShot(_ turns: [ChatTurn]) async -> String {
+        guard let cfg = boxConfig else { return "" }
+        if boxModel.isEmpty { await refreshBoxModel() }
+        let buf = TokenAccumulator()
+        do {
+            try await BoxClient.chat(
+                config: cfg, model: boxModel, messages: turns,
+                onStatus: { _ in }, onModel: { _ in },
+                onToken: { t in buf.append(t) }
+            )
+        } catch { return "" }
+        return buf.value.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     func send() {
         let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
         let imgs = pendingImages

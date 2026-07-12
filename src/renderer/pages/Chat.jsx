@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useApp } from '../App';
 import tts from '../lib/tts';
+import FeedbackDialog from '../components/FeedbackDialog';
 
 // ── Savings counter ──
 // Based on Claude Opus 4 API pricing: $15/M input tokens, $75/M output tokens
@@ -23,6 +24,7 @@ export default function Chat() {
     conversations, setConversations, activeConvo, setActiveConvo, newConvo, deleteConvo,
     missions, viewingMissionId, setViewingMissionId } = useApp();
   const [input, setInput] = useState('');
+  const [showFeedback, setShowFeedback] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamBuffer, setStreamBuffer] = useState('');
   const streamBufferRef = useRef('');
@@ -223,6 +225,13 @@ export default function Chat() {
       }
       if (chunk.done) {
         setIsStreaming(false);
+        // After the first completed reply: once per user, show the feedback dialog.
+        try {
+          if (!localStorage.getItem('aspen_fb_v1')) {
+            localStorage.setItem('aspen_fb_v1', 'shown');
+            setTimeout(() => setShowFeedback(true), 1500);
+          }
+        } catch { /* ignore */ }
         // Transient steps (e.g. "Loading model…") are live-only — never saved.
         const finishedTrail = trailRef.current.filter((s) => !s.transient);
         trailRef.current = [];
@@ -499,7 +508,9 @@ export default function Chat() {
 
   return (
     <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
-      {/* Main chat area (chat list now lives in the left sidebar, Ollama-style) */}
+      {showFeedback && (
+        <FeedbackDialog bridge={bridge} model={activeModel} onClose={() => setShowFeedback(false)} />
+      )}      {/* Main chat area (chat list now lives in the left sidebar, Ollama-style) */}
       <div className="chat-container" style={{ flex: 1, minWidth: 0 }}>
       {/* Header */}
       <div className="chat-header">
