@@ -27,7 +27,7 @@ export default function Onboarding() {
   useEffect(() => {
     if (!bridge) return;
     const unsub = bridge.models.onPullProgress((data) => {
-      if (data.status) setDownloadStatus(data.status);
+      if (data.status) setDownloadStatus(typeof data.status === 'string' ? data.status : (data.status?.message || ''));
       if (data.phase) setDownloadPhase(data.phase);
       if (typeof data.percent === 'number') setDownloadProgress(data.percent);
     });
@@ -38,7 +38,7 @@ export default function Onboarding() {
   useEffect(() => {
     if (!bridge) return;
     const unsub = bridge.ollama.onProgress((msg) => {
-      setDownloadStatus(msg);
+      setDownloadStatus(typeof msg === 'string' ? msg : (msg?.message || ''));
     });
     return unsub;
   }, [bridge]);
@@ -172,7 +172,7 @@ export default function Onboarding() {
             {downloadPhase === 'loading' ? '🧠' : downloadPhase === 'done' || downloadProgress >= 100 ? '📦' : '⏳'}
           </div>
           <h1>Getting Your Model Ready</h1>
-          <p>{downloadStatus || 'Starting download...'}</p>
+          <p>{(typeof downloadStatus === 'string' ? downloadStatus : downloadStatus?.message) || 'Starting download...'}</p>
 
           <div style={{ width: '100%', maxWidth: 400, marginBottom: 24 }}>
             {downloadPhase === 'downloading' ? (
