@@ -231,7 +231,7 @@ export default function Chat() {
         try {
           if (!localStorage.getItem('aspen_fb_v1')) {
             localStorage.setItem('aspen_fb_v1', 'shown');
-            setTimeout(() => setShowFeedback(true), 1500);
+            setTimeout(() => setShowFeedback(true), 120000); // ~2 min in, not right away
           }
         } catch { /* ignore */ }
         // Transient steps (e.g. "Loading model…") are live-only — never saved.
@@ -802,8 +802,8 @@ export default function Chat() {
       )}
 
       <div className="chat-input-area">
-        {/* Connector quick-menu ("+") */}
-        <div style={{ position: 'relative', flexShrink: 0 }}>
+        {/* Connector quick-menu ("+") — hidden; folded into the single + menu below */}
+        <div style={{ position: 'relative', flexShrink: 0, display: 'none' }}>
           <button
             onClick={() => setConnMenuOpen((v) => !v)}
             title="Connectors"
@@ -872,6 +872,9 @@ export default function Chat() {
                 <button onClick={() => { setPlusOpen(false); setBgMode((v) => !v); }}
                   style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', border: 'none', background: 'transparent', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: bgMode ? 700 : 600, color: bgMode ? 'var(--gd,#5B8C6E)' : 'var(--text-dark)', textAlign: 'left' }}
                   onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,.05)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>⚡ Run in background{bgMode ? '  ✓' : ''}</button>
+                <button onClick={() => { setPlusOpen(false); setPage('connectors'); }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', border: 'none', background: 'transparent', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--text-dark)', textAlign: 'left' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,.05)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>🔌 Connectors</button>
               </div>
             </>
           )}
