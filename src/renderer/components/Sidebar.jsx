@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../App';
 
 export default function Sidebar() {
@@ -11,6 +11,20 @@ export default function Sidebar() {
   const [searchQuery, setSearchQuery] = useState('');
   const [editingTitle, setEditingTitle] = useState(null);
   const [streak, setStreak] = useState(null);
+  const [checkMsg, setCheckMsg] = useState('');
+  const updateStatusRef = useRef(null);
+  updateStatusRef.current = updateStatus;
+
+  async function handleCheckUpdates() {
+    if (checkMsg === 'Checking…') return;
+    setCheckMsg('Checking…');
+    try { await bridge.updater.check(); } catch {}
+    setTimeout(() => {
+      const s = updateStatusRef.current?.status;
+      if (s === 'ready' || s === 'downloading') { setCheckMsg(''); } // the update banner shows it
+      else { setCheckMsg("You're on the latest version ✓"); setTimeout(() => setCheckMsg(''), 3500); }
+    }, 3500);
+  }
 
   useEffect(() => {
     // Local-only usage counter written by the main process on launch. Read via
@@ -226,6 +240,14 @@ export default function Sidebar() {
           <div className="truncate" title={activeModel}>{activeModel}</div>
         </div>
       )}
+
+      <button
+        onClick={handleCheckUpdates}
+        title="Check for updates now"
+        style={{ display: 'block', width: 'calc(100% - 28px)', margin: '2px 14px 2px', padding: '4px 0', background: 'none', border: 'none', color: 'var(--text-light,#8A8A8E)', fontSize: 11, cursor: 'pointer', textAlign: 'left' }}
+      >
+        {checkMsg || '↻ Check for updates'}
+      </button>
 
       <div style={{ padding: '6px 14px', fontSize: 10, color: 'var(--t4, #AEAEB2)', letterSpacing: '.02em' }}>
         v{appVersion}
