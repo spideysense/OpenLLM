@@ -598,9 +598,35 @@ const gitTools = require('./git-tools');
 // user's OWN Aspen, through the private tunnel that's already running. No git, no
 // deploy, no accounts. Publishes via the local gateway's /publish-artifact route
 // (served at /artifacts/<id>), authenticating with the owner key.
+// Validate an HTML app's inline JavaScript before it goes live. A syntax error
+// means a totally broken app — so we parse each classic <script> and, if any
+// fails, refuse to publish and hand the error back so the model fixes it and
+// re-publishes. Skips external (src=) and ES-module scripts (different parse).
+function validateHtmlJs(html) {
+  const vm = require('vm');
+  const re = /<script([^>]*)>([\s\S]*?)<\/script>/gi;
+  let m, i = 0;
+  while ((m = re.exec(html))) {
+    const attrs = m[1] || '';
+    if (/\bsrc\s*=/i.test(attrs)) continue;
+    if (/type\s*=\s*["']?\s*module/i.test(attrs)) continue;
+    const code = m[2];
+    i += 1;
+    if (!code.trim()) continue;
+    try { new vm.Script(code, { filename: `app-script-${i}.js` }); }
+    catch (e) { return `Script block ${i} has a JavaScript syntax error: ${e.message}`; }
+  }
+  return null;
+}
+
 async function publishApp({ html, name } = {}) {
   if (!html || typeof html !== 'string' || html.trim().length < 20) {
     return 'Provide the complete, self-contained HTML document for the app.';
+  }
+  // Self-test before shipping: don't publish a broken app.
+  const jsErr = validateHtmlJs(html);
+  if (jsErr) {
+    return `NOT PUBLISHED — the app has a code error that would break it:\n${jsErr}\nFix the JavaScript and call publish_app again with the corrected HTML.`;
   }
   try {
     const http = require('http');
