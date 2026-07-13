@@ -129,6 +129,10 @@ export default function Chat() {
   const showVisionGate = hasImageAttached && !modelIsVision;
 
   const convo = useMemo(() => conversations.find((c) => c.id === activeConvo), [conversations, activeConvo]);
+  const codingIntent = useMemo(() => {
+    const lastUser = [...messages].reverse().find((m) => m.role === 'user');
+    return /\b(cod(e|ing)|app|game|website|web ?app|html|css|javascript|python|script|function|component|build me|make me|program|platformer|dashboard|tool)\b/i.test(lastUser?.content || '');
+  }, [messages]);
   const messages = useMemo(() => convo?.messages || [], [convo]);
 
   // One-time coding tip: show when the conversation has code, GitHub isn't
@@ -659,7 +663,7 @@ export default function Chat() {
             <div className="chat-avatar"></div>
             <div className="chat-bubble">
               {isStreaming && !streamBuffer ? (
-                <ThinkingIndicator toolSteps={trail} />
+                <ThinkingIndicator toolSteps={trail} coding={codingIntent} />
               ) : (
                 <>
                   <MessageContent content={streamBuffer || ''} onOpenArtifact={openArtifact} />
@@ -977,20 +981,30 @@ const THINKING_PHRASES = [
   'Almost there',
 ];
 
-function ThinkingIndicator({ toolSteps }) {
+const CODING_PHRASES = [
+  'Coding',
+  'Writing the code',
+  'Building it',
+  'Wiring things up',
+  'Laying out the structure',
+  'Putting it together',
+];
+
+function ThinkingIndicator({ toolSteps, coding }) {
   const steps = toolSteps || [];
   const hasTools = steps.length > 0;
   const latest = hasTools ? steps[steps.length - 1].status : null;
   const [idx, setIdx] = useState(0);
+  const phrases = coding ? CODING_PHRASES : THINKING_PHRASES;
 
   useEffect(() => {
     if (hasTools) return; // real tool status drives the text — don't cycle over it
-    const id = setInterval(() => setIdx((i) => (i + 1) % THINKING_PHRASES.length), 2500);
+    const id = setInterval(() => setIdx((i) => (i + 1) % phrases.length), 2500);
     return () => clearInterval(id);
-  }, [hasTools]);
+  }, [hasTools, phrases]);
 
   // Strip any leading emoji/symbol (e.g. "⚡ ") so the text sits clean inline.
-  const raw = hasTools ? latest : THINKING_PHRASES[idx];
+  const raw = hasTools ? latest : phrases[idx % phrases.length];
   const text = ((raw || 'Thinking').replace(/^[^\p{L}\p{N}]+/u, '').trim()) || 'Thinking';
 
   return (

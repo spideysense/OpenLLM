@@ -618,7 +618,11 @@ async function publishApp({ html, name } = {}) {
     });
     if (res.status === 200) {
       const p = JSON.parse(res.body).path; // e.g. /artifacts/recipe-app-ab12cd
-      return `Published and live now. Open it here: ${p}\nThe link works from anywhere through the user's own Aspen URL — nothing was sent to any outside server; it's served from this machine.`;
+      let base = '';
+      try { base = require('./tunnel').getPublicUrl() || ''; } catch {}
+      base = String(base).replace(/\/v1\/?$/, '').replace(/\/+$/, '');
+      const full = base ? base + p : `http://localhost:4000${p}`;
+      return `Published and live now. Open it here: ${full}\nThat is the full, clickable link — it opens the app served from this machine through the user's own Aspen. Give the user exactly this URL.`;
     }
     if (res.status === 401) return 'Publishing needs an owner key configured on this Aspen.';
     return `Could not publish (HTTP ${res.status}).`;
