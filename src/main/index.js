@@ -684,6 +684,10 @@ ipcMain.handle('missions:stop', async (event, id) => {
   } catch { return false; }
 });
 
+ipcMain.handle('missions:guide', async (event, { id, text } = {}) => {
+  try { return require('./always-on').guide(id, text); } catch { return { ok: false }; }
+});
+
 ipcMain.handle('store:set', async (event, key, value) => {
   if (!STORE_ALLOWLIST.has(key)) {
     console.warn('[Security] Blocked store:set for non-allowlisted key:', key);

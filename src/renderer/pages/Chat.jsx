@@ -26,6 +26,7 @@ export default function Chat() {
   const [input, setInput] = useState('');
   const [bgMode, setBgMode] = useState(false);
   const [plusOpen, setPlusOpen] = useState(false);
+  const [missionGuidance, setMissionGuidance] = useState('');
   const [showFeedback, setShowFeedback] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamBuffer, setStreamBuffer] = useState('');
@@ -600,6 +601,20 @@ export default function Chat() {
                   {String(s)}
                 </div>
               )) : <div style={{ color: 'var(--text-light)', padding: '1rem 0' }}>Getting started — the first update appears here shortly.</div>}
+
+              {m.status !== 'done' && (
+                <div style={{ marginTop: 24, display: 'flex', gap: 8, borderTop: '1px solid rgba(0,0,0,.08)', paddingTop: 16 }}>
+                  <input
+                    value={missionGuidance}
+                    onChange={(e) => setMissionGuidance(e.target.value)}
+                    onKeyDown={async (e) => { if (e.key === 'Enter') { const t = missionGuidance.trim(); if (!t) return; setMissionGuidance(''); try { await bridge?.missions?.guide(m.id, t); } catch {} } }}
+                    placeholder="Steer this mission — e.g. focus on X, stop trying Y…"
+                    style={{ flex: 1, border: '1px solid rgba(0,0,0,.15)', borderRadius: 20, padding: '10px 16px', fontSize: 14, outline: 'none', background: 'var(--cloud,#fff)', color: 'var(--text-dark)' }}
+                  />
+                  <button onClick={async () => { const t = missionGuidance.trim(); if (!t) return; setMissionGuidance(''); try { await bridge?.missions?.guide(m.id, t); } catch {} }}
+                    style={{ border: 'none', background: 'var(--gd,#5B8C6E)', color: '#fff', borderRadius: 20, padding: '0 18px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Send</button>
+                </div>
+              )}
             </div>
           );
         })()}

@@ -77,6 +77,22 @@ function stopAll() {
   return { stopped: true };
 }
 
+// Let the user steer a running (or stopped) mission. The guidance is added to the
+// journal so the next step reads and follows it. A stopped mission is re-activated
+// so the guidance actually gets acted on.
+function guide(id, text) {
+  const t = String(text || '').trim();
+  if (!t) return { ok: false };
+  const m = load();
+  const x = m.find((z) => z.id === id);
+  if (!x) return { ok: false };
+  x.journal = [...(x.journal || []), `[USER GUIDANCE] ${t}`].slice(-MAX_JOURNAL);
+  if (x.status === 'stopped') { x.status = 'active'; _stopRequested.delete(id); }
+  persist(m);
+  try { ensureScheduler(); } catch {}
+  return { ok: true, status: x.status };
+}
+
 // A compact view for the model / UI (drops the full journal, keeps a tail).
 function status() {
   return load().map((m) => ({
@@ -145,4 +161,4 @@ async function tick() {
   }
 }
 
-module.exports = { init, start, stop, stopAll, status, load, buildPrompt, tick };
+module.exports = { init, start, stop, stopAll, guide, status, load, buildPrompt, tick };

@@ -120,6 +120,7 @@ contextBridge.exposeInMainWorld('aspen', {
   missions: {
     list: () => ipcRenderer.invoke('missions:list'),
     stop: (id) => ipcRenderer.invoke('missions:stop', id),
+    guide: (id, text) => ipcRenderer.invoke('missions:guide', { id, text }),
   },
 
   // ── Tools (local, all on by default) ──
