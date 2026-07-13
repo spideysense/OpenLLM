@@ -312,6 +312,14 @@ export default function Chat() {
 
   const sendMessage = useCallback(async () => {
     const text = input.trim();
+    // In mission view, the composer STEERS the mission: guidance is added to the
+    // mission (and re-activates a stopped one) instead of posting to a chat.
+    if (viewingMissionId) {
+      if (!text) return;
+      setInput('');
+      try { await bridge?.missions?.guide(viewingMissionId, text); } catch { /* ignore */ }
+      return;
+    }
     if ((!text && attachments.length === 0) || isStreaming || !activeModel) return;
 
     // Build message with optional attachments
@@ -355,7 +363,7 @@ export default function Chat() {
       const apiMessages = updatedMessages.map(({ attachmentPreviews, ...m }) => m);
       await bridge.chat.send(activeModel, apiMessages);
     }
-  }, [input, attachments, isStreaming, activeModel, messages, bridge, activeConvo, bgMode]);
+  }, [input, attachments, isStreaming, activeModel, messages, bridge, activeConvo, bgMode, viewingMissionId]);
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
@@ -611,20 +619,6 @@ export default function Chat() {
                   {String(s)}
                 </div>
               )) : <div style={{ color: 'var(--text-light)', padding: '1rem 0' }}>Getting started — the first update appears here shortly.</div>}
-
-              {m.status !== 'done' && (
-                <div style={{ marginTop: 24, display: 'flex', gap: 8, borderTop: '1px solid rgba(0,0,0,.08)', paddingTop: 16 }}>
-                  <input
-                    value={missionGuidance}
-                    onChange={(e) => setMissionGuidance(e.target.value)}
-                    onKeyDown={async (e) => { if (e.key === 'Enter') { const t = missionGuidance.trim(); if (!t) return; setMissionGuidance(''); try { await bridge?.missions?.guide(m.id, t); } catch {} } }}
-                    placeholder="Steer this mission — e.g. focus on X, stop trying Y…"
-                    style={{ flex: 1, border: '1px solid rgba(0,0,0,.15)', borderRadius: 20, padding: '10px 16px', fontSize: 14, outline: 'none', background: 'var(--cloud,#fff)', color: 'var(--text-dark)' }}
-                  />
-                  <button onClick={async () => { const t = missionGuidance.trim(); if (!t) return; setMissionGuidance(''); try { await bridge?.missions?.guide(m.id, t); } catch {} }}
-                    style={{ border: 'none', background: 'var(--gd,#5B8C6E)', color: '#fff', borderRadius: 20, padding: '0 18px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Send</button>
-                </div>
-              )}
             </div>
           );
         })()}
@@ -836,7 +830,7 @@ export default function Chat() {
         </div>
       )}
 
-      <div className="chat-input-area" style={viewingMissionId ? { display: 'none' } : undefined}>
+      <div className="chat-input-area">
         {/* Connector quick-menu ("+") — hidden; folded into the single + menu below */}
         <div style={{ position: 'relative', flexShrink: 0, display: 'none' }}>
           <button
@@ -918,7 +912,7 @@ export default function Chat() {
         <textarea
           ref={inputRef}
           className="chat-input"
-          placeholder={isListening ? 'Listening...' : bgMode ? 'Describe a task to run in the background…' : activeModel ? 'Type a message or use 🎙️...' : 'Install a model first →'}
+          placeholder={isListening ? 'Listening...' : viewingMissionId ? 'Steer this mission — e.g. focus on X, stop trying Y…' : bgMode ? 'Describe a task to run in the background…' : activeModel ? 'Type a message or use 🎙️...' : 'Install a model first →'}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
