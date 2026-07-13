@@ -131,6 +131,16 @@ export default function Chat() {
 
   const convo = useMemo(() => conversations.find((c) => c.id === activeConvo), [conversations, activeConvo]);
   const messages = useMemo(() => convo?.messages || [], [convo]);
+  // Per-chat composer drafts — text typed in one chat must not bleed into another.
+  const draftsRef = useRef({});
+  const prevConvoRef = useRef(activeConvo);
+  useEffect(() => {
+    if (prevConvoRef.current === activeConvo) return;
+    draftsRef.current[prevConvoRef.current] = input;      // save the draft we're leaving
+    setInput(draftsRef.current[activeConvo] || '');       // load this chat's own draft
+    prevConvoRef.current = activeConvo;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeConvo]);
   const codingIntent = useMemo(() => {
     const lastUser = [...messages].reverse().find((m) => m.role === 'user');
     return /\b(cod(e|ing)|app|game|website|web ?app|html|css|javascript|python|script|function|component|build me|make me|program|platformer|dashboard|tool)\b/i.test(lastUser?.content || '');
