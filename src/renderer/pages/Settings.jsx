@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../App';
 import ModelHub from './ModelHub';
-import ReplaceWizard from './ReplaceWizard';
+import PairDeviceModal from '../components/PairDeviceModal';
 import WorldModel from './WorldModel';
 import AppSetup from './AppSetup';
 import Connectors from './Connectors';
@@ -27,13 +27,14 @@ const SECTIONS = [
   { id: 'set-appsetup', label: 'App Setup' },
   { id: 'set-connectors', label: 'Connectors' },
   { id: 'set-apikeys', label: 'API Keys' },
-  { id: 'set-replace', label: 'Replace AI' },
+  { id: 'set-pair', label: 'Pair a device' },
   { id: 'set-system', label: 'System' },
 ];
 
 export default function Settings() {
   const { bridge, systemInfo, hardwareTier, models, activeModel, modelCaps, modelProfile } = useApp();
   const [appVersion, setAppVersion] = useState('...');
+  const [showPairQR, setShowPairQR] = useState(false);
   const [toolStates, setToolStates] = useState([]);
   const [customInstructions, setCustomInstructions] = useState('');
   const [cloudMode, setCloudMode] = useState('off');
@@ -225,7 +226,7 @@ export default function Settings() {
                       onClick={() => !disabled && toggleTool(t.name, !t.enabled)}
                       aria-label={`Toggle ${meta.title}`}
                       disabled={disabled}
-                      style={{ flexShrink: 0, width: 44, height: 26, borderRadius: 13, border: 'none', cursor: disabled ? 'not-allowed' : 'pointer', background: (t.enabled && !disabled) ? 'var(--pipe-yellow)' : 'rgba(0,0,0,0.25)', position: 'relative', transition: 'background 0.15s' }}
+                      style={{ flexShrink: 0, width: 44, height: 26, borderRadius: 13, border: 'none', cursor: disabled ? 'not-allowed' : 'pointer', background: (t.enabled && !disabled) ? '#22c55e' : 'rgba(0,0,0,0.25)', position: 'relative', transition: 'background 0.15s' }}
                     >
                       <span style={{ position: 'absolute', top: 3, left: (t.enabled && !disabled) ? 21 : 3, width: 20, height: 20, borderRadius: '50%', background: '#fff', transition: 'left 0.15s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
                     </button>
@@ -249,8 +250,15 @@ export default function Settings() {
       {/* API Keys */}
       <section id="set-apikeys" className="settings-section"><APIKeys /></section>
 
-      {/* Replace AI */}
-      <section id="set-replace" className="settings-section"><ReplaceWizard /></section>
+      {/* Pair a device */}
+      <section id="set-pair" className="settings-section settings-pad">
+        <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 6 }}>Pair a device</h2>
+        <p style={{ fontSize: 14, color: 'var(--text-light)', marginBottom: 14, lineHeight: 1.5 }}>
+          Use Aspen on your phone or any browser — it still runs here, privately. Show a QR code and scan it with your phone’s camera to connect instantly.
+        </p>
+        <button className="btn btn-primary" onClick={() => setShowPairQR(true)}>📱 Show QR code</button>
+        {showPairQR && <PairDeviceModal bridge={bridge} onClose={() => setShowPairQR(false)} />}
+      </section>
 
       {/* System + About */}
       <section id="set-system" className="settings-section settings-pad">

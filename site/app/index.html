@@ -378,6 +378,8 @@ select.settings-select{font-family:var(--san);font-size:.84rem;color:var(--bk);b
 
     <div id="connect-section" class="hidden" style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--brd)">
       <p class="pair-sub" style="margin-bottom:1rem">Every message goes directly to your machine — nothing touches our servers.</p>
+      <button class="pair-btn" id="scan-qr-btn" style="background:var(--gd);color:#fff;margin-bottom:1rem" onclick="scanQR()">📷 Scan QR code from your Aspen</button>
+      <div style="text-align:center;font-size:.75rem;color:var(--t3);margin-bottom:1rem">or enter manually</div>
       <div class="field">
         <label>Tunnel URL</label>
         <input type="url" id="tunnel-input" placeholder="https://xxxxxxxx.runonaspen.com" autocomplete="off" spellcheck="false">
@@ -917,6 +919,42 @@ async function attemptConnect(){
   finally{connectBtn.disabled=false;connectBtn.textContent='Connect to my Aspen'}
 }
 function showPairErr(msg){pairErr.textContent=msg;pairErr.classList.add('visible')}
+
+async function scanQR(){
+  if(!('BarcodeDetector' in window)){ showPairErr("Scanning isn't supported in this browser. Open the pairing link from your Aspen's QR, or enter the details below."); return; }
+  let stream;
+  try{ stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}); }
+  catch{ showPairErr('Camera access is needed to scan. Allow it, or enter the details below.'); return; }
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;z-index:9999;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px';
+  const video=document.createElement('video'); video.setAttribute('playsinline',''); video.muted=true;
+  video.style.cssText='max-width:92%;max-height:70vh;border-radius:14px'; video.srcObject=stream;
+  const hint=document.createElement('div'); hint.textContent='Point at the QR code shown on your Aspen'; hint.style.cssText='color:#fff;font-size:15px';
+  const cancel=document.createElement('button'); cancel.textContent='Cancel';
+  cancel.style.cssText='padding:10px 22px;border:1px solid rgba(255,255,255,.4);background:transparent;color:#fff;border-radius:22px;font-size:15px;cursor:pointer';
+  overlay.append(video,hint,cancel); document.body.appendChild(overlay);
+  await video.play().catch(()=>{});
+  const detector=new BarcodeDetector({formats:['qr_code']});
+  let done=false;
+  function stop(){ done=true; try{stream.getTracks().forEach(t=>t.stop());}catch{} overlay.remove(); }
+  cancel.onclick=stop;
+  (async function loop(){
+    while(!done){
+      try{
+        const codes=await detector.detect(video);
+        if(codes && codes.length){
+          const val=codes[0].rawValue||''; const h=val.indexOf('#');
+          if(h>=0){
+            const p=new URLSearchParams(val.slice(h+1));
+            const t=p.get('tunnel'), k=p.get('key')||'';
+            if(t){ stop(); document.getElementById('connect-section').classList.remove('hidden'); tunnelInput.value=t; apikeyInput.value=k; attemptConnect(); return; }
+          }
+        }
+      }catch{}
+      await new Promise(r=>setTimeout(r,300));
+    }
+  })();
+}
 disconnectBtn.addEventListener('click',()=>{
   if(!confirm('Disconnect?'))return;
   localStorage.removeItem(STORAGE_KEY);config=null;clearInterval(statusInterval);showPair();
