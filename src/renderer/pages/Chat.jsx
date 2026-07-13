@@ -291,7 +291,13 @@ export default function Chat() {
       }
     });
     return unsub;
-  }, [bridge, activeConvo]);
+    // IMPORTANT: depend on bridge ONLY, not activeConvo. Re-subscribing on every
+    // chat switch tears down the listener mid-stream and abandons the in-progress
+    // generation. Streaming state lives in refs (streamBufferRef/streamConvIdRef),
+    // and completion commits to streamConvIdRef — so the origin chat keeps
+    // generating and lands its result regardless of which tab you're viewing.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bridge]);
 
   const sendMessage = useCallback(async () => {
     const text = input.trim();
