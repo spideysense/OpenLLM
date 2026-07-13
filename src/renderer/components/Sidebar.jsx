@@ -160,7 +160,7 @@ export default function Sidebar() {
       <div className="sidebar-chats">
         <div className="sidebar-chats-head">
           <span className="sidebar-chats-title">Chats</span>
-          <button className="sidebar-newchat" onClick={newConvo} title="New chat">+</button>
+          <button className="sidebar-newchat" onClick={() => { setViewingMissionId(null); newConvo(); }} title="New chat">+</button>
         </div>
         <input
           className="sidebar-search"
@@ -178,7 +178,7 @@ export default function Sidebar() {
               <div
                 key={c.id}
                 className={`chat-item ${c.id === activeConvo ? 'active' : ''}`}
-                onClick={() => { setActiveConvo(c.id); setPage('chat'); }}
+                onClick={() => { setViewingMissionId(null); setActiveConvo(c.id); setPage('chat'); }}
               >
                 {editingTitle === c.id ? (
                   <input

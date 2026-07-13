@@ -801,7 +801,7 @@ export default function Chat() {
         </div>
       )}
 
-      <div className="chat-input-area">
+      <div className="chat-input-area" style={viewingMissionId ? { display: 'none' } : undefined}>
         {/* Connector quick-menu ("+") — hidden; folded into the single + menu below */}
         <div style={{ position: 'relative', flexShrink: 0, display: 'none' }}>
           <button
