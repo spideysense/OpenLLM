@@ -129,11 +129,11 @@ export default function Chat() {
   const showVisionGate = hasImageAttached && !modelIsVision;
 
   const convo = useMemo(() => conversations.find((c) => c.id === activeConvo), [conversations, activeConvo]);
+  const messages = useMemo(() => convo?.messages || [], [convo]);
   const codingIntent = useMemo(() => {
     const lastUser = [...messages].reverse().find((m) => m.role === 'user');
     return /\b(cod(e|ing)|app|game|website|web ?app|html|css|javascript|python|script|function|component|build me|make me|program|platformer|dashboard|tool)\b/i.test(lastUser?.content || '');
   }, [messages]);
-  const messages = useMemo(() => convo?.messages || [], [convo]);
 
   // One-time coding tip: show when the conversation has code, GitHub isn't
   // connected, and the user hasn't dismissed it. Connectors run on desktop, so
