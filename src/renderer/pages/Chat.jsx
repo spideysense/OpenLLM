@@ -1201,6 +1201,7 @@ function normLang(lang, code) {
 }
 function CodeBlock({ lang, code, onOpenArtifact }) {
   const [copied, setCopied] = useState(false);
+  const [open, setOpen] = useState(false); // collapsed by default — watching code stream is TMI
   const norm = normLang(lang, code);
   const canPreview = RUNNABLE.includes(norm);
   // Auto-open image-only HTML artifacts (e.g. a fetched photo via find_image) so
@@ -1223,17 +1224,20 @@ function CodeBlock({ lang, code, onOpenArtifact }) {
   }
 
   return (
-    <div className="artifact" onClick={() => onOpenArtifact?.(code, norm)} style={{ cursor: 'pointer' }}>
-      <div className="artifact-head">
-        <span className="artifact-lang">{lang || norm || 'text'}</span>
-        <div className="artifact-actions">
+    <div className="artifact">
+      <div className="artifact-head" onClick={() => setOpen((o) => !o)} style={{ cursor: 'pointer' }}>
+        <span className="artifact-lang" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ display: 'inline-block', transition: 'transform .15s', transform: open ? 'rotate(90deg)' : 'none', fontSize: 10 }}>▶</span>
+          {open ? (lang || norm || 'Code') : 'Writing code…'}
+        </span>
+        <div className="artifact-actions" onClick={(e) => e.stopPropagation()}>
           <button className="artifact-btn" onClick={(e) => { e.stopPropagation(); onOpenArtifact?.(code, norm); }}>
             {canPreview ? 'Open ↗' : 'View ↗'}
           </button>
           <button className="artifact-btn" onClick={copy}>{copied ? 'Copied' : 'Copy'}</button>
         </div>
       </div>
-      <pre className="artifact-code"><code>{code}</code></pre>
+      {open && <pre className="artifact-code"><code>{code}</code></pre>}
     </div>
   );
 }
