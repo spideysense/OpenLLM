@@ -18,6 +18,7 @@ const DEFAULT_MAX_STEPS = 1000;          // safety ceiling per mission
 let _deps = null;      // { runAgent, getActiveModel }
 let _timer = null;
 let _busy = false;     // one step at a time across all missions
+const _stopRequested = new Set(); // mission ids asked to stop mid-step
 
 function load() { try { return store.get(KEY) || []; } catch { return []; } }
 function persist(m) { try { store.set(KEY, m); } catch {} }
@@ -65,13 +66,13 @@ function start(goal, { maxSteps = DEFAULT_MAX_STEPS, intervalMs = MIN_INTERVAL_M
 function stop(id) {
   const m = load();
   const x = m.find((z) => z.id === id);
-  if (x) { x.status = 'stopped'; persist(m); }
+  if (x) { x.status = 'stopped'; persist(m); _stopRequested.add(id); }
   return { stopped: !!x };
 }
 
 function stopAll() {
   const m = load();
-  m.forEach((x) => { if (x.status === 'active') x.status = 'stopped'; });
+  m.forEach((x) => { if (x.status === 'active') { x.status = 'stopped'; _stopRequested.add(x.id); } });
   persist(m);
   return { stopped: true };
 }
@@ -102,6 +103,8 @@ async function runStep(mission) {
   const messages = [{ role: 'user', content: buildPrompt(mission) }];
   let out = '';
   for await (const ev of _deps.runAgent({ model, messages, isOwner: true, background: true })) {
+    // Stop promptly if the user hit "stop" mid-step — don't keep running tools.
+    if (_stopRequested.has(mission.id)) return '__ABORTED__';
     if (ev.type === 'content') out += ev.text;
   }
   return out.trim() || '(no output this step)';
@@ -121,6 +124,9 @@ async function tick() {
     let result;
     try { result = await runStep(due); }
     catch (e) { result = 'Step error: ' + (e && e.message ? e.message : String(e)); }
+
+    // Aborted mid-step by a stop — clear the flag and don't journal/advance.
+    if (result === '__ABORTED__') { _stopRequested.delete(due.id); return; }
 
     // Re-load in case something changed while the step ran, then update THIS mission.
     const fresh = load();
