@@ -929,6 +929,14 @@ async function scanQR(){
   if(!window.jsQR){
     await new Promise((res)=>{ const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js'; s.onload=res; s.onerror=res; document.head.appendChild(s); });
   }
+  // If neither the native detector nor jsQR is available (e.g. Firefox with the
+  // jsQR CDN blocked), in-browser scanning can't work — point to the phone-camera
+  // path, which is the intended flow anyway (the QR opens this page pre-filled).
+  if(!('BarcodeDetector' in window) && !window.jsQR){
+    try{stream.getTracks().forEach(t=>t.stop());}catch{}
+    showPairErr("In-browser scanning isn't available here. Just point your phone's camera at the QR on your Aspen — it opens and connects automatically. Or paste the details below.");
+    return;
+  }
   const overlay=document.createElement('div');
   overlay.style.cssText='position:fixed;inset:0;z-index:9999;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px';
   const video=document.createElement('video'); video.setAttribute('playsinline',''); video.muted=true;
