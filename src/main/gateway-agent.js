@@ -694,7 +694,7 @@ function lastHtmlArtifact(messages) {
   return null;
 }
 
-async function* runRaw({ model, messages, isOwner = false, memoryKeyId = null, allowComputerUse = false, background = false }) {
+async function* runRaw({ model, messages, isOwner = false, memoryKeyId = null, allowComputerUse = false, background = false, shouldAbort = null }) {
   if (!model || !Array.isArray(messages) || messages.length === 0) {
     yield { type: 'error', text: 'model and messages are required' };
     return;
@@ -834,6 +834,9 @@ Do NOT write code or a code block for casual, personal, or emotional messages ("
 
   try {
     for (let round = 0; round < maxRounds; round++) {
+      // If the user stopped the mission mid-step, don't start another round of
+      // model calls + tool searches. Aborts at the round boundary.
+      if (shouldAbort && shouldAbort()) { yield { type: 'aborted' }; return; }
       const reqCtx = contextFor(convo);
       if (round === 0) modelDebug.diagnose('fast', model, reqCtx).catch(() => {});
 

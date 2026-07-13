@@ -118,7 +118,7 @@ async function runStep(mission) {
   const model = _deps.getActiveModel();
   const messages = [{ role: 'user', content: buildPrompt(mission) }];
   let out = '';
-  for await (const ev of _deps.runAgent({ model, messages, isOwner: true, background: true })) {
+  for await (const ev of _deps.runAgent({ model, messages, isOwner: true, background: true, shouldAbort: () => _stopRequested.has(mission.id) })) {
     // Stop promptly if the user hit "stop" mid-step — don't keep running tools.
     if (_stopRequested.has(mission.id)) return '__ABORTED__';
     if (ev.type === 'content') out += ev.text;
