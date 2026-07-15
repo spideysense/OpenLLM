@@ -460,10 +460,29 @@ async function runFetchUrl(args) {
       // fall through to generic text if extraction failed
     }
     const text = htmlToText(html);
-    return text.slice(0, 6000) || 'Page had no readable text.';
+
+    // Client-rendered pages (React/Next SPAs, dashboards, puzzle viewers) return
+    // a JS shell over plain HTTP — almost no text. When that's what we got, load
+    // it in a real browser and use what a person would actually see. Static pages
+    // never reach this and stay fast.
+    if (looksClientRendered(html, text)) {
+      let rendered = null;
+      try { rendered = await require('./render-page').renderPage(url); } catch { /* fall through */ }
+      if (rendered && rendered.length > text.length) return rendered.slice(0, 6000);
+    }
+
+    return text.slice(0, 6000) || 'Page had no readable text (it may render entirely in the browser).';
   } catch (e) {
     return `Could not fetch page: ${e.message}`;
   }
+}
+
+// Did plain HTTP give us a JS shell instead of the page? True when there's barely
+// any text but the page clearly ships JavaScript, or it has an empty SPA mount.
+function looksClientRendered(html, text) {
+  if ((text || '').length >= 600) return false;   // we already have real content
+  if (!/<script/i.test(html)) return false;       // no JS — rendering can't help
+  return true;
 }
 
 // Pull YouTube metadata from page HTML (og: meta tags + embedded JSON).
