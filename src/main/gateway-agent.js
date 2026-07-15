@@ -834,6 +834,11 @@ Do NOT write code or a code block for casual, personal, or emotional messages ("
   const maxRounds = isOwner ? OWNER_MAX_TOOL_ROUNDS : MAX_TOOL_ROUNDS;
 
   try {
+    // Guards against the model burning rounds on a dead end: exact repeat calls,
+    // and hosts that have already come back with nothing usable.
+    const _callSigs = new Map();  // "tool:args" -> what it returned last time
+    const _hostFails = new Map(); // hostname -> consecutive useless results
+
     for (let round = 0; round < maxRounds; round++) {
       // If the user stopped the mission mid-step, don't start another round of
       // model calls + tool searches. Aborts at the round boundary.
@@ -915,6 +920,39 @@ Do NOT write code or a code block for casual, personal, or emotional messages ("
         }
 
         const statusText = tools.describeToolStatus(name, args);
+
+        // ── Don't let the model flail ────────────────────────────────────────
+        // It will otherwise re-fetch the same URL, or guess a dozen paths on a
+        // host that has nothing, until it burns the round cap and gives up with
+        // "I can't access external links". Answer from what we already know.
+        const pushToolMsg = (content) =>
+          convo.push({ role: 'tool', tool_call_id: call.id || `call_${name}`, name, content });
+
+        const sig = name + ':' + JSON.stringify(args);
+        if (_callSigs.has(sig)) {
+          console.log(`[TOOLDBG] skip (exact repeat): ${name}`);
+          pushToolMsg(
+            `You already made this exact call. It returned:\n${String(_callSigs.get(sig)).slice(0, 400)}\n\n` +
+            `Repeating it gives the same thing. Either try a genuinely different approach, or tell the user plainly what you found and what you need from them.`
+          );
+          continue;
+        }
+
+        let host = '';
+        try {
+          const raw = String(args.url || '').trim();
+          if (raw) host = new URL(/^https?:\/\//i.test(raw) ? raw : 'https://' + raw).hostname;
+        } catch { /* not a url-taking tool */ }
+
+        if (host && (_hostFails.get(host) || 0) >= 2) {
+          console.log(`[TOOLDBG] skip (dead host): ${host}`);
+          pushToolMsg(
+            `Stop trying ${host}. ${_hostFails.get(host)} attempts there already came back with nothing usable, and guessing more URLs on that host will not work. ` +
+            `Use a genuinely different source, or tell the user what you found and ask for what you need. Do not claim you "cannot access external links" — you can; this specific host just isn't giving you the data.`
+          );
+          continue;
+        }
+
         console.log(`[TOOLDBG] call: ${name} ${JSON.stringify(args).slice(0, 160)}`);
         yield { type: 'tool_call', name, statusText };
 
@@ -929,6 +967,15 @@ Do NOT write code or a code block for casual, personal, or emotional messages ("
           result = `${name} failed: ${e.message}`;
           console.log(`[TOOLDBG] FAIL: ${name} — ${e.message}`);
           yield { type: 'tool_result', name, ok: false };
+        }
+
+        // Remember what this exact call gave, and whether the host is a dead end,
+        // so the guards above can stop a loop before it starts.
+        if (typeof result === 'string' && !isScreenshot) _callSigs.set(sig, result);
+        if (host) {
+          const useless = typeof result !== 'string' || !result.trim()
+            || /Could not fetch page|no readable text|renders entirely in the browser|\bfailed:|\b404\b|not found/i.test(result);
+          _hostFails.set(host, useless ? (_hostFails.get(host) || 0) + 1 : 0);
         }
 
         if (isScreenshot) {
