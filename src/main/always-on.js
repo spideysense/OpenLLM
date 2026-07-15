@@ -8,6 +8,7 @@
 // out) so it never hammers the box or the model.
 
 const store = require('./store');
+const foreground = require('./foreground');
 
 const KEY = 'missions';
 const MIN_INTERVAL_MS = 3 * 60 * 1000;   // ≥3 min between a mission's steps
@@ -118,7 +119,11 @@ async function runStep(mission) {
   const model = _deps.getActiveModel();
   const messages = [{ role: 'user', content: buildPrompt(mission) }];
   let out = '';
-  for await (const ev of _deps.runAgent({ model, messages, isOwner: true, background: true, shouldAbort: () => _stopRequested.has(mission.id) })) {
+  for await (const ev of _deps.runAgent({
+    model, messages, isOwner: true, background: true,
+    shouldAbort: () => _stopRequested.has(mission.id),
+    shouldPause: () => foreground.isBusy(),
+  })) {
     // Stop promptly if the user hit "stop" mid-step — don't keep running tools.
     if (_stopRequested.has(mission.id)) return '__ABORTED__';
     if (ev.type === 'content') out += ev.text;
@@ -128,6 +133,9 @@ async function runStep(mission) {
 
 async function tick() {
   if (_busy || !_deps) return;
+  // Don't even start a step while the person is using Aspen — it would compete
+  // for the GPU. A later tick picks it up as soon as they're idle.
+  if (foreground.isBusy()) return;
   const missions = load();
   const now = Date.now();
   const due = missions.find(

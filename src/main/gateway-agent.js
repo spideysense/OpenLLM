@@ -18,6 +18,7 @@ const path = require('path');
 const os = require('os');
 const { execSync, execFileSync } = require('child_process');
 const tools = require('./tools');
+const foreground = require('./foreground');
 const { makeArtifactFencer } = require('./artifact-fence');
 const { ASPEN_ABOUT } = require('./aspen-facts');
 const system = require('./system');
@@ -694,7 +695,7 @@ function lastHtmlArtifact(messages) {
   return null;
 }
 
-async function* runRaw({ model, messages, isOwner = false, memoryKeyId = null, allowComputerUse = false, background = false, shouldAbort = null }) {
+async function* runRaw({ model, messages, isOwner = false, memoryKeyId = null, allowComputerUse = false, background = false, shouldAbort = null, shouldPause = null }) {
   if (!model || !Array.isArray(messages) || messages.length === 0) {
     yield { type: 'error', text: 'model and messages are required' };
     return;
@@ -837,6 +838,17 @@ Do NOT write code or a code block for casual, personal, or emotional messages ("
       // If the user stopped the mission mid-step, don't start another round of
       // model calls + tool searches. Aborts at the round boundary.
       if (shouldAbort && shouldAbort()) { yield { type: 'aborted' }; return; }
+
+      // Yield to the person: if a foreground turn is running, wait here — between
+      // rounds — instead of competing for the GPU. Resumes automatically once
+      // they're idle. Never interrupts a round already in flight.
+      if (shouldPause) {
+        while (shouldPause()) {
+          if (shouldAbort && shouldAbort()) { yield { type: 'aborted' }; return; }
+          await new Promise((r) => setTimeout(r, 400));
+        }
+      }
+
       const reqCtx = contextFor(convo);
       if (round === 0) modelDebug.diagnose('fast', model, reqCtx).catch(() => {});
 
@@ -954,7 +966,20 @@ Do NOT write code or a code block for casual, personal, or emotional messages ("
 // Public entry point. Identical to runRaw but normalizes the content stream so a
 // bare <figure>/<svg>/<img> the model forgot to fence still renders as an
 // artifact on every client. Non-content events pass straight through.
+// Every user-facing turn marks the app as busy for its whole duration, so
+// background missions can pause and let the person have the GPU. Missions pass
+// background:true and are deliberately NOT counted here.
 async function* run(args) {
+  const isForeground = !(args && args.background);
+  if (isForeground) foreground.begin();
+  try {
+    yield* runInner(args);
+  } finally {
+    if (isForeground) foreground.end();
+  }
+}
+
+async function* runInner(args) {
   // Deterministic "publish this": if the latest user message is a short publish/
   // ship command and there's an HTML page earlier in the conversation, publish it
   // directly — the model never gets to ask "which thing?" or wander into memory.
