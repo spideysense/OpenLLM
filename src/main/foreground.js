@@ -7,10 +7,12 @@
  * the app busy for its duration; missions check this and pause between steps /
  * rounds, then resume on their own once the person is done.
  *
- * The grace window stops a mission from grabbing the GPU in the gap between two
- * quick turns (read the reply, type the next one).
+ * The grace window is deliberately long: a person "using Aspen" is reading the
+ * reply, thinking, and typing the next thing — not just waiting on tokens. A
+ * mission that jumps back in seconds after a reply lands still ruins the session.
+ * So missions wait for a real stretch of idleness before resuming.
  */
-const GRACE_MS = 5000;
+const GRACE_MS = 120000; // 2 minutes of no foreground turns before missions resume
 
 let active = 0;
 let lastEnd = 0;
