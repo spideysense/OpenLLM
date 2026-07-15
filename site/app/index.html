@@ -1207,6 +1207,34 @@ inputBox.addEventListener('paste',e=>{
 });
 inputBox.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage()}});
 inputBox.addEventListener('input',()=>{inputBox.style.height='auto';inputBox.style.height=Math.min(inputBox.scrollHeight,140)+'px'});
+
+// ── Clearing the composer safely with voice typing / IME keyboards ──────────
+// Phone keyboards (Gboard voice typing, any IME) hold an active "composing"
+// region. Setting .value='' does NOT cancel it — when the keyboard commits that
+// region after we've sent, the text we just sent reappears in the box. So: blur
+// so the keyboard releases it, and if the exact sent text lands back in an empty
+// box within a moment, clear it again.
+let imeComposing=false, lastSentText='', clearGuardUntil=0, prevInputVal='';
+inputBox.addEventListener('compositionstart',()=>{imeComposing=true});
+inputBox.addEventListener('compositionend',()=>{
+  imeComposing=false;
+  if(Date.now()<clearGuardUntil&&lastSentText&&inputBox.value.trim()===lastSentText.trim()){
+    inputBox.value='';inputBox.style.height='auto';prevInputVal='';
+  }
+});
+inputBox.addEventListener('input',()=>{
+  // A re-commit drops the whole string in at once (empty -> exactly the sent
+  // text). Typing never does that, so this can't eat what you're writing.
+  if(Date.now()<clearGuardUntil&&lastSentText&&prevInputVal===''&&inputBox.value.trim()===lastSentText.trim()){
+    inputBox.value='';inputBox.style.height='auto';prevInputVal='';return;
+  }
+  prevInputVal=inputBox.value;
+});
+function clearComposer(sentText){
+  lastSentText=sentText||'';clearGuardUntil=Date.now()+2500;prevInputVal='';
+  if(imeComposing){try{inputBox.blur()}catch{}}
+  inputBox.value='';inputBox.style.height='auto';
+}
 document.querySelectorAll('.starter').forEach(btn=>{
   btn.addEventListener('click',()=>{
     if(btn.classList.contains('rw-btn')){
@@ -1268,7 +1296,7 @@ async function sendMessage(autoRespond){
       // Add the user's follow-up
       chat.messages.push({role:'user',content:text});
       saveChats();appendMessage('user',text,false);
-      inputBox.value='';inputBox.style.height='auto';
+      clearComposer(text);
       scrollToBottom(true);
 
       // Small delay then restart streaming with full context
@@ -1279,7 +1307,7 @@ async function sendMessage(autoRespond){
     const imgUrls=pendingImages.map(im=>im.url).filter(Boolean);
     chat.messages.push(imgUrls.length?{role:'user',content:text,images:imgUrls}:{role:'user',content:text});
     if(chat.messages.length===1){chat.title=text.slice(0,52)+(text.length>52?'…':'');chatTitle.textContent=chat.title;renderChatList()}
-    saveChats();appendMessage('user',text,false,imgUrls);inputBox.value='';inputBox.style.height='auto';
+    saveChats();appendMessage('user',text,false,imgUrls);clearComposer(text);
     pendingImages=[];renderThumbs();
   }
 
