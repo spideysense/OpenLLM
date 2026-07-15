@@ -65,8 +65,8 @@ contextBridge.exposeInMainWorld('aspen', {
 
   // ── Chat ──
   chat: {
-    send: (model, messages) => ipcRenderer.invoke('chat:send', { model, messages }),
-    stop: () => ipcRenderer.invoke('chat:stop'),
+    send: (model, messages, convoId) => ipcRenderer.invoke('chat:send', { model, messages, convoId }),
+    stop: (convoId) => ipcRenderer.invoke('chat:stop', convoId),
     onStream: (cb) => {
       const handler = (event, data) => cb(data);
       ipcRenderer.on('chat:stream', handler);

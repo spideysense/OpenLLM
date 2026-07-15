@@ -530,8 +530,15 @@ function abortPull() {
   return { success: false, error: 'No active pull' };
 }
 
-async function chat(model, messages, onChunk) {
-  chatController = new AbortController();
+// One AbortController per conversation. A single shared controller meant a second
+// chat overwrote the first — the first became un-abortable and "stop" killed
+// whichever started last. Keyed by conversation id so chats run side by side.
+const chatControllers = new Map();
+
+async function chat(model, messages, onChunk, { key = 'default' } = {}) {
+  const ctrl = new AbortController();
+  chatControllers.set(key, ctrl);
+  chatController = ctrl; // legacy single-ref, kept for any older caller
 
   try {
     // Aspen-level search: ask the local model if this needs real-time data
@@ -566,7 +573,7 @@ async function chat(model, messages, onChunk) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ model, messages: enrichedMessages, stream: true, keep_alive: -1, options: { num_predict: -1, num_ctx: system.getRecommendedContext(), ...gpuFallback.gpuOptions() } }),
-      signal: chatController.signal,
+      signal: ctrl.signal,
     });
 
     if (!res.ok) {
@@ -620,12 +627,25 @@ async function chat(model, messages, onChunk) {
     }
     return { success: false, error: err.message };
   } finally {
-    chatController = null;
+    chatControllers.delete(key);
+    if (chatController === ctrl) chatController = null;
   }
 }
 
-function abortChat() {
-  if (chatController) { chatController.abort(); return { success: true }; }
+function abortChat(key) {
+  // With a key: stop just that conversation, leaving other chats streaming.
+  if (key !== undefined && key !== null && key !== '') {
+    const c = chatControllers.get(key);
+    if (c) { c.abort(); chatControllers.delete(key); return { success: true }; }
+    return { success: false, error: 'No active chat for that conversation' };
+  }
+  // No key: stop everything (app quit, legacy callers).
+  if (chatControllers.size) {
+    for (const c of chatControllers.values()) { try { c.abort(); } catch {} }
+    chatControllers.clear();
+    chatController = null;
+    return { success: true };
+  }
   return { success: false, error: 'No active chat' };
 }
 

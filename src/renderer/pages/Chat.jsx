@@ -19,6 +19,9 @@ function isVisionModel(modelName) {
   return VISION_MODELS.some((v) => modelName.toLowerCase().includes(v));
 }
 
+// Stable identity so a conversation with no live stream doesn't churn renders.
+const EMPTY_STREAM = Object.freeze({ buffer: '', streaming: false, trail: [] });
+
 export default function Chat() {
   const { bridge, activeModel, selectModel, models, setPage, modelProfile,
     conversations, setConversations, activeConvo, setActiveConvo, newConvo, deleteConvo,
@@ -28,13 +31,35 @@ export default function Chat() {
   const [plusOpen, setPlusOpen] = useState(false);
   const [missionGuidance, setMissionGuidance] = useState('');
   const [showFeedback, setShowFeedback] = useState(false);
-  const [isStreaming, setIsStreaming] = useState(false);
-  const [streamBuffer, setStreamBuffer] = useState('');
-  const streamBufferRef = useRef('');
-  // Live reasoning trail (status + tool steps) for the in-progress message.
-  const [trail, setTrail] = useState([]);
-  const trailRef = useRef([]);
-  const streamConvIdRef = useRef(null); // which conversation the live stream belongs to
+  // Per-conversation stream state: { [convoId]: { buffer, streaming, trail } }.
+  // Chats generate independently and in parallel — every chunk carries its
+  // convoId, so a reply lands in the chat that asked for it no matter which tab
+  // you're looking at, and two chats can stream at once without colliding.
+  const [streams, setStreams] = useState({});
+  const streamsRef = useRef({});
+  const activeConvoRef = useRef(activeConvo);
+  activeConvoRef.current = activeConvo;
+
+  // Mutate one conversation's stream without disturbing any other in-flight chat.
+  const patchStream = useCallback((id, patch) => {
+    if (!id) return;
+    const prev = streamsRef.current[id] || EMPTY_STREAM;
+    streamsRef.current = { ...streamsRef.current, [id]: { ...prev, ...patch } };
+    setStreams(streamsRef.current);
+  }, []);
+  const clearStream = useCallback((id) => {
+    if (!id) return;
+    const next = { ...streamsRef.current };
+    delete next[id];
+    streamsRef.current = next;
+    setStreams(next);
+  }, []);
+
+  // What the CURRENT tab shows. Other conversations keep streaming underneath.
+  const activeStream = streams[activeConvo] || EMPTY_STREAM;
+  const isStreaming = activeStream.streaming;
+  const streamBuffer = activeStream.buffer;
+  const trail = activeStream.trail;
   const [attachments, setAttachments] = useState([]); // { type: 'image'|'text', name, data, preview }
   const [isListening, setIsListening] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(false);
@@ -234,14 +259,18 @@ export default function Chat() {
     const unsub = bridge.chat.onStream((chunk) => {
       // Reasoning-trail event (status / tool step) — accumulate, don't treat as
       // answer content. Mirrors the web/mobile live trail.
+      // Route strictly by conversation. The chunk says which chat it belongs to;
+      // the open tab is irrelevant.
+      const cid = chunk.convoId || activeConvoRef.current;
+      if (!cid) return;
+      const cur = streamsRef.current[cid] || EMPTY_STREAM;
+
       if (chunk.aspen_status) {
         const step = { status: chunk.aspen_status, tool: chunk.aspen_tool || null, transient: !!chunk.aspen_transient };
-        trailRef.current = [...trailRef.current, step];
-        setTrail(trailRef.current);
+        patchStream(cid, { trail: [...(cur.trail || []), step], streaming: true });
         return;
       }
       if (chunk.done) {
-        setIsStreaming(false);
         // After the first completed reply: once per user, show the feedback dialog.
         try {
           if (!localStorage.getItem('aspen_fb_v1')) {
@@ -250,19 +279,16 @@ export default function Chat() {
           }
         } catch { /* ignore */ }
         // Transient steps (e.g. "Loading model…") are live-only — never saved.
-        const finishedTrail = trailRef.current.filter((s) => !s.transient);
-        trailRef.current = [];
-        setTrail([]);
+        const finishedTrail = (cur.trail || []).filter((s) => !s.transient);
 
         // Read the final content from the ref — NOT from inside a setState
         // updater. Committing the assistant message here, in the plain stream
         // handler, means React can never double-invoke a side-effecting updater
         // and append the same message twice (the double-bubble bug).
-        const finalContent = streamBufferRef.current + (chunk.content || '');
-        streamBufferRef.current = '';
-        setStreamBuffer('');
+        const finalContent = (cur.buffer || '') + (chunk.content || '');
+        clearStream(cid);
 
-        const targetConvId = streamConvIdRef.current ?? activeConvo;
+        const targetConvId = cid;
         setConversations((cs) =>
           cs.map((c) =>
             c.id === targetConvId
@@ -274,8 +300,6 @@ export default function Chat() {
               : c
           )
         );
-        streamConvIdRef.current = null;
-
         if (voiceModeRef.current) {
           const sentences = tts.splitIntoSentences(finalContent);
           if (sentences.length > 0) {
@@ -297,16 +321,15 @@ export default function Chat() {
           return next;
         });
       } else {
-        streamBufferRef.current += (chunk.content || '');
-        setStreamBuffer(streamBufferRef.current);
+        patchStream(cid, { buffer: (cur.buffer || '') + (chunk.content || ''), streaming: true });
       }
     });
     return unsub;
     // IMPORTANT: depend on bridge ONLY, not activeConvo. Re-subscribing on every
     // chat switch tears down the listener mid-stream and abandons the in-progress
-    // generation. Streaming state lives in refs (streamBufferRef/streamConvIdRef),
-    // and completion commits to streamConvIdRef — so the origin chat keeps
-    // generating and lands its result regardless of which tab you're viewing.
+    // generation. Stream state lives in streamsRef keyed by conversation, and
+    // each chunk carries its convoId — so every chat keeps generating and lands
+    // its result regardless of which tab you're viewing, several at a time.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bridge]);
 
@@ -320,7 +343,10 @@ export default function Chat() {
       try { await bridge?.missions?.guide(viewingMissionId, text); } catch { /* ignore */ }
       return;
     }
-    if ((!text && attachments.length === 0) || isStreaming || !activeModel) return;
+    // Only block if THIS conversation is already generating — other chats being
+    // busy must never stop you sending here.
+    if ((!text && attachments.length === 0) || !activeModel) return;
+    if ((streamsRef.current[activeConvo] || EMPTY_STREAM).streaming) return;
 
     // Build message with optional attachments
     const userMsg = { role: 'user', content: text || '(see attachment)' };
@@ -352,18 +378,21 @@ export default function Chat() {
     setAttachments([]);
     setBgMode(false);
     setViewingMissionId(null);
-    streamConvIdRef.current = activeConvo;
-    setIsStreaming(true);
-    setStreamBuffer('');
-    trailRef.current = [];
-    setTrail([]);
+    // Start a stream for THIS conversation only — any other chat mid-generation
+    // is untouched and keeps going.
+    const sendConvoId = activeConvo;
+    patchStream(sendConvoId, { buffer: '', streaming: true, trail: [] });
 
     if (bridge) {
       // Pass messages without uiMsg extras (Ollama doesn't want attachmentPreviews)
       const apiMessages = updatedMessages.map(({ attachmentPreviews, ...m }) => m);
-      await bridge.chat.send(activeModel, apiMessages);
+      await bridge.chat.send(activeModel, apiMessages, sendConvoId);
     }
-  }, [input, attachments, isStreaming, activeModel, messages, bridge, activeConvo, bgMode, viewingMissionId]);
+    // isStreaming is intentionally NOT a dep: the per-conversation guard reads
+    // streamsRef, so sendMessage never needs to rebuild when another chat starts
+    // or stops streaming.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [input, attachments, activeModel, messages, bridge, activeConvo, bgMode, viewingMissionId, patchStream]);
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
@@ -522,8 +551,10 @@ export default function Chat() {
   }, []);
 
   const stopStreaming = () => {
-    if (bridge) bridge.chat.stop();
-    setIsStreaming(false);
+    // Stop only the chat you're looking at; others keep streaming.
+    const id = activeConvoRef.current;
+    if (bridge) bridge.chat.stop(id);
+    clearStream(id);
   };
 
   // ── Drag & drop files ──
@@ -623,7 +654,7 @@ export default function Chat() {
           );
         })()}
 
-        {!viewingMissionId && messages.length === 0 && !(streamBuffer && streamConvIdRef.current === activeConvo) && (
+        {!viewingMissionId && messages.length === 0 && !streamBuffer && (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 24px' }}>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>What can I help with?</div>
             <div style={{ fontSize: 13, color: 'var(--text-light)', marginBottom: 18, textAlign: 'center' }}>100% private — everything stays on your machine</div>
@@ -683,7 +714,7 @@ export default function Chat() {
           </div>
         ))}
 
-        {!viewingMissionId && (isStreaming || streamBuffer) && streamConvIdRef.current === activeConvo && (
+        {!viewingMissionId && (isStreaming || streamBuffer) && (
           <div className="chat-message assistant">
             <div className="chat-avatar"></div>
             <div className="chat-bubble">

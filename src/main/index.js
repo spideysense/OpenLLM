@@ -511,7 +511,9 @@ ipcMain.handle('feedback:chat', async (_event, { model, messages }) => {
   }
 });
 
-ipcMain.handle('chat:send', async (event, { model, messages }) => {
+ipcMain.handle('chat:send', async (event, { model, messages, convoId = 'default' }) => {
+  // Every chunk carries its convoId so the renderer routes it to the chat that
+  // asked for it — that's what lets several chats stream at the same time.
   // Prepend system prompt so the model knows it's running locally
   const now = new Date();
   const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
@@ -562,6 +564,7 @@ ipcMain.handle('chat:send', async (event, { model, messages }) => {
         const statusText = e.type === 'tool_call' ? (e.statusText || e.name) : (e.text || '');
         if (!statusText) return;
         mainWindow?.webContents.send('chat:stream', {
+          convoId,
           aspen_status: statusText,
           aspen_tool: e.name || null,
           content: '',
@@ -569,29 +572,30 @@ ipcMain.handle('chat:send', async (event, { model, messages }) => {
         });
       };
       const content = await agent.runAgentValidated({ model, messages: fullMessages, onEvent });
-      mainWindow?.webContents.send('chat:stream', { content: content || '', done: false });
-      mainWindow?.webContents.send('chat:stream', { content: '', done: true });
+      mainWindow?.webContents.send('chat:stream', { convoId, content: content || '', done: false });
+      mainWindow?.webContents.send('chat:stream', { convoId, content: '', done: true });
       // Extract facts from the completed conversation
       scheduleExtraction();
       return { content: content || '' };
     } catch (e) {
       const msg = `⚠️ ${e.message}`;
-      mainWindow?.webContents.send('chat:stream', { content: msg, done: false });
-      mainWindow?.webContents.send('chat:stream', { content: '', done: true });
+      mainWindow?.webContents.send('chat:stream', { convoId, content: msg, done: false });
+      mainWindow?.webContents.send('chat:stream', { convoId, content: '', done: true });
       return { content: msg };
     }
   }
 
   const result = await ollama.chat(model, fullMessages, (chunk) => {
-    mainWindow?.webContents.send('chat:stream', chunk);
-  });
+    mainWindow?.webContents.send('chat:stream', { ...chunk, convoId });
+  }, { key: convoId });
   // Extract facts after streaming completes
   scheduleExtraction();
   return result;
 });
 
-ipcMain.handle('chat:stop', async () => {
-  return ollama.abortChat();
+ipcMain.handle('chat:stop', async (event, convoId) => {
+  // Stop just this conversation; any other chat keeps streaming.
+  return ollama.abortChat(convoId);
 });
 
 // ═══════════════════════════════════════════════════
