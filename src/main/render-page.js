@@ -127,4 +127,79 @@ async function renderPage(url, { timeoutMs = RENDER_TIMEOUT_MS } = {}) {
   }
 }
 
-module.exports = { renderPage, RENDER_TIMEOUT_MS };
+module.exports = { renderPage, checkHtmlRuntime, RENDER_TIMEOUT_MS };
+
+/**
+ * Load generated HTML in a real browser and report anything it throws.
+ *
+ * publish_app's v1 check only proves the JavaScript PARSES. An app can parse
+ * perfectly and still be dead on arrival — a ReferenceError on load, a null
+ * canvas, a typo'd function name — and the user gets a blank page. This actually
+ * runs it and collects the errors so the model can fix them before publishing.
+ *
+ * @returns {Promise<{ok:true,skipped?:boolean}|{ok:false,errors:string[]}>}
+ *   skipped:true when we can't render (no Electron) — never block publishing then.
+ */
+async function checkHtmlRuntime(html, { timeoutMs = 12000, watchMs = 2500 } = {}) {
+  const electron = getElectron();
+  if (!electron || !electron.app || !electron.BrowserWindow) return { ok: true, skipped: true };
+  const { app, BrowserWindow, session } = electron;
+  if (!app.isReady()) return { ok: true, skipped: true };
+
+  const fs = require('fs');
+  const os = require('os');
+  const path = require('path');
+
+  // Load from a temp file, not a data: URL — file:// behaves like a real page,
+  // so canvas/DOM APIs work the same way they will for the user.
+  const tmp = path.join(os.tmpdir(), `aspen-validate-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.html`);
+  let win = null;
+  let timer = null;
+  try {
+    fs.writeFileSync(tmp, html, 'utf8');
+
+    const partition = 'aspen-validate-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+    const ses = session.fromPartition(partition, { cache: false });
+    ses.setPermissionRequestHandler((_wc, _perm, cb) => cb(false));
+
+    win = new BrowserWindow({
+      show: false,
+      width: 1280,
+      height: 900,
+      webPreferences: { partition, sandbox: true, nodeIntegration: false, contextIsolation: true, backgroundThrottling: false },
+    });
+    win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+
+    const errors = [];
+    // Uncaught exceptions surface as console errors (level 3) in Chromium.
+    win.webContents.on('console-message', (_e, level, message, line) => {
+      if (level !== 3) return;
+      const m = String(message || '');
+      // Network/asset noise is not a code defect — don't fail a good app because
+      // a CDN 404'd or the box is offline.
+      if (/Failed to load resource|net::ERR_|favicon/i.test(m)) return;
+      errors.push(line ? `${m} (line ${line})` : m);
+    });
+    win.webContents.on('render-process-gone', (_e, d) => {
+      errors.push(`The page crashed while loading (${(d && d.reason) || 'unknown'}).`);
+    });
+
+    await new Promise((resolve) => {
+      let settled = false;
+      const finish = () => { if (!settled) { settled = true; resolve(); } };
+      timer = setTimeout(finish, timeoutMs);
+      win.webContents.on('did-fail-load', (_e, code) => { if (code !== -3) finish(); });
+      // Watch briefly after load — errors in requestAnimationFrame/timers land here.
+      win.webContents.on('did-finish-load', () => setTimeout(finish, watchMs));
+      win.loadFile(tmp).catch(finish);
+    });
+
+    return errors.length ? { ok: false, errors } : { ok: true };
+  } catch {
+    return { ok: true, skipped: true }; // never block publishing on our own failure
+  } finally {
+    if (timer) clearTimeout(timer);
+    try { if (win && !win.isDestroyed()) win.destroy(); } catch { /* ignore */ }
+    try { require('fs').unlinkSync(tmp); } catch { /* ignore */ }
+  }
+}

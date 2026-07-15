@@ -643,10 +643,20 @@ async function publishApp({ html, name } = {}) {
     return 'Provide the complete, self-contained HTML document for the app.';
   }
   // Self-test before shipping: don't publish a broken app.
+  // 1) Does the JavaScript parse at all?
   const jsErr = validateHtmlJs(html);
   if (jsErr) {
     return `NOT PUBLISHED — the app has a code error that would break it:\n${jsErr}\nFix the JavaScript and call publish_app again with the corrected HTML.`;
   }
+  // 2) Does it actually RUN? Parsing proves nothing — load it in a real browser
+  //    and catch anything it throws, so the user never gets a blank page.
+  try {
+    const rt = await require('./render-page').checkHtmlRuntime(html);
+    if (rt && rt.ok === false && rt.errors && rt.errors.length) {
+      const list = rt.errors.slice(0, 5).map((e) => `  - ${e}`).join('\n');
+      return `NOT PUBLISHED — the app throws when it loads:\n${list}\nFix these and call publish_app again with the corrected HTML.`;
+    }
+  } catch { /* validation must never block a good publish */ }
   try {
     const http = require('http');
     let key = '';
