@@ -19,6 +19,7 @@ const DEFAULT_MAX_STEPS = 1000;          // safety ceiling per mission
 let _deps = null;      // { runAgent, getActiveModel }
 let _timer = null;
 let _busy = false;     // one step at a time across all missions
+let _runningId = null; // which mission is executing a step RIGHT NOW
 const _stopRequested = new Set(); // mission ids asked to stop mid-step
 
 function load() { try { return store.get(KEY) || []; } catch { return []; } }
@@ -163,6 +164,7 @@ async function tick() {
   if (!due) return;
 
   _busy = true;
+  _runningId = due.id;
   try {
     let result;
     try { result = await runStep(due); }
@@ -185,7 +187,47 @@ async function tick() {
     }
   } finally {
     _busy = false;
+    _runningId = null;
   }
 }
 
-module.exports = { init, start, stop, stopAll, guide, status, load, buildPrompt, tick };
+function fmtDur(ms) {
+  const s = Math.max(0, Math.round(ms / 1000));
+  if (s < 60) return `${s}s`;
+  const mm = Math.floor(s / 60);
+  const ss = s % 60;
+  return ss ? `${mm}m ${ss}s` : `${mm}m`;
+}
+
+/**
+ * Missions + what each one is doing RIGHT NOW.
+ *
+ * A mission waits >=3 minutes between steps and pauses entirely while you're
+ * using Aspen, so "working" could equally mean thinking, queued behind another
+ * mission, waiting on you, or wedged — indistinguishable from the outside. This
+ * says which.
+ */
+function listLive() {
+  const missions = load();
+  const now = Date.now();
+  const busyForUser = (() => { try { return foreground.isBusy(); } catch { return false; } })();
+
+  return missions.map((m) => {
+    let a;
+    if (m.status === 'done') a = { state: 'done', short: 'done', label: 'Done' };
+    else if (m.status === 'blocked') a = { state: 'blocked', short: 'needs you', label: 'Blocked — needs your input' };
+    else if (m.status === 'stopped') a = { state: 'stopped', short: 'stopped', label: 'Stopped' };
+    else if (_runningId === m.id) a = { state: 'running', short: 'working', label: `Working on step ${(m.steps || 0) + 1}` };
+    else if (busyForUser) a = { state: 'yielding', short: 'paused', label: 'Paused while you\'re using Aspen — resumes when you\'re idle' };
+    else if (_busy) a = { state: 'queued', short: 'queued', label: 'Waiting its turn behind another mission' };
+    else {
+      const dueAt = (m.lastStep || 0) + (m.intervalMs || MIN_INTERVAL_MS);
+      const ms = dueAt - now;
+      if (ms > 0) a = { state: 'scheduled', short: `in ${fmtDur(ms)}`, label: `Next step in ${fmtDur(ms)}`, nextInMs: ms };
+      else a = { state: 'starting', short: 'starting', label: 'Starting next step…' };
+    }
+    return { ...m, activity: a };
+  });
+}
+
+module.exports = { init, start, stop, stopAll, guide, status, load, listLive, buildPrompt, tick };

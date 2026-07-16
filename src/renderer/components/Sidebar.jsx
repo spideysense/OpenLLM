@@ -147,9 +147,9 @@ export default function Sidebar() {
                   onMouseEnter={(e) => { if (viewingMissionId !== m.id) e.currentTarget.style.background = 'rgba(0,0,0,.04)'; }}
                   onMouseLeave={(e) => { if (viewingMissionId !== m.id) e.currentTarget.style.background = 'transparent'; }}
                 >
-                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: dotColor[m.status] || '#9A9AA0', flexShrink: 0 }} />
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: (m.activity?.state === 'running' ? '#5B8C6E' : m.activity?.state === 'yielding' ? '#C79A3A' : dotColor[m.status]) || '#9A9AA0', flexShrink: 0 }} />
                   <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={m.goal}>{m.goal}</span>
-                  <span style={{ fontSize: 10.5, color: 'var(--text-light, #9A9AA0)', textTransform: 'lowercase' }}>{statusWord[m.status] || ''}</span>
+                  <span style={{ fontSize: 10.5, color: 'var(--text-light, #9A9AA0)', textTransform: 'lowercase' }}>{m.activity?.short || statusWord[m.status] || ''}</span>
                 </div>
               ))}
             </div>

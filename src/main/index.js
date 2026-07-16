@@ -678,7 +678,9 @@ ipcMain.handle('store:get', async (event, key) => {
 });
 
 ipcMain.handle('missions:list', async () => {
-  try { return require('./always-on').load(); } catch { return []; }
+  // listLive() adds a live 'activity' (working / paused / queued / next step in N)
+  // so the UI can say what each mission is doing instead of a flat 'working'.
+  try { return require('./always-on').listLive(); } catch { return []; }
 });
 ipcMain.handle('missions:stop', async (event, id) => {
   try {

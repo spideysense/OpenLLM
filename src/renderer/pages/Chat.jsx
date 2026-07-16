@@ -642,11 +642,26 @@ export default function Chat() {
           const m = (missions || []).find((x) => x.id === viewingMissionId);
           if (!m) return <div style={{ padding: 24, color: 'var(--text-light)' }}>Mission not found.</div>;
           const journal = m.journal || [];
-          const label = { active: 'Working…', done: 'Done', blocked: 'Blocked', stopped: 'Stopped' }[m.status] || m.status;
+          // Live activity beats a flat status: a mission sits >=3 min between
+          // steps and pauses while you're using Aspen, so "Working…" for minutes
+          // is indistinguishable from stuck.
+          const act = m.activity || null;
+          const label = act ? act.short : ({ active: 'Working…', done: 'Done', blocked: 'Blocked', stopped: 'Stopped' }[m.status] || m.status);
+          const dotFor = { running: '#5B8C6E', yielding: '#C79A3A', queued: '#9A9AA0', scheduled: '#9A9AA0', starting: '#5B8C6E', stopped: '#9A9AA0', done: '#5B8C6E', blocked: '#C0392B' };
           return (
             <div style={{ maxWidth: 720, margin: '0 auto', padding: '1.5rem 1rem 3rem' }}>
               <div style={{ fontSize: 11, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--text-light)' }}>Mission · {label} · {m.steps} steps</div>
-              <h2 style={{ fontSize: '1.35rem', margin: '.4rem 0 1rem', fontWeight: 600 }}>{m.goal}</h2>
+              <h2 style={{ fontSize: '1.35rem', margin: '.4rem 0 .75rem', fontWeight: 600 }}>{m.goal}</h2>
+              {act && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, fontSize: 13, color: 'var(--text-mid, #555)' }}>
+                  <span style={{
+                    width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+                    background: dotFor[act.state] || '#9A9AA0',
+                    animation: act.state === 'running' ? 'pulse 1.4s infinite' : 'none',
+                  }} />
+                  <span>{act.label}</span>
+                </div>
+              )}
               {m.status === 'active' && (
                 <button onClick={() => bridge?.missions?.stop(m.id)} style={{ fontSize: 12, padding: '5px 12px', border: '1px solid rgba(0,0,0,.12)', borderRadius: 8, background: 'transparent', cursor: 'pointer', marginBottom: 20 }}>Stop mission</button>
               )}

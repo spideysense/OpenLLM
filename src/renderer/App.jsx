@@ -227,7 +227,9 @@ export default function App() {
     let alive = true;
     const pull = () => bridge.missions.list().then((m) => { if (alive) setMissions(Array.isArray(m) ? m : []); }).catch(() => {});
     pull();
-    const t = setInterval(pull, 15000);
+    // 4s, not 15s: the mission row now shows a live countdown / current step, so
+    // a slow poll makes it look frozen. This is a cheap local read.
+    const t = setInterval(pull, 4000);
     return () => { alive = false; clearInterval(t); };
   }, [bridge]);
 
