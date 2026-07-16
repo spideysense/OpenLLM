@@ -25,7 +25,7 @@ const EMPTY_STREAM = Object.freeze({ buffer: '', streaming: false, trail: [] });
 export default function Chat() {
   const { bridge, activeModel, selectModel, models, setPage, modelProfile,
     conversations, setConversations, activeConvo, setActiveConvo, newConvo, deleteConvo,
-    missions, viewingMissionId, setViewingMissionId } = useApp();
+    missions, setMissions, viewingMissionId, setViewingMissionId } = useApp();
   const [input, setInput] = useState('');
   const [bgMode, setBgMode] = useState(false);
   const [plusOpen, setPlusOpen] = useState(false);
@@ -340,7 +340,13 @@ export default function Chat() {
     if (viewingMissionId) {
       if (!text) return;
       setInput('');
-      try { await bridge?.missions?.guide(viewingMissionId, text); } catch { /* ignore */ }
+      try {
+        await bridge?.missions?.guide(viewingMissionId, text);
+        // Show it immediately. The mission list otherwise polls every 15s, so
+        // your message just sat there and looked ignored.
+        const fresh = await bridge?.missions?.list?.();
+        if (Array.isArray(fresh)) setMissions(fresh);
+      } catch { /* ignore */ }
       return;
     }
     // Only block if THIS conversation is already generating — other chats being

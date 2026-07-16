@@ -87,11 +87,30 @@ function guide(id, text) {
   const m = load();
   const x = m.find((z) => z.id === id);
   if (!x) return { ok: false };
+
+  // Typing "stop" at a mission means STOP. It used to be filed as a note for the
+  // model to maybe read at its next step (up to minutes away) — which reads as
+  // the app ignoring you.
+  if (/^(stop|pause|halt|cancel|abort|quit|stop it|stop this|please stop)[.!]*$/i.test(t)) {
+    x.status = 'stopped';
+    _stopRequested.add(id);
+    x.journal = [...(x.journal || []), '[USER] Stopped this mission.'].slice(-MAX_JOURNAL);
+    persist(m);
+    return { ok: true, status: 'stopped', stopped: true };
+  }
+
   x.journal = [...(x.journal || []), `[USER GUIDANCE] ${t}`].slice(-MAX_JOURNAL);
-  if (x.status === 'stopped') { x.status = 'active'; _stopRequested.delete(id); }
+
+  // Only resume a stopped mission if you actually asked it to resume. Silently
+  // restarting because you typed at it is the opposite of what you meant.
+  const wantsResume = /\b(resume|continue|restart|keep going|carry on|go on|start again)\b/i.test(t);
+  if (x.status === 'stopped' && wantsResume) {
+    x.status = 'active';
+    _stopRequested.delete(id);
+  }
   persist(m);
   try { ensureScheduler(); } catch {}
-  return { ok: true, status: x.status };
+  return { ok: true, status: x.status, queued: x.status === 'stopped' };
 }
 
 // A compact view for the model / UI (drops the full journal, keeps a tail).
