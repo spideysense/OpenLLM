@@ -11,8 +11,7 @@ const store = require('./store');
 const foreground = require('./foreground');
 
 const KEY = 'missions';
-const MIN_INTERVAL_MS = 3 * 60 * 1000;   // ≥3 min between a mission's steps
-const TICK_MS = 60 * 1000;               // scheduler checks every minute
+const TICK_MS = 2 * 1000;                // heartbeat: how soon we pick work back up
 const MAX_JOURNAL = 200;                 // keep the last N step entries
 const DEFAULT_MAX_STEPS = 1000;          // safety ceiling per mission
 
@@ -46,7 +45,7 @@ function ensureScheduler() {
   if (_timer.unref) _timer.unref();
 }
 
-function start(goal, { maxSteps = DEFAULT_MAX_STEPS, intervalMs = MIN_INTERVAL_MS } = {}) {
+function start(goal, { maxSteps = DEFAULT_MAX_STEPS, intervalMs = 0 } = {}) {
   const g = String(goal || '').trim();
   if (!g) return { error: 'A mission needs a goal.' };
   if (BOGUS_RX.test(g)) return { error: 'Invalid mission goal.' };
@@ -57,7 +56,7 @@ function start(goal, { maxSteps = DEFAULT_MAX_STEPS, intervalMs = MIN_INTERVAL_M
   missions.push({
     id, goal: g, status: 'active', steps: 0,
     maxSteps: Math.min(Math.max(1, maxSteps), 100000),
-    intervalMs: Math.max(60 * 1000, intervalMs),
+    intervalMs: Math.max(0, intervalMs || 0),
     created: Date.now(), lastStep: 0, journal: [],
   });
   persist(missions);
@@ -157,10 +156,9 @@ async function tick() {
   // for the GPU. A later tick picks it up as soon as they're idle.
   if (foreground.isBusy()) return;
   const missions = load();
-  const now = Date.now();
-  const due = missions.find(
-    (m) => m.status === 'active' && m.steps < m.maxSteps && (now - (m.lastStep || 0)) >= (m.intervalMs || MIN_INTERVAL_MS)
-  );
+  // Due = active and not finished. No clock gate: if there's work and nobody
+  // needs the machine, do it now.
+  const due = missions.find((m) => m.status === 'active' && m.steps < m.maxSteps);
   if (!due) return;
 
   _busy = true;
@@ -189,27 +187,24 @@ async function tick() {
     _busy = false;
     _runningId = null;
   }
-}
 
-function fmtDur(ms) {
-  const s = Math.max(0, Math.round(ms / 1000));
-  if (s < 60) return `${s}s`;
-  const mm = Math.floor(s / 60);
-  const ss = s % 60;
-  return ss ? `${mm}m ${ss}s` : `${mm}m`;
+  // Did a step and the machine is still ours -> go straight into the next one.
+  // Back to back, no delay. If you send a chat, the check at the top of tick()
+  // (and the round-boundary pause inside the agent) stops it immediately, and the
+  // heartbeat resumes it once you've been idle for the grace window.
+  setImmediate(() => { tick().catch(() => {}); });
 }
 
 /**
  * Missions + what each one is doing RIGHT NOW.
  *
- * A mission waits >=3 minutes between steps and pauses entirely while you're
+ * A mission runs back to back with no gaps, but pauses entirely while you're
  * using Aspen, so "working" could equally mean thinking, queued behind another
  * mission, waiting on you, or wedged — indistinguishable from the outside. This
  * says which.
  */
 function listLive() {
   const missions = load();
-  const now = Date.now();
   const busyForUser = (() => { try { return foreground.isBusy(); } catch { return false; } })();
 
   return missions.map((m) => {
@@ -220,12 +215,7 @@ function listLive() {
     else if (_runningId === m.id) a = { state: 'running', short: 'working', label: `Working on step ${(m.steps || 0) + 1}` };
     else if (busyForUser) a = { state: 'yielding', short: 'paused', label: 'Paused while you\'re using Aspen — resumes when you\'re idle' };
     else if (_busy) a = { state: 'queued', short: 'queued', label: 'Waiting its turn behind another mission' };
-    else {
-      const dueAt = (m.lastStep || 0) + (m.intervalMs || MIN_INTERVAL_MS);
-      const ms = dueAt - now;
-      if (ms > 0) a = { state: 'scheduled', short: `in ${fmtDur(ms)}`, label: `Next step in ${fmtDur(ms)}`, nextInMs: ms };
-      else a = { state: 'starting', short: 'starting', label: 'Starting next step…' };
-    }
+    else a = { state: 'starting', short: 'starting', label: 'Starting next step…' };
     return { ...m, activity: a };
   });
 }
