@@ -18,9 +18,17 @@ describe('parallel streaming: main process tags chunks per conversation', () => 
   });
 
   it('every chat:stream emission carries convoId', () => {
-    const sends = index.match(/webContents\.send\('chat:stream',\s*[\s\S]{0,220}?\)/g) || [];
+    // Sends go through sendToRenderer() so a disposed window can't throw; the
+    // contract that matters is unchanged — every chunk must be tagged.
+    const sends = index.match(/sendToRenderer\('chat:stream',\s*[\s\S]{0,220}?\)/g) || [];
     expect(sends.length).toBeGreaterThan(0);
     for (const s of sends) expect(s).toMatch(/convoId/);
+  });
+
+  it('renderer sends survive a destroyed window', () => {
+    // mainWindow?.webContents.send() guards null but not a disposed frame.
+    expect(index).toMatch(/function sendToRenderer\([\s\S]{0,400}?isDestroyed\(\)/);
+    expect(index).not.toMatch(/mainWindow\?\.webContents\.send\('chat:stream'/);
   });
 
   it('ollama.chat gets a per-conversation abort key', () => {
