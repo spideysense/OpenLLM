@@ -347,7 +347,27 @@ function metaSearch(query, engines = META_ENGINES, deadlineMs = META_DEADLINE_MS
   });
 }
 
+// ── Outbound search pacing ──────────────────────────────────────────────────
+// Missions run flat out (by design — no gaps between steps), which means they
+// can fire web_search back to back. DuckDuckGo/Bing/Mojeek then rate-limit us and
+// EVERY engine starts returning 0 results, which reads as "the web is empty" and
+// sends the model into a guessing spiral. So we pace the calls WE make to third
+// parties — the mission itself is never slowed, only its politeness to a stranger.
+// Empty results (the signature of a block) back off harder.
+const SEARCH_MIN_GAP_MS = 1500;
+const SEARCH_BLOCKED_GAP_MS = 15000;
+let _lastSearchAt = 0;
+let _emptyStreak = 0;
+
+async function paceSearch() {
+  const gap = _emptyStreak >= 2 ? SEARCH_BLOCKED_GAP_MS : SEARCH_MIN_GAP_MS;
+  const wait = _lastSearchAt + gap - Date.now();
+  if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+  _lastSearchAt = Date.now();
+}
+
 async function runSearch(args) {
+  await paceSearch();
   const query = (args.query || '').trim();
   if (!query) return 'No query provided.';
 
@@ -372,7 +392,16 @@ async function runSearch(args) {
     // merged and deduped, no setup and no third-party API key.
     if (results.length === 0) results = await metaSearch(query);
 
-    if (results.length === 0) return `No results found for "${query}".`;
+    if (results.length === 0) {
+      // Every engine returning nothing at once means we're blocked, not that the
+      // topic doesn't exist. Say so, so the model stops inventing new queries.
+      _emptyStreak += 1;
+      if (_emptyStreak >= 3) {
+        return `Search is returning nothing for every query right now — the search engines are rate limiting this machine, not confirming the topic is absent. STOP searching. Work with what you already found, and tell the user search is temporarily blocked.`;
+      }
+      return `No results found for "${query}".`;
+    }
+    _emptyStreak = 0;
 
     // Snippets are often just link descriptions and don't contain the actual
     // answer (the live score, the price). So we also FETCH the top result page(s)

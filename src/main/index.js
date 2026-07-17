@@ -514,6 +514,18 @@ ipcMain.handle('feedback:chat', async (_event, { model, messages }) => {
   }
 });
 
+// mainWindow?.webContents.send() guards null but NOT a destroyed window: on quit
+// (or a reload) the frame is disposed while async work is still in flight, and
+// send() throws "Render frame was disposed before WebFrameMain could be accessed".
+// Every send to the renderer goes through here.
+function sendToRenderer(channel, payload) {
+  try {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    if (!mainWindow.webContents || mainWindow.webContents.isDestroyed()) return;
+    mainWindow.webContents.send(channel, payload);
+  } catch { /* window went away mid-send */ }
+}
+
 ipcMain.handle('chat:send', async (event, { model, messages, convoId = 'default' }) => {
   // Every chunk carries its convoId so the renderer routes it to the chat that
   // asked for it — that's what lets several chats stream at the same time.
@@ -566,7 +578,7 @@ ipcMain.handle('chat:send', async (event, { model, messages, convoId = 'default'
       const onEvent = (e) => {
         const statusText = e.type === 'tool_call' ? (e.statusText || e.name) : (e.text || '');
         if (!statusText) return;
-        mainWindow?.webContents.send('chat:stream', {
+        sendToRenderer('chat:stream', {
           convoId,
           aspen_status: statusText,
           aspen_tool: e.name || null,
@@ -575,21 +587,21 @@ ipcMain.handle('chat:send', async (event, { model, messages, convoId = 'default'
         });
       };
       const content = await agent.runAgentValidated({ model, messages: fullMessages, onEvent });
-      mainWindow?.webContents.send('chat:stream', { convoId, content: content || '', done: false });
-      mainWindow?.webContents.send('chat:stream', { convoId, content: '', done: true });
+      sendToRenderer('chat:stream', { convoId, content: content || '', done: false });
+      sendToRenderer('chat:stream', { convoId, content: '', done: true });
       // Extract facts from the completed conversation
       scheduleExtraction();
       return { content: content || '' };
     } catch (e) {
       const msg = `⚠️ ${e.message}`;
-      mainWindow?.webContents.send('chat:stream', { convoId, content: msg, done: false });
-      mainWindow?.webContents.send('chat:stream', { convoId, content: '', done: true });
+      sendToRenderer('chat:stream', { convoId, content: msg, done: false });
+      sendToRenderer('chat:stream', { convoId, content: '', done: true });
       return { content: msg };
     }
   }
 
   const result = await ollama.chat(model, fullMessages, (chunk) => {
-    mainWindow?.webContents.send('chat:stream', { ...chunk, convoId });
+    sendToRenderer('chat:stream', { ...chunk, convoId });
   }, { key: convoId });
   // Extract facts after streaming completes
   scheduleExtraction();
