@@ -32,7 +32,8 @@ final class BoxClient {
         req.timeoutInterval = 8
         if !config.apiKey.isEmpty { req.setValue("Bearer \(config.apiKey)", forHTTPHeaderField: "Authorization") }
         let (data, resp) = try await URLSession.shared.data(for: req)
-        guard let http = resp as? HTTPURLResponse, http.statusCode == 200 else { throw BoxError.badStatus }
+        guard let http = resp as? HTTPURLResponse else { throw BoxError.badStatus(code: 0, body: "") }
+        guard http.statusCode == 200 else { throw BoxError.badStatus(code: http.statusCode, body: errorBody(data)) }
         let decoded = try JSONDecoder().decode(ModelsResponse.self, from: data)
         return decoded.data.map { $0.id }
     }
@@ -102,7 +103,14 @@ final class BoxClient {
         req.httpBody = try JSONEncoder().encode(payload)
 
         let (bytes, resp) = try await session.bytes(for: req)
-        guard let http = resp as? HTTPURLResponse, http.statusCode == 200 else { throw BoxError.badStatus }
+        guard let http = resp as? HTTPURLResponse else { throw BoxError.badStatus(code: 0, body: "") }
+        guard http.statusCode == 200 else {
+            // Drain the error body — this is the only place that can tell us what
+            // actually went wrong (tunnel 502 vs revoked key vs gateway 500).
+            var raw = Data()
+            for try await b in bytes { raw.append(b); if raw.count > 600 { break } }
+            throw BoxError.badStatus(code: http.statusCode, body: errorBody(raw))
+        }
 
         for try await line in bytes.lines {
             guard line.hasPrefix("data: ") else { continue }
@@ -133,5 +141,42 @@ final class BoxClient {
         struct Choice: Codable { let delta: Delta? }
         struct Delta: Codable { let content: String? }
     }
-    enum BoxError: Error { case badStatus, upstream(String) }
+    /// Carries the HTTP status and any body the box sent back. The old
+    /// `case badStatus` threw both away, so a failure surfaced as the useless
+    /// "Aspen.BoxClient.BoxError error 0" with nothing to diagnose from.
+    enum BoxError: LocalizedError {
+        case badStatus(code: Int, body: String)
+        case upstream(String)
+
+        var errorDescription: String? {
+            switch self {
+            case .upstream(let msg):
+                return msg
+            case .badStatus(let code, let body):
+                let detail = body.trimmingCharacters(in: .whitespacesAndNewlines)
+                let hint: String
+                switch code {
+                case 401, 403:
+                    hint = "Your Aspen rejected this device's key. Re-pair by scanning the QR on your Aspen."
+                case 404:
+                    hint = "Your Aspen answered, but not on the expected address. Check the URL, or re-pair with the QR."
+                case 429:
+                    hint = "Your Aspen is rate limiting this device. Give it a moment and try again."
+                case 502, 503, 504:
+                    hint = "The secure tunnel reached Cloudflare but couldn't get to your Aspen. Check the machine is awake and Aspen is running."
+                case 500...599:
+                    hint = "Your Aspen hit an error handling this (\(code))."
+                default:
+                    hint = "Your Aspen returned HTTP \(code)."
+                }
+                return detail.isEmpty ? hint : "\(hint)\n\n\(detail.prefix(300))"
+            }
+        }
+    }
+
+    /// Read a small slice of an error body — enough to diagnose, not enough to
+    /// dump a whole HTML error page into a chat bubble.
+    private static func errorBody(_ data: Data) -> String {
+        String(data: data.prefix(600), encoding: .utf8) ?? ""
+    }
 }
