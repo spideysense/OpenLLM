@@ -838,6 +838,7 @@ Do NOT write code or a code block for casual, personal, or emotional messages ("
     // and hosts that have already come back with nothing usable.
     const _callSigs = new Map();  // "tool:args" -> what it returned last time
     const _hostFails = new Map(); // hostname -> consecutive useless results
+    let _emptySearches = 0;       // consecutive web_search calls that found nothing
 
     for (let round = 0; round < maxRounds; round++) {
       // If the user stopped the mission mid-step, don't start another round of
@@ -953,6 +954,20 @@ Do NOT write code or a code block for casual, personal, or emotional messages ("
           continue;
         }
 
+        // An empty search reports as "ok" with ~80 chars, and web_search has no
+        // url to attribute a dead end to — so nothing stopped the model firing
+        // endless distinct queries at things that don't exist. Count them.
+        if (name === 'web_search' && _emptySearches >= 3) {
+          console.log(`[TOOLDBG] skip (${_emptySearches} empty searches)`);
+          pushToolMsg(
+            `Your last ${_emptySearches} searches returned no results at all. That means these terms don't exist ` +
+            `or the search engines are rate limiting you — either way more queries will not help. Stop searching. ` +
+            `Work with what you already found, and if that isn't enough, say so plainly and tell the user what you need. ` +
+            `Do not invent names, papers, or researchers to search for.`
+          );
+          continue;
+        }
+
         console.log(`[TOOLDBG] call: ${name} ${JSON.stringify(args).slice(0, 160)}`);
         yield { type: 'tool_call', name, statusText };
 
@@ -972,6 +987,11 @@ Do NOT write code or a code block for casual, personal, or emotional messages ("
         // Remember what this exact call gave, and whether the host is a dead end,
         // so the guards above can stop a loop before it starts.
         if (typeof result === 'string' && !isScreenshot) _callSigs.set(sig, result);
+        if (name === 'web_search') {
+          // ~80 chars is the "found nothing" reply; a real result is thousands.
+          const empty = typeof result !== 'string' || result.trim().length < 120 || /no results/i.test(result);
+          _emptySearches = empty ? _emptySearches + 1 : 0;
+        }
         if (host) {
           const useless = typeof result !== 'string' || !result.trim()
             || /Could not fetch page|no readable text|renders entirely in the browser|\bfailed:|\b404\b|not found/i.test(result);

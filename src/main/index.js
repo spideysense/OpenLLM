@@ -194,7 +194,10 @@ app.whenReady().then(async () => {
   setInterval(async () => {
     if (!mainWindow || mainWindow.isDestroyed()) return;
     const status = await ollama.getStatus();
-    mainWindow.webContents.send('ollama:status', status);
+    // Re-check AFTER the await: on quit the window is disposed while getStatus()
+    // is in flight, and send() then throws "Render frame was disposed".
+    if (!mainWindow || mainWindow.isDestroyed() || mainWindow.webContents.isDestroyed()) return;
+    try { mainWindow.webContents.send('ollama:status', status); } catch { /* window went away */ }
   }, 5000);
 
   // Start API gateway
