@@ -327,11 +327,38 @@ Call exactly the tool that fits, wait for its result, then answer using that res
 // compile/parse-checks the answer (never executes it) and hands errors back to
 // the model for a bounded fix before returning.
 async function runAgentValidated(args) {
-  const messages = args.messages || [];
+  let messages = args.messages || [];
+
+  // Inject known facts about the user, keyed by who's asking. This path (used by
+  // the phone/web chat endpoint) previously had NO world-model wiring at all, so
+  // even the owner was met as a stranger every time. memoryKeyId 'owner' reads
+  // the same bucket the desktop writes, so your Aspen finally knows you here too.
+  try {
+    if (args.memoryKeyId !== undefined && args.memoryKeyId !== null) {
+      const worldModel = require('./world-model');
+      const prefix = worldModel.getSystemPrefix(args.memoryKeyId);
+      if (prefix) {
+        messages = messages[0]?.role === 'system'
+          ? [{ ...messages[0], content: prefix + messages[0].content }, ...messages.slice(1)]
+          : [{ role: 'system', content: prefix.trimEnd() }, ...messages];
+      }
+    }
+  } catch { /* memory is best-effort — never block a reply */ }
+
   const model = await modelRouter.routeModel(args.model, messages);
-  const routedArgs = { ...args, model };
+  const routedArgs = { ...args, messages, model };
 
   let answer = await runAgent(routedArgs);
+
+  // Learn from this exchange too — otherwise the phone/web could read memory but
+  // never build it, and only the desktop would ever teach Aspen about you. Keyed,
+  // best-effort, non-blocking. Mirrors the desktop + agent paths.
+  try {
+    if (args.memoryKeyId !== undefined && args.memoryKeyId !== null && answer && String(answer).trim()) {
+      const worldModel = require('./world-model');
+      worldModel.extractFacts(model, [...messages, { role: 'assistant', content: String(answer) }], args.memoryKeyId).catch(() => {});
+    }
+  } catch { /* ignore */ }
 
   // Universal safety net: if the agent came back empty or with the can't-generate
   // fallback (e.g. a model that chokes on tools), retry once as a plain chat call

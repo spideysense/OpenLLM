@@ -710,7 +710,7 @@ async function handleAgentChat(parsed, res) {
       // can detect+replace it. Kept minimal to avoid polluting the answer.
       res.write(`data: ${JSON.stringify({ ...baseChunk, choices: [{ index: 0, delta: { content: '' }, finish_reason: null }], aspen_status: 'searching' })}\n\n`);
 
-      const content = await agent.runAgentValidated({ model, messages: parsed.messages, isOwner: apikeys.isOwnerKey(authToken) });
+      const content = await agent.runAgentValidated({ model, messages: parsed.messages, isOwner: apikeys.isOwnerKey(authToken), memoryKeyId: apikeys.memoryKeyFor(authToken) });
 
       // Stream the computed answer in word-sized pieces so it types out smoothly.
       const pieces = String(content).match(/\S+\s*/g) || [content];
@@ -722,7 +722,7 @@ async function handleAgentChat(parsed, res) {
       res.write('data: [DONE]\n\n');
       res.end();
     } else {
-      const content = await agent.runAgentValidated({ model, messages: parsed.messages, isOwner: apikeys.isOwnerKey(authToken) });
+      const content = await agent.runAgentValidated({ model, messages: parsed.messages, isOwner: apikeys.isOwnerKey(authToken), memoryKeyId: apikeys.memoryKeyFor(authToken) });
       const payload = {
         id: 'chatcmpl-aspen',
         object: 'chat.completion',
