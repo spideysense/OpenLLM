@@ -19,6 +19,11 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src/renderer'),
+      // Test-only: qrcode.react is a real prod dep (in package.json), but the
+      // renderer tests only need the import graph to resolve, not actual QR
+      // rendering. Aliasing to a stub stops a missing/unresolved dep from
+      // cascading into unrelated test failures. Does not affect the app build.
+      'qrcode.react': path.resolve(__dirname, 'tests/stubs/qrcode-react.jsx'),
     },
   },
 });

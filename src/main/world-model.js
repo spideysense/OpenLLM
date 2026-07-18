@@ -102,8 +102,13 @@ function storeKeyFor(keyId) {
 function getFacts(keyId) {
   const sk = storeKeyFor(keyId);
   if (!sk) return [];
-  const wm = store.get(sk) || { facts: [] };
-  return wm.facts || [];
+  try {
+    const wm = store.get(sk) || { facts: [] };
+    return (wm && Array.isArray(wm.facts)) ? wm.facts : [];
+  } catch {
+    // A corrupt/unavailable store must never break a reply — memory is optional.
+    return [];
+  }
 }
 
 /**
@@ -127,24 +132,28 @@ function getSystemPrefix(keyId) {
 function mergeFacts(newFacts, keyId) {
   const sk = storeKeyFor(keyId);
   if (!sk) return 0; // anonymous: don't store anything
-  const wm = store.get(sk) || { facts: [] };
-  const existing = new Set((wm.facts || []).map(f => f.toLowerCase().trim()));
-  const added = [];
+  try {
+    const wm = store.get(sk) || { facts: [] };
+    const existing = new Set(((wm && wm.facts) || []).map(f => f.toLowerCase().trim()));
+    const added = [];
 
-  for (const fact of newFacts) {
-    const trimmed = fact.trim();
-    if (!trimmed || trimmed.length < 5) continue;
-    if (existing.has(trimmed.toLowerCase())) continue;
-    existing.add(trimmed.toLowerCase());
-    added.push(trimmed);
+    for (const fact of newFacts) {
+      const trimmed = fact.trim();
+      if (!trimmed || trimmed.length < 5) continue;
+      if (existing.has(trimmed.toLowerCase())) continue;
+      existing.add(trimmed.toLowerCase());
+      added.push(trimmed);
+    }
+
+    if (added.length === 0) return 0;
+
+    const allFacts = [...((wm && wm.facts) || []), ...added].slice(-MAX_FACTS);
+    store.set(sk, { facts: allFacts, updatedAt: new Date().toISOString() });
+    console.log(`[WorldModel:${keyId || 'owner'}] Added ${added.length} new facts`);
+    return added.length;
+  } catch {
+    return 0; // extraction is best-effort — a failing store must not throw
   }
-
-  if (added.length === 0) return 0;
-
-  const allFacts = [...(wm.facts || []), ...added].slice(-MAX_FACTS);
-  store.set(sk, { facts: allFacts, updatedAt: new Date().toISOString() });
-  console.log(`[WorldModel:${keyId || 'owner'}] Added ${added.length} new facts`);
-  return added.length;
 }
 
 /**
