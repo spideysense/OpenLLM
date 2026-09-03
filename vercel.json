@@ -1,5 +1,6 @@
 {
   "outputDirectory": "site",
+  "buildCommand": "node site/build.mjs && node scripts/seo-build.mjs",
   "rewrites": [
     {
       "source": "/docs",
