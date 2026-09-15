@@ -59,6 +59,7 @@ export default function App() {
   const onConnected = useCallback(async (cfg, models) => {
     await saveConfig(cfg);
     setConfig(cfg);
+    setNeedsOnboarding(false);
     setBoxModel(models?.[0] || '');
     setShowConnect(false);
     await switchTier('box');
@@ -82,10 +83,10 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <StatusBar style="dark" />
-      {needsOnboarding ? (
-        <OnboardingScreen onReady={onboarded} />
-      ) : showConnect ? (
+      {showConnect ? (
         <ConnectScreen onConnected={onConnected} onCancel={() => setShowConnect(false)} />
+      ) : needsOnboarding ? (
+        <OnboardingScreen onReady={onboarded} onConnect={() => setShowConnect(true)} />
       ) : (
         <ChatScreen
           mode={mode}

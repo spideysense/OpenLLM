@@ -27,7 +27,7 @@ struct ConnectView: View {
             .padding(.bottom, 24)
 
             Text("Connect your Aspen").font(.system(size: 26, weight: .bold))
-            Text("Run the big models on your own Mac or Aspen box. Your messages go only to your machine.")
+            Text("Plug Aspen into your router and power. Scan its setup card to make it yours.")
                 .font(.subheadline).foregroundStyle(.secondary).padding(.top, 8)
 
             Button {
@@ -92,7 +92,7 @@ struct ConnectView: View {
             .padding(.top, 20)
 
             Spacer()
-            Text("🔒 Nothing routes through our servers. The connection goes straight to your machine.")
+            Text("Your messages travel encrypted to your Aspen. Enabled outside tools have their own data-sharing settings.")
                 .font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity)
         } }

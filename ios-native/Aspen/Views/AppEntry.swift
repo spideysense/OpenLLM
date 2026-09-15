@@ -9,6 +9,7 @@ struct OnboardingView: View {
     @State private var page = 0
     @State private var downloading = false
     @State private var error = ""
+    @State private var showConnect = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -23,8 +24,29 @@ struct OnboardingView: View {
 
             dots
             controls
+            Button("Connect my Aspen instead") { showConnect = true }
+                .padding(.top, 16)
+                .disabled(downloading)
         }
         .padding(.bottom, 28)
+        .sheet(isPresented: $showConnect) {
+            ConnectView(onConnected: { cfg, models in
+                do {
+                    guard BoxCredentials.save(try JSONEncoder().encode(cfg)) else {
+                        error = "Unlock this phone to save your connection securely."
+                        showConnect = false
+                        return
+                    }
+                    UserDefaults.standard.set(models.first ?? "", forKey: "boxModel")
+                    UserDefaults.standard.set("box", forKey: "lastTier")
+                    showConnect = false
+                    onReady()
+                } catch {
+                    self.error = "Could not save your connection. Try again."
+                    showConnect = false
+                }
+            }, onCancel: { showConnect = false })
+        }
     }
 
     // MARK: pages
@@ -33,7 +55,7 @@ struct OnboardingView: View {
         page(
             badge: "ASPEN",
             title: "Private AI, right on your iPhone.",
-            body: "A real AI assistant that runs on your own device. Nothing leaves your phone — no account, no cloud, works offline.",
+            body: "Run an AI model on this phone, or connect to your household Aspen. Downloaded phone models work offline.",
             icon: "iphone.gen3"
         )
     }
@@ -48,7 +70,7 @@ struct OnboardingView: View {
                 infoRow(icon: "iphone.gen3", title: "On your iPhone",
                         sub: "A fast on-device model. Instant, private, works on a plane. Great for everyday questions, writing, and quick help.")
                 infoRow(icon: "desktopcomputer", title: "Connect your Aspen",
-                        sub: "Link to your Mac or Aspen box to run much larger models for serious coding and research — still 100% private to your own machine.")
+                        sub: "Link to your Mac or Aspen box through an encrypted connection. Outside tools and Cloud Boost have their own sharing settings.")
             }
             .padding(.top, 28)
             Spacer(); Spacer()
@@ -64,7 +86,7 @@ struct OnboardingView: View {
 
             VStack(spacing: 18) {
                 infoRow(icon: "lock.fill", title: "Truly private",
-                        sub: "Your conversations never leave your devices. No servers, no training on your data.")
+                        sub: "Local inference runs on your devices. You choose when to use outside tools or Cloud Boost.")
                 infoRow(icon: "wifi.slash", title: "Works offline",
                         sub: "The on-device model runs with no internet at all.")
                 infoRow(icon: "brain", title: "It remembers",

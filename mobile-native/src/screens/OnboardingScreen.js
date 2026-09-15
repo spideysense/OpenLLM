@@ -9,7 +9,7 @@ import { theme } from '../theme';
 import { defaultModel } from '../engine/models';
 import { isModelDownloaded, downloadModel } from '../engine/localEngine';
 
-export default function OnboardingScreen({ onReady }) {
+export default function OnboardingScreen({ onReady, onConnect }) {
   const insets = useSafeAreaInsets();
   const model = defaultModel();
   const [progress, setProgress] = useState(null); // null=idle, 0..1=downloading
@@ -37,8 +37,8 @@ export default function OnboardingScreen({ onReady }) {
     <View style={[styles.wrap, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 24 }]}>
       <View style={styles.center}>
         <Text style={styles.logo}>Aspen</Text>
-        <Text style={styles.h1}>Private AI, right on your iPhone.</Text>
-        <Text style={styles.sub}>Nothing leaves your device. Works offline. No account.</Text>
+        <Text style={styles.h1}>Your AI. Your devices.</Text>
+        <Text style={styles.sub}>Connect your household Aspen, or download a model to use on this phone.</Text>
       </View>
 
       <View style={styles.bottom}>
@@ -50,10 +50,14 @@ export default function OnboardingScreen({ onReady }) {
           </View>
         ) : (
           <>
+            <TouchableOpacity style={styles.cta} onPress={onConnect} activeOpacity={0.85}>
+              <Text style={styles.ctaText}>Connect my Aspen</Text>
+            </TouchableOpacity>
+            <Text style={styles.fine}>Scan the setup card. No phone model download required.</Text>
             <TouchableOpacity style={styles.cta} onPress={start} activeOpacity={0.85}>
               <Text style={styles.ctaText}>Download {model.label} · ~{sizeGB} GB</Text>
             </TouchableOpacity>
-            <Text style={styles.fine}>Runs entirely on your iPhone. You can connect your Aspen on a Mac later for bigger models.</Text>
+            <Text style={styles.fine}>The downloaded model runs on this phone and works offline.</Text>
             {!!error && <Text style={styles.error}>{error}</Text>}
           </>
         )}
