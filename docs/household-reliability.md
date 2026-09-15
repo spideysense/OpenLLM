@@ -1,5 +1,7 @@
 # Household reliability and privacy repair
 
+The subsequent household implementation is documented in [household-service.md](household-service.md), with delivery gates in [release-qualification.md](release-qualification.md). Those documents supersede the earlier implementation limits below.
+
 This change repairs the existing Aspen application across desktop, gateway, browser, React Native, and native iOS. It is a foundation for a household product, not a claim that a shipping appliance or the best model on every device has been qualified.
 
 ## Behavior and review map
@@ -39,17 +41,17 @@ Existing configuration, conversations and named secrets remain at `~/.aspen`. St
 
 Linux `basic_text` storage is treated as unencrypted. Settings reports when OS-keystore encryption is unavailable; in that state records rely on file permissions and separately configured full-disk protection. Atomic JSON records are recoverable, but are not a scalable document database or a complete household NAS.
 
-Portable backups contain configuration, memory, missions, and conversation history. They use scrypt plus authenticated AES-GCM and require a password of at least 12 characters. Model weights, published artifacts, external files, and the separate named git/deployment secret store are not included. Connector tokens are deliberately dropped on import because their blobs belong to the old OS keystore; reconnect those accounts. Pairing secrets rotate while person IDs remain stable. Missions are stopped and Cloud Boost is disabled on restore. This avoids restarting historical actions or resurrecting revoked device credentials. Re-pair devices after restoration.
+Portable backups contain configuration, memory, missions, conversation history, and managed vault documents. They use scrypt plus authenticated AES-GCM and require a password of at least 12 characters. Model weights, published artifacts, external files, and the separate named git/deployment secret store are not included. Connector tokens are deliberately dropped on import because their blobs belong to the old OS keystore; reconnect those accounts. Pairing secrets rotate while person IDs remain stable. Missions are stopped and Cloud Boost is disabled on restore. This avoids restarting historical actions or resurrecting revoked device credentials. Re-pair devices after restoration.
 
-The JSON restore journal makes configuration/conversation replacement restartable. It is removed only after both have been written. Back up before trying this prerelease branch; do not downgrade an encrypted profile to an older Aspen version that cannot read its record format.
+The JSON restore journal makes configuration/conversation/vault replacement restartable. Configuration and vault authorization records now fail closed on corruption instead of automatically falling back to revoked credentials in a previous copy; explicit portable backup restoration rotates those credentials. It is removed only after both have been written. Back up before trying this prerelease branch; do not downgrade an encrypted profile to an older Aspen version that cannot read its record format.
 
 ## Qualification still required before shipping
 
-- Compile/sign native Swift and run iOS/Android builds on devices. JavaScript exports do not validate Keychain/SecureStore, microphone privacy, mobile background suspension, or platform networking at runtime.
+- Native Swift compilation and Android debug APK builds now pass in CI. Sign and run them on physical devices. JavaScript exports do not validate Keychain/SecureStore, microphone privacy, mobile background suspension, or platform networking at runtime.
 - Validate chat/tool/vision quality, warm/cold latency, memory pressure, thermals, power failure, disk full, and multi-person use on the actual proposed hardware. The current readiness probe measures basic operation, not comparative intelligence or universal optimality.
-- Qualify a factory-reset appliance image and a nontechnical family onboarding session. The provisioning script still requires a graphical login session; separating service uptime from desktop login remains appliance work. Never clone an image after household enrollment.
-- Establish signed Windows/Linux delivery and test upgrades/rollback on every supported platform. The bundled GitHub MCP server is pinned to the prior integration's version and is upstream-deprecated; replace/maintain it before a long-lived supported appliance release.
-- Build the remaining household-vault product: document indexing and provenance, explicit sharing and retention controls, scoped frontier-context grants, and a model task benchmark. These are not implied by repairing chat storage and authentication.
+- Qualify a factory-reset appliance image and a nontechnical family onboarding session. The original desktop provisioning script requires graphical login; the new scripts/install-service.sh and Node entry point remove that dependency for a prepared Linux image. Never clone an image after household enrollment.
+- Establish signed Windows/Linux delivery and test upgrades/rollback on every supported platform. The deprecated GitHub server has been replaced by GitHub’s maintained hosted MCP service. Existing users must explicitly reconnect to approve the endpoint change.
+- The household vault, scoped context grants, standalone service and benchmark harness are now implemented. See household-service.md for their tested behavior, concrete limits and physical-device qualification gates.
 
 ## Verification commands
 
@@ -67,3 +69,6 @@ npx expo export --platform ios --platform android --output-dir /tmp/aspen-mobile
 The reliability tests are in `tests/reliability`: actual IPC and gateway contracts, tool dispatch, storage/backup behavior, concurrency, encrypted transport, and React stream recovery. Existing source guards that enforced the retired architecture have been updated; behavior tests carry the core correctness assertions.
 
 Verified in this workspace: both clean dependency installs; renderer production build; **816 passing tests, 20 existing skips across 41 files**; all four standalone module suites; iOS and Android Hermes JavaScript exports; bundled GitHub MCP discovery of 26 tools without a system Node/npx dependency; provisioning shell syntax and `git diff --check`. Native Swift compilation/signing and physical-device inference/voice/appliance tests were not available here.
+
+
+Subsequent qualification also removed remote executable speech code, updated the build/test tools and vulnerable parser dependencies, and added isolated Office/PDF extraction with archive expansion limits. Native iOS and Android build jobs passed at e70e6edae4d489673968af5693cb8f431b940982. Updated automated evidence is recorded in household-service.md and the PR.

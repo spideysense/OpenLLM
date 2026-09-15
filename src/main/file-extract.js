@@ -20,7 +20,7 @@ function toBuffer(base64) {
 
 async function extractPdf(buf) {
   const { PDFParse } = require('pdf-parse');
-  const parser = new PDFParse({ data: new Uint8Array(buf) });
+  const parser = new PDFParse({ data: new Uint8Array(buf), isEvalSupported: false });
   try {
     const res = await parser.getText();
     return (res?.text || '').trim();
@@ -54,6 +54,8 @@ async function extractText({ name, base64 }) {
   let buf;
   try { buf = toBuffer(base64); } catch { return { ok: false, error: 'Could not decode file.' }; }
   try {
+    if (buf.length > 4 * 1024 * 1024) throw new Error('Choose a document up to 4 MB');
+    if (e === 'docx' || e === 'xlsx') await require('./archive-check').check(buf);
     let text = '';
     if (e === 'pdf') text = await extractPdf(buf);
     else if (e === 'docx') text = await extractDocx(buf);

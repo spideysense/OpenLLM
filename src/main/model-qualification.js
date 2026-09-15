@@ -1,6 +1,6 @@
 const { normalize } = require('./model-id');
-async function qualify(model, { timeoutMs = 180000 } = {}) {
-  const signal = AbortSignal.timeout(timeoutMs);
+async function qualify(model, { timeoutMs = 180000, signal: callerSignal } = {}) {
+  const signal = callerSignal ? AbortSignal.any([callerSignal, AbortSignal.timeout(timeoutMs)]) : AbortSignal.timeout(timeoutMs);
   const post = async (path, body) => {
     const res = await fetch(`http://127.0.0.1:11434${path}`, {
       method: 'POST',

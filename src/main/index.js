@@ -392,8 +392,8 @@ ipcMain.handle('ollama:install', async () => {
 
 // ── File text extraction (PDF / Word / Excel -> plain text, all local) ──
 ipcMain.handle('files:extractText', async (event, payload) => {
-  const { extractText } = require('./file-extract');
-  return extractText(payload || {});
+  if (typeof payload?.base64 !== 'string' || payload.base64.length > 6 * 1024 * 1024) throw new Error('Choose a document up to 4 MB');
+  return require('./extract-worker').extract(payload);
 });
 
 // ── Vision (multimodal) ──

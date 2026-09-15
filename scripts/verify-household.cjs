@@ -53,7 +53,10 @@ async function main() {
   const bob = keys.createKey('Bob', { userId: 'bob' });
   const api = async (token, route, body) => { const r = await secureFetch(base, token, route, { method: body ? 'POST' : 'GET', body }); return { status: r.status, value: await r.json() }; };
   assert.equal((await api(bob.secret, '/v1/household')).status, 403);
-  assert.equal((await api(alice.secret, '/v1/vault')).value.documents.length, 1);
+  const aliceVault = (await api(alice.secret, '/v1/vault')).value;
+  assert.equal(aliceVault.documents.length, 1);
+  assert.ok(aliceVault.people.some(p => p.userId === 'bob'));
+  assert.ok(!JSON.stringify(aliceVault.people).includes(bob.secret));
   assert.equal((await api(owner.secret, '/v1/vault')).value.documents.length, 0);
   const scoped = v.grant('alice', { documentIds: [a.id], purpose: 'Quote review', audience: 'Client' });
   assert.equal((await api(scoped.token, '/v1/context', { query: 'warranty' })).value.results[0].documentId, a.id);

@@ -611,8 +611,9 @@ function start({ port = DEFAULT_PORT, household = false } = {}) {
 
 function stop() {
   if (server) {
-    server.close();
-    server = null;
+    const closing = server; server = null;
+    closing.closeAllConnections();
+    return new Promise(resolve => closing.close(resolve));
   }
 }
 

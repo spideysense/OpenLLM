@@ -18,6 +18,7 @@ const DEFAULT_MAX_STEPS = 1000;          // safety ceiling per mission
 let _deps = null;      // { runAgent, getActiveModel }
 let _timer = null;
 let _busy = false;     // one step at a time across all missions
+let idleWaiters = [];
 let _runningId = null; // which mission is executing a step RIGHT NOW
 const _controllers = new Map();
 const _stopRequested = new Set(); // mission ids asked to stop mid-step
@@ -63,6 +64,18 @@ function start(goal, { maxSteps = DEFAULT_MAX_STEPS, intervalMs = 0 } = {}) {
   persist(missions);
   ensureScheduler();
   return { id, goal: g };
+}
+
+function shutdown() {
+  clearInterval(_timer); _timer = null; _deps = null;
+  const missions = load();
+  for (const [id, controller] of _controllers) {
+    const mission = missions.find(m => m.id === id);
+    if (mission) mission.journal = [...(mission.journal || []), 'Service stopped during a step. Review prior tool effects before continuing.'].slice(-MAX_JOURNAL);
+    _stopRequested.add(id); controller.abort();
+  }
+  if (_controllers.size) persist(missions);
+  return _busy ? new Promise(resolve => idleWaiters.push(resolve)) : Promise.resolve();
 }
 
 function stop(id) {
@@ -194,6 +207,7 @@ async function tick() {
   } finally {
     _busy = false;
     _runningId = null;
+    idleWaiters.splice(0).forEach(resolve => resolve());
   }
 
   // Did a step and the machine is still ours -> go straight into the next one.
@@ -228,4 +242,4 @@ function listLive() {
   });
 }
 
-module.exports = { init, start, stop, stopAll, guide, status, load, listLive, buildPrompt, tick };
+module.exports = { shutdown, init, start, stop, stopAll, guide, status, load, listLive, buildPrompt, tick };

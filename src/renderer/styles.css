@@ -959,3 +959,19 @@ html, body, #root {
 .sidebar-logo-mark { color: var(--text); flex-shrink: 0; }
 .nav-icon { display: inline-flex; align-items: center; justify-content: center; width: 22px; }
 .nav-icon svg { display: block; }
+
+/* Household vault follows the desktop palette and keeps long records readable. */
+.vault-pane { padding: 28px; max-width: 1000px; width: 100%; overflow-y: auto; }
+.vault-pane h1 { margin-bottom: 12px; }
+.vault-pane p { line-height: 1.6; overflow-wrap: anywhere; }
+.vault-pane article, .vault-pane aside { padding: 18px; margin: 16px 0; border: 1px solid var(--border, #ccd9ce); border-radius: 12px; background: var(--bg-card, #fff); }
+.vault-pane label { display: inline-block; margin: 6px 10px 6px 0; }
+.vault-pane form label { display: block; }
+.vault-pane input:not([type=checkbox]), .vault-pane textarea, .vault-pane select { font: inherit; color: inherit; border: 1px solid var(--border, #bccfbd); border-radius: 7px; padding: 10px; background: var(--bg-card, #fff); max-width: 100%; }
+.vault-pane input:not([type=checkbox]), .vault-pane textarea { display: block; width: 100%; margin: 6px 0 12px; }
+.vault-pane textarea { min-height: 80px; }
+.vault-pane button { font: inherit; border: 1px solid var(--border, #bccfbd); padding: 8px 12px; border-radius: 7px; margin: 4px; cursor: pointer; }
+.vault-pane button:disabled { opacity: .5; cursor: default; }
+.vault-pane fieldset { border: 1px solid var(--border, #bccfbd); border-radius: 8px; margin: 12px 0; }
+.vault-pane [role=alert] { color: var(--danger, #a22c1e); }
+.vault-pane :focus-visible { outline: 2px solid var(--accent, #43754d); outline-offset: 3px; }

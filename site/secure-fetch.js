@@ -106,6 +106,7 @@ export async function secureFetch(
         return null;
       }
       buffer += textDecoder.decode(chunk.value, { stream: true });
+      if (buffer.length > 16 * 1024 * 1024) throw new Error('Secure response frame is too large');
       const lines = buffer.split('\n');
       buffer = lines.pop();
       pending.push(...lines.filter(Boolean));

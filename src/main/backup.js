@@ -14,6 +14,7 @@ function validate(data) {
     data.conversations.some((c) => c.id == null || !Array.isArray(c.messages))
   )
     throw new Error('Invalid Aspen backup');
+  if (data.vault) require('./vault').get().validateSnapshot(data.vault);
 }
 function derive(password, salt) {
   if (typeof password !== 'string' || password.length < 12)

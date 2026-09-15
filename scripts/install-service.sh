@@ -7,6 +7,8 @@ command -v systemd-creds >/dev/null
 test -f /opt/aspen/src/main/service.js
 test -x /usr/bin/node
 /usr/bin/node -e 'if (+process.versions.node.split(".")[0] < 22) throw Error("Node 22 or newer required")'
+getent group video >/dev/null || groupadd --system video
+getent group render >/dev/null || groupadd --system render
 id aspen >/dev/null 2>&1 || useradd --system --home-dir /var/lib/aspen --shell /usr/sbin/nologin aspen
 install -d -m 0700 /etc/credstore.encrypted
 if [ ! -f /etc/credstore.encrypted/aspen-key ]; then
