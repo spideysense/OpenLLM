@@ -1,24 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
+import * as SecureStore from 'expo-secure-store';
 const KEY = 'aspen.config.v1';
-
 export async function loadConfig() {
-  try {
-    const s = await AsyncStorage.getItem(KEY);
-    return s ? JSON.parse(s) : null;
-  } catch {
-    return null;
-  }
+  const saved = await SecureStore.getItemAsync(KEY);
+  if (saved) return JSON.parse(saved);
+  const legacy = await AsyncStorage.getItem(KEY);
+  if (!legacy) return null;
+  const value = JSON.parse(legacy);
+  await saveConfig(value); await AsyncStorage.removeItem(KEY); return value;
 }
-
-export async function saveConfig(cfg) {
-  try {
-    await AsyncStorage.setItem(KEY, JSON.stringify(cfg));
-  } catch {}
-}
-
-export async function clearConfig() {
-  try {
-    await AsyncStorage.removeItem(KEY);
-  } catch {}
-}
+export async function saveConfig(cfg) { await SecureStore.setItemAsync(KEY, JSON.stringify(cfg)); }
+export async function clearConfig() { await SecureStore.deleteItemAsync(KEY); await AsyncStorage.removeItem(KEY); }

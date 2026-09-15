@@ -782,7 +782,7 @@ async function showMemory(){
   factsEl.innerHTML='<em style="color:var(--t3)">Loading...</em>';
   try{
     const tunnelUrl=(config?.tunnelUrl||'').replace(/\/+$/,'');
-    const res=await fetch(tunnelUrl+'/world-model',{headers:{'Authorization':'Bearer '+(config?.apiKey||'')}});
+    const res=await (await import('./secure-fetch.js')).secureFetch(tunnelUrl,config.apiKey,'/v1/world-model');
     const data=await res.json();
     if(data.facts&&data.facts.length>0){
       factsEl.innerHTML=data.facts.map(f=>'<div style="display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-bottom:1px solid rgba(0,0,0,.06)"><span style="color:var(--gd);flex-shrink:0">•</span><span>'+escHtml(f)+'</span></div>').join('');
@@ -806,7 +806,7 @@ async function attemptConnect(){
   raw=raw.replace(/\/v1\/?$/,'').replace(/\/+$/,'');
   connectBtn.disabled=true;connectBtn.textContent='Connecting…';
   const tryConnect=async(timeoutMs)=>{
-    const res=await fetch(`${raw}/v1/models`,{headers:key?{'Authorization':`Bearer ${key}`}:{},signal:AbortSignal.timeout(timeoutMs)});
+    const res=await (await import('./secure-fetch.js')).secureFetch(raw,key,'/v1/models',{signal:AbortSignal.timeout(timeoutMs)});
     if(res.status===401){const e=new Error('unauth');e.unauth=true;throw e}
     if(!res.ok)throw new Error(`HTTP ${res.status}`);
     return res;
@@ -1034,15 +1034,15 @@ async function sendText(text){
     const sys=worldModelSystemPrompt();
     const useStream=true;
     // Trial mode: use Vercel trial API; Connected mode: use tunnel proxy
-    const fetchUrl=trialMode?API_BASE+'/api/trial':API_BASE+'/api/agent';
+    const fetchUrl=trialMode?API_BASE+'/api/trial':config.tunnelUrl.replace(/\/v1\/?$/, '').replace(/\/+$/, '')+'/v1/agent';
     const fetchBody=trialMode
       ?{action:'chat',token:trialToken,messages:sys?[{role:'system',content:sys},...history]:history,stream:useStream}
-      :{tunnelUrl:config.tunnelUrl,apiKey:config.apiKey||'',model,messages:sys?[{role:'system',content:sys},...history]:history,stream:useStream};
-    const res=await fetch(fetchUrl,{
+      :{model,messages:sys?[{role:'system',content:sys},...history]:history,stream:useStream};
+    const res=trialMode?await fetch(fetchUrl,{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify(fetchBody),
       signal:streamController.signal,
-    });
+    }):await (await import('./secure-fetch.js')).secureFetch(config.tunnelUrl,config.apiKey,'/v1/agent',{method:'POST',body:fetchBody,signal:streamController.signal});
     if(!res.ok){const e=await res.text().catch(()=>'');throw new Error(`HTTP ${res.status}: ${e.slice(0,200)}`)}
     if(useStream){
       const reader=res.body.getReader(),decoder=new TextDecoder();let buf='';
@@ -1082,7 +1082,7 @@ stopBtn.addEventListener('click',()=>{streamController?.abort();streamController
 async function loadModels(){
   modelSelect.innerHTML='<option value="">Loading…</option>';
   try{
-    const res=await fetch(`${config.tunnelUrl}/v1/models`,{headers:config.apiKey?{'Authorization':`Bearer ${config.apiKey}`}:{},signal:AbortSignal.timeout(6000)});
+    const res=await (await import('./secure-fetch.js')).secureFetch(config.tunnelUrl,config.apiKey,'/v1/models',{signal:AbortSignal.timeout(6000)});
     if(!res.ok)throw new Error();
     const models=(await res.json()).data?.filter(m=>!m.id.includes('embed')&&m.owned_by!=='aspen-alias')||[];
     modelSelect.innerHTML=models.length?models.map(m=>`<option value="${escHtml(m.id)}">${escHtml(m.id)}</option>`).join(''):'<option value="">No models installed</option>';
@@ -1097,7 +1097,7 @@ function startStatusCheck(){checkStatus();statusInterval=setInterval(checkStatus
 async function checkStatus(){
   statusDot.className='dot checking';statusText.textContent='Checking…';settingsStatus.textContent='Checking…';
   try{
-    const res=await fetch(`${config.tunnelUrl}/v1/models`,{headers:config.apiKey?{'Authorization':`Bearer ${config.apiKey}`}:{},signal:AbortSignal.timeout(5000)});
+    const res=await (await import('./secure-fetch.js')).secureFetch(config.tunnelUrl,config.apiKey,'/v1/models',{signal:AbortSignal.timeout(5000)});
     if(res.ok||res.status===401){statusDot.className='dot online';statusText.textContent='Your machine';settingsStatus.textContent='Connected';offlineBanner.classList.remove('visible')}
     else throw new Error();
   }catch{statusDot.className='dot offline';statusText.textContent='Offline';settingsStatus.textContent='Offline';offlineBanner.classList.add('visible')}
@@ -1142,7 +1142,7 @@ async function extractFacts(userMsg,assistantMsg){
   const existing=(wm.facts||[]).join('\n');
   const prompt=`Extract ONLY concrete facts about the USER.\nExamples: name, job, location, preferences, projects.\nReturn NONE if nothing new.\n\nKnown:\n${existing||'(none)'}\n\nUser: ${userMsg.slice(0,300)}\nAssistant: ${assistantMsg.slice(0,300)}\n\nNew facts (one per line, or NONE):`;
   try{
-    const res=await fetch(API_BASE+'/api/proxy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tunnelUrl:config.tunnelUrl,apiKey:config.apiKey||'',model,messages:[{role:'user',content:prompt}],stream:false})});
+    const res=await fetch(API_BASE+'/api/proxy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model,messages:[{role:'user',content:prompt}],stream:false})});
     if(!res.ok)return;
     const raw=(await res.json()).choices?.[0]?.message?.content?.trim();
     if(!raw||raw.toUpperCase().includes('NONE'))return;
@@ -1237,7 +1237,7 @@ async function sendVoiceMessage(text){
     const history=chat.messages.slice(-20).map(m=>({role:m.role,content:m.content}));
     const useStream=!IS_NATIVE;
     const res=await fetch(API_BASE+'/api/proxy',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({tunnelUrl:config.tunnelUrl,apiKey:config.apiKey||'',model,messages:sys?[{role:'system',content:sys},...history]:history,stream:useStream}),
+      body:JSON.stringify({model,messages:sys?[{role:'system',content:sys},...history]:history,stream:useStream}),
       signal:streamController.signal});
     if(!res.ok)throw new Error('HTTP '+res.status);
     if(useStream){

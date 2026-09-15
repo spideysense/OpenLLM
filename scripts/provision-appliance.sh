@@ -1,195 +1,113 @@
 #!/usr/bin/env bash
-#
-# provision-appliance.sh — turn a fresh NVIDIA GB10 (DGX OS, arm64) box into an
-# Aspen appliance: boot → full-screen Aspen → chat, with NOTHING to download or
-# set up on first run. Run this ONCE on the box, verify, then clone the disk image.
-#
-# Idempotent: re-running skips work already done. Safe to resume after a failure.
-#
-# Override the model with:  ASPEN_MODEL=llama4:scout ./provision-appliance.sh
-#
+# Prepare a supported Linux desktop image. Does not enroll household credentials.
+# Requires a graphical login session for Electron; this is not a headless daemon.
+# ASPEN_REF can pin a reviewed release commit; ASPEN_MODEL overrides the shared recommendation.
 set -euo pipefail
-
-# ── Config ─────────────────────────────────────────────────────────────────
-# ── Config ─────────────────────────────────────────────────────────────────
-# Hardware-aware model plan. Most users are NOT on a 128GB box, so size the
-# chat model (vision-capable where possible) and the coder model to the machine.
-# Two models are pinned at runtime only when they co-fit; otherwise one is used.
-RAM_GB=$(awk '/MemTotal/{printf "%d", $2/1024/1024}' /proc/meminfo 2>/dev/null || echo 16)
-if [ -n "${ASPEN_MODEL:-}" ]; then
-  MODEL="$ASPEN_MODEL"
-elif [ "$RAM_GB" -ge 96 ]; then MODEL="llama4:scout"          # vision + strong, big box
-elif [ "$RAM_GB" -ge 32 ]; then MODEL="llama3.2-vision:11b"   # vision, mid box
-elif [ "$RAM_GB" -ge 16 ]; then MODEL="qwen2.5-coder:7b"      # one model does chat+code
-else                            MODEL="llama3.2:3b"; fi        # tiny box, chat only
-# Coder model the runtime routes coding turns to (when it co-fits with chat).
-if   [ "$RAM_GB" -ge 96 ]; then CODER="qwen2.5-coder:32b"
-elif [ "$RAM_GB" -ge 32 ]; then CODER="qwen2.5-coder:14b"
-elif [ "$RAM_GB" -ge 16 ]; then CODER=""                       # MODEL already a coder
-else                            CODER=""; fi                   # too small for a pair
-# Small extraction model for memory. The chat model is too big to extract facts
-# with (running a 100B+ model per turn stalls the queue), so big/mid boxes pin a
-# tiny model alongside chat+coder purely for background memory extraction. Small
-# boxes already run a small chat model, which doubles as the extractor.
-if   [ "$RAM_GB" -ge 32 ]; then EXTRACT="llama3.2:3b"          # ~2GB, memory needs it
-else                            EXTRACT=""; fi                  # small chat model extracts
-ASPEN_DIR="$HOME/.aspen"                  # engine + models live here (matches the app)
-BIN_DIR="$ASPEN_DIR/bin"                  # extracted ollama tree: bin/ollama + lib/ollama
-MODELS_DIR="$ASPEN_DIR/models"
+umask 077
+ASPEN_DIR="$HOME/.aspen"
 APP_DIR="${ASPEN_APP_DIR:-$HOME/aspen-app}"
+BIN_DIR="$ASPEN_DIR/bin"
+MODELS_DIR="$ASPEN_DIR/models"
 REPO="https://github.com/spideysense/OpenLLM.git"
-OLLAMA_URL="https://github.com/ollama/ollama/releases/latest/download/ollama-linux-arm64.tar.zst"
 PORT=11434
+say() { printf '\n%s\n' "$1"; }
+case "$(uname -m)" in
+  aarch64) ENGINE_ARCH=arm64 ;;
+  x86_64) ENGINE_ARCH=amd64 ;;
+  *) echo 'Supported architectures: arm64 and x86_64'; exit 1 ;;
+esac
+for dependency in curl tar git node npm; do
+  command -v "$dependency" >/dev/null || { echo "Install $dependency before provisioning."; exit 1; }
+done
+node -e 'if(Number(process.versions.node.split(".")[0]) < 22) throw Error("Node 22 or newer is required")'
 
-say() { printf '\n\033[1m▶ %s\033[0m\n' "$1"; }
-ok()  { printf '  \033[32m✓\033[0m %s\n' "$1"; }
-
-# ── 0. Sanity ──────────────────────────────────────────────────────────────
-say "Checking machine"
-arch="$(uname -m)"
-[ "$arch" = "aarch64" ] || { echo "Expected aarch64 (GB10), got $arch. Aborting."; exit 1; }
-ok "arch $arch"
-command -v curl >/dev/null || { echo "curl required"; exit 1; }
-command -v tar  >/dev/null || { echo "tar required";  exit 1; }
-command -v git  >/dev/null || { echo "git required"; exit 1; }
-if ! command -v node >/dev/null; then
-  say "Installing Node.js 20 (not present)"
-  curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-  sudo apt-get install -y nodejs
-fi
-command -v node >/dev/null || { echo "Node.js install failed — install Node 20+ and re-run"; exit 1; }
-ok "curl / tar / node ($(node -v)) / git present"
-
-# ── 1. Stage the AI engine (Ollama base arm64 + cuda_v13 libs) ──────────────
-say "Staging AI engine"
-OLLAMA_BIN="$BIN_DIR/bin/ollama"
-if [ -x "$OLLAMA_BIN" ]; then
-  ok "engine already staged ($OLLAMA_BIN)"
-else
-  mkdir -p "$BIN_DIR"
-  tmp="$(mktemp -d)"
-  echo "  downloading $(basename "$OLLAMA_URL") ..."
-  curl -fL --retry 3 -o "$tmp/ollama.tar.zst" "$OLLAMA_URL"
-  echo "  extracting (preserving bin/ + lib/ so CUDA libs resolve) ..."
-  tar --zstd -xf "$tmp/ollama.tar.zst" -C "$BIN_DIR"
-  rm -rf "$tmp"
-  chmod +x "$OLLAMA_BIN"
-  ok "engine staged at $OLLAMA_BIN"
-fi
-
-# ── 2. Start engine + pre-pull the model into the image ─────────────────────
-say "Pre-pulling model: $MODEL  (one-time; large download)"
-mkdir -p "$MODELS_DIR"
-export OLLAMA_HOST="127.0.0.1:$PORT"
-export OLLAMA_MODELS="$MODELS_DIR"
-
-# Is an Ollama already serving on the port? If not, start our staged one.
-STARTED_SERVER=0
-if ! curl -sf "http://127.0.0.1:$PORT/api/version" >/dev/null 2>&1; then
-  "$OLLAMA_BIN" serve >/tmp/aspen-provision-ollama.log 2>&1 &
-  SERVER_PID=$!
-  STARTED_SERVER=1
-  echo "  waiting for engine to come up ..."
-  for i in $(seq 1 30); do
-    curl -sf "http://127.0.0.1:$PORT/api/version" >/dev/null 2>&1 && break
-    sleep 1
-  done
-fi
-curl -sf "http://127.0.0.1:$PORT/api/version" >/dev/null 2>&1 \
-  || { echo "Engine failed to start. See /tmp/aspen-provision-ollama.log"; exit 1; }
-ok "engine running on :$PORT"
-
-if "$OLLAMA_BIN" list 2>/dev/null | awk '{print $1}' | grep -qx "$MODEL"; then
-  ok "model $MODEL already present"
-else
-  echo "  pulling $MODEL ..."
-  "$OLLAMA_BIN" pull "$MODEL"
-  ok "model $MODEL pulled into $MODELS_DIR"
-fi
-
-# Coder model for the pinned pair (big/mid boxes). Skipped on small machines.
-if [ -n "$CODER" ]; then
-  if "$OLLAMA_BIN" list 2>/dev/null | awk '{print $1}' | grep -qx "$CODER"; then
-    ok "coder model $CODER already present"
-  else
-    echo "  pulling coder model $CODER ..."
-    "$OLLAMA_BIN" pull "$CODER"
-    ok "coder model $CODER pulled"
-  fi
-fi
-
-# Extraction model for memory (big/mid boxes). Without a small resident model,
-# background fact extraction can't run and memory never gets written.
-if [ -n "$EXTRACT" ]; then
-  if "$OLLAMA_BIN" list 2>/dev/null | awk '{print $1}' | grep -qx "$EXTRACT"; then
-    ok "extraction model $EXTRACT already present"
-  else
-    echo "  pulling extraction model $EXTRACT (memory) ..."
-    "$OLLAMA_BIN" pull "$EXTRACT"
-    ok "extraction model $EXTRACT pulled"
-  fi
-  # Three models must stay co-resident (chat + coder + extractor). Ollama's
-  # default cap can evict one; pin the cap so memory extraction never knocks the
-  # chat model out of memory.
-  export OLLAMA_MAX_LOADED_MODELS=3
-  ok "OLLAMA_MAX_LOADED_MODELS=3 (chat + coder + extractor co-resident)"
-fi
-
-# Stop the temp server we started (the app starts its own on boot)
-if [ "$STARTED_SERVER" = "1" ]; then kill "${SERVER_PID:-0}" 2>/dev/null || true; fi
-
-# ── 3. Make it the active model (so first boot is straight to chat) ──────────
-say "Setting active model"
-CFG_DIR="$HOME/.config/Aspen"
-CFG="$CFG_DIR/config.json"
-mkdir -p "$CFG_DIR"
-if command -v node >/dev/null; then
-  node -e '
-    const fs=require("fs"),p=process.argv[1],m=process.argv[2];
-    let o={}; try{o=JSON.parse(fs.readFileSync(p,"utf8"))}catch{}
-    o.activeModel=m;
-    fs.writeFileSync(p, JSON.stringify(o,null,2));
-  ' "$CFG" "$MODEL"
-  ok "activeModel = $MODEL ($CFG)"
-fi
-
-# ── 4. Install the Aspen app (from source) ──────────────────────────────────
-say "Installing Aspen app"
-if [ -d "$APP_DIR/.git" ]; then
-  git -C "$APP_DIR" pull --ff-only || true
-else
-  git clone "$REPO" "$APP_DIR"
+say 'Installing the reviewed application source'
+if [ ! -d "$APP_DIR/.git" ]; then git clone "$REPO" "$APP_DIR"; fi
+if [ -n "${ASPEN_REF:-}" ]; then
+  if [ -n "$(git -C "$APP_DIR" status --porcelain)" ]; then echo 'Application checkout has local changes; preserve them before selecting a release.'; exit 1; fi
+  git -C "$APP_DIR" fetch origin "$ASPEN_REF"
+  git -C "$APP_DIR" checkout --detach FETCH_HEAD
 fi
 ( cd "$APP_DIR" && npm ci && npm run build:renderer )
 ELECTRON_BIN="$APP_DIR/node_modules/.bin/electron"
-[ -x "$ELECTRON_BIN" ] || { echo "electron not found after npm ci"; exit 1; }
-ok "app installed at $APP_DIR"
+[ -x "$ELECTRON_BIN" ] || { echo 'Electron installation failed'; exit 1; }
 
-# ── 5. Autostart full-screen on login ───────────────────────────────────────
-say "Registering autostart (kiosk)"
+# The exact same catalog, hardware detector, and memory budget as desktop onboarding.
+MODEL="${ASPEN_MODEL:-}"
+if [ -z "$MODEL" ]; then
+  MODEL="$(cd "$APP_DIR" && node -e '
+    const system=require("./src/main/system"),models=require("./src/main/models");
+    const selected=models.getRecommendation(system.getHardwareTier(),require("./registry/models.json"),system.getRuntimeBudget());
+    if(!selected) throw Error("No supported model fits this device");
+    process.stdout.write(selected.model);
+  ')"
+fi
+
+say 'Staging the AI engine'
+OLLAMA_BIN="$BIN_DIR/bin/ollama"
+if [ ! -x "$OLLAMA_BIN" ]; then
+  staging="$(mktemp -d)"
+  trap 'rm -rf "${staging:-}"' EXIT
+  OLLAMA_URL="https://github.com/ollama/ollama/releases/latest/download/ollama-linux-${ENGINE_ARCH}.tar.zst"
+  curl -fL --retry 3 -o "$staging/ollama.tar.zst" "$OLLAMA_URL"
+  mkdir -p "$BIN_DIR"
+  tar --zstd -xf "$staging/ollama.tar.zst" -C "$BIN_DIR"
+  test -x "$OLLAMA_BIN"
+  rm -rf "$staging"
+fi
+mkdir -p "$MODELS_DIR"
+export OLLAMA_HOST="127.0.0.1:$PORT" OLLAMA_MODELS="$MODELS_DIR"
+# Factory qualification runs a single model. Normal runtime applies its own budget.
+export OLLAMA_NUM_PARALLEL=1 OLLAMA_MAX_LOADED_MODELS=1
+SERVER_PID=''
+cleanup() { if [ -n "$SERVER_PID" ]; then kill "$SERVER_PID" 2>/dev/null || true; fi; }
+trap cleanup EXIT
+# Never accidentally install into somebody else's running engine/model directory.
+if curl -sf "$OLLAMA_HOST/api/version" >/dev/null; then
+  echo 'Stop the existing AI engine before provisioning so its storage is not modified.'; exit 1
+fi
+"$OLLAMA_BIN" serve >"$ASPEN_DIR/provision-engine.log" 2>&1 &
+SERVER_PID=$!
+for attempt in $(seq 1 30); do
+  if curl -sf "$OLLAMA_HOST/api/version" >/dev/null; then break; fi
+  sleep 1
+done
+curl -sf "$OLLAMA_HOST/api/version" >/dev/null || { echo "Engine failed; see $ASPEN_DIR/provision-engine.log"; exit 1; }
+
+say "Downloading and qualifying $MODEL"
+"$OLLAMA_BIN" pull "$MODEL"
+( cd "$APP_DIR" && node - "$MODEL" <<'NODE'
+const model=process.argv[2];
+(async()=>{
+  const checked=await require('./src/main/model-qualification').qualify(model);
+  if(!checked.ok || !checked.tools) throw Error(checked.error || 'Model does not support household tools');
+  const store=require('./src/main/store');
+  store.set('activeModel',model);
+  store.set('onboarded',true);
+  store.set('leanMode',false);
+  store.set('autoRetireModels',false);
+})().catch(error=>{console.error(error.message);process.exitCode=1});
+NODE
+)
+cleanup
+SERVER_PID=''
+
+say 'Registering the desktop appliance session'
 AUTODIR="$HOME/.config/autostart"
 mkdir -p "$AUTODIR"
-cat > "$AUTODIR/aspen.desktop" <<EOF
+cat > "$AUTODIR/aspen.desktop" <<DESKTOP
 [Desktop Entry]
 Type=Application
 Name=Aspen
-Comment=Private AI on your own hardware
-Exec=sh -c 'cd "$APP_DIR" && ASPEN_PROD=1 ASPEN_KIOSK=1 "$ELECTRON_BIN" . --no-sandbox'
+Comment=Private AI on your hardware
+Exec=env ASPEN_PROD=1 ASPEN_KIOSK=1 "$ELECTRON_BIN" "$APP_DIR"
 X-GNOME-Autostart-enabled=true
 Terminal=false
-EOF
-ok "autostart entry written ($AUTODIR/aspen.desktop)"
-
-say "Done."
-cat <<EOF
-
-  Aspen appliance is provisioned:
-    engine : $OLLAMA_BIN
-    model  : $MODEL  (in $MODELS_DIR)
-    app    : $APP_DIR  (autostarts full-screen on login)
-
-  Verify now without rebooting:
-    cd "$APP_DIR" && ASPEN_PROD=1 ASPEN_KIOSK=1 "$ELECTRON_BIN" . --no-sandbox
-
-  Then reboot to confirm it boots straight into Aspen, and clone the disk image.
-EOF
+DESKTOP
+cat <<DONE
+Provisioned model: $MODEL
+Application: $APP_DIR
+The app starts at graphical login and remains available after its window closes.
+Verify first chat, reboot, network loss, and recovery on this image before shipping.
+Create the factory image BEFORE enrolling a household or generating pairing keys.
+DONE

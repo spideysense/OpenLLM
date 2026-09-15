@@ -9,20 +9,11 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const DIR = path.join(os.homedir(), '.aspen');
+const DIR = (process.env.ASPEN_DATA_DIR || path.join(os.homedir(), '.aspen'));
 const FILE = path.join(DIR, 'secrets.json');
 
-function load() {
-  try { return JSON.parse(fs.readFileSync(FILE, 'utf8')); } catch { return {}; }
-}
-function save(obj) {
-  try {
-    fs.mkdirSync(DIR, { recursive: true });
-    fs.writeFileSync(FILE, JSON.stringify(obj), { mode: 0o600 });
-    try { fs.chmodSync(FILE, 0o600); } catch {}
-    return true;
-  } catch { return false; }
-}
+function load() { return require('./durable-json').read(FILE, {}); }
+function save(obj) { require('./durable-json').write(FILE, obj); return true; }
 
 function setSecret(name, value) {
   if (!name || !value) return false;

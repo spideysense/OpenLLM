@@ -1,8 +1,6 @@
 // Aspen network client — mirrors the proven web-app contract so it works against
 // the same backend with no server changes:
-//   • connect:  GET  {tunnelUrl}/v1/models  (Bearer apiKey)   — validates the box
-//   • chat:     POST https://www.runonaspen.com/api/agent  with
-//               { tunnelUrl, apiKey, model, messages }       — streams SSE back
+//   Paired requests and responses use the authenticated encrypted channel to the box.
 //   • SSE events:
 //       data: {"choices":[{"delta":{"content":"…"}}]}   → answer tokens
 //       data: {"aspen_status":"Searching the web…","aspen_transient":bool} → activity
@@ -12,8 +10,24 @@
 // Streaming requires Expo SDK 52+ (`expo/fetch` exposes a WHATWG ReadableStream
 // body). Validation uses the standard global fetch (no streaming needed).
 import { fetch as streamFetch } from 'expo/fetch';
+import { secureFetch } from './secure-fetch';
+import { nativeCrypto } from './secure-crypto';
 
 const PROXY = 'https://www.runonaspen.com';
+export async function enroll(tunnelUrl, apiKey, body) {
+  const response = await secureFetch(normalizeUrl(tunnelUrl), apiKey, '/v1/enroll', { method: 'POST', body, fetchImpl: streamFetch, cryptoAdapter: nativeCrypto });
+  const value = await response.json();
+  if (!response.ok) throw new Error(value.error || 'Setup failed');
+  return value;
+}
+export async function confirmEnrollment(tunnelUrl, authorizer, pending) {
+  try { return await enroll(tunnelUrl, authorizer, { action: 'confirm', id: pending.id }); }
+  catch (error) {
+    const check = await secureFetch(normalizeUrl(tunnelUrl), pending.credential, '/v1/vault', { fetchImpl: streamFetch, cryptoAdapter: nativeCrypto });
+    if (!check.ok) throw error;
+    return { success: true };
+  }
+}
 
 export function normalizeUrl(u) {
   return (u || '').trim().replace(/\/+$/, '').replace(/\/v1$/, '');
@@ -26,10 +40,7 @@ export async function fetchModels(tunnelUrl, apiKey) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 8000);
   try {
-    const res = await fetch(`${url}/v1/models`, {
-      headers: apiKey ? { Authorization: `Bearer ${apiKey}` } : {},
-      signal: ctrl.signal,
-    });
+    const res = await secureFetch(url, apiKey, '/v1/models', { signal: ctrl.signal, fetchImpl: streamFetch, cryptoAdapter: nativeCrypto });
     if (!res.ok) throw new Error(`status ${res.status}`);
     const data = await res.json();
     return (data?.data || []).map((m) => m.id).filter(Boolean);
@@ -51,17 +62,7 @@ export async function streamChat({
   signal,
 }) {
   try {
-    const res = await streamFetch(`${PROXY}/api/agent`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        tunnelUrl: normalizeUrl(tunnelUrl),
-        apiKey: apiKey || '',
-        model,
-        messages,
-      }),
-      signal,
-    });
+    const res = await secureFetch(normalizeUrl(tunnelUrl), apiKey, '/v1/agent', { method: 'POST', body: { model, messages }, signal, fetchImpl: streamFetch, cryptoAdapter: nativeCrypto });
 
     if (!res.ok || !res.body) {
       let msg = `Request failed (${res.status})`;

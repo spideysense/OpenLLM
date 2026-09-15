@@ -56,6 +56,7 @@ export default function Sidebar() {
 
   const nav = [
     { id: 'home', label: 'Home' },
+    { id: 'vault', label: 'Vault' },
     { id: 'settings', label: 'Settings' },
     { id: 'chat', label: 'Chat' },
   ];

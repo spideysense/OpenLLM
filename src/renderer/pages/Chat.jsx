@@ -23,7 +23,7 @@ function isVisionModel(modelName) {
 const EMPTY_STREAM = Object.freeze({ buffer: '', streaming: false, trail: [] });
 
 export default function Chat() {
-  const { bridge, activeModel, selectModel, models, setPage, modelProfile,
+  const { bridge, page, activeModel, selectModel, models, setPage, modelProfile,
     conversations, setConversations, activeConvo, setActiveConvo, newConvo, deleteConvo,
     missions, setMissions, viewingMissionId, setViewingMissionId } = useApp();
   const [input, setInput] = useState('');
@@ -37,6 +37,7 @@ export default function Chat() {
   // you're looking at, and two chats can stream at once without colliding.
   const [streams, setStreams] = useState({});
   const streamsRef = useRef({});
+  const sequences = useRef({});
   const activeConvoRef = useRef(activeConvo);
   activeConvoRef.current = activeConvo;
 
@@ -60,7 +61,11 @@ export default function Chat() {
   const isStreaming = activeStream.streaming;
   const streamBuffer = activeStream.buffer;
   const trail = activeStream.trail;
-  const [attachments, setAttachments] = useState([]); // { type: 'image'|'text', name, data, preview }
+  const [attachmentDrafts, setAttachmentDrafts] = useState({});
+  const attachments = attachmentDrafts[activeConvo] || [];
+  const setAttachments = update => setAttachmentDrafts(drafts => ({ ...drafts, [activeConvo]: typeof update === 'function' ? update(drafts[activeConvo] || []) : update })); // { type: 'image'|'text', name, data, preview }
+  const [cloudBoost, setCloudBoost] = useState(false);
+  useEffect(() => { setCloudBoost(false); setBgMode(false); }, [activeConvo]);
   const [isListening, setIsListening] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(false);
   const [totalExchanges, setTotalExchanges] = useState(0);
@@ -169,7 +174,7 @@ export default function Chat() {
   const codingIntent = useMemo(() => {
     const lastUser = [...messages].reverse().find((m) => m.role === 'user');
     return /\b(cod(e|ing)|app|game|website|web ?app|html|css|javascript|python|script|function|component|build me|make me|program|platformer|dashboard|tool)\b/i.test(lastUser?.content || '');
-  }, [messages]);
+  }, [messages, page]);
 
   // One-time coding tip: show when the conversation has code, GitHub isn't
   // connected, and the user hasn't dismissed it. Connectors run on desktop, so
@@ -201,13 +206,13 @@ export default function Chat() {
   // Check voice support
   useEffect(() => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    setVoiceSupported(!!SR);
+    setVoiceSupported(!!SR && 'processLocally' in SR.prototype);
   }, []);
 
   // Scroll to bottom
   // ── Pick up pending prompt from templates/demos ──
   useEffect(() => {
-    if (!bridge?.store) return;
+    if (!bridge?.store || page !== 'chat') return;
     bridge.store.get('pendingPrompt').then(p => {
       if (p && typeof p === 'string') {
         setInput(p);
@@ -215,11 +220,12 @@ export default function Chat() {
         setTimeout(() => inputRef.current?.focus(), 100);
       }
     }).catch(() => {});
-  }, [bridge]);
+  }, [bridge, page]);
 
   // ── Keyboard shortcuts ──
   useEffect(() => {
     function handleKey(e) {
+      if (page !== 'chat') return;
       const meta = e.metaKey || e.ctrlKey;
       // Cmd+N — new chat (inline to avoid temporal dead zone with newConvo)
       if (meta && e.key === 'n') {
@@ -247,7 +253,7 @@ export default function Chat() {
     }
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [messages]);
+  }, [messages, page]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -256,7 +262,9 @@ export default function Chat() {
   // Stream chunks
   useEffect(() => {
     if (!bridge) return;
-    const unsub = bridge.chat.onStream((chunk) => {
+    const handleChunk = (chunk) => {
+      if (chunk.seq && (sequences.current[chunk.requestId] || 0) >= chunk.seq) return;
+      if (chunk.seq) sequences.current[chunk.requestId] = chunk.seq;
       // Reasoning-trail event (status / tool step) — accumulate, don't treat as
       // answer content. Mirrors the web/mobile live trail.
       // Route strictly by conversation. The chunk says which chat it belongs to;
@@ -265,6 +273,9 @@ export default function Chat() {
       if (!cid) return;
       const cur = streamsRef.current[cid] || EMPTY_STREAM;
 
+      if (chunk.replace) { patchStream(cid, { buffer: chunk.buffer || '', trail: chunk.trail || [], streaming: !chunk.done }); }
+      const buffer = chunk.replace ? chunk.buffer || '' : cur.buffer || '';
+      if (chunk.model) return;
       if (chunk.aspen_status) {
         const step = { status: chunk.aspen_status, tool: chunk.aspen_tool || null, transient: !!chunk.aspen_transient };
         patchStream(cid, { trail: [...(cur.trail || []), step], streaming: true });
@@ -285,16 +296,16 @@ export default function Chat() {
         // updater. Committing the assistant message here, in the plain stream
         // handler, means React can never double-invoke a side-effecting updater
         // and append the same message twice (the double-bubble bug).
-        const finalContent = (cur.buffer || '') + (chunk.content || '');
+        const finalContent = buffer + (chunk.content || '') + (chunk.error ? `\n\n${chunk.error}` : '');
         clearStream(cid);
 
         const targetConvId = cid;
         setConversations((cs) =>
           cs.map((c) =>
-            c.id === targetConvId
+            c.id === targetConvId && !c.messages.some(m => chunk.requestId && m.requestId === chunk.requestId)
               ? {
                   ...c,
-                  messages: [...c.messages, { role: 'assistant', content: finalContent, trail: finishedTrail.length ? finishedTrail : undefined }],
+                  messages: [...c.messages, { role: 'assistant', content: finalContent, requestId: chunk.requestId, aborted: chunk.aborted, trail: finishedTrail.length ? finishedTrail : undefined }],
                   title: c.messages.length === 0 ? (c.messages[0]?.content || 'Chat').slice(0, 40) : c.title,
                 }
               : c
@@ -321,10 +332,13 @@ export default function Chat() {
           return next;
         });
       } else {
-        patchStream(cid, { buffer: (cur.buffer || '') + (chunk.content || ''), streaming: true });
+        patchStream(cid, { buffer: buffer + (chunk.content || ''), streaming: true });
       }
-    });
-    return unsub;
+    };
+    const unsub = bridge.chat.onStream(handleChunk);
+    let mounted = true;
+    bridge.chat.snapshot?.().then(jobs => { if (mounted) jobs.forEach(j => handleChunk({ ...j, replace: true })); }).catch(() => {});
+    return () => { mounted = false; unsub(); };
     // IMPORTANT: depend on bridge ONLY, not activeConvo. Re-subscribing on every
     // chat switch tears down the listener mid-stream and abandons the in-progress
     // generation. Stream state lives in streamsRef keyed by conversation, and
@@ -383,6 +397,7 @@ export default function Chat() {
     setInput('');
     setAttachments([]);
     setBgMode(false);
+    setCloudBoost(false);
     setViewingMissionId(null);
     // Start a stream for THIS conversation only — any other chat mid-generation
     // is untouched and keeps going.
@@ -392,13 +407,14 @@ export default function Chat() {
     if (bridge) {
       // Pass messages without uiMsg extras (Ollama doesn't want attachmentPreviews)
       const apiMessages = updatedMessages.map(({ attachmentPreviews, ...m }) => m);
-      await bridge.chat.send(activeModel, apiMessages, sendConvoId);
+      try { await bridge.chat.send(activeModel, apiMessages, sendConvoId, { boost: cloudBoost }); }
+      catch (error) { clearStream(sendConvoId); setConversations(cs => cs.map(c => c.id === sendConvoId ? { ...c, messages: [...c.messages, { role: 'assistant', content: error.message }] } : c)); }
     }
     // isStreaming is intentionally NOT a dep: the per-conversation guard reads
     // streamsRef, so sendMessage never needs to rebuild when another chat starts
     // or stops streaming.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [input, attachments, activeModel, messages, bridge, activeConvo, bgMode, viewingMissionId, patchStream]);
+  }, [input, attachments, activeModel, messages, bridge, activeConvo, bgMode, cloudBoost, viewingMissionId, patchStream]);
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
@@ -418,7 +434,8 @@ export default function Chat() {
     const recognition = new SR();
     recognition.continuous = false;
     recognition.interimResults = true;
-    recognition.lang = 'en-US';
+    recognition.lang = navigator.language || 'en-US';
+    recognition.processLocally = true;
 
     recognition.onresult = (e) => {
       const transcript = Array.from(e.results).map((r) => r[0].transcript).join('');
@@ -440,7 +457,8 @@ export default function Chat() {
     const recognition = new SR();
     recognition.continuous = false;
     recognition.interimResults = false;
-    recognition.lang = 'en-US';
+    recognition.lang = navigator.language || 'en-US';
+    recognition.processLocally = true;
     recognition.onresult = (e) => {
       const text = e.results[0]?.[0]?.transcript?.trim();
       if (text && voiceModeRef.current) {
@@ -560,7 +578,7 @@ export default function Chat() {
     // Stop only the chat you're looking at; others keep streaming.
     const id = activeConvoRef.current;
     if (bridge) bridge.chat.stop(id);
-    clearStream(id);
+    // The service emits a terminal event and retains any partial answer.
   };
 
   // ── Drag & drop files ──
@@ -575,7 +593,7 @@ export default function Chat() {
     }
   }, [handleFileSelect]);
 
-  const hasVision = isVisionModel(activeModel);
+  const hasVision = modelIsVision;
 
   return (
     <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
@@ -678,7 +696,7 @@ export default function Chat() {
         {!viewingMissionId && messages.length === 0 && !streamBuffer && (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 24px' }}>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>What can I help with?</div>
-            <div style={{ fontSize: 13, color: 'var(--text-light)', marginBottom: 18, textAlign: 'center' }}>100% private — everything stays on your machine</div>
+            <div style={{ fontSize: 13, color: 'var(--text-light)', marginBottom: 18, textAlign: 'center' }}>AI runs on your machine. Web tools and Cloud Boost send requests when used.</div>
 
             <button
               onClick={() => { setInput("Give me a warm, quick 2-minute tour of what you can do. Introduce yourself as Aspen — my private AI that runs fully on my own machine. Then walk me through your top capabilities one at a time, each with a one-line description and a concrete example I could try: (1) everyday chat and questions, (2) building apps and websites, (3) researching topics with sources, (4) analyzing photos I share, (5) voice conversations, and (6) Missions — running a task in the background that keeps going even after I close the chat. Keep it concise and friendly. At the end, ask me which one I'd like to try first."); setTimeout(() => inputRef.current?.focus(), 50); }}
@@ -716,6 +734,7 @@ export default function Chat() {
               ))}
               {msg.role === 'assistant' && msg.trail && <ReasoningTrail steps={msg.trail} live={false} />}
               <MessageContent content={msg.content} onOpenArtifact={openArtifact} />
+              {msg.error && <div role="alert">{msg.error}</div>}
               {/* Message actions */}
               {msg.role === 'assistant' && !isStreaming && (
                 <div style={{ display: 'flex', gap: 4, marginTop: 6, opacity: 0.4, transition: 'opacity .15s' }} onMouseEnter={e => e.currentTarget.style.opacity = 1} onMouseLeave={e => e.currentTarget.style.opacity = 0.4}>
@@ -920,6 +939,12 @@ export default function Chat() {
           )}
         </div>
 
+        <label style={{ fontSize: 12, maxWidth: 210 }} title="Recent conversation text is sent to a configured cloud provider. Redaction cannot remove every private detail.">
+          <input type="checkbox" checked={cloudBoost} onChange={e => setCloudBoost(e.target.checked)} />
+          Send this request to cloud
+          {cloudBoost && <span style={{ display: 'block' }}>Recent chat text will leave this device.</span>}
+        </label>
+
         {/* Hidden file input */}
         <input
           ref={fileInputRef}
@@ -1004,18 +1029,10 @@ export default function Chat() {
             <button onClick={async () => {
               const btn = document.activeElement;
               try {
-                const res = await fetch(`http://127.0.0.1:4000/publish-artifact`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ html: artifact.code }),
-                });
-                const data = await res.json();
-                if (data.id) {
-                  const tunnelUrl = await bridge?.store?.get('tunnelUrl');
-                  const url = (tunnelUrl || 'http://127.0.0.1:4000') + data.path;
-                  await navigator.clipboard?.writeText(url);
-                  if (btn) { btn.textContent = 'Link copied!'; setTimeout(() => { btn.textContent = 'Publish 🚀'; }, 2000); }
-                }
+                const data = await bridge.artifacts.publish({ html: artifact.code });
+                if (!data.url) throw new Error(data.error || 'Publishing failed');
+                await navigator.clipboard?.writeText(data.url);
+                if (btn) { btn.textContent = 'Link copied!'; setTimeout(() => { btn.textContent = 'Publish 🚀'; }, 2000); }
               } catch { if (btn) { btn.textContent = 'Error'; setTimeout(() => { btn.textContent = 'Publish 🚀'; }, 2000); } }
             }} style={{ fontSize: 12, fontWeight: 600, padding: '4px 10px', border: 'none', borderRadius: 7, background: 'var(--gold)', color: '#fff', cursor: 'pointer' }}>Publish 🚀</button>
             <button onClick={() => { navigator.clipboard?.writeText(artifact.code); }} style={{ fontSize: 12, fontWeight: 600, padding: '4px 10px', border: '1.5px solid rgba(0,0,0,.12)', borderRadius: 7, background: '#fff', cursor: 'pointer' }}>Copy</button>

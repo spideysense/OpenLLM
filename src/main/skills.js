@@ -7,7 +7,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { app } = require('electron');
+const { app } = require('./runtime');
 
 // Built-in skills (bundled with the app)
 const builtinDir = path.join(__dirname, '..', '..', 'skills');

@@ -11,13 +11,14 @@ function listKeys() {
   return store.get('apikeys') || [];
 }
 
-function createKey(label = 'Default', { owner = false, memory = false } = {}) {
+function createKey(label = 'Default', { owner = false, memory = false, userId = null } = {}) {
   const keys = listKeys();
   const id = crypto.randomUUID();
   const secret = KEY_PREFIX + crypto.randomBytes(24).toString('base64url');
   const key = {
     id,
     label,
+    userId: owner ? 'owner' : (userId || id),
     secret,
     owner,
     // Owner keys always have memory. Named guest keys can opt in. Anonymous
@@ -34,14 +35,12 @@ function createKey(label = 'Default', { owner = false, memory = false } = {}) {
 function revokeKey(keyId) {
   let keys = listKeys();
   keys = keys.filter((k) => k.id !== keyId);
-  // Fail-closed: never let the store become empty, because zero keys flips the
-  // gateway into open mode (validateKey returns true for any token). If the user
-  // revokes their last key, immediately mint a fresh Default owner key so the
-  // tunnel-facing gateway always requires authentication.
+  // Keep an owner credential available after revoking the final key.
+  // Empty stores also fail closed during initialization or recovery.
   let regenerated = false;
   if (keys.length === 0) {
-    store.set('apikeys', keys); // persist the empty list first
-    const fresh = createKey('Default', { owner: true });
+    const fresh = { id: crypto.randomUUID(), userId: 'owner', label: 'Default', secret: KEY_PREFIX + crypto.randomBytes(24).toString('base64url'), owner: true, memory: true, created: new Date().toISOString(), lastUsed: null };
+    store.set('apikeys', [fresh]);
     return { success: true, regenerated: true, newKey: fresh };
   }
   store.set('apikeys', keys);
@@ -51,8 +50,8 @@ function revokeKey(keyId) {
 function validateKey(token) {
   if (!token) return false;
   const keys = listKeys();
-  // If no keys exist, gateway runs in open mode
-  if (keys.length === 0) return true;
+  // An empty key store never grants access.
+  if (keys.length === 0) return false;
   return keys.some((k) => k.secret === token);
 }
 
@@ -80,13 +79,20 @@ function isOwnerKey(token) {
 function memoryKeyFor(token) {
   if (!token) return null;
   const keys = listKeys();
-  // Open mode (no keys configured) → treat as owner
-  if (keys.length === 0) return 'owner';
+  // No configured identity means no memory access.
+  if (keys.length === 0) return null;
   const key = keys.find(k => k.secret === token);
   if (!key) return null;
   if (key.owner) return 'owner';
-  if (key.memory) return key.id;
+  if (key.memory) return key.userId || key.id;
   return null;
 }
 
-module.exports = { listKeys, createKey, revokeKey, validateKey, touchKey, isOwnerKey, memoryKeyFor };
+function rotateKey(id) {
+  const keys = listKeys(); const key = keys.find(k => k.id === id);
+  if (!key) throw new Error('Key not found');
+  key.userId = key.userId || (key.owner ? 'owner' : key.id);
+  key.secret = KEY_PREFIX + crypto.randomBytes(24).toString('base64url');
+  key.created = new Date().toISOString(); store.set('apikeys', keys); return key;
+}
+module.exports = { rotateKey, listKeys, createKey, revokeKey, validateKey, touchKey, isOwnerKey, memoryKeyFor };

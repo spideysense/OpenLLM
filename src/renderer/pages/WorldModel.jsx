@@ -56,7 +56,7 @@ export default function WorldModel() {
       <div style={{ background: 'rgba(0,0,0,0.06)', border: '1.5px solid rgba(0,0,0,0.15)', borderRadius: 12, padding: '14px 18px', marginBottom: 24, display: 'flex', gap: 12, alignItems: 'flex-start' }}>
         <span style={{ fontSize: 20 }}>🔒</span>
         <div>
-          <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--earth)', marginBottom: 3 }}>100% local — never leaves your machine</div>
+          <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--earth)', marginBottom: 3 }}>Stored on your Aspen — shared with your paired devices</div>
           <div style={{ fontSize: 13, color: 'var(--text-light)', lineHeight: 1.6 }}>These facts are stored only on your computer. They're never sent to any server. Your local AI uses them to give you more personalized, context-aware answers.</div>
         </div>
       </div>

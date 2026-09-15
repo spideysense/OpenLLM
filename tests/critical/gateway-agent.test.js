@@ -116,29 +116,14 @@ describe('Screenshot uses CLI not Electron', () => {
   });
 });
 
-describe('api/agent.js Vercel endpoint', () => {
-  it('file exists', () => { expect(fs.existsSync(path.resolve('api/agent.js'))).toBe(true); });
-  it('routes to /v1/agent not /v1/chat/completions', () => {
-    const src = fs.readFileSync(path.resolve('api/agent.js'), 'utf8');
-    expect(src).toContain('/v1/agent');
-    expect(src).not.toContain('/v1/chat/completions');
-  });
-  it('validates tunnel URL domain', () => {
-    const src = fs.readFileSync(path.resolve('api/agent.js'), 'utf8');
-    expect(src).toContain('runonaspen.com');
-    expect(src).toContain('403');
-  });
-  it('streams SSE via the Node response (no edge heartbeat needed)', () => {
-    const src = fs.readFileSync(path.resolve('api/agent.js'), 'utf8');
-    expect(src).toContain('text/event-stream');
-    expect(src).toContain('res.write');
-    // The setInterval heartbeat was removed — it was an edge-runtime crash risk.
-    expect(src).not.toContain('setInterval');
-  });
-  it('uses the Node.js runtime, not the (crash-prone) edge runtime', () => {
-    const src = fs.readFileSync(path.resolve('api/agent.js'), 'utf8');
-    expect(src).not.toContain("runtime: 'edge'");
-    expect(src).toContain('maxDuration');
+describe('retired plaintext relay', () => {
+  it('returns an update error without forwarding prompts or keys', async () => {
+    const { default: handler } = await import('../../api/agent.js');
+    let status; let payload;
+    const res = { setHeader() {}, set statusCode(n) { status = n; }, end(p) { payload = JSON.parse(p); } };
+    await handler({ method: 'POST', body: { apiKey: 'secret', messages: ['private'] } }, res);
+    expect(status).toBe(410); expect(payload.error).toBeTruthy();
+    expect(fs.readFileSync(path.resolve('api/agent.js'), 'utf8')).not.toContain('fetch(');
   });
 });
 
@@ -169,12 +154,12 @@ describe('Gateway /v1/agent route', () => {
   });
 });
 
-describe('Web and mobile apps use /api/agent', () => {
-  it('web app main chat uses /api/agent', () => {
-    expect(fs.readFileSync(path.resolve('site/app/index.html'), 'utf8')).toContain("'/api/agent'");
+describe('Web and mobile apps use direct encrypted transport', () => {
+  it('web app main chat uses secureFetch', () => {
+    expect(fs.readFileSync(path.resolve('site/app/index.html'), 'utf8')).toContain("secureFetch");
   });
-  it('mobile app main chat uses /api/agent', () => {
-    expect(fs.readFileSync(path.resolve('mobile/www/index.html'), 'utf8')).toContain("'/api/agent'");
+  it('mobile app main chat uses secureFetch', () => {
+    expect(fs.readFileSync(path.resolve('mobile/www/index.html'), 'utf8')).toContain("secureFetch");
   });
   it('web app renders tool status', () => {
     const src = fs.readFileSync(path.resolve('site/app/index.html'), 'utf8');

@@ -605,7 +605,7 @@ async function fetchMissions(){
   if(!config?.tunnelUrl||config.tunnelUrl==='__TRIAL__')return;
   let missions=[];
   try{
-    const res=await fetch(config.tunnelUrl+'/missions',{headers:{'Authorization':'Bearer '+(config.apiKey||'')},signal:AbortSignal.timeout(8000)});
+    const res=await (await import('/secure-fetch.js')).secureFetch(config.tunnelUrl,config.apiKey,'/missions',{signal:AbortSignal.timeout(8000)});
     if(!res.ok)return;missions=(await res.json()).missions||[];missionsCache=missions;
   }catch{return}
   let listChanged=false,activeChanged=false;
@@ -698,11 +698,7 @@ $('artifact-panel-publish').addEventListener('click',async()=>{
   b.textContent='Publishing...';b.disabled=true;
   try{
     const tunnelUrl=(config?.tunnelUrl||'').replace(/\/+$/,'');
-    const res=await fetch(tunnelUrl+'/publish-artifact',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(config?.apiKey||'')},
-      body:JSON.stringify({html:apCurrent.code})
-    });
+    const res=await (await import('/secure-fetch.js')).secureFetch(tunnelUrl,config.apiKey,'/publish-artifact',{method:'POST',body:{html:apCurrent.code}});
     const data=await res.json();
     if(data.id){
       const url=tunnelUrl+data.path;
@@ -909,7 +905,7 @@ async function attemptConnect(){
   raw=raw.replace(/\/v1\/?$/,'').replace(/\/+$/,'');
   connectBtn.disabled=true;connectBtn.textContent='Connecting…';
   try{
-    const res=await fetch(`${raw}/v1/models`,{headers:key?{'Authorization':`Bearer ${key}`}:{},signal:AbortSignal.timeout(8000)});
+    const res=await (await import('/secure-fetch.js')).secureFetch(raw,key,'/v1/models',{signal:AbortSignal.timeout(8000)});
     if(res.status===401){showPairErr('API key rejected.');return}
     if(!res.ok)throw new Error(`HTTP ${res.status}`);
     config={tunnelUrl:raw,apiKey:key};
@@ -1328,11 +1324,7 @@ async function sendMessage(autoRespond){
           body:JSON.stringify({action:'chat',token:trialToken,messages:fullMsgs}),
           signal:streamController.signal,
         })
-      : await fetch('/api/agent',{
-          method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({tunnelUrl:config.tunnelUrl,apiKey:config.apiKey||'',model,messages:fullMsgs}),
-          signal:streamController.signal,
-        });
+      : await (await import('/secure-fetch.js')).secureFetch(config.tunnelUrl, config.apiKey, '/v1/agent', { method:'POST', body:{model,messages:fullMsgs}, signal:streamController.signal });
     if(!res.ok){
       const e=await res.json().catch(()=>({}));
       if(e.capped){
@@ -1423,7 +1415,7 @@ async function loadModels(){
   if(trialMode){modelSelect.innerHTML='<option value="">Cloud trial</option>';modelFooter.textContent='Cloud trial';return;}
   modelSelect.innerHTML='<option value="">Loading…</option>';
   try{
-    const res=await fetch(`${config.tunnelUrl}/v1/models`,{headers:config.apiKey?{'Authorization':`Bearer ${config.apiKey}`}:{},signal:AbortSignal.timeout(6000)});
+    const res=await (await import('/secure-fetch.js')).secureFetch(config.tunnelUrl,config.apiKey,'/v1/models',{signal:AbortSignal.timeout(6000)});
     if(!res.ok)throw new Error();
     const models=(await res.json()).data?.filter(m=>!m.id.includes('embed'))||[];
     modelSelect.innerHTML=models.length?models.map(m=>`<option value="${escHtml(m.id)}">${escHtml(m.id.split(':')[0])}</option>`).join(''):'<option value="">No models installed</option>';
@@ -1450,7 +1442,7 @@ async function checkStatus(){
   if(isStreaming||document.hidden)return;
   statusDot.className='dot checking';statusText.textContent='Checking…';settingsStatus.textContent='Checking…';
   try{
-    const res=await fetch(`${config.tunnelUrl}/v1/models`,{headers:config.apiKey?{'Authorization':`Bearer ${config.apiKey}`}:{},signal:AbortSignal.timeout(5000)});
+    const res=await (await import('/secure-fetch.js')).secureFetch(config.tunnelUrl,config.apiKey,'/v1/models',{signal:AbortSignal.timeout(5000)});
     if(res.ok||res.status===401){statusDot.className='dot online';statusText.textContent='Your machine';settingsStatus.textContent='Connected';offlineBanner.classList.remove('visible')}
     else throw new Error();
   }catch{statusDot.className='dot offline';statusText.textContent='Offline';settingsStatus.textContent='Offline';offlineBanner.classList.add('visible')}
@@ -1473,7 +1465,7 @@ async function extractFacts(userMsg,assistantMsg){
   const existing=(wm.facts||[]).join('\n');
   const prompt=`Extract ONLY concrete facts about the USER.\nExamples: name, job, location, preferences, projects.\nReturn NONE if nothing new.\n\nKnown:\n${existing||'(none)'}\n\nUser: ${userMsg.slice(0,300)}\nAssistant: ${assistantMsg.slice(0,300)}\n\nNew facts (one per line, or NONE):`;
   try{
-    const res=await fetch('/api/proxy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tunnelUrl:config.tunnelUrl,apiKey:config.apiKey||'',model,messages:[{role:'user',content:prompt}],stream:false})});
+    const res=await fetch('/api/proxy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model,messages:[{role:'user',content:prompt}],stream:false})});
     if(!res.ok)return;
     const raw=(await res.json()).choices?.[0]?.message?.content?.trim();
     if(!raw||raw.toUpperCase().includes('NONE'))return;
@@ -1546,7 +1538,7 @@ async function sendVoiceMessage(text){
     const sys=worldModelSystemPrompt();
     const history=chat.messages.slice(-20).map(m=>(m.images&&m.images.length?{role:m.role,content:m.content,images:m.images.map(u=>String(u).replace(/^data:[^;]+;base64,/,""))}:{role:m.role,content:m.content}));
     const res=await fetch('/api/proxy',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({tunnelUrl:config.tunnelUrl,apiKey:config.apiKey||'',model,messages:sys?[{role:'system',content:sys},...history]:history}),
+      body:JSON.stringify({model,messages:sys?[{role:'system',content:sys},...history]:history}),
       signal:streamController.signal});
     if(!res.ok)throw new Error('HTTP '+res.status);
     const reader=res.body.getReader(),decoder=new TextDecoder();let buf='';
@@ -1624,7 +1616,7 @@ async function fbAsk(){
   const messages=[{role:'system',content:FB_SYS},...fbTranscript];
   const res = trialMode
     ? await fetch('/api/trial',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'chat',token:trialToken,messages})})
-    : await fetch('/api/agent',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tunnelUrl:config.tunnelUrl,apiKey:config.apiKey||'',model:(modelSelect.value||'llama3'),messages})});
+    : await (await import('/secure-fetch.js')).secureFetch(config.tunnelUrl, config.apiKey, '/v1/agent', {method:'POST',body:{model:(modelSelect.value||'llama3'),messages}});
   if(!res.ok||!res.body) throw new Error('unreachable');
   const reader=res.body.getReader(),dec=new TextDecoder();let buf='',out='';
   while(true){const {value,done}=await reader.read();if(done)break;buf+=dec.decode(value,{stream:true});let nl;while((nl=buf.indexOf('\n'))>=0){const line=buf.slice(0,nl);buf=buf.slice(nl+1);if(!line.trim())continue;try{const j=JSON.parse(line);if(j.response)out+=j.response;}catch{}}}

@@ -26,7 +26,7 @@ function syncFromStore() {
     if (typeof m === 'string') setMode(m.toLowerCase());
     const keys = store.get('cloudKeys') || {};
     for (const k of KEY_ENV) {
-      if (typeof keys[k] === 'string' && keys[k].trim()) process.env[k] = keys[k].trim();
+      if (Object.hasOwn(keys, k)) { if (keys[k].trim()) process.env[k] = keys[k].trim(); else delete process.env[k]; }
     }
   } catch {}
   return mode;

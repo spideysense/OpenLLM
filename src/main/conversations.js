@@ -1,68 +1,21 @@
-/**
- * Aspen Conversation Persistence
- *
- * Saves chat history to disk so conversations survive app restarts.
- * Stored as JSON in ~/.aspen/conversations.json
- * Max 50 conversations, each capped at 200 messages.
- */
-
 const path = require('path');
-const fs = require('fs');
 const os = require('os');
-
-const MONET_DIR = path.join(os.homedir(), '.aspen');
-const FILE = path.join(MONET_DIR, 'conversations.json');
-const MAX_CONVOS = 50;
-const MAX_MESSAGES = 200;
-
-function ensureDir() {
-  fs.mkdirSync(MONET_DIR, { recursive: true });
-}
-
+const records = require('./durable-json');
+const FILE = path.join(process.env.ASPEN_DATA_DIR || path.join(os.homedir(), '.aspen'), 'conversations.json');
 function load() {
-  try {
-    ensureDir();
-    if (!fs.existsSync(FILE)) return [];
-    const raw = fs.readFileSync(FILE, 'utf8');
-    const data = JSON.parse(raw);
-    return Array.isArray(data) ? data : [];
-  } catch {
-    return [];
-  }
+  const value = records.read(FILE, []);
+  if (!Array.isArray(value)) throw new Error('Invalid conversation archive; data preserved.');
+  return value;
 }
-
 function save(conversations) {
-  try {
-    ensureDir();
-    // Trim to limits before saving
-    const trimmed = conversations
-      .slice(-MAX_CONVOS)
-      .map((c) => ({
-        ...c,
-        messages: c.messages.slice(-MAX_MESSAGES),
-      }));
-    fs.writeFileSync(FILE, JSON.stringify(trimmed, null, 2), 'utf8');
-    return true;
-  } catch (err) {
-    console.error('[Conversations] Save failed:', err.message);
-    return false;
-  }
+  if (!Array.isArray(conversations) || conversations.some(c => !c || c.id == null || !Array.isArray(c.messages))) throw new Error('Invalid conversations');
+  records.write(FILE, conversations); return true;
 }
-
-function deleteConversation(id) {
-  const convos = load();
-  const filtered = convos.filter((c) => c.id !== id);
-  save(filtered);
-  return filtered;
+function upsert(conversation) {
+  const list = load(); const i = list.findIndex(c => c.id === conversation.id);
+  if (i < 0) list.push(conversation); else list[i] = conversation;
+  save(list); return conversation;
 }
-
-function clear() {
-  try {
-    fs.writeFileSync(FILE, '[]', 'utf8');
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-module.exports = { load, save, deleteConversation, clear };
+function deleteConversation(id) { const list = load().filter(c => c.id !== id); save(list); return list; }
+function clear() { return save([]); }
+module.exports = { load, save, upsert, deleteConversation, clear };

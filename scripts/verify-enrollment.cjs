@@ -1,0 +1,67 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs'), os = require('node:os'), path = require('node:path'), crypto = require('node:crypto');
+const { execFileSync } = require('node:child_process');
+const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'aspen-enrollment-'));
+process.env.ASPEN_DATA_DIR = path.join(dir, 'profile');
+process.env.ASPEN_KEY_FILE = path.join(dir, 'key');
+process.env.ASPEN_DEVICE_ID = '012345abcdef';
+fs.writeFileSync(process.env.ASPEN_KEY_FILE, crypto.randomBytes(32), { mode: 0o600 });
+let service;
+async function main() {
+  const { secureFetch } = await import('../shared/secure-fetch.js');
+  service = await require('../src/main/service').start({ port: 0, lanPort: 0, engine: false });
+  const base = `http://127.0.0.1:${service.lanPort}`;
+  const store = require('../src/main/store'), enrollment = require('../src/main/enrollment'), keys = require('../src/main/apikeys');
+  const setup = store.get('householdEnrollment').setup;
+  assert.ok(setup.startsWith('setup-aspen-'));
+  for (const route of ['/household', '/v1/models', '/artifacts/test', '/api/tags']) assert.equal((await fetch(base + route)).status, 404);
+  assert.equal((await fetch(base + '/v1/secure', { method: 'POST', headers: { Origin: 'https://outside.example' } })).status, 404);
+  const api = async (token, body, route = '/v1/enroll') => {
+    const r = await secureFetch(base, token, route, { method: 'POST', body });
+    const value = await r.json(); if (!r.ok) throw new Error(value.error); return value;
+  };
+  await assert.rejects(api(setup, { action: 'list' }, '/v1/vault'));
+  const card = path.join(dir, 'card.html');
+  execFileSync(process.execPath, ['scripts/setup-card.cjs', card], { cwd: path.resolve(__dirname, '..') });
+  assert.equal(fs.statSync(card).mode & 0o777, 0o600);
+  assert.match(fs.readFileSync(card, 'utf8'), /<svg/);
+  const pending = await api(setup, { action: 'prepare', label: 'Alex' });
+  assert.deepEqual(await api(setup, { action: 'prepare', label: 'Alex' }), pending, 'retry returns the same uncommitted setup');
+  assert.equal(keys.validateKey(pending.credential), false);
+  await assert.rejects(api(setup, { action: 'confirm', id: 'wrong' }));
+  await api(setup, { action: 'confirm', id: pending.id });
+  assert.equal(keys.validateKey(pending.credential), true);
+  assert.equal(store.get('householdEnrollment').setup, null);
+  // Exercise the phone discovery contract through the actual encrypted gateway.
+  // The engine fixture deliberately reports the rejected candidate first.
+  const originalFetch = global.fetch;
+  try {
+    store.set('activeModel', 'qualified:7b');
+    global.fetch = (input, options) => input === 'http://127.0.0.1:11434/api/tags'
+      ? Promise.resolve(Response.json({ models: [{ name: 'rejected:8b' }, { name: 'qualified:7b' }] }))
+      : originalFetch(input, options);
+    const discovered = await secureFetch(base, pending.credential, '/v1/models');
+    assert.equal(discovered.status, 200);
+    assert.equal((await discovered.json()).data[0].id, 'qualified:7b');
+  } finally { global.fetch = originalFetch; }
+  await assert.rejects(api(setup, { action: 'prepare', label: 'Attacker' }));
+  await assert.rejects(api(pending.recovery, { action: 'list' }, '/v1/vault'));
+  const guest = keys.createKey('Family', { memory: true });
+  await assert.rejects(api(guest.secret, { action: 'prepare', label: 'Attacker' }));
+  const restored = await api(pending.recovery, { action: 'prepare', label: 'Alex restored' });
+  await api(pending.recovery, { action: 'confirm', id: restored.id });
+  assert.equal(keys.validateKey(pending.credential), false);
+  assert.equal(keys.validateKey(restored.credential), true);
+  assert.equal(keys.validateKey(guest.secret), true);
+  await assert.rejects(api(pending.recovery, { action: 'prepare', label: 'Old recovery' }));
+  const expired = enrollment.prepare(restored.recovery, 'Expiry');
+  const state = store.get('householdEnrollment'); state.pending.expires = Date.now() - 1; store.set('householdEnrollment', state);
+  assert.throws(() => enrollment.confirm(restored.recovery, expired.id), /expired/);
+  const raw = fs.readFileSync(path.join(process.env.ASPEN_DATA_DIR, 'config.json'), 'utf8');
+  assert.ok(!raw.includes(restored.recovery)); assert.ok(!raw.includes(restored.credential));
+  const backup = require('../src/main/backup');
+  await backup.importBackup(await backup.exportBackup('private recovery test password'), 'private recovery test password');
+  assert.equal(store.get('householdEnrollment'), undefined, 'restore cannot resurrect setup/recovery credentials');
+  console.log('Enrollment integration passed: factory card, encrypted LAN-only transport, two-phase setup, retries, expiry, guest isolation, recovery rotation, encrypted storage and backup credential invalidation.');
+}
+main().then(async () => { await service?.stop(); fs.rmSync(dir, { recursive: true, force: true }); }).catch(async error => { console.error(error); await service?.stop(); fs.rmSync(dir, { recursive: true, force: true }); process.exitCode = 1; });

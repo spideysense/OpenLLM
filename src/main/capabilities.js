@@ -26,7 +26,7 @@ const THRESHOLDS = {
 
 // Name-based heuristic, used ONLY when /api/show returns no capabilities array.
 const TOOL_FAMILIES = ['llama3', 'llama4', 'qwen2', 'qwen2.5', 'qwen3', 'mistral', 'mixtral', 'gemma3', 'gemma4', 'phi4', 'command-r', 'hermes', 'firefunction', 'functionary', 'smollm2'];
-const VISION_FAMILIES = ['llava', 'bakllava', 'moondream', 'llama3.2-vision', 'llama4', 'gemma3', 'gemma4', 'qwen2-vl', 'qwen2.5-vl', 'minicpm-v'];
+const VISION_FAMILIES = ['llava', 'bakllava', 'moondream', 'llama3.2-vision', 'llama4', 'gemma3', 'gemma4', 'qwen2-vl', 'qwen2.5-vl', 'minicpm-v', 'qwen3-vl', 'qwen3.5', 'qwen3.6'];
 
 // Parse a parameter count (in billions) from /api/show details or the model tag.
 function parseSizeB(paramSize, modelName) {
@@ -88,7 +88,7 @@ function computeProfile({ tools = false, vision = false, sizeB = null } = {}, ha
 
   // The tool NAMES this combo may use. The agent intersects this with the user's
   // enabled-tools setting; if the result is empty the model runs as plain chat.
-  const allowedTools = [];
+  const allowedTools = canTools ? ['vault_search'] : [];
   if (features.webSearch) allowedTools.push('web_search', 'fetch_url', 'find_image');
   if (features.calculator) allowedTools.push('calculate', 'get_datetime');
   if (features.runCommand) allowedTools.push('run_command', 'download_file', 'git_clone', 'git_status', 'git_commit_push', 'git_create_repo', 'publish_app', 'start_mission', 'mission_status', 'stop_mission');

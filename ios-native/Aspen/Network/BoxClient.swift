@@ -1,18 +1,9 @@
 import Foundation
+import CryptoKit
 
-/// Talks to the user's Aspen box exactly like the existing clients do (verified
-/// against mobile-native/src/api.js):
-///   validate: GET  {tunnelUrl}/v1/models   (Bearer apiKey)
-///   chat:     POST https://www.runonaspen.com/api/agent  { tunnelUrl, apiKey, model, messages }
-///             -> SSE stream of:
-///                {"choices":[{"delta":{"content":"…"}}]}     answer tokens
-///                {"aspen_status":"Searching the web…","aspen_transient":bool}  activity
-///                {"aspen_model":"llama4:scout"}              the routed model (footer truth)
-///                {"error":"…"}                               upstream error
-///                [DONE]                                      end
+/// Uses an authenticated encrypted channel directly to the paired household box.
+/// Plaintext SSE is decoded only after response authentication on this device.
 final class BoxClient {
-    static let proxy = "https://www.runonaspen.com"
-
     struct Config: Codable, Equatable {
         var tunnelUrl: String
         var apiKey: String
@@ -27,23 +18,12 @@ final class BoxClient {
 
     /// Validate a box and return its model ids.
     static func fetchModels(_ config: Config) async throws -> [String] {
-        let url = URL(string: "\(normalize(config.tunnelUrl))/v1/models")!
-        var req = URLRequest(url: url)
-        req.timeoutInterval = 8
-        if !config.apiKey.isEmpty { req.setValue("Bearer \(config.apiKey)", forHTTPHeaderField: "Authorization") }
-        let (data, resp) = try await URLSession.shared.data(for: req)
-        guard let http = resp as? HTTPURLResponse else { throw BoxError.badStatus(code: 0, body: "") }
-        guard http.statusCode == 200 else { throw BoxError.badStatus(code: http.statusCode, body: errorBody(data)) }
+        let data = try await secureData(config, path: "/v1/models")
         let decoded = try JSONDecoder().decode(ModelsResponse.self, from: data)
         return decoded.data.map { $0.id }
     }
 
-    /// Stream a chat turn from the box. Callbacks fire as SSE arrives.
-    /// Retries once on a fresh connection if the first attempt dies on a stale
-    /// pooled socket (URLSession reuses keep-alive connections; right after the
-    /// box/tunnel restarts, the reused socket is dead and the first request fails
-    /// with -1005 "network connection was lost"). The retry is guarded so it only
-    /// fires before any token streamed — no duplicated output mid-stream.
+    /// Stream one chat turn. Interrupted requests surface to the user for review.
     static func chat(
         config: Config,
         model: String,
@@ -52,32 +32,11 @@ final class BoxClient {
         onModel: @escaping (String) -> Void,
         onToken: @escaping (String) -> Void
     ) async throws {
-        var tokenSeen = false
-        let token: (String) -> Void = { t in tokenSeen = true; onToken(t) }
-        do {
-            try await performChat(config: config, model: model, messages: messages,
-                                  session: .shared,
-                                  onStatus: onStatus, onModel: onModel, onToken: token)
-        } catch let err as URLError where !tokenSeen && isStaleConnection(err) {
-            // Dead pooled socket. Open a brand-new connection (ephemeral session
-            // has its own pool) and try once more. Safe: nothing streamed yet.
-            let fresh = URLSession(configuration: .ephemeral)
-            try await performChat(config: config, model: model, messages: messages,
-                                  session: fresh,
-                                  onStatus: onStatus, onModel: onModel, onToken: token)
-        }
-    }
-
-    /// Connection-level failures worth one fresh-socket retry (vs. real errors
-    /// like a 4xx/5xx or upstream message, which must surface).
-    private static func isStaleConnection(_ err: URLError) -> Bool {
-        switch err.code {
-        case .networkConnectionLost, .timedOut, .cannotConnectToHost,
-             .cannotFindHost, .dnsLookupFailed, .notConnectedToInternet:
-            return true
-        default:
-            return false
-        }
+        // An interrupted agent request may already have changed files or sent a
+        // tool request. Do not automatically repeat it without server idempotency.
+        try await performChat(config: config, model: model, messages: messages,
+                              session: .shared,
+                              onStatus: onStatus, onModel: onModel, onToken: onToken)
     }
 
     private static func performChat(
@@ -89,47 +48,73 @@ final class BoxClient {
         onModel: @escaping (String) -> Void,
         onToken: @escaping (String) -> Void
     ) async throws {
-        let url = URL(string: "\(proxy)/api/agent")!
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.timeoutInterval = 180   // box may cold-load a large model before the first token
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        let payload = AgentRequest(
-            tunnelUrl: normalize(config.tunnelUrl),
-            apiKey: config.apiKey,
-            model: model,
-            messages: messages.map { .init(role: $0.role, content: $0.content, images: $0.images) }
-        )
-        req.httpBody = try JSONEncoder().encode(payload)
-
-        let (bytes, resp) = try await session.bytes(for: req)
-        guard let http = resp as? HTTPURLResponse else { throw BoxError.badStatus(code: 0, body: "") }
-        guard http.statusCode == 200 else {
-            // Drain the error body — this is the only place that can tell us what
-            // actually went wrong (tunnel 502 vs revoked key vs gateway 500).
-            var raw = Data()
-            for try await b in bytes { raw.append(b); if raw.count > 600 { break } }
-            throw BoxError.badStatus(code: http.statusCode, body: errorBody(raw))
-        }
-
-        for try await line in bytes.lines {
-            guard line.hasPrefix("data: ") else { continue }
-            let payloadStr = String(line.dropFirst(6))
-            if payloadStr == "[DONE]" { break }
-            guard let data = payloadStr.data(using: .utf8) else { continue }
-            guard let evt = try? JSONDecoder().decode(SSEEvent.self, from: data) else { continue }
-            if let err = evt.error { throw BoxError.upstream(err) }
-            if let status = evt.aspen_status { onStatus(status) }
-            if let m = evt.aspen_model { onModel(m) }
-            if let token = evt.choices?.first?.delta?.content { onToken(token) }
+        let payload = AgentRequest(model: model, messages: messages.map { .init(role: $0.role, content: $0.content, images: $0.images) })
+        var buffer = Data()
+        for try await chunk in secureBytes(config, path: "/v1/agent", method: "POST", body: try JSONEncoder().encode(payload), session: session) {
+            buffer.append(chunk)
+            while let newline = buffer.firstIndex(of: 10) {
+                let line = String(decoding: buffer[..<newline], as: UTF8.self)
+                buffer.removeSubrange(...newline)
+                guard line.hasPrefix("data: ") else { continue }
+                let raw = String(line.dropFirst(6))
+                if raw == "[DONE]" { continue }
+                let evt = try JSONDecoder().decode(SSEEvent.self, from: Data(raw.utf8))
+                if let err = evt.error { throw BoxError.upstream(err) }
+                if let status = evt.aspen_status { onStatus(status) }
+                if let m = evt.aspen_model { onModel(m) }
+                if let token = evt.choices?.first?.delta?.content { onToken(token) }
+            }
         }
     }
+
+    static func secureData(_ config: Config, path: String, method: String = "GET", body: Data? = nil) async throws -> Data {
+        var data = Data()
+        for try await chunk in secureBytes(config, path: path, method: method, body: body) { data.append(chunk) }
+        return data
+    }
+    static func secureBytes(_ config: Config, path: String, method: String = "GET", body: Data? = nil, session: URLSession = .shared) -> AsyncThrowingStream<Data, Error> {
+        AsyncThrowingStream { continuation in
+            let task = Task {
+                do {
+                    var payload: [String: Any] = ["method": method, "path": path, "time": Date().timeIntervalSince1970 * 1000]
+                    if let body { payload["body"] = try JSONSerialization.jsonObject(with: body) }
+                    let sealed = try SecureCodec.seal(JSONSerialization.data(withJSONObject: payload), secret: config.apiKey)
+                    let nonce = sealed.nonce
+                    let cipher = sealed.data
+                    let id = SecureCodec.id(config.apiKey)
+                    guard let url = URL(string: "\(normalize(config.tunnelUrl))/v1/secure"), ["http", "https"].contains(url.scheme ?? "") else { throw URLError(.badURL) }
+                    var request = URLRequest(url: url); request.httpMethod = "POST"; request.timeoutInterval = 180
+                    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                    request.httpBody = try JSONSerialization.data(withJSONObject: ["id": id, "nonce": nonce, "data": cipher])
+                    let (bytes, response) = try await session.bytes(for: request)
+                    guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw BoxError.upstream("Secure connection failed. Update Aspen on your box and check the pairing.") }
+                    var expected = 0; var completed = false
+                    for try await line in bytes.lines {
+                        try Task.checkCancellation()
+                        if line.isEmpty { continue }
+                        guard line.utf8.count <= 12 * 1024 * 1024 else { throw URLError(.dataLengthExceedsMaximum) }
+                        let envelope = try JSONDecoder().decode(SecureCodec.Envelope.self, from: Data(line.utf8))
+                        let raw = try SecureCodec.open(envelope, secret: config.apiKey, requestNonce: nonce)
+                        let frame = try JSONDecoder().decode(SecureFrame.self, from: raw)
+                        guard frame.sequence == expected else { throw URLError(.cannotDecodeContentData) }; expected += 1
+                        if let status = frame.status, status >= 400 { throw BoxError.badStatus(code: status, body: "Aspen rejected this request") }
+                        if let text = frame.bytes, let data = Data(base64Encoded: text) { continuation.yield(data) }
+                        if frame.end == true { completed = true; break }
+                    }
+                    guard completed else { throw URLError(.networkConnectionLost) }
+                    continuation.finish()
+                } catch { continuation.finish(throwing: error) }
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
+    }
+    private struct SecureFrame: Codable { let sequence: Int; let status: Int?; let bytes: String?; let end: Bool? }
 
     // MARK: wire types
     struct ModelsResponse: Codable { let data: [ModelId] }
     struct ModelId: Codable { let id: String }
     struct AgentRequest: Codable {
-        let tunnelUrl: String; let apiKey: String; let model: String
+        let model: String
         let messages: [Msg]
         struct Msg: Codable { let role: String; let content: String; let images: [String]? }
     }

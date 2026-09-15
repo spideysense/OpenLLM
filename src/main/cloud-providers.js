@@ -38,33 +38,33 @@ function configured() {
   return Object.entries(PROVIDERS).filter(([, p]) => keyOf(p)).map(([id, p]) => ({ id, ...p }));
 }
 
-async function callOpenAICompat(p, messages, { timeoutMs = 30000 } = {}) {
+async function callOpenAICompat(p, messages, { timeoutMs = 30000, signal } = {}) {
   const res = await fetch(`${p.base}/chat/completions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${keyOf(p)}` },
     body: JSON.stringify({ model: p.model, messages, max_tokens: 2048 }),
-    signal: AbortSignal.timeout(timeoutMs),
+    signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]) : AbortSignal.timeout(timeoutMs),
   });
   if (!res.ok) throw httpErr(res.status, await safeText(res));
   const j = await res.json();
   return { text: j.choices?.[0]?.message?.content || '' };
 }
 
-async function callAnthropic(p, messages, { timeoutMs = 30000 } = {}) {
+async function callAnthropic(p, messages, { timeoutMs = 30000, signal } = {}) {
   const system = messages.find((m) => m.role === 'system')?.content;
   const msgs = messages.filter((m) => m.role !== 'system').map((m) => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content }));
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-api-key': keyOf(p), 'anthropic-version': '2023-06-01' },
     body: JSON.stringify({ model: p.model, max_tokens: 2048, ...(system ? { system } : {}), messages: msgs }),
-    signal: AbortSignal.timeout(timeoutMs),
+    signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]) : AbortSignal.timeout(timeoutMs),
   });
   if (!res.ok) throw httpErr(res.status, await safeText(res));
   const j = await res.json();
   return { text: (j.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('') };
 }
 
-async function callGemini(p, messages, { timeoutMs = 30000 } = {}) {
+async function callGemini(p, messages, { timeoutMs = 30000, signal } = {}) {
   const sys = messages.find((m) => m.role === 'system')?.content;
   const contents = messages.filter((m) => m.role !== 'system')
     .map((m) => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: String(m.content || '') }] }));
@@ -72,7 +72,7 @@ async function callGemini(p, messages, { timeoutMs = 30000 } = {}) {
   const res = await fetch(url, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ...(sys ? { systemInstruction: { parts: [{ text: sys }] } } : {}), contents }),
-    signal: AbortSignal.timeout(timeoutMs),
+    signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]) : AbortSignal.timeout(timeoutMs),
   });
   if (!res.ok) throw httpErr(res.status, await safeText(res));
   const j = await res.json();

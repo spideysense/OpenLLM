@@ -15,7 +15,7 @@ const os = require('os');
 const fs = require('fs');
 const secrets = require('./secrets');
 
-const WORKSPACE = path.join(os.homedir(), '.aspen', 'workspaces');
+const WORKSPACE = path.join(process.env.ASPEN_DATA_DIR || path.join(os.homedir(), '.aspen'), 'workspaces');
 
 // Resolve a dir inside the workspace; refuse anything that escapes it.
 function safeDir(dir) {
@@ -50,7 +50,7 @@ function authedUrl(slug, overrideToken) {
 
 function git(args, cwd) {
   return new Promise((resolve) => {
-    execFile('git', args, { cwd, timeout: 120000, maxBuffer: 8 * 1024 * 1024 }, (err, stdout, stderr) => {
+    execFile('git', args, { cwd, signal: require('./execution-context').signal(), timeout: 120000, maxBuffer: 8 * 1024 * 1024 }, (err, stdout, stderr) => {
       // Redact registered secrets, then also strip any raw token pattern (covers a
       // pasted PAT that isn't in the secret store) so it can never surface in output.
       const output = secrets.redact(`${stdout || ''}${stderr || ''}`.trim())

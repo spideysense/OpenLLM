@@ -24,7 +24,7 @@ const http = require('http');
 const os = require('os');
 
 const LOCAL_API = process.env.MONET_LOCAL_API || 'http://localhost:4000';
-const BIN_DIR = path.join(os.homedir(), '.aspen', 'bin');
+const BIN_DIR = path.join(process.env.ASPEN_DATA_DIR || path.join(os.homedir(), '.aspen'), 'bin');
 const PROVISION_URL = process.env.ASPEN_PROVISION_URL || 'https://runonaspen.com/api/tunnel-provision';
 const PROVISION_SECRET = process.env.ASPEN_PROVISION_SECRET || 'aspen_prov_8f2a4c6e9d1b3f5a7c0e2d4b6a8f1c3e';
 const store = require('./store');

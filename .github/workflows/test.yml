@@ -19,7 +19,13 @@ jobs:
           cache: npm
 
       - name: Install dependencies (skip Electron binary)
-        run: npm install --ignore-scripts
+        run: npm ci --ignore-scripts
+
+      - name: Build renderer and shared client assets
+        run: npm run build:renderer && npm run build:household
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=moderate
 
       - name: Run tests
         run: npx vitest run

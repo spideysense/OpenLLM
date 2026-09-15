@@ -52,13 +52,13 @@ describe('model-manager memory reconciliation', () => {
   const installed = [{ name: 'qwen3.6:35b-a3b' }, { name: 'qwen2.5-coder:32b' }, { name: 'llama4:scout' }];
   it('does NOT keep a separate coder when the active model codes for itself (qwen3.6)', () => {
     const keep = mgr.keepSet('qwen3.6:35b-a3b', installed);
-    expect(keep.has('qwen3.6')).toBe(true);
-    expect(keep.has('qwen2.5-coder')).toBe(false);   // one model only — no thrash
+    expect(keep.has('qwen3.6:35b-a3b')).toBe(true);
+    expect(keep.has('qwen2.5-coder:32b')).toBe(false);   // one model only — no thrash
   });
   it('keeps the coder for a non-self-sufficient active model', () => {
     const keep = mgr.keepSet('llama4:scout', installed);
-    expect(keep.has('llama4')).toBe(true);
-    expect(keep.has('qwen2.5-coder')).toBe(true);
+    expect(keep.has('llama4:scout')).toBe(true);
+    expect(keep.has('qwen2.5-coder:32b')).toBe(true);
   });
   it('evicts a resident model that is neither active nor kept', () => {
     const resident = [{ name: 'qwen3.6:35b-a3b' }, { name: 'llama4:scout' }];

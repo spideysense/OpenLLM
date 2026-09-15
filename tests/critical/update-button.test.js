@@ -56,8 +56,9 @@ describe('Update banner disambiguates the two updaters', () => {
   it('electron-updater tags its status source:app', () => {
     expect(updaterSrc).toMatch(/source:\s*'app'/);
   });
-  it('hot-updater tags its status source:hot', () => {
-    expect(hotSrc).toMatch(/source:\s*'hot'/);
+  it('renderer updater is retired in favor of a bundled application', () => {
+    expect(hotSrc).toMatch(/source:\s*'application'/);
+    expect(hotSrc).not.toContain('fetch(');
   });
   it('sidebar dispatches the click by source (hot -> reload, app -> install)', () => {
     expect(sidebar).toMatch(/updateStatus\?\.source === 'hot'/);

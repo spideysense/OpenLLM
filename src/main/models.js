@@ -28,118 +28,35 @@ async function listModels() {
 // Pull (download) a model with progress
 // ═══════════════════════════════════════════════════
 
-async function pullModel(modelName, onProgress) {
-  return _pullModelInner(modelName, onProgress, true);
-}
-
-async function _pullModelInner(modelName, onProgress, allowRetry) {
+async function pullModel(modelName, onProgress = () => {}, { signal, allowRetry = true } = {}) {
   try {
-    const res = await fetch(`${OLLAMA_HOST}/api/pull`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: modelName, stream: true }),
-    });
-
-    // Engine too old for this model — auto-update and retry.
-    // Ollama sends this as HTTP 412, or as a non-200 with "412" / "newer version" in the body.
-    if (!res.ok && allowRetry) {
-      const errText = await res.text();
-      if (res.status === 412 || errText.includes('412') || errText.includes('newer version')) {
-        onProgress({ status: 'Updating engine for this model...', completed: 0, total: 0, percent: 0 });
-        try {
-          const ollama = require('./ollama');
-          const result = await ollama.ensureCurrent((msg) => onProgress({ status: msg, completed: 0, total: 0, percent: 0 }), { force: true });
-          if (result.success) return _pullModelInner(modelName, onProgress, false);
-        } catch {}
-        return { success: false, error: 'Could not update engine. Please restart Aspen and try again.' };
-      }
-      throw new Error(errText.replace(/[Oo]llama/g, 'engine'));
-    }
-
+    const res = await fetch(`${OLLAMA_HOST}/api/pull`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: modelName, stream: true }), signal });
     if (!res.ok) {
-      const err = await res.text();
-      throw new Error(err.replace(/[Oo]llama/g, 'engine'));
-    }
-
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let lastError = null;
-    let sawSuccess = false;
-    // Ollama reports progress per layer/blob. Track every layer's bytes so the
-    // bar reflects the WHOLE pull, not just whichever blob is currently moving
-    // (otherwise it races to ~100% on the big blob while others remain).
-    const layers = {};
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      const text = decoder.decode(value, { stream: true });
-      const lines = text.split('\n').filter(Boolean);
-
-      for (const line of lines) {
-        try {
-          const json = JSON.parse(line);
-          // Ollama streams errors as {"error":"..."} with HTTP 200, then closes.
-          if (json.error) {
-            // Auto-update on version error streamed as JSON
-            if (allowRetry && json.error.includes('requires a newer version')) {
-              onProgress({ status: 'Updating engine for this model...', completed: 0, total: 0, percent: 0, phase: 'engine' });
-              try {
-                const ollama = require('./ollama');
-                const result = await ollama.ensureCurrent((msg) => onProgress({ status: msg, completed: 0, total: 0, percent: 0, phase: 'engine' }), { force: true });
-                if (result.success) return _pullModelInner(modelName, onProgress, false);
-                return { success: false, error: 'Could not update engine. Please restart Aspen and try again.' };
-              } catch (updateErr) {
-                return { success: false, error: 'Could not update engine. Please restart Aspen and try again.' };
-              }
-            }
-            lastError = json.error.replace(/[Oo]llama/g, 'engine');
-            continue;
-          }
-          if (json.status === 'success') sawSuccess = true;
-
-          const rawStatus = json.status || '';
-          // Accumulate this layer's bytes (keyed by digest) for an aggregate %.
-          if (json.digest && json.total) {
-            layers[json.digest] = { completed: json.completed || 0, total: json.total };
-          }
-          let aggCompleted = 0, aggTotal = 0;
-          for (const k in layers) { aggCompleted += layers[k].completed; aggTotal += layers[k].total; }
-
-          // Classify the phase. The tail phases (verify/finalize) have no bytes,
-          // so we must NOT leave a frozen download number on screen.
-          let phase = 'downloading';
-          let label = rawStatus;
-          if (/^verifying/i.test(rawStatus)) { phase = 'verifying'; label = 'Verifying download…'; }
-          else if (/manifest/i.test(rawStatus)) { phase = 'finalizing'; label = 'Finalizing…'; }
-          else if (rawStatus === 'success') { phase = 'done'; label = 'Done'; }
-          else if (/^pulling manifest/i.test(rawStatus)) { phase = 'downloading'; label = 'Preparing download…'; }
-          else if (/^(pulling|downloading)/i.test(rawStatus)) { label = 'Downloading model…'; }
-
-          const percent = phase === 'done' ? 100
-            : aggTotal ? Math.min(99, Math.round((aggCompleted / aggTotal) * 100))
-            : 0;
-
-          onProgress({
-            status: label,
-            rawStatus,
-            phase,
-            completed: aggCompleted,
-            total: aggTotal,
-            percent,
-          });
-        } catch {
-          // Skip
-        }
+      const error = await res.text();
+      if (allowRetry && (res.status === 412 || /newer version/.test(error))) {
+        const update = await require('./ollama').ensureCurrent(msg => onProgress({ status: msg, phase: 'engine', percent: 0 }), { force: true });
+        if (update.success) return pullModel(modelName, onProgress, { signal, allowRetry: false });
       }
+      throw new Error(error || `Download failed (${res.status})`);
     }
-
-    if (lastError) return { success: false, error: lastError };
+    const layers = new Map(); let success = false;
+    for await (const json of require('./ndjson').records(res.body)) {
+      signal?.throwIfAborted();
+      if (json.error) throw new Error(json.error);
+      if (json.digest && json.total) layers.set(json.digest, { total: json.total, completed: json.completed || 0 });
+      let total = 0, completed = 0; for (const l of layers.values()) { total += l.total; completed += l.completed; }
+      const rawStatus = json.status || '';
+      success = success || rawStatus === 'success';
+      const phase = success ? 'done' : /^verifying/.test(rawStatus) ? 'verifying' : /^writing|^removing/.test(rawStatus) ? 'finalizing' : 'downloading';
+      onProgress({ status: rawStatus, rawStatus, phase, total, completed, percent: success ? 100 : total ? Math.min(99, Math.round(100 * completed / total)) : 0 });
+    }
+    if (!success) throw new Error('Download interrupted before verification completed. Try again to resume.');
+    const installed = await listModels();
+    const id = require('./model-id').normalize(modelName);
+    if (!installed.some(m => require('./model-id').normalize(m.name) === id)) throw new Error('The downloaded model is not installed. Try again.');
     return { success: true };
-  } catch (err) {
-    return { success: false, error: err.message.replace(/[Oo]llama/g, 'engine') };
-  }
+  } catch (error) { return { success: false, aborted: signal?.aborted || false, error: error.message }; }
 }
 
 // ═══════════════════════════════════════════════════
@@ -178,13 +95,13 @@ async function getRunningModels() {
 // Recommend a model based on hardware tier + registry
 // ═══════════════════════════════════════════════════
 
-function getRecommendation(tier, registry) {
+function getRecommendation(tier, registry, { memoryGB = Infinity } = {}) {
   // Schema v3: flat power-ranked list. Best model the machine can run = the
   // first runnable entry (registry is ordered most→least capable).
   if (Array.isArray(registry?.models)) {
     const TIER_ORDER = { light: 1, medium: 2, heavy: 3, ultra: 4 };
     const cap = TIER_ORDER[tier] || 2;
-    const best = registry.models.find((m) => (TIER_ORDER[m.min_tier] || 2) <= cap);
+    const best = registry.models.find((m) => !m.deprecated && Number(m.download_gb) <= memoryGB && (TIER_ORDER[m.min_tier] || 2) <= cap);
     if (best) {
       return { model: best.model, name: best.name, provider: best.provider, why: best.why, sizeGB: String(best.download_gb) };
     }
@@ -203,7 +120,8 @@ function getRecommendation(tier, registry) {
     heavy: { model: 'qwen3.6:35b-a3b', name: 'Qwen3.6 35B-A3B', why: 'MoE, 3B active — fast, reliable, with vision + tools', sizeGB: '23' },
     ultra: { model: 'qwen3.6:35b-a3b', name: 'Qwen3.6 35B-A3B', why: 'Reliable + fast + multimodal; qwen3.5 available as a heavier optional upgrade', sizeGB: '23' },
   };
-  return fallbacks[tier] || fallbacks.medium;
+  const preferred = fallbacks[tier] || fallbacks.medium;
+  return [preferred, fallbacks.medium, fallbacks.light].find(m => Number(m.sizeGB) <= memoryGB) || null;
 }
 
 module.exports = {

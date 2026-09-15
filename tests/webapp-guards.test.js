@@ -60,6 +60,6 @@ describe('web-app regression guards (2026-07-10)', () => {
   it('deterministic mission trigger stays owner-only', () => {
     // Relaxed then reverted by decision (the key is an owner key); missions run with
     // full owner tool access, so the trigger must stay gated on args.isOwner.
-    expect(/if \(args\.isOwner && !args\.background && _u\.length > 15 && CONTINUE_RX\.test\(_u\)/.test(GATEWAY)).toBe(true);
+    expect(/if \(args\.isOwner && policy\.allowed\('start_mission', \{ isOwner: true \}\) && !args\.background && _u\.length > 15 && CONTINUE_RX\.test\(_u\)/.test(GATEWAY)).toBe(true);
   });
 });

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Markdown from 'react-native-markdown-display';
+import { markdown, MAX_MARKDOWN_LENGTH } from '../markdown.cjs';
 import { theme } from '../theme';
 
 // `streaming` renders plain text (cheap) while tokens arrive, then swaps to full
@@ -22,9 +23,9 @@ function MessageBubble({ role, content, streaming }) {
   return (
     <View style={[styles.row, styles.rowLeft]}>
       <View style={[styles.bubble, styles.assistant]}>
-        {streaming
+        {streaming || (content || '').length > MAX_MARKDOWN_LENGTH
           ? <Text style={styles.streamText}>{content || ''}</Text>
-          : <Markdown style={md}>{content || ''}</Markdown>}
+          : <Markdown style={md} markdownit={markdown}>{content || ''}</Markdown>}
       </View>
     </View>
   );

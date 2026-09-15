@@ -42,16 +42,11 @@ describe('BUG: release script version mismatch (built v0.4.34 when user ran 0.4.
   it('release script reads version from CLI arg (process.argv[2])', () => {
     expect(release).toContain('process.argv[2]');
   });
-  it('release script commits version before building', () => {
-    expect(release).toContain('Committing version bump');
+  it('requires an already reviewed matching version', () => {
+    expect(release).toContain('process.argv[2] !== version');
+    expect(release).not.toContain('git push');
   });
-  it('release script pushes version commit before Windows workflow sees it', () => {
-    const commitIdx = release.indexOf('git commit');
-    const windowsIdx = release.indexOf('release-windows');
-    expect(commitIdx).toBeGreaterThan(0);
-    expect(windowsIdx).toBeGreaterThan(0);
-    expect(commitIdx).toBeLessThan(windowsIdx);
-  });
+
 });
 
 describe('BUG: Windows workflow created rogue v0.4.6 release, broke auto-updates for all users', () => {
@@ -60,12 +55,11 @@ describe('BUG: Windows workflow created rogue v0.4.6 release, broke auto-updates
     const [, minor] = pkg.version.split('.').map(Number);
     expect(minor).toBeGreaterThanOrEqual(4);
   });
-  it('release script uses --no-git-tag-version (no stray git tags)', () => {
-    expect(release).toContain('no-git-tag-version');
+  it('does not mutate version numbers or publish tags during a local build', () => {
+    expect(release).not.toContain('npm version');
+    expect(release).not.toContain('ghRequest');
   });
-  it('release script allows-same-version (idempotent re-runs)', () => {
-    expect(release).toContain('allow-same-version');
-  });
+
 });
 
 describe('BUG: robotjs in dependencies broke all Vercel deploys', () => {
@@ -80,21 +74,10 @@ describe('BUG: robotjs in dependencies broke all Vercel deploys', () => {
   });
 });
 
-describe('BUG: git pull blocked by package.json changes (stale code in every build)', () => {
-  it('release script discards package.json before pull', () => {
-    expect(release).toContain('git checkout -- package-lock.json package.json');
-  });
-  it('release script does git pull', () => {
-    expect(release).toContain('git pull');
-  });
-});
-
-describe('BUG: DMG uploaded before stapling ("Aspen is damaged" for users)', () => {
-  it('xcrun stapler validate runs before upload', () => {
-    const validateIdx = release.indexOf('xcrun stapler validate');
-    const uploadIdx = release.indexOf('// 4. Upload');
-    expect(validateIdx).toBeGreaterThan(0);
-    expect(validateIdx).toBeLessThan(uploadIdx);
+describe('Reviewed source preservation during release preparation', () => {
+  it('never discards or replaces the working tree', () => {
+    expect(release).not.toContain('git checkout');
+    expect(release).not.toContain('git pull');
   });
 });
 

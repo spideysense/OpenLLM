@@ -66,7 +66,7 @@ export default function Onboarding() {
         setDownloadPhase('loading');
         setDownloadProgress(100);
         setDownloadStatus('Loading model into memory… (first time can take a minute on large models)');
-        try { if (bridge.models.warm) await bridge.models.warm(recommendation.model); } catch {}
+
         await selectModel(recommendation.model);
         setStep(4); // ready
       } else {
@@ -155,7 +155,7 @@ export default function Onboarding() {
           )}
 
           <div className="flex gap-3">
-            <button className="btn btn-primary" onClick={handleDownload}>
+            <button className="btn btn-primary" disabled={!recommendation} onClick={handleDownload}>
               Download & Start →
             </button>
             <button className="btn btn-secondary" onClick={() => completeOnboarding()}>
@@ -217,7 +217,7 @@ export default function Onboarding() {
           <div className="onboarding-icon">🎉</div>
           <h1>Your AI is Running!</h1>
           <p>
-            Everything is 100% local. Your data never leaves this machine.
+            Your AI runs locally. Web tools and optional Cloud Boost send requests when you use them.
             Zero subscriptions. Zero data sharing. Everything local.
           </p>
 
@@ -231,7 +231,7 @@ export default function Onboarding() {
 
           <div className="flex gap-3">
             <button className="btn btn-primary" onClick={completeOnboarding}>
-              Start Chatting 
+              Start Chatting
             </button>
           </div>
           {showPair && <PairDeviceModal bridge={bridge} onClose={() => setShowPair(false)} />}
