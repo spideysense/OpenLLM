@@ -51,6 +51,8 @@ jobs:
         working-directory: mobile-native
         run: |
           npm ci
+          npm audit --audit-level=moderate
+          npm test
           npx expo prebuild --platform android --no-install
       - name: Build Android debug APK
         working-directory: mobile-native/android
