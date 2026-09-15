@@ -76,6 +76,7 @@ async function* run(args) {
   const foreground = require('./foreground');
   if (!args.background) foreground.begin();
   let release, iterator;
+  const requestContext = { signal: args.signal, authorized: args.authorized, person: args.isOwner ? 'owner' : args.personId || args.memoryKeyId || null };
   try {
     release = await require('./admission').acquire(args.signal, {
       background: !!args.background,
@@ -86,7 +87,7 @@ async function* run(args) {
     while (true) {
       args.signal?.throwIfAborted();
       checkAccess();
-      const next = await execution.run({ signal: args.signal }, () =>
+      const next = await execution.run(requestContext, () =>
         iterator.next()
       );
       if (next.done) break;
@@ -106,7 +107,7 @@ async function* run(args) {
     yield { type: 'done' };
   } finally {
     try {
-      await execution.run({ signal: args.signal }, () => iterator?.return?.());
+      await execution.run(requestContext, () => iterator?.return?.());
     } finally {
       release?.();
       if (!args.background) foreground.end();

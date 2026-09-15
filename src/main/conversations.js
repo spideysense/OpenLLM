@@ -1,7 +1,7 @@
 const path = require('path');
 const os = require('os');
 const records = require('./durable-json');
-const FILE = path.join(os.homedir(), '.aspen', 'conversations.json');
+const FILE = path.join(process.env.ASPEN_DATA_DIR || path.join(os.homedir(), '.aspen'), 'conversations.json');
 function load() {
   const value = records.read(FILE, []);
   if (!Array.isArray(value)) throw new Error('Invalid conversation archive; data preserved.');

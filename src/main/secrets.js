@@ -9,7 +9,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const DIR = path.join(os.homedir(), '.aspen');
+const DIR = (process.env.ASPEN_DATA_DIR || path.join(os.homedir(), '.aspen'));
 const FILE = path.join(DIR, 'secrets.json');
 
 function load() { return require('./durable-json').read(FILE, {}); }

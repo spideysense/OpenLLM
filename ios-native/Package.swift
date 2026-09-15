@@ -9,8 +9,8 @@ let package = Package(
     name: "Aspen",
     platforms: [.iOS(.v17)],
     dependencies: [
-        .package(url: "https://github.com/ml-explore/mlx-swift", from: "0.25.4"),
-        .package(url: "https://github.com/ml-explore/mlx-swift-examples", from: "2.25.4"),
+        .package(url: "https://github.com/ml-explore/mlx-swift", from: "0.29.1"),
+        .package(url: "https://github.com/ml-explore/mlx-swift-examples", exact: "2.29.1"),
     ],
     targets: [
         .executableTarget(

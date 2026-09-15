@@ -1,5 +1,5 @@
 const { spawn, execSync } = require('child_process');
-const { app } = require('electron');
+const { app } = require('./runtime');
 const path = require('path');
 const fs = require('fs');
 const https = require('https');
@@ -10,7 +10,7 @@ const { runFetchUrl } = require('./tools');
 const gpuFallback = require('./gpu-fallback');
 
 const OLLAMA_HOST = 'http://127.0.0.1:11434';
-const MONET_DIR = path.join(os.homedir(), '.aspen');
+const MONET_DIR = (process.env.ASPEN_DATA_DIR || path.join(os.homedir(), '.aspen'));
 const BIN_DIR = path.join(MONET_DIR, 'bin');
 let chatController = null;
 let ollamaProcess = null;

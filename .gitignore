@@ -7,3 +7,5 @@ vendor/
 .env
 .env.local
 .aspen-release-env
+
+build-household/

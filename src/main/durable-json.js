@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 function keyStore() {
-  if (!process.versions.electron) return null;
+  if (!process.versions.electron) return require('./service-key').provider();
   try {
     const s = require('electron').safeStorage;
     if (
@@ -89,7 +89,7 @@ function write(file, value) {
 }
 function migrateKnownRecords() {
   if (!keyStore()) return;
-  const dir = path.join(require('os').homedir(), '.aspen');
+  const dir = (process.env.ASPEN_DATA_DIR || path.join(require('os').homedir(), '.aspen'));
   for (const name of ['config.json', 'conversations.json', 'secrets.json']) {
     const file = path.join(dir, name);
     if (fs.existsSync(file)) {
@@ -103,6 +103,8 @@ function migrateKnownRecords() {
   }
 }
 module.exports = {
+  // Authorization records must fail closed instead of recovering revoked grants.
+  readStrict: (file, fallback) => fs.existsSync(file) ? decode(fs.readFileSync(file, 'utf8')) : structuredClone(fallback),
   read,
   write,
   atomicWrite,

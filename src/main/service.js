@@ -1,0 +1,45 @@
+// Independent household runtime: Node + local engine, with no graphical login.
+async function start({ port = 4000, engine = true } = {}) {
+  if (!require('./service-key').provider()) throw new Error('ASPEN_KEY_FILE must reference a protected 32-byte service credential');
+  const release = await require('./profile-lock').acquire();
+  try {
+    require('./backup').recover();
+    require('./durable-json').migrateKnownRecords();
+    require('./vault').get().sweep();
+    const store = require('./store');
+    const keys = require('./apikeys');
+    if (!keys.listKeys().some(k => k.owner)) keys.createKey('Household owner', { owner: true });
+    // Start serving before inference loads, so setup and vault remain available.
+    const gateway = require('./gateway');
+    await gateway.start({ port, household: true });
+    require('./chat-service').snapshot();
+    if (engine) {
+      require('./appliance-model').ready().then(async () => {
+        require('./always-on').init({ runAgent: require('./chat-service').run, getActiveModel: () => store.get('activeModel') });
+        await require('./connectors').reconnectSaved();
+      }).catch(error => console.error('Local model needs attention:', error.message));
+    }
+    return { port: gateway.getPort(), async stop() {
+      require('./chat-service').stopAll();
+      require('./always-on').stopAll();
+      gateway.stop();
+      await require('./mcp-client').disconnectAll();
+      await release();
+    } };
+  } catch (error) { await release(); throw error; }
+}
+if (require.main === module) {
+  start({ port: Number(process.env.ASPEN_PORT || 4000) }).then(service => {
+    let stopping = false;
+    const stop = async () => {
+      if (stopping) return; stopping = true;
+      const deadline = setTimeout(() => process.exit(1), 8000).unref();
+      await service.stop(); clearTimeout(deadline); process.exit(0);
+    };
+    process.once('SIGTERM', stop); process.once('SIGINT', stop);
+    // Fail closed: a corrupted in-memory process is restarted by systemd.
+    process.once('uncaughtException', error => { console.error(error.message); process.exit(1); });
+    process.once('unhandledRejection', error => { console.error(error?.message || 'Unhandled runtime failure'); process.exit(1); });
+  }).catch(error => { console.error(error.message); process.exitCode = 1; });
+}
+module.exports = { start };

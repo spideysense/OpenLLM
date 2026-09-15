@@ -45,7 +45,7 @@ describe('durable local records', () => {
     } finally { fs.rmSync(dir, { recursive: true, force: true }); }
   });
   it('does not commit failed settings writes or expose mutable references', () => {
-    const records = { read: () => ({ value: { n: 1 } }), write: vi.fn(() => { throw new Error('disk full'); }) };
+    const records = { readStrict: () => ({ value: { n: 1 } }), write: vi.fn(() => { throw new Error('disk full'); }) };
     const store = load('store.js', { './durable-json': records }); store.get('value').n = 42;
     expect(() => store.set('value', { n: 2 })).toThrow('disk full'); expect(store.get('value')).toEqual({ n: 1 });
     expect(() => store.set('__proto__', {})).toThrow();

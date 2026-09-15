@@ -11,6 +11,7 @@ import AppSetup from './pages/AppSetup';
 import WorldModel from './pages/WorldModel';
 import Templates from './pages/Templates';
 import Home from './pages/Home';
+import Vault from './pages/Vault';
 
 // ═══════════════════════════════════════════════════
 // Global App Context
@@ -444,6 +445,7 @@ export default function App() {
             </div>
           )}
           {page === 'home' && <Home />}
+          {page === 'vault' && <Vault />}
           {appError && <div role="alert" style={{ padding: 12, color: 'var(--danger)' }}>{appError} <button onClick={() => setAppError('')}>Dismiss</button></div>}
           <div style={{ display: page === 'chat' ? 'contents' : 'none' }}><Chat /></div>
           {page === 'templates' && <Templates />}

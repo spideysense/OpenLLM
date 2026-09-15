@@ -62,6 +62,7 @@ describe('encrypted device transport', () => {
       const post = value => fetch(base, { method: 'POST', body: JSON.stringify(value) });
       const first = await post(envelope); await first.text(); expect(first.status).toBe(200);
       expect((await post(envelope)).status).toBe(401);
+      expect((await post({ ...envelope, nonce: envelope.nonce + '\n' })).status).toBe(401);
       expect((await post({ ...envelope, data: Buffer.from('tampered').toString('base64') })).status).toBe(401);
       expect((await post({ id: k.id, ...c.seal(k.request, { method: 'GET', path: '/v1/models', time: 1 }, 'aspen-request-v1') })).status).toBe(401);
       expect((await post({ ...envelope, id: 'unknown' })).status).toBe(401);

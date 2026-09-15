@@ -28,7 +28,7 @@ function seal(key, value, aad) {
 function open(key, envelope, aad) {
   const nonce = Buffer.from(envelope.nonce || '', 'base64');
   const encrypted = Buffer.from(envelope.data || '', 'base64');
-  if (nonce.length !== 12 || encrypted.length < 16)
+  if (nonce.length !== 12 || encrypted.length < 16 || nonce.toString('base64') !== envelope.nonce || encrypted.toString('base64') !== envelope.data)
     throw new Error('Invalid envelope');
   const c = crypto.createDecipheriv('aes-256-gcm', key, nonce);
   c.setAAD(Buffer.from(aad));
@@ -47,9 +47,7 @@ async function handle(req, res, dispatch) {
       chunks.push(c);
     }
     const envelope = JSON.parse(Buffer.concat(chunks).toString());
-    const key = require('./apikeys')
-      .listKeys()
-      .find((k) => keys(k.secret).id === envelope.id);
+    const key = require('./apikeys').listKeys().find(k => keys(k.secret).id === envelope.id) || require('./vault').get().transportKeys().find(k => keys(k.secret).id === envelope.id);
     if (!key) throw new Error('Invalid pairing');
     const derived = keys(key.secret);
     const payload = open(derived.request, envelope, 'aspen-request-v1');
@@ -58,6 +56,7 @@ async function handle(req, res, dispatch) {
       Math.abs(Date.now() - payload.time) > 120000
     )
       throw new Error('Expired request');
+    if (key.contextOnly && (payload.path !== '/v1/context' || payload.method !== 'POST')) throw new Error('Context-only credential');
     const nonceId = envelope.id + ':' + envelope.nonce;
     const store = require('./store');
     for (const [id, until] of Object.entries(store.get('secureReplay') || {})) if (until > Date.now()) seen.set(id, until);
@@ -68,7 +67,7 @@ async function handle(req, res, dispatch) {
     store.set('secureReplay', Object.fromEntries(seen));
     if (
       !['GET', 'POST', 'DELETE'].includes(payload.method) ||
-      !/^\/(v1\/(agent|models|world-model|chat\/completions)|missions(?:\/stop)?|publish-artifact)$/.test(
+      !/^\/(v1\/(agent|models|world-model|vault|context|household|chat\/completions)|missions(?:\/stop)?|publish-artifact)$/.test(
         payload.path
       )
     )
@@ -77,6 +76,7 @@ async function handle(req, res, dispatch) {
       payload.body == null ? [] : [Buffer.from(JSON.stringify(payload.body))]
     );
     Object.assign(inner, {
+      aspenSecure: true,
       method: payload.method,
       url: payload.path,
       headers: {

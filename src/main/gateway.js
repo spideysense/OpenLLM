@@ -11,7 +11,7 @@ const { ASPEN_ABOUT } = require('./aspen-facts');
 const system = require('./system');
 
 // ── Published artifacts (persisted across restarts) ──
-const artifactsDir = path.join(require('electron').app.getPath('userData'), 'artifacts');
+const artifactsDir = path.join(require('./runtime').app.getPath('userData'), 'artifacts');
 const artifactsPath = path.join(artifactsDir, 'published.json');
 const artifacts = new Map();
 try {
@@ -68,10 +68,11 @@ function checkRateLimit(ip) {
   entry.count++;
   return entry.count <= RATE_LIMIT;
 }
-setInterval(() => { const now = Date.now(); for (const [ip, e] of rateLimitMap) { if (now - e.start > RATE_WINDOW * 2) rateLimitMap.delete(ip); } }, 300000);
+setInterval(() => { const now = Date.now(); for (const [ip, e] of rateLimitMap) { if (now - e.start > RATE_WINDOW * 2) rateLimitMap.delete(ip); } }, 300000).unref();
 
-function start() {
+function start({ port = DEFAULT_PORT, household = false } = {}) {
   if (server) return;
+  currentPort = port;
   if (!apikeys.listKeys().length) apikeys.createKey('Default', { owner: true });
 
   const handleRequest = async (req, res) => {
@@ -83,10 +84,8 @@ function start() {
     // x-forwarded-for is fully client-controlled, so relying on it alone would
     // let an attacker rotate the header to defeat both the rate limit and the
     // auth-fail lockout below. Fall back to the first XFF hop, then the socket.
-    const clientIp = req.headers['cf-connecting-ip']
-      || req.headers['x-forwarded-for']?.split(',')[0]?.trim()
-      || req.socket.remoteAddress || 'unknown';
-    if (!checkRateLimit(clientIp)) {
+    const clientIp = req.socket.remoteAddress || 'unknown';
+    if (!req.aspenSecure && !checkRateLimit(clientIp)) {
       res.writeHead(429, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Rate limited. Try again in a minute.' }));
       return;
@@ -111,6 +110,9 @@ function start() {
     }
 
     if (req.method === 'POST' && req.url === '/v1/secure') { await require('./secure-channel').handle(req, res, handleRequest); return; }
+
+    if (household && require('./household-assets').serve(req, res)) return;
+    if (['/v1/vault', '/v1/context', '/v1/household'].includes(req.url) && await require('./vault-api').handle(req, res)) return;
 
     // ── Published artifacts (public, no auth) ──
     if (req.url.startsWith('/artifacts/')) {
@@ -365,7 +367,7 @@ function start() {
           (async () => {
             let fullText = '';
             try {
-              for await (const event of chatService.run({ model: agentModel, messages: agentMsgs, boost: parsed.boost === true, authorized: () => apikeys.validateKey(authToken), isOwner, memoryKeyId, signal: controller.signal })) {
+              for await (const event of chatService.run({ model: agentModel, messages: agentMsgs, boost: parsed.boost === true, authorized: () => apikeys.validateKey(authToken), isOwner, personId: apikeys.listKeys().find(k => k.secret === authToken)?.userId, memoryKeyId, signal: controller.signal })) {
                 if (event.type === 'content') fullText += event.text;
                 if (event.type === 'error') throw new Error(event.text);
               }
@@ -428,7 +430,7 @@ function start() {
 
         (async () => {
           try {
-            for await (const event of chatService.run({ model: agentModel, messages: agentMsgs, boost: parsed.boost === true, authorized: () => apikeys.validateKey(authToken), isOwner, memoryKeyId, signal: controller.signal })) {
+            for await (const event of chatService.run({ model: agentModel, messages: agentMsgs, boost: parsed.boost === true, authorized: () => apikeys.validateKey(authToken), isOwner, personId: apikeys.listKeys().find(k => k.secret === authToken)?.userId, memoryKeyId, signal: controller.signal })) {
               if (res.writableEnded) break;
               switch (event.type) {
                 case 'model':
@@ -594,106 +596,16 @@ function start() {
     });
   });
 
-  // Try to bind to port, increment if busy
-  tryListen(currentPort);
-}
-
-function tryListen(port) {
-  server.listen(port, '127.0.0.1', () => {
-    currentPort = port;
-    console.log(`[Aspen] API Gateway running on http://127.0.0.1:${port}`);
-    // Warm the active model so the first user message doesn't pay a cold-load
-    // penalty. Fire-and-forget; failure is harmless. First, let the model manager
-    // reconcile: evict any leftover models from memory and retire superseded ones
-    // so the box isn't thrashing on a stale 65GB model.
-    setTimeout(async () => {
-      try {
-        const store = require('./store');
-        let activeModel = store.get('activeModel');
-        if (!activeModel) return;
-        try {
-          const manager = require('./model-manager');
-          const reg = await require('./registry').getRegistry();
-          const installed = await manager.installedModels();
-          // If the active model is deprecated (e.g. scout), migrate to the best
-          // installed model automatically so the user never has to switch by hand.
-          const best = manager.pickActiveModel({ current: activeModel, installed, reg });
-          if (best && best !== activeModel && (await require('./model-qualification').qualify(best)).ok) {
-            store.set('previousActiveModel', activeModel);
-            store.set('activeModel', best);
-            console.log(`[Aspen] Active model migrated off deprecated '${activeModel}' -> '${best}'`);
-            activeModel = best;
-          }
-          const r = await manager.manage(activeModel, {
-            autoRetire: store.get('autoRetireModels') === true,
-            lean: store.get('leanMode') === true,   // explicit cleanup opt-in
-          });
-          if (r.evicted.length) console.log(`[Aspen] Evicted from memory: ${r.evicted.join(', ')}`);
-          if (r.retired.length) console.log(`[Aspen] Retired superseded models: ${r.retired.join(', ')} (freed ~${r.freedGB.toFixed(0)}GB)`);
-        } catch (e) { console.log('[Aspen] model manager skipped:', e.message); }
-        const warmModel = (model, label) => {
-          const body = JSON.stringify({ model, messages: [{ role: 'user', content: 'hi' }], stream: false, keep_alive: -1, options: { num_predict: 1, num_ctx: system.getRecommendedContext() } });
-          const rq = http.request({
-            hostname: '127.0.0.1', port: 11434, path: '/api/chat', method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
-          }, (r) => { r.on('data', () => {}); r.on('end', () => console.log(`[Aspen] Warmed ${label}: ${model}`)); });
-          rq.on('error', () => {});
-          rq.write(body); rq.end();
-        };
-        warmModel(activeModel, 'model');
-        // Bring the always-on mission engine online: it can run background missions
-        // through the full agent (tools + owner), and resumes any active ones.
-        try {
-          require('./always-on').init({
-            runAgent: chatService.run,
-            getActiveModel: () => store.get('activeModel') || activeModel || 'llama3',
-          });
-        } catch {}
-        // Pre-warm a co-fitting installed coder too, so the FIRST coding turn never
-        // shows "Loading …". keep_alive:-1 keeps both pinned; MAX_LOADED_MODELS=3
-        // leaves room. Staggered so the chat model loads first.
-        (async () => {
-          try {
-            const modelRouter = require('./model-router');
-            const os = require('os');
-            const list = await modelRouter.installedModelsDetailed();
-            const coder = modelRouter.coderToWarm({ requested: activeModel, list, ramBytes: os.totalmem(), ctx: system.getRecommendedContext() });
-            if (coder && coder !== activeModel) setTimeout(() => warmModel(coder, 'coder'), 4000);
-          } catch {}
-        })();
-        // Two-model setup: also pre-warm the coder the router would pick, so its
-        // first coding turn never shows "Loading…". Both stay pinned (keep_alive:-1),
-        // and MAX_LOADED_MODELS=3 leaves room. No-op when the chat model codes for
-        // itself (then no separate coder ever loads). Fire-and-forget; can't affect boot.
-        try {
-          const { decideCodingModel } = require('./model-router');
-          const osMod = require('os');
-          http.get('http://127.0.0.1:11434/api/tags', (tr) => {
-            let td = '';
-            tr.on('data', (c) => (td += c));
-            tr.on('end', () => {
-              try {
-                const list = (JSON.parse(td).models || []).map((m) => ({ name: m.name, size: m.size }));
-                const coder = decideCodingModel({ requested: activeModel, text: 'write a python function', list, ramBytes: osMod.totalmem(), ctx: system.getRecommendedContext() });
-                if (coder && coder !== activeModel) {
-                  const cb = JSON.stringify({ model: coder, messages: [{ role: 'user', content: 'hi' }], stream: false, keep_alive: -1, options: { num_predict: 1, num_ctx: system.getRecommendedContext() } });
-                  const cr = http.request({ hostname: '127.0.0.1', port: 11434, path: '/api/chat', method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(cb) } }, (r) => { r.on('data', () => {}); r.on('end', () => console.log(`[Aspen] Warmed coder (both models pinned): ${coder}`)); });
-                  cr.on('error', () => {});
-                  cr.write(cb); cr.end();
-                }
-              } catch {}
-            });
-          }).on('error', () => {});
-        } catch {}
-      } catch {}
-    }, 2000);
-  });
-
-  server.on('error', (err) => {
-    if (err.code === 'EADDRINUSE' && port < DEFAULT_PORT + 10) {
-      console.log(`[Aspen] Port ${port} busy, trying ${port + 1}`);
-      tryListen(port + 1);
-    }
+  server.requestTimeout = 30000;
+  server.headersTimeout = 15000;
+  server.maxHeadersCount = 50;
+  return new Promise((resolve, reject) => {
+    server.once('error', error => { server.close(); server = null; reject(error); });
+    server.listen(currentPort, '127.0.0.1', () => {
+      currentPort = server.address().port;
+      console.log(`[Aspen] API Gateway running on http://127.0.0.1:${currentPort}`);
+      resolve(getStatus());
+    });
   });
 }
 

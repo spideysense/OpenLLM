@@ -76,15 +76,12 @@ final class BoxClient {
         AsyncThrowingStream { continuation in
             let task = Task {
                 do {
-                    func hash(_ prefix: String) -> Data { Data(SHA256.hash(data: Data((prefix + config.apiKey).utf8))) }
-                    let requestKey = SymmetricKey(data: hash("aspen-request-v1:"))
-                    let responseKey = SymmetricKey(data: hash("aspen-response-v1:"))
-                    let id = hash("aspen-id-v1:").map { String(format: "%02x", $0) }.joined()
                     var payload: [String: Any] = ["method": method, "path": path, "time": Date().timeIntervalSince1970 * 1000]
                     if let body { payload["body"] = try JSONSerialization.jsonObject(with: body) }
-                    let sealed = try AES.GCM.seal(JSONSerialization.data(withJSONObject: payload), using: requestKey, authenticating: Data("aspen-request-v1".utf8))
-                    let nonce = Data(sealed.nonce).base64EncodedString()
-                    let cipher = (sealed.ciphertext + sealed.tag).base64EncodedString()
+                    let sealed = try SecureCodec.seal(JSONSerialization.data(withJSONObject: payload), secret: config.apiKey)
+                    let nonce = sealed.nonce
+                    let cipher = sealed.data
+                    let id = SecureCodec.id(config.apiKey)
                     guard let url = URL(string: "\(normalize(config.tunnelUrl))/v1/secure"), ["http", "https"].contains(url.scheme ?? "") else { throw URLError(.badURL) }
                     var request = URLRequest(url: url); request.httpMethod = "POST"; request.timeoutInterval = 180
                     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -95,10 +92,9 @@ final class BoxClient {
                     for try await line in bytes.lines {
                         try Task.checkCancellation()
                         if line.isEmpty { continue }
-                        let envelope = try JSONDecoder().decode(SecureEnvelope.self, from: Data(line.utf8))
-                        guard let iv = Data(base64Encoded: envelope.nonce), let encrypted = Data(base64Encoded: envelope.data), encrypted.count >= 16 else { throw URLError(.cannotDecodeContentData) }
-                        let box = try AES.GCM.SealedBox(nonce: AES.GCM.Nonce(data: iv), ciphertext: encrypted.dropLast(16), tag: encrypted.suffix(16))
-                        let raw = try AES.GCM.open(box, using: responseKey, authenticating: Data(nonce.utf8))
+                        guard line.utf8.count <= 12 * 1024 * 1024 else { throw URLError(.dataLengthExceedsMaximum) }
+                        let envelope = try JSONDecoder().decode(SecureCodec.Envelope.self, from: Data(line.utf8))
+                        let raw = try SecureCodec.open(envelope, secret: config.apiKey, requestNonce: nonce)
                         let frame = try JSONDecoder().decode(SecureFrame.self, from: raw)
                         guard frame.sequence == expected else { throw URLError(.cannotDecodeContentData) }; expected += 1
                         if let status = frame.status, status >= 400 { throw BoxError.badStatus(code: status, body: "Aspen rejected this request") }
@@ -112,7 +108,6 @@ final class BoxClient {
             continuation.onTermination = { _ in task.cancel() }
         }
     }
-    private struct SecureEnvelope: Codable { let nonce: String; let data: String }
     private struct SecureFrame: Codable { let sequence: Int; let status: Int?; let bytes: String?; let end: Bool? }
 
     // MARK: wire types

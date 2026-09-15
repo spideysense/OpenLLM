@@ -37,10 +37,9 @@ describe('Every chat path keeps the model resident (keep_alive:-1)', () => {
 });
 
 describe('Warm triggers cover boot and model switch', () => {
-  it('gateway warms the active model on startup', () => {
-    expect(gateway).toMatch(/Warm the active model|Warmed model/);
-    const warmBlock = gateway.slice(gateway.indexOf('const warmModel ='), gateway.indexOf('const warmModel =') + 300);
-    expect(warmBlock).toMatch(/keep_alive:\s*-1/);
+  it('inference startup is owned by the runtime, not duplicated by the gateway', () => {
+    expect(gateway).not.toMatch(/Warmed coder/);
+    expect(fs.readFileSync(path.resolve('src/main/service.js'), 'utf8')).toContain('appliance-model');
   });
   it('ollama.js exports a reusable warmModel', () => {
     expect(ollama).toMatch(/function warmModel/);

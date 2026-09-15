@@ -121,7 +121,7 @@ function messageNeedsTools(messages) {
 // Safe tools: anyone with a valid API key can use them.
 // Dangerous tools: owner key only.
 // ─────────────────────────────────────────────────────────────────────────────
-const SAFE_TOOLS = ['web_search', 'find_image', 'calculate', 'get_datetime', 'fetch_url', 'deep_research'];
+const SAFE_TOOLS = ['vault_search', 'web_search', 'find_image', 'calculate', 'get_datetime', 'fetch_url', 'deep_research'];
 const DANGEROUS_TOOLS = ['run_command', 'download_file', 'git_clone', 'git_status', 'git_commit_push', 'git_create_repo', 'publish_app', 'start_mission', 'mission_status', 'stop_mission', 'computer_screenshot', 'computer_click', 'computer_type', 'computer_key', 'computer_scroll'];
 
 // Computer tool definitions in OpenAI/Ollama format (tools.js uses Anthropic

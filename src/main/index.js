@@ -134,6 +134,8 @@ function createTray() {
 
 app.whenReady().then(async () => {
   if (!ownsInstance) return;
+  const releaseProfile = await require('./profile-lock').acquire();
+  app.once('will-quit', () => { releaseProfile().catch(() => {}); });
   require('./backup').recover();
   require('./durable-json').migrateKnownRecords();
   // ── Local activation streak ────────────────────────────────────────────────
@@ -202,7 +204,7 @@ app.whenReady().then(async () => {
   }, 5000);
 
   // Start API gateway
-  gateway.start();
+  await gateway.start();
 
   // ── Weekly best-model check + self-refreshing rankings ──
   // Once a week Aspen RESEARCHES the current best-in-class local, tool-capable
@@ -791,3 +793,19 @@ ipcMain.handle('backup:restore', async (_event, password) => {
   await require('./backup').importBackup(raw, password); app.relaunch(); app.exit(0); return { success: true };
 });
 ipcMain.handle('storage:status', async () => ({ encrypted: require('./durable-json').encrypted() }));
+
+// Vault operations always use the desktop owner's identity; callers cannot set it.
+ipcMain.handle('vault:request', async (_event, input = {}) => {
+  const v = require('./vault').get();
+  switch (input.action) {
+    case 'list': return { documents: v.list('owner'), grants: v.grants('owner'), activity: v.activity('owner'), status: v.status(), person: 'owner' };
+    case 'import': return v.ingest('owner', input);
+    case 'search': return v.search('owner', input.query);
+    case 'download': return v.download('owner', input.id);
+    case 'update': return v.update('owner', input.id, input);
+    case 'delete': return v.remove('owner', input.id);
+    case 'grant': return v.grant('owner', input);
+    case 'revoke': return v.revoke('owner', input.id);
+    default: throw new Error('Unsupported vault action');
+  }
+});

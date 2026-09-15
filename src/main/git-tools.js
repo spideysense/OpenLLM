@@ -15,7 +15,7 @@ const os = require('os');
 const fs = require('fs');
 const secrets = require('./secrets');
 
-const WORKSPACE = path.join(os.homedir(), '.aspen', 'workspaces');
+const WORKSPACE = path.join(process.env.ASPEN_DATA_DIR || path.join(os.homedir(), '.aspen'), 'workspaces');
 
 // Resolve a dir inside the workspace; refuse anything that escapes it.
 function safeDir(dir) {

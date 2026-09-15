@@ -1,6 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('aspen', {
+  vault: { request: input => ipcRenderer.invoke('vault:request', input) },
   backup: { export: password => ipcRenderer.invoke('backup:export', password), restore: password => ipcRenderer.invoke('backup:restore', password), status: () => ipcRenderer.invoke('storage:status') },
   artifacts: { publish: payload => ipcRenderer.invoke('artifacts:publish', payload) },
   files: {

@@ -48,9 +48,9 @@ describe('real main-process IPC contracts', () => {
 describe('actual gateway authorization', () => {
   it('blocks guest missions, publishing and arbitrary engine routes while scoping memory', async () => {
     let handler; const forwarded = [];
-    const server = { listen() {}, on() {} };
+    const server = { listen() {}, on() {}, once() {} };
     const gateway = load('gateway.js', { http: { createServer: cb => { handler = cb; return server; }, request: options => { forwarded.push(options); throw new Error('must not proxy'); } },
-      fs: { mkdirSync() {}, existsSync: () => false }, electron: { app: { getPath: () => '/tmp' } },
+      fs: { mkdirSync() {}, existsSync: () => false }, './runtime': { app: { getPath: () => '/tmp' } },
       './store': memoryStore(), './aliases': { resolve: x => x },
       './apikeys': { listKeys: () => [{ secret: 'guest' }], validateKey: t => t === 'guest', touchKey() {}, isOwnerKey: () => false, memoryKeyFor: () => 'guest-id' },
       './world-model': { getFacts: id => { expect(id).toBe('guest-id'); return ['guest fact']; } },
@@ -96,7 +96,7 @@ describe('model download and promotion contracts', () => {
 
 describe('actual tool dispatch', () => {
   it('blocks fabricated calls outside the offered set and all guest connector access', async () => {
-    const execute = vi.fn(); const policy = load('tool-policy.js', { './tool-settings': { getEnabledToolNames: () => ['calculate', 'run_command'] } });
+    const execute = vi.fn(); const policy = load('tool-policy.js', { './execution-context': { privateContext: () => false }, './tool-settings': { getEnabledToolNames: () => ['calculate', 'run_command'] } });
     const gateway = load('gateway-agent.js', { './tool-policy': policy, './tools': { executeTool: execute }, './execution-context': { check() {} } }, {}, 'module.exports.dispatchForTest = executeAnyTool;');
     await gateway.dispatchForTest('run_command', { command: 'must-not-run' }, true, new Set(['calculate']));
     await gateway.dispatchForTest('github__create_issue', {}, false, new Set(['github__create_issue']));

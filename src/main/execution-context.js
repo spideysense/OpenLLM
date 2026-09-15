@@ -5,5 +5,6 @@ function signal() {
 }
 function check() {
   signal()?.throwIfAborted();
+  if (context.getStore()?.authorized && !context.getStore().authorized()) throw new Error('Device access revoked');
 }
-module.exports = { run: (value, fn) => context.run(value, fn), signal, check };
+module.exports = { person: () => context.getStore()?.person || null, privateContext: () => context.getStore()?.privateContext === true, markPrivate: () => { const value = context.getStore(); if (value) value.privateContext = true; }, run: (value, fn) => context.run(value, fn), signal, check };

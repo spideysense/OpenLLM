@@ -14,7 +14,7 @@
  * blob is written to disk. Plaintext tokens never touch the filesystem.
  */
 
-const { safeStorage } = require('electron');
+const { safeStorage } = require('./runtime');
 const store = require('./store');
 const mcp = require('./mcp-client');
 
@@ -26,16 +26,16 @@ const CONNECTORS = {
     label: 'GitHub',
     icon: 'github',
     description: 'Let Aspen read your repos, issues, and pull requests, and create issues or PRs.',
-    command: 'npx',
-    args: ['-y', '@modelcontextprotocol/server-github'],
+    command: 'github-remote',
+    args: [],
     needsToken: true,
     tokenEnvVar: 'GITHUB_PERSONAL_ACCESS_TOKEN',
-    tokenHelp: 'Create a token at github.com/settings/tokens (classic or fine-grained). Aspen needs repo scope to act on your repositories.',
+    tokenHelp: 'Create a token at github.com/settings/tokens (classic or fine-grained). Prefer a fine-grained token limited to the repositories and permissions you want Aspen to use.',
     dataFlow: {
       runsLocally: false,
-      reachesOut: 'api.github.com',
-      shortLabel: '⚠ Connects to GitHub — requests go to github.com using your token.',
-      sends: 'Your GitHub token (to authenticate) and whatever repo, issue, or PR data the AI asks for, sent directly from your machine to GitHub\'s API.',
+      reachesOut: 'api.githubcopilot.com (GitHub’s official MCP service)',
+      shortLabel: '⚠ Connects to GitHub — requests go to GitHub’s hosted MCP service using your token.',
+      sends: 'Your GitHub token (to authenticate) and whatever repo, issue, or PR data the AI asks for, sent directly from your machine to GitHub\'s hosted MCP service.',
       stays: 'Your token is stored encrypted in your operating system\'s keychain on this machine. Aspen\'s servers never see it. The AI model runs locally — your prompts are not sent to Aspen or any third party.',
       note: 'GitHub is a cloud service, so using this connector necessarily sends requests to github.com. That is the only data that leaves your machine, and it goes straight to GitHub, not through Aspen.',
     },
@@ -104,10 +104,11 @@ async function connect(id, oneTimeToken) {
     if (!token) throw new Error(`${c.label} requires a token. Add one to connect.`);
     env[c.tokenEnvVar] = token;
     // Persist only if the caller passed a fresh token (and storage is available).
-    if (oneTimeToken && safeStorage.isEncryptionAvailable()) saveToken(id, oneTimeToken);
+    if (oneTimeToken && safeStorage.isEncryptionAvailable() && safeStorage.getSelectedStorageBackend?.() !== 'basic_text') saveToken(id, oneTimeToken);
   }
 
   const { tools } = await mcp.connectServer(id, c.command, c.args, env);
+  store.set('connectorEndpointApproval', { ...(store.get('connectorEndpointApproval') || {}), [id]: c.command });
   return { id, connected: true, toolCount: tools.length };
 }
 
@@ -120,7 +121,7 @@ async function disconnect(id) {
 async function reconnectSaved() {
   const results = [];
   for (const c of Object.values(CONNECTORS)) {
-    if (c.needsToken && hasToken(c.id)) {
+    if (c.needsToken && hasToken(c.id) && store.get('connectorEndpointApproval')?.[c.id] === c.command) {
       try { results.push(await connect(c.id)); }
       catch (e) { results.push({ id: c.id, connected: false, error: e.message }); }
     }

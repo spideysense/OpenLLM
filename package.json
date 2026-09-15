@@ -15,7 +15,9 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "release:mac": "node scripts/release-mac.js",
-    "smoke": "node scripts/smoke-behavioral.js"
+    "smoke": "node scripts/smoke-behavioral.js",
+    "build:household": "vite build --config vite.household.config.js",
+    "service": "node src/main/service.js"
   },
   "build": {
     "appId": "com.runonaspen.app",
@@ -31,7 +33,8 @@
       "registry/**/*",
       "!vendor/**/*",
       "!vendor",
-      "skills/**/*"
+      "skills/**/*",
+      "build-household/**/*"
     ],
     "mac": {
       "category": "public.app-category.developer-tools",
@@ -111,14 +114,14 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "@modelcontextprotocol/server-github": "2025.4.8",
     "electron-store": "^8.1.0",
     "electron-updater": "^6.8.9",
     "mammoth": "^1.12.0",
     "pdf-parse": "^2.4.5",
+    "proper-lockfile": "^4.1.2",
     "qrcode.react": "^4.1.0",
-    "sharp": "^0.34.5",
-    "xlsx": "^0.18.5",
+    "sharp": "^0.35.4",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "yauzl": "^3.3.1"
   },
   "devDependencies": {

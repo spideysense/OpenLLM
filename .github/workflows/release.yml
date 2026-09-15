@@ -1,188 +1,130 @@
-name: Build & Release
-
-# NOTE: Auto-trigger on tag push is disabled. Mac releases are cut manually via
-# `npm run release:mac` (which signs + notarizes + staples using the local
-# Developer ID cert). CI can't sign Mac builds because the signing certificate
-# isn't installed on GitHub runners, so the mac job always failed and spammed
-# failure emails. This workflow is now manual-only (Run workflow button) and can
-# be re-enabled once the signing cert + secrets are set up in CI.
+name: Signed release qualification
 on:
   workflow_dispatch:
-
 permissions:
-  contents: write
-
+  contents: read
 jobs:
-  build-mac:
-    name: Build macOS (DMG)
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Install dependencies
-        run: npm install && npm install @electron/notarize
-
-      - name: Build renderer
-        run: npm run build:renderer
-
-      - name: Build DMG (Universal)
-        run: npx electron-builder --mac --publish never
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-
-      - name: Verify DMG is stapled (HARD GATE — fails build if not)
-        run: |
-          set -e
-          DMG=$(ls dist/*.dmg | head -1)
-          echo "Validating staple on: $DMG"
-          if ! xcrun stapler validate "$DMG"; then
-            echo "::error::DMG is NOT stapled. Refusing to release — users would see 'Aspen is damaged'."
-            exit 1
-          fi
-          echo "✅ DMG staple verified — safe to release."
-
-      - name: Upload Mac artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: mac-installer
-          path: |
-            dist/*.dmg
-            dist/*.zip
-            dist/latest-mac.yml
-
-  build-windows:
-    name: Build Windows (EXE)
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Build renderer
-        run: npm run build:renderer
-
-      - name: Build EXE
-        run: npx electron-builder --win --publish never
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload Windows artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: win-installer
-          path: |
-            dist/*.exe
-            dist/latest.yml
-
-  build-linux:
-    name: Build Linux (deb + AppImage arm64)
-    runs-on: ubuntu-24.04-arm
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Install system deps (AppImage FUSE + deb tooling)
-        run: sudo apt-get update && sudo apt-get install -y libfuse2 fakeroot dpkg || true
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Build renderer
-        run: npm run build:renderer
-
-      - name: Build Linux packages (deb + AppImage, arm64)
-        run: npx electron-builder --linux deb AppImage --arm64 --publish never
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload Linux artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-installer
-          path: |
-            dist/*.deb
-            dist/*.AppImage
-            dist/latest-linux-arm64.yml
-
-  release:
-    name: Create GitHub Release
-    needs: [build-mac, build-windows, build-linux]
-    if: always() && (needs.build-linux.result == 'success' || needs.build-windows.result == 'success' || needs.build-mac.result == 'success')
+  verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Download Mac artifact
-        uses: actions/download-artifact@v4
-        continue-on-error: true
+      - uses: actions/setup-node@v4
         with:
-          name: mac-installer
-          path: dist
-
-      - name: Download Windows artifact
-        uses: actions/download-artifact@v4
-        continue-on-error: true
-        with:
-          name: win-installer
-          path: dist
-
-      - name: Download Linux artifact
-        uses: actions/download-artifact@v4
-        continue-on-error: true
-        with:
-          name: linux-installer
-          path: dist
-
-      - name: Get version
-        id: version
-        run: echo "v=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ steps.version.outputs.v }}
-          name: Aspen v${{ steps.version.outputs.v }}
-          files: dist/*
-          generate_release_notes: true
-          draft: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  verify-published:
-    name: Verify LIVE download is stapled
-    needs: [release, build-mac]
-    if: needs.build-mac.result == 'success'
-    runs-on: macos-latest
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm audit --omit=dev --audit-level=moderate
+      - run: npm test
+      - run: npm run build:renderer && npm run build:household
+  build:
+    needs: verify
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: mac
+            runner: macos-latest
+            args: --mac
+          - platform: win
+            runner: windows-latest
+            args: --win
+          - platform: linux-x64
+            runner: ubuntu-latest
+            args: --linux AppImage deb --x64
+          - platform: linux-arm64
+            runner: ubuntu-24.04-arm
+            args: --linux AppImage deb --arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
     steps:
-      - name: Download the actual served DMG and validate its staple
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Require platform signing credentials
+        if: matrix.platform == 'mac' || matrix.platform == 'win'
+        shell: bash
+        env:
+          CSC_LINK: ${{ matrix.platform == 'mac' && secrets.MAC_CSC_LINK || secrets.WIN_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ matrix.platform == 'mac' && secrets.MAC_CSC_KEY_PASSWORD || secrets.WIN_CSC_KEY_PASSWORD }}
         run: |
-          set -e
-          echo "Waiting for release asset to be available..."
-          sleep 15
-          URL="https://github.com/${{ github.repository }}/releases/latest/download/Aspen-mac.dmg"
-          echo "Downloading served file: $URL"
-          curl -sL -o served.dmg "$URL"
-          echo "Validating staple on the LIVE served file..."
-          if ! xcrun stapler validate served.dmg; then
-            echo "::error::The PUBLISHED DMG is not stapled — users will see 'Aspen is damaged'. The released file is broken even though the build was fine (upload-ordering bug)."
-            exit 1
+          test -n "$CSC_LINK" || { echo 'Platform signing certificate is required'; exit 1; }
+          test -n "$CSC_KEY_PASSWORD" || { echo 'Certificate password is required'; exit 1; }
+      - name: Linux packaging dependencies
+        if: startsWith(matrix.platform, 'linux')
+        run: sudo apt-get update && sudo apt-get install -y libfuse2t64 fakeroot dpkg
+      - run: npm ci
+      - run: npm run build:renderer && npm run build:household
+      - name: Build platform artifacts
+        shell: bash
+        env:
+          BUILD_ARGS: ${{ matrix.args }}
+          CSC_LINK: ${{ matrix.platform == 'mac' && secrets.MAC_CSC_LINK || secrets.WIN_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ matrix.platform == 'mac' && secrets.MAC_CSC_KEY_PASSWORD || secrets.WIN_CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          PLATFORM: ${{ matrix.platform }}
+        run: |
+          if [[ "$PLATFORM" == linux-* ]]; then
+            npx electron-builder $BUILD_ARGS --publish never
+          else
+            npx electron-builder $BUILD_ARGS --publish never -c.forceCodeSigning=true
           fi
-          echo "✅ LIVE served DMG is stapled — users get a clean download."
+      - name: Verify macOS notarization
+        if: matrix.platform == 'mac'
+        run: |
+          xcrun stapler validate dist/Aspen-mac.dmg
+          spctl --assess --type open --context context:primary-signature dist/Aspen-mac.dmg
+      - name: Verify Windows Authenticode
+        if: matrix.platform == 'win'
+        shell: pwsh
+        run: |
+          $signature = Get-AuthenticodeSignature dist/Aspen-win.exe
+          if ($signature.Status -ne 'Valid') { throw 'Windows installer signature is invalid' }
+      - name: Stage exact distribution files
+        shell: bash
+        run: |
+          mkdir release-artifacts
+          find dist -maxdepth 1 -type f \( -name '*.dmg' -o -name '*.zip' -o -name '*.exe' -o -name '*.AppImage' -o -name '*.deb' -o -name '*.yml' -o -name '*.blockmap' \) -exec cp '{}' release-artifacts/ \;
+      - name: Sign build provenance with GitHub OIDC
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: release-artifacts/*
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.platform }}
+          path: release-artifacts/*
+          if-no-files-found: error
+  prepare-release:
+    needs: [verify, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: release-artifacts
+          merge-multiple: true
+      - name: Verify every attestation before staging
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REVIEWED_COMMIT: ${{ github.sha }}
+        run: |
+          for file in release-artifacts/*; do
+            node scripts/verify-release.cjs "$file" "$REVIEWED_COMMIT"
+          done
+      - name: Prepare draft release for platform acceptance
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REVIEWED_COMMIT: ${{ github.sha }}
+        run: |
+          VERSION="$(node -p 'require("./package.json").version')"
+          gh release create "v$VERSION" release-artifacts/* --draft --target "$REVIEWED_COMMIT" --title "Aspen v$VERSION" --generate-notes

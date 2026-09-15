@@ -334,9 +334,9 @@ describe('Ollama: Silent Setup (NEVER opens browser)', () => {
   it('should NOT import shell from electron (no browser opens ever)', () => {
     expect(ollamaSrc).not.toContain('openExternal');
     // The electron import must only have { app }, not { app, shell }
-    const electronImport = ollamaSrc.match(/require\('electron'\)/);
+    const electronImport = ollamaSrc.match(/require\('\.\/runtime'\)/);
     expect(electronImport).toBeTruthy();
-    const importLine = ollamaSrc.split('\n').find(l => l.includes("require('electron')"));
+    const importLine = ollamaSrc.split('\n').find(l => l.includes("require('./runtime')"));
     expect(importLine).not.toContain('shell');
   });
 
@@ -547,7 +547,7 @@ describe('Auto-Updater: OTA updates', () => {
   });
 
   it('should upload latest-mac.yml for auto-update metadata', () => {
-    expect(workflowSrc).toContain('latest-mac.yml');
+    expect(workflowSrc).toContain("-name '*.yml'");
   });
 });
 

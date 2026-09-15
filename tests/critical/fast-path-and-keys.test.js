@@ -138,8 +138,8 @@ describe('Speed optimizations', () => {
     expect(wm).toContain("require('./foreground').isBusy()");
   });
   it('gateway warms the model on start', () => {
-    const src = fs.readFileSync(path.resolve('src/main/gateway.js'), 'utf8');
-    expect(src).toMatch(/warmModel\(activeModel/);
+    const src = fs.readFileSync(path.resolve('src/main/index.js'), 'utf8');
+    expect(src).toContain('warmModel');
   });
 });
 
@@ -185,9 +185,9 @@ describe('Linux build + extraction throttle', () => {
 
   it('release workflow has a Linux arm64 build job', () => {
     const wf = fs.readFileSync(path.resolve('.github/workflows/release.yml'), 'utf8');
-    expect(wf).toContain('build-linux');
+    expect(wf).toContain('platform: linux-arm64');
     expect(wf).toContain('ubuntu-24.04-arm');
-    expect(wf).toContain('--linux deb AppImage --arm64');
+    expect(wf).toContain('--linux AppImage deb --arm64');
   });
 
   it('extraction waits for idle foreground work', () => {

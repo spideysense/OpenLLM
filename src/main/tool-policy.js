@@ -19,6 +19,7 @@ function allowed(
   { isOwner = false, offered = null, allowComputerUse = false } = {}
 ) {
   if (typeof name !== 'string' || !name) return false;
+  if (require('./execution-context').privateContext() && !['vault_search', 'calculate', 'get_datetime'].includes(name)) return false;
   if (ownerOnly(name) && !isOwner) return false;
   if (name.startsWith('computer_') && !allowComputerUse) return false;
   if (offered && !offered.has(name)) return false;

@@ -1,0 +1,61 @@
+name: Native qualification
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  ios:
+    runs-on: macos-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify native encrypted protocol against Node
+        run: |
+          node scripts/crypto-fixture.cjs /tmp/aspen-crypto.json
+          swiftc ios-native/Aspen/Network/SecureCodec.swift scripts/verify-ios-crypto.swift -o /tmp/aspen-crypto-test
+          /tmp/aspen-crypto-test /tmp/aspen-crypto.json
+      - name: Generate the native Xcode project
+        run: |
+          brew install xcodegen
+          cd ios-native
+          xcodegen generate
+      - name: Compile native app for iOS without signing
+        run: |
+          set -o pipefail
+          xcodebuild -project ios-native/Aspen.xcodeproj -scheme Aspen -configuration Debug -destination 'generic/platform=iOS' -derivedDataPath /tmp/aspen-native CODE_SIGNING_ALLOWED=NO build 2>&1 | tee /tmp/aspen-native-build.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ios-build-log
+          path: /tmp/aspen-native-build.log
+  mobile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile-native/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Install and generate Android native project
+        working-directory: mobile-native
+        run: |
+          npm ci
+          npx expo prebuild --platform android --no-install
+      - name: Build Android debug APK
+        working-directory: mobile-native/android
+        run: ./gradlew assembleDebug --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-qualification-debug
+          path: mobile-native/android/app/build/outputs/apk/debug/*.apk

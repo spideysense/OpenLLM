@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const records = require('./durable-json');
-const journal = path.join(os.homedir(), '.aspen', 'restore.pending.json');
+const journal = path.join(process.env.ASPEN_DATA_DIR || path.join(os.homedir(), '.aspen'), 'restore.pending.json');
 function validate(data) {
   if (
     data?.version !== 1 ||
@@ -31,7 +31,8 @@ async function exportBackup(password) {
   const data = {
     version: 1,
     config: require('./store').get(),
-    conversations: require('./conversations').load()
+    conversations: require('./conversations').load(),
+    vault: require('./vault').get().snapshot()
   };
   const c = crypto.createCipheriv('aes-256-gcm', key, nonce);
   c.setAAD(Buffer.from('aspen-backup-v1'));
@@ -85,6 +86,7 @@ function recover() {
   validate(data);
   require('./store').replace(data.config);
   require('./conversations').save(data.conversations);
+  if (data.vault) require('./vault').get().restore(data.vault);
   fs.unlinkSync(journal);
   try {
     fs.unlinkSync(journal + '.bak');

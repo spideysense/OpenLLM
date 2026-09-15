@@ -31,7 +31,8 @@ function loadSdk() {
   try {
     const { Client } = require('@modelcontextprotocol/sdk/client');
     const { StdioClientTransport } = require('@modelcontextprotocol/sdk/client/stdio.js');
-    _sdk = { Client, StdioClientTransport };
+    const { StreamableHTTPClientTransport } = require('@modelcontextprotocol/sdk/client/streamableHttp.js');
+    _sdk = { Client, StdioClientTransport, StreamableHTTPClientTransport };
     return _sdk;
   } catch (e) {
     _sdkError = new Error(`MCP connector support is unavailable: ${e.message}`);
@@ -51,22 +52,21 @@ const connections = new Map(); // id -> { client, transport, tools: [...] }
  * @returns {Promise<{tools:Array}>}
  */
 async function connectServer(id, command, args = [], env = {}) {
-  const { Client, StdioClientTransport } = loadSdk();
+  const { Client, StdioClientTransport, StreamableHTTPClientTransport } = loadSdk();
   if (connections.has(id)) await disconnectServer(id);
 
-  // Ship the supported server with Aspen; packaged installs need no npx or Node.
-  if (id === 'github' && command === 'npx') {
-    command = process.execPath;
-    args = [require.resolve('@modelcontextprotocol/server-github/dist/index.js')];
-    env = { ...env, ELECTRON_RUN_AS_NODE: '1' };
+  let transport;
+  if (id === 'github' && command === 'github-remote') {
+    transport = new StreamableHTTPClientTransport(new URL('https://api.githubcopilot.com/mcp/'), {
+      requestInit: { headers: { Authorization: `Bearer ${env.GITHUB_PERSONAL_ACCESS_TOKEN}` } },
+      // Never redirect a privileged connector request to a different endpoint.
+      fetch: (url, init) => fetch(url, { ...init, redirect: 'error' }),
+    });
+  } else {
+    transport = new StdioClientTransport({ command, args,
+      env: { ...Object.fromEntries(['PATH', 'HOME', 'USERPROFILE', 'SystemRoot', 'TEMP', 'TMP', 'LANG'].filter(k => process.env[k]).map(k => [k, process.env[k]])), ...env },
+    });
   }
-  const transport = new StdioClientTransport({
-    command,
-    args,
-    // Inherit Aspen's env so PATH/node resolution works, plus the connector's own
-    // secrets (tokens). These live only in this child process's environment.
-    env: { ...Object.fromEntries(['PATH', 'HOME', 'USERPROFILE', 'SystemRoot', 'TEMP', 'TMP', 'LANG'].filter(k => process.env[k]).map(k => [k, process.env[k]])), ...env },
-  });
 
   const client = new Client(
     { name: 'aspen', version: '1.0.0' },
@@ -76,7 +76,8 @@ async function connectServer(id, command, args = [], env = {}) {
   try { await client.connect(transport); } catch (error) { await transport.close().catch(() => {}); throw error; }
 
   // Discover the tools this server exposes.
-  const listed = await client.listTools();
+  let listed;
+  try { listed = await client.listTools(); } catch (error) { await client.close().catch(() => {}); await transport.close().catch(() => {}); throw error; }
   const tools = (listed?.tools || []).map((t) => ({
     name: t.name,
     description: t.description || '',

@@ -1,11 +1,13 @@
 const path = require('path');
 const os = require('os');
 const records = require('./durable-json');
-const STORE_PATH = path.join(os.homedir(), '.aspen', 'config.json');
+const STORE_PATH = path.join(process.env.ASPEN_DATA_DIR || path.join(os.homedir(), '.aspen'), 'config.json');
 let data;
 function load() {
   if (data === undefined) {
-    const value = records.read(STORE_PATH, {});
+    // Includes keys and replay protection. Falling back to an older copy could
+    // resurrect revoked credentials. Explicit backup restore rotates them.
+    const value = records.readStrict(STORE_PATH, {});
     if (!value || Array.isArray(value) || typeof value !== 'object') throw new Error('Invalid Aspen configuration; data preserved.');
     data = value;
   }
