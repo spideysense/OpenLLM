@@ -65,6 +65,7 @@ export default function Chat() {
   const attachments = attachmentDrafts[activeConvo] || [];
   const setAttachments = update => setAttachmentDrafts(drafts => ({ ...drafts, [activeConvo]: typeof update === 'function' ? update(drafts[activeConvo] || []) : update })); // { type: 'image'|'text', name, data, preview }
   const [cloudBoost, setCloudBoost] = useState(false);
+  useEffect(() => { setCloudBoost(false); setBgMode(false); }, [activeConvo]);
   const [isListening, setIsListening] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(false);
   const [totalExchanges, setTotalExchanges] = useState(0);

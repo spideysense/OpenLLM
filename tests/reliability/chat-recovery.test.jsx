@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, act, cleanup } from '@testing-library/react';
+import { render, act, cleanup, fireEvent } from '@testing-library/react';
 import { vi, test, expect, afterEach } from 'vitest';
 const ctx = vi.hoisted(() => ({ value: null }));
 vi.mock('../../src/renderer/App.jsx', () => ({ useApp: () => ctx.value }));
@@ -28,6 +28,12 @@ test('the actual Chat component restores a completed reply after missing all ter
   view.rerender(<Chat />); await act(async () => {});
   expect(conversations[0].messages.filter(m => m.role === 'assistant')).toHaveLength(1);
   expect(conversations[0].messages.at(-1).content).toBe('First half second half');
+  // Per-request cloud consent cannot carry into a different conversation.
+  const cloud = view.getByLabelText(/Send this request to cloud/);
+  fireEvent.click(cloud); expect(cloud.checked).toBe(true);
+  ctx.value.activeConvo = 'another-conversation'; view.rerender(<Chat />);
+  expect(view.getByLabelText(/Send this request to cloud/).checked).toBe(false);
+  ctx.value.activeConvo = 'recovery'; view.rerender(<Chat />);
   // A late duplicate completion cannot append another copy.
   await act(async () => { for (const fn of listeners) fn({ convoId: 'recovery', requestId: 'r1', seq: 3, done: true }); });
   expect(conversations[0].messages.filter(m => m.role === 'assistant')).toHaveLength(1);
