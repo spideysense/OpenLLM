@@ -2,6 +2,8 @@
 
 Aspen now has two runtime entry points: the existing Electron desktop and a Node household service. They share the gateway, inference orchestration, permissions, model catalog, encrypted records, vault and backup format. A process lock prevents simultaneous writers to the same profile. The service serves its bundled household interface at `/household`; it does not need a graphical login.
 
+Consumer setup, document recovery, service packaging and current model-selection behavior are documented in [appliance-delivery.md](appliance-delivery.md). Hardware costs and candidate pricing are in [hardware-commercial-plan.md](hardware-commercial-plan.md).
+
 This branch is for qualification. It is not yet a factory-qualified appliance image. No physical hardware performance, thermal, microphone, power-loss or nontechnical-family onboarding result is claimed.
 
 ## What works
@@ -27,11 +29,11 @@ npm run build:household
 
 The service expects `ASPEN_DATA_DIR` and `ASPEN_KEY_FILE`. Its 32-byte credential must be a private regular file. It never creates a plaintext master key next to household records. Without an encryption provider it refuses to start; vault imports also fail closed on desktop systems without secure storage. Existing desktop records use the OS keychain. Move encrypted data between runtimes with the portable backup flow, not by copying OS-bound ciphertext.
 
-`scripts/aspen-service.service` uses `/opt/aspen`, `/var/lib/aspen`, a dedicated unprivileged account, restrictive filesystem permissions and a TPM-sealed systemd credential. `scripts/install-service.sh` installs it on a prepared Linux image. The installer requires TPM support and a systemd version supporting encrypted credentials; it does not silently fall back to a disk-resident plaintext decryption key. Validate boot/recovery against the exact firmware, OS and TPM policy before shipping.
+`scripts/aspen-service.service` uses `/opt/aspen`, `/var/lib/aspen`, a dedicated unprivileged account, restrictive filesystem permissions and a TPM-sealed systemd credential. `scripts/install-service.sh` installs it from the new service distribution, whose Node runtime lives at `/opt/aspen/runtime/node`. The installer requires TPM support and a systemd version supporting encrypted credentials; it does not silently fall back to a disk-resident plaintext decryption key. Validate boot/recovery against the exact firmware, OS and TPM policy before shipping.
 
-The factory image must contain the reviewed Ollama binary before household enrollment. On first service boot, Aspen picks a fitting model from the trusted catalog, downloads it if necessary, and verifies its exact tag, digest, chat and tool readiness before saving it as active. Setup progress appears in the household owner interface. Existing selected models are qualified without silently changing the selection.
+The factory image must contain the reviewed Ollama binary before household enrollment. On first service boot, Aspen compares up to two fitting models from the trusted catalog, verifies exact tags/digests and native tools, and measures tasks and throughput before selecting a qualified result. Setup progress appears in the household owner interface. Existing selected models are qualified without silently changing the selection.
 
-The API binds to loopback. Local access works at `http://localhost:4000/household`. For remote household access, configure an authenticated HTTPS ingress to that loopback service. The application-encrypted channel protects payloads through the ingress; web-client integrity still depends on trusted HTTPS delivery. The service does not automatically create a public tunnel or expose Ollama.
+The full API binds to loopback. Provisioned units additionally expose only the encrypted protocol on LAN port 4001 for native clients. Local access works at `http://localhost:4000/household`. For remote household access, configure an authenticated HTTPS ingress to that loopback service. The application-encrypted channel protects payloads through the ingress; web-client integrity still depends on trusted HTTPS delivery. The service does not automatically create a public tunnel or expose Ollama.
 
 For initial enrollment, display the owner credential locally using `scripts/pair-service.cjs` under the service account with the same credential mounted by systemd. For example, an appliance technician can run:
 
@@ -43,7 +45,7 @@ sudo systemd-run --pty --wait --collect --unit=aspen-pair \
   /usr/bin/node /opt/aspen/scripts/pair-service.cjs
 ```
 
-The helper refuses redirected output. For headless backups, stop the service and invoke scripts/backup-service.cjs export|restore /path/to/file.aspen under the same credential setup. It reads passwords without echoing them, uses the profile lock, and refuses to overwrite an existing export. Enter the credential in the household page, then invite family members there. The page holds credentials in tab memory; Lock clears them. This technician enrollment path is not a completed consumer QR/physical-button setup experience. Never clone an image after creating household credentials or TPM-sealed unit credentials.
+The helper refuses redirected output. For headless backups, stop the service and invoke scripts/backup-service.cjs export|restore /path/to/file.aspen under the same credential setup. It reads passwords without echoing them, uses the profile lock, and refuses to overwrite an existing export. Enter the credential in the household page, then invite family members there. The page holds credentials in tab memory; Lock clears them. This administrator pairing helper remains available; new appliances now use the per-unit QR setup card and two-phase recovery flow documented in appliance-delivery.md. Never clone an image after creating household credentials or TPM-sealed unit credentials.
 
 ## Frontier integration
 
@@ -72,7 +74,7 @@ node scripts/benchmark-models.cjs qualification.json model-a:tag model-b:tag
 
 The harness uses a profile lock, checks installed tags/memory fit, unloads each candidate before its cold measurement, measures repeated warm latency and tokens/sec, grades deterministic arithmetic/structured extraction/source retrieval/instruction isolation/native tool calls, records model digests/hardware/observed free memory, checkpoints results and restores prior model residency. It leaves the default unchanged. The small task suite is not a universal intelligence score; “cold” does not mean the OS disk cache was flushed.
 
-Device acceptance must additionally cover sustained thermal behavior, physical memory pressure, Wi-Fi loss, power loss during writes/restoration, disk full, multi-person contention, vision/audio, suspend/resume and a real family's setup session. No device was purchased or benchmarked during this change.
+Device acceptance must additionally cover sustained thermal behavior, physical memory pressure, Wi-Fi loss, power loss during writes/restoration, disk full, multi-person contention, vision/audio, suspend/resume and a real family's setup session. Real CPU inference was measured in the development environment; see [qualification evidence](qualification/README.md). No consumer appliance was purchased or physically qualified during this change.
 
 ## Verification and remaining external gates
 
@@ -82,6 +84,6 @@ Device acceptance must additionally cover sustained thermal behavior, physical m
 - Our source review and adversarial tests are an internal security review. An independent audit of the encryption protocol, household permission model and appliance image still requires an external reviewer.
 - Signed release preparation is described in `docs/release-qualification.md`. A shipping release still requires platform signing credentials and real upgrade/device acceptance. This change neither merges the PR nor publishes a release.
 
-Final local checks: **818 tests passed, 20 pre-existing skips, 47 files**; both production web builds; all four standalone module suites; workflow YAML and shell syntax; clean root dependency installation. Root production and development dependency audits report **zero known vulnerabilities**. The separate React Native dependency audit also reports **zero known vulnerabilities**, with three additional parser/privacy/build-compatibility tests. Older release source-pattern tests were replaced with execution-based signing/order/failure tests, so raw test counts are not a count of newly fixed defects.
+Final local checks: **824 tests passed, 20 pre-existing skips, 52 files**; both production web builds; all four standalone module suites; workflow YAML and shell syntax; clean root dependency installation. Root production and development dependency audits report **zero known vulnerabilities**. The separate React Native dependency audit also reports **zero known vulnerabilities**, with four additional parser/privacy/build-compatibility/pairing tests. Older release source-pattern tests were replaced with execution-based signing/order/failure tests, so raw test counts are not a count of newly fixed defects.
 
 Mobile Markdown uses the maintained parser through an explicit dependency override because the display component still requests an obsolete parser. Raw HTML, automatic linkification and image rendering are disabled; model replies cannot load remote image trackers. Replies over 100,000 characters use plain text to bound parsing work. Expo's Xcode dependency receives a narrowly scoped UUID 11.1.1 override that preserves its CommonJS `v4()` interface. Native CI audits this separate dependency tree and tests these compatibility contracts before building Android.

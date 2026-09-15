@@ -73,6 +73,7 @@ jobs:
         run: |
           if [[ "$PLATFORM" == linux-* ]]; then
             npx electron-builder $BUILD_ARGS --publish never
+            node scripts/build-appliance.cjs dist
           else
             npx electron-builder $BUILD_ARGS --publish never -c.forceCodeSigning=true
           fi
@@ -91,7 +92,7 @@ jobs:
         shell: bash
         run: |
           mkdir release-artifacts
-          find dist -maxdepth 1 -type f \( -name '*.dmg' -o -name '*.zip' -o -name '*.exe' -o -name '*.AppImage' -o -name '*.deb' -o -name '*.yml' -o -name '*.blockmap' \) -exec cp '{}' release-artifacts/ \;
+          find dist -maxdepth 1 -type f \( -name '*.dmg' -o -name '*.zip' -o -name '*.tar.gz' -o -name '*.exe' -o -name '*.AppImage' -o -name '*.deb' -o -name '*.yml' -o -name '*.blockmap' \) -exec cp '{}' release-artifacts/ \;
       - name: Sign build provenance with GitHub OIDC
         uses: actions/attest-build-provenance@v3
         with:

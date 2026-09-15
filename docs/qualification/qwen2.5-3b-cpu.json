@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "at": "2026-09-15T19:24:05.908Z",
+  "hardware": {
+    "platform": "linux",
+    "arch": "x64",
+    "totalRAMGB": 23,
+    "cpu": "AMD EPYC 9V74 80-Core Processor",
+    "cpuCores": 9,
+    "gpu": {
+      "type": "cpu",
+      "name": "CPU Only",
+      "vram": 0
+    },
+    "machineName": "Linux (23GB RAM)"
+  },
+  "os": {
+    "platform": "linux",
+    "release": "6.18.44",
+    "arch": "x64"
+  },
+  "context": 16384,
+  "cases": [
+    {
+      "model": "qwen2.5:3b",
+      "thinking": false,
+      "cold": {
+        "elapsedMs": 6354.855323000001,
+        "loadMs": 5918.095185
+      },
+      "warm": {
+        "medianElapsedMs": 4209.948482,
+        "medianTokensPerSecond": 20.448461217207885,
+        "repetitions": 3
+      },
+      "taskScore": 0.6,
+      "tasks": [
+        {
+          "id": "arithmetic",
+          "passed": true,
+          "elapsedMs": 403.4506040000015
+        },
+        {
+          "id": "structured-extraction",
+          "passed": false,
+          "elapsedMs": 1363.4294219999974
+        },
+        {
+          "id": "private-record-retrieval",
+          "passed": true,
+          "elapsedMs": 1127.8927159999985
+        },
+        {
+          "id": "source-instruction-isolation",
+          "passed": false,
+          "elapsedMs": 861.2287260000012
+        },
+        {
+          "id": "native-tool-call",
+          "passed": true,
+          "elapsedMs": 4356.920106999998
+        }
+      ],
+      "minimumObservedFreeMemoryBytes": 19495120896,
+      "digest": "357c53fb659c5076de1d65ccb0b397446227b71a42be9d1603d46168015c9e4b"
+    }
+  ],
+  "limitations": "Small deterministic task suite; not a universal intelligence score. Cold means unloaded model, not flushed OS disk cache. No physical thermals, power loss, vision or audio qualification is implied.",
+  "ranking": [],
+  "preferredCandidate": null
+}

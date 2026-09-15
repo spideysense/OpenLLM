@@ -320,6 +320,7 @@ async function _ensureRunning(onProgress) {
         env: {
           ...process.env,
           OLLAMA_HOST: '127.0.0.1:11434',
+          OLLAMA_NO_CLOUD: '1',
           OLLAMA_MODELS: path.join(MONET_DIR, 'models'),
           // Cap context at LOAD time. Without this, models that declare a huge
           // native context (llama4:scout = 256K) load at that size and every
@@ -407,7 +408,7 @@ async function ensureCurrent(onProgress, { force = false } = {}) {
 
     ollamaProcess = spawn(newPath, ['serve'], {
       detached: true, stdio: 'ignore',
-      env: { ...process.env, OLLAMA_HOST: '127.0.0.1:11434', OLLAMA_MODELS: path.join(MONET_DIR, 'models'), OLLAMA_CONTEXT_LENGTH: String(system.getRecommendedContext()), OLLAMA_NUM_PARALLEL: String(system.getRuntimeBudget().parallel), OLLAMA_MAX_LOADED_MODELS: String(system.getRuntimeBudget().loaded) },
+      env: { ...process.env, OLLAMA_NO_CLOUD: '1', OLLAMA_HOST: '127.0.0.1:11434', OLLAMA_MODELS: path.join(MONET_DIR, 'models'), OLLAMA_CONTEXT_LENGTH: String(system.getRecommendedContext()), OLLAMA_NUM_PARALLEL: String(system.getRuntimeBudget().parallel), OLLAMA_MAX_LOADED_MODELS: String(system.getRuntimeBudget().loaded) },
     });
     ollamaProcess.unref();
 

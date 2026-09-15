@@ -194,7 +194,7 @@ final class ChatViewModel: ObservableObject {
     }
 }
 
-private enum BoxCredentials {
+enum BoxCredentials {
     static let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: "com.runonaspen.box", kSecAttrAccount as String: "connection"]
     static func load() -> Data? {
         var q = query; q[kSecReturnData as String] = true

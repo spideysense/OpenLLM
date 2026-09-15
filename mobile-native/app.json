@@ -16,11 +16,30 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.runonaspen.app",
-      "infoPlist": { "ITSAppUsesNonExemptEncryption": false }
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSAppTransportSecurity": {
+          "NSAllowsLocalNetworking": true
+        },
+        "NSLocalNetworkUsageDescription": "Connect directly to your Aspen over your home network."
+      }
     },
     "android": {
       "package": "com.runonaspen.app",
-      "adaptiveIcon": { "foregroundImage": "./assets/adaptive-icon.png", "backgroundColor": "#FFFFFF" }
-    }
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FFFFFF"
+      }
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Scan your Aspen setup card to connect privately.",
+          "recordAudioAndroid": false
+        }
+      ],
+      "./plugins/local-network.cjs"
+    ]
   }
 }

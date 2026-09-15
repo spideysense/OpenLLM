@@ -112,6 +112,7 @@ function start({ port = DEFAULT_PORT, household = false } = {}) {
     if (req.method === 'POST' && req.url === '/v1/secure') { await require('./secure-channel').handle(req, res, handleRequest); return; }
 
     if (household && require('./household-assets').serve(req, res)) return;
+    if (household && await require('./enrollment').handle(req, res)) return;
     if (['/v1/vault', '/v1/context', '/v1/household'].includes(req.url) && await require('./vault-api').handle(req, res)) return;
 
     // ── Published artifacts (public, no auth) ──

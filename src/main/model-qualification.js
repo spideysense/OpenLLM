@@ -38,7 +38,7 @@ async function qualify(model, { timeoutMs = 180000, signal: callerSignal } = {})
       options,
       messages: [{ role: 'user', content: 'Reply with the single word ready.' }]
     });
-    if (!/\bready\b/i.test(answer.message?.content || ''))
+    if (answer.done !== true || answer.done_reason === 'length' || !/^ready[.!]?$/i.test((answer.message?.content || '').trim()))
       throw new Error('Model failed the chat readiness check');
     let tools = false;
     if (meta.capabilities?.includes('tools')) {

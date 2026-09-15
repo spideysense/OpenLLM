@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { DocumentBackup } from './DocumentBackup';
 export function VaultPane({ request, people = [] }) {
   const [data, setData] = useState(null),
     [error, setError] = useState(''),
@@ -59,6 +60,7 @@ export function VaultPane({ request, people = [] }) {
         <p>Opening vault…</p>
       ) : (
         <>
+          <DocumentBackup request={request} data={data} onRestored={refresh} />
           {!data.status.encrypted && (
             <p role="alert">
               Unlock your operating system’s secure storage before importing. Appliance

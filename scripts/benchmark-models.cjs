@@ -57,7 +57,7 @@ async function main() {
       );
     }
     report.ranking = report.cases
-      .filter((r) => !r.error)
+      .filter((r) => !r.error && r.taskScore >= 0.8 && r.tasks.some(t => t.id === 'native-tool-call' && t.passed))
       .sort(
         (a, b) =>
           b.taskScore - a.taskScore ||
@@ -70,7 +70,7 @@ async function main() {
       JSON.stringify(report, null, 2)
     );
     console.log(`Benchmark saved to ${path.resolve(output)}. Default model unchanged.`);
-    if (report.cases.some((r) => r.error)) process.exitCode = 1;
+    if (report.cases.some((r) => r.error) || !report.preferredCandidate) process.exitCode = 1;
   } finally {
     // Restore residency, not configuration. Report any restoration failure.
     for (const model of resident) {

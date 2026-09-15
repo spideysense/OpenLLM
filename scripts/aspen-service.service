@@ -9,7 +9,7 @@ Type=simple
 User=aspen
 Group=aspen
 WorkingDirectory=/opt/aspen
-ExecStart=/usr/bin/node /opt/aspen/src/main/service.js
+ExecStart=/opt/aspen/runtime/node /opt/aspen/src/main/service.js
 Restart=on-failure
 RestartSec=3
 TimeoutStopSec=15
@@ -17,6 +17,7 @@ StateDirectory=aspen
 StateDirectoryMode=0700
 Environment=ASPEN_DATA_DIR=/var/lib/aspen
 Environment=ASPEN_KEY_FILE=%d/aspen-key
+EnvironmentFile=-/etc/aspen/appliance.env
 LoadCredentialEncrypted=aspen-key:/etc/credstore.encrypted/aspen-key
 UMask=0077
 NoNewPrivileges=yes

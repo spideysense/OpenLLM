@@ -3,8 +3,11 @@ import { createRoot } from 'react-dom/client';
 import { VaultPane } from '../shared-ui/VaultPane';
 import { secureFetch } from '../../shared/secure-fetch';
 import './style.css';
+import { Enrollment } from './Enrollment';
+import { QRCodeSVG } from 'qrcode.react';
 
 function Household() {
+  const [enrollment, setEnrollment] = useState(''), [localAddress, setLocalAddress] = useState('');
   const [secret, setSecret] = useState(''),
     [key, setKey] = useState(''),
     [page, setPage] = useState('vault');
@@ -54,22 +57,27 @@ function Household() {
   }, [api, key, owner]);
   async function signIn(e) {
     e.preventDefault();
+    if (/^(setup|recovery)-aspen-/.test(secret)) { setEnrollment(secret); setSecret(''); return; }
+    await openSession(secret);
+  }
+  async function openSession(credential) {
     setBusy(true);
     setError('');
     try {
-      await api('/v1/vault', undefined, 'GET', secret);
+      await api('/v1/vault', undefined, 'GET', credential);
       let info;
       try {
-        info = await api('/v1/household', undefined, 'GET', secret);
+        info = await api('/v1/household', undefined, 'GET', credential);
       } catch {
         /* family members manage their own vault */
       }
       sessionVersion.current++;
       setModelStatus(info?.modelStatus || null);
+      setLocalAddress(info?.localAddress || '');
       setOwner(!!info);
       setPeople(info?.people || []);
       setModel(info?.model || '');
-      setKey(secret);
+      setKey(credential);
       setSecret('');
     } catch (e) {
       setError(e.message);
@@ -142,6 +150,7 @@ function Household() {
               controller.current?.abort();
               setBusy(false);
               setKey('');
+              setEnrollment('');
               setMessages([]);
               setInvite(null);
               setPeople([]);
@@ -153,7 +162,7 @@ function Household() {
         )}
       </header>
       {error && <p role="alert">{error}</p>}
-      {!key ? (
+      {enrollment ? <Enrollment credential={enrollment} request={(token, body) => api('/v1/enroll', body, 'POST', token)} verify={token => api('/v1/vault', undefined, 'GET', token)} onConnected={token => { setEnrollment(''); openSession(token); }} onCancel={() => setEnrollment('')} /> : !key ? (
         <section>
           <h1>Welcome home.</h1>
           <p>
@@ -162,7 +171,7 @@ function Household() {
           </p>
           <form onSubmit={signIn}>
             <label>
-              Pairing credential{' '}
+              Pairing, setup, or recovery code{' '}
               <input
                 type="password"
                 value={secret}
@@ -182,6 +191,7 @@ function Household() {
           {modelStatus && modelStatus.state !== 'ready' && (
             <p role="status">
               Local model: {modelStatus.state.replaceAll('-', ' ')}. {modelStatus.detail}
+              {owner && modelStatus.state === 'needs-attention' && <button onClick={async () => { try { await api('/v1/household', { action: 'retry-model' }); setModelStatus({ state: 'starting', detail: '' }); } catch (e) { setError(e.message); } }}>Retry model setup</button>}
             </p>
           )}
           <nav>
@@ -263,6 +273,7 @@ function Household() {
                 <aside>
                   <p>Pairing for {invite.label}</p>
                   <textarea readOnly aria-label="Family pairing credential" value={invite.secret} />
+                  {localAddress && <><p>In the Aspen iPhone app, tap Connect → Scan QR code.</p><QRCodeSVG value={`aspen://pair#tunnel=${encodeURIComponent(localAddress)}&key=${encodeURIComponent(invite.secret)}`} size={220} /></>}
                   <button onClick={() => setInvite(null)}>Hide</button>
                 </aside>
               )}
@@ -292,6 +303,7 @@ function Household() {
                   )}
                 </p>
               ))}
+              <button disabled={busy} onClick={() => setEnrollment(key)}>Set up a new recovery code</button>
             </section>
           )}
         </>

@@ -38,12 +38,12 @@ const TOOL = {
     parameters: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
   },
 };
-async function request(route, body) {
+async function request(route, body, signal) {
   const r = await fetch('http://127.0.0.1:11434' + route, {
     method: body ? 'POST' : 'GET',
     headers: { 'Content-Type': 'application/json' },
     ...(body ? { body: JSON.stringify(body) } : {}),
-    signal: AbortSignal.timeout(180000),
+    signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(180000)]) : AbortSignal.timeout(180000),
   });
   if (!r.ok) throw new Error(`Local engine returned ${r.status}`);
   const data = await r.json();
@@ -53,7 +53,8 @@ async function request(route, body) {
 async function evaluate(
   model,
   {
-    call = request,
+    signal,
+    call = (route, body) => request(route, body, signal),
     context = 4096,
     repetitions = 3,
     sample = () => ({ freeMemoryBytes: require('os').freemem() }),
@@ -64,6 +65,7 @@ async function evaluate(
   const base = {
     model,
     stream: false,
+    think: false,
     keep_alive: -1,
     options: { temperature: 0, seed: 42, num_ctx: context, num_predict: 128 },
   };
@@ -100,6 +102,8 @@ async function evaluate(
     results.push({
       id: task.id,
       passed: task.grade(r.result.message.content || ''),
+      response: (r.result.message.content || '').slice(0, 1024),
+      finishReason: r.result.done_reason || null,
       elapsedMs: r.elapsedMs,
     });
   }
@@ -128,6 +132,7 @@ async function evaluate(
   };
   return {
     model,
+    thinking: false,
     cold: { elapsedMs: cold.elapsedMs, loadMs: cold.loadMs },
     warm: {
       medianElapsedMs: median(warm.map((r) => r.elapsedMs)),

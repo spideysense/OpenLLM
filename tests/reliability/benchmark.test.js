@@ -7,6 +7,7 @@ it('scores actual responses, checks native arguments, records timing, and unload
   const calls = [];
   const call = async (route, body) => {
     calls.push({ route, body }); if (route === '/api/generate') return {};
+    expect(body.think).toBe(false);
     const prompt = body.messages[0].content;
     let content = 'ready';
     if (prompt.includes('47 multiplied')) content = '611';

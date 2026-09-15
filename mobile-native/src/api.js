@@ -14,6 +14,20 @@ import { secureFetch } from './secure-fetch';
 import { nativeCrypto } from './secure-crypto';
 
 const PROXY = 'https://www.runonaspen.com';
+export async function enroll(tunnelUrl, apiKey, body) {
+  const response = await secureFetch(normalizeUrl(tunnelUrl), apiKey, '/v1/enroll', { method: 'POST', body, fetchImpl: streamFetch, cryptoAdapter: nativeCrypto });
+  const value = await response.json();
+  if (!response.ok) throw new Error(value.error || 'Setup failed');
+  return value;
+}
+export async function confirmEnrollment(tunnelUrl, authorizer, pending) {
+  try { return await enroll(tunnelUrl, authorizer, { action: 'confirm', id: pending.id }); }
+  catch (error) {
+    const check = await secureFetch(normalizeUrl(tunnelUrl), pending.credential, '/v1/vault', { fetchImpl: streamFetch, cryptoAdapter: nativeCrypto });
+    if (!check.ok) throw error;
+    return { success: true };
+  }
+}
 
 export function normalizeUrl(u) {
   return (u || '').trim().replace(/\/+$/, '').replace(/\/v1$/, '');

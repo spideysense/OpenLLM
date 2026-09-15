@@ -14,18 +14,19 @@
     "@noble/hashes": "1.7.1",
     "@react-native-async-storage/async-storage": "2.2.0",
     "expo": "~56.0.0",
+    "expo-camera": "~56.0.8",
     "expo-crypto": "~56.0.3",
     "expo-haptics": "~56.0.3",
     "expo-secure-store": "~56.0.3",
     "expo-status-bar": "~56.0.4",
     "llama.rn": "^0.12.1",
+    "markdown-it": "15.0.2",
     "punycode": "2.3.1",
     "react": "19.2.3",
     "react-native": "0.85.3",
     "react-native-fs": "^2.20.0",
     "react-native-markdown-display": "^7.0.2",
-    "react-native-safe-area-context": "~5.7.0",
-    "markdown-it": "15.0.2"
+    "react-native-safe-area-context": "~5.7.0"
   },
   "private": true,
   "devDependencies": {

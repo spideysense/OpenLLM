@@ -47,7 +47,7 @@ async function handle(req, res, dispatch) {
       chunks.push(c);
     }
     const envelope = JSON.parse(Buffer.concat(chunks).toString());
-    const key = require('./apikeys').listKeys().find(k => keys(k.secret).id === envelope.id) || require('./vault').get().transportKeys().find(k => keys(k.secret).id === envelope.id);
+    const key = require('./apikeys').listKeys().find(k => keys(k.secret).id === envelope.id) || require('./enrollment').transportKeys().find(k => keys(k.secret).id === envelope.id) || require('./vault').get().transportKeys().find(k => keys(k.secret).id === envelope.id);
     if (!key) throw new Error('Invalid pairing');
     const derived = keys(key.secret);
     const payload = open(derived.request, envelope, 'aspen-request-v1');
@@ -57,6 +57,7 @@ async function handle(req, res, dispatch) {
     )
       throw new Error('Expired request');
     if (key.contextOnly && (payload.path !== '/v1/context' || payload.method !== 'POST')) throw new Error('Context-only credential');
+    if (key.enrollmentOnly && (payload.path !== '/v1/enroll' || payload.method !== 'POST')) throw new Error('Setup-only credential');
     const nonceId = envelope.id + ':' + envelope.nonce;
     const store = require('./store');
     for (const [id, until] of Object.entries(store.get('secureReplay') || {})) if (until > Date.now()) seen.set(id, until);
@@ -67,7 +68,7 @@ async function handle(req, res, dispatch) {
     store.set('secureReplay', Object.fromEntries(seen));
     if (
       !['GET', 'POST', 'DELETE'].includes(payload.method) ||
-      !/^\/(v1\/(agent|models|world-model|vault|context|household|chat\/completions)|missions(?:\/stop)?|publish-artifact)$/.test(
+      !/^\/(v1\/(agent|models|world-model|vault|context|household|enroll|chat\/completions)|missions(?:\/stop)?|publish-artifact)$/.test(
         payload.path
       )
     )

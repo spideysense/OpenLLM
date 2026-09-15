@@ -69,6 +69,8 @@ async function importBackup(raw, password) {
   delete data.config.connectorTokens;
   delete data.config.chatJobs;
   delete data.config.secureReplay;
+  // A portable backup cannot revive consumed setup or recovery credentials.
+  delete data.config.householdEnrollment;
   data.config.cloudMode = 'off';
   // A backup must not resurrect credentials from a previously revoked device.
   if (Array.isArray(data.config.apikeys)) data.config.apikeys = data.config.apikeys.map(k => ({ ...k, secret: 'sk-aspen-' + crypto.randomBytes(24).toString('base64url'), lastUsed: null }));

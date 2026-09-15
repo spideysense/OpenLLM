@@ -52,7 +52,10 @@ async function handle(req, res) {
           model: require('./store').get('activeModel') || null,
           storage: vault.status(),
           modelStatus: require('./store').get('applianceModelStatus') || null,
+          enrollment: require('./enrollment').status(),
+          localAddress: require('./enrollment').status() ? `http://aspen-${require('./enrollment').status().deviceId}.local:4001` : null,
         };
+      else if (input.action === 'retry-model') value = require('./service').retryModel();
       else if (input.action === 'invite') {
         if (
           typeof input.label !== 'string' ||
