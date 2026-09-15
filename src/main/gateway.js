@@ -685,6 +685,11 @@ async function handleListModels(res) {
     const ollamaRes = await fetch(`http://${OLLAMA_HOST}:${OLLAMA_PORT}/api/tags`);
     const data = await ollamaRes.json();
     const ollamaModels = data.models || [];
+    const normalize = require('./model-id').normalize;
+    const preferred = normalize(store.get('activeModel'));
+    // Phone clients choose the first entry. Preserve the qualified household
+    // choice instead of depending on Ollama's download/modification order.
+    ollamaModels.sort((a, b) => Number(normalize(b.name) === preferred) - Number(normalize(a.name) === preferred));
 
     // Convert to OpenAI format
     const modelList = ollamaModels.map((m) => ({
@@ -699,7 +704,7 @@ async function handleListModels(res) {
     const installedNames = ollamaModels.map((m) => m.name);
 
     for (const [alias, target] of Object.entries(activeAliases)) {
-      if (installedNames.some((n) => n === target || n.startsWith(target))) {
+      if (installedNames.some((n) => normalize(n) === normalize(target))) {
         modelList.push({
           id: alias,
           object: 'model',

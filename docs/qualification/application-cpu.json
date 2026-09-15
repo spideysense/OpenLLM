@@ -1,0 +1,37 @@
+{
+  "at": "2026-09-15T19:43:04.202Z",
+  "model": "qwen2.5:7b",
+  "cases": [
+    {
+      "prompt": "Reply with exactly ASPEN-READY and no other text.",
+      "expected": "ASPEN-READY",
+      "answer": "ASPEN-READY",
+      "elapsedMs": 90188,
+      "passed": true
+    },
+    {
+      "prompt": "What is 13 multiplied by 47? Reply with just the number.",
+      "expected": "611",
+      "answer": "611",
+      "elapsedMs": 3063,
+      "passed": true
+    }
+  ],
+  "transportPassed": true,
+  "path": [
+    "factory enrollment",
+    "owner confirmation",
+    "encrypted LAN transport",
+    "gateway authorization",
+    "shared chat service",
+    "local Ollama inference",
+    "authenticated response"
+  ],
+  "previousRun": {
+    "prompt": "Reply with exactly ASPEN-READY and no other text.",
+    "answer": "ASPREN-READY",
+    "passed": false,
+    "engineElapsedMs": 93000
+  },
+  "limits": "Synthetic prompts in a development CPU container; not physical appliance qualification. Previous run used the longer legacy product-facts prompt."
+}

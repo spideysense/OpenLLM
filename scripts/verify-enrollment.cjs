@@ -32,6 +32,18 @@ async function main() {
   await api(setup, { action: 'confirm', id: pending.id });
   assert.equal(keys.validateKey(pending.credential), true);
   assert.equal(store.get('householdEnrollment').setup, null);
+  // Exercise the phone discovery contract through the actual encrypted gateway.
+  // The engine fixture deliberately reports the rejected candidate first.
+  const originalFetch = global.fetch;
+  try {
+    store.set('activeModel', 'qualified:7b');
+    global.fetch = (input, options) => input === 'http://127.0.0.1:11434/api/tags'
+      ? Promise.resolve(Response.json({ models: [{ name: 'rejected:8b' }, { name: 'qualified:7b' }] }))
+      : originalFetch(input, options);
+    const discovered = await secureFetch(base, pending.credential, '/v1/models');
+    assert.equal(discovered.status, 200);
+    assert.equal((await discovered.json()).data[0].id, 'qualified:7b');
+  } finally { global.fetch = originalFetch; }
   await assert.rejects(api(setup, { action: 'prepare', label: 'Attacker' }));
   await assert.rejects(api(pending.recovery, { action: 'list' }, '/v1/vault'));
   const guest = keys.createKey('Family', { memory: true });
