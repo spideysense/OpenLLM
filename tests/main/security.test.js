@@ -12,10 +12,11 @@ describe('Security: dangerous tool gating', () => {
     // The agent filters DANGEROUS_TOOLS for non-owner requests.
     // This is a structural guarantee that shell execution is owner-only.
     const agentSrc = require('fs').readFileSync(
-      require('path').join(__dirname, '..', '..', 'src', 'main', 'agent.js'), 'utf8'
+      require('path').join(__dirname, '..', '..', 'src', 'main', 'gateway-agent.js'), 'utf8'
     );
     expect(agentSrc).toMatch(/DANGEROUS_TOOLS\s*=\s*\[[^\]]*['"]run_command['"]/);
-    expect(agentSrc).toMatch(/if\s*\(\s*!isOwner\s*\)/);
+    expect(agentSrc).toContain('policy.filter');
+    expect(agentSrc).toContain('policy.allowed');
   });
 
   it('gateway passes isOwner to the agent', () => {
@@ -31,7 +32,7 @@ describe('Security: dangerous tool gating', () => {
     );
     // The publish handler must validate a key before accepting HTML
     const publishBlock = gwSrc.slice(gwSrc.indexOf("'/publish-artifact'"), gwSrc.indexOf("'/publish-artifact'") + 800);
-    expect(publishBlock).toMatch(/validateKey/);
+    expect(publishBlock).toMatch(/isOwnerKey/);
     expect(publishBlock).toMatch(/Authentication required/);
   });
 

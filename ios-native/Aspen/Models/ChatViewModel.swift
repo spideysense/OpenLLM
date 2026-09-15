@@ -1,4 +1,5 @@
 import Foundation
+import Security
 import Combine
 import SwiftUI
 
@@ -25,7 +26,7 @@ final class ChatViewModel: ObservableObject {
 
     init() {
         // Restore a saved box connection so returning users land already connected.
-        if let data = UserDefaults.standard.data(forKey: "boxConfig"),
+        if let data = BoxCredentials.load(),
            let cfg = try? JSONDecoder().decode(BoxClient.Config.self, from: data) {
             boxConfig = cfg
         }
@@ -54,9 +55,9 @@ final class ChatViewModel: ObservableObject {
 
     private func persistBox() {
         if let cfg = boxConfig, let data = try? JSONEncoder().encode(cfg) {
-            UserDefaults.standard.set(data, forKey: "boxConfig")
+            if !BoxCredentials.save(data) { status = "Could not save pairing securely. Unlock your device and pair again." }
         } else {
-            UserDefaults.standard.removeObject(forKey: "boxConfig")
+            BoxCredentials.clear()
         }
     }
 
@@ -191,4 +192,24 @@ final class ChatViewModel: ObservableObject {
         haptic.impactOccurred()
         save()
     }
+}
+
+private enum BoxCredentials {
+    static let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: "com.runonaspen.box", kSecAttrAccount as String: "connection"]
+    static func load() -> Data? {
+        var q = query; q[kSecReturnData as String] = true
+        var result: CFTypeRef?
+        if SecItemCopyMatching(q as CFDictionary, &result) == errSecSuccess { return result as? Data }
+        if let legacy = UserDefaults.standard.data(forKey: "boxConfig"), save(legacy) { UserDefaults.standard.removeObject(forKey: "boxConfig"); return legacy }
+        return nil
+    }
+    @discardableResult static func save(_ data: Data) -> Bool {
+        let values: [String: Any] = [kSecValueData as String: data, kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly]
+        let status = SecItemUpdate(query as CFDictionary, values as CFDictionary)
+        if status == errSecSuccess { return true }
+        if status != errSecItemNotFound { return false }
+        var q = query; values.forEach { q[$0.key] = $0.value }
+        return SecItemAdd(q as CFDictionary, nil) == errSecSuccess
+    }
+    static func clear() { SecItemDelete(query as CFDictionary); UserDefaults.standard.removeObject(forKey: "boxConfig") }
 }

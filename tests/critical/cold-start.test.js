@@ -25,7 +25,8 @@ describe('Every chat path keeps the model resident (keep_alive:-1)', () => {
     expect(ollama).toMatch(/stream:\s*true,\s*keep_alive:\s*-1/);
   });
   it('desktop agent path (agent.js) sets keep_alive:-1', () => {
-    expect(agent).toMatch(/keep_alive:\s*-1/);
+    expect(agent).toContain("require('./gateway-agent')");
+    expect(gatewayAgent).toMatch(/KEEP_ALIVE\s*=\s*-1/);
   });
   it('gateway-agent path uses KEEP_ALIVE = -1', () => {
     expect(gatewayAgent).toMatch(/KEEP_ALIVE\s*=\s*-1/);
@@ -45,7 +46,8 @@ describe('Warm triggers cover boot and model switch', () => {
     expect(ollama).toMatch(/function warmModel/);
     expect(ollama).toMatch(/warmModel,/); // in module.exports
   });
-  it('switching models re-warms the new one (store:set activeModel hook)', () => {
-    expect(index).toMatch(/key === 'activeModel'[\s\S]{0,80}warmModel/);
+  it('switching models warms before committing the selection', () => {
+    const app = read('src/renderer/App.jsx');
+    expect(app).toMatch(/await warmActiveModel\(modelName\)/);
   });
 });

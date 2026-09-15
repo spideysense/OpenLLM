@@ -23,6 +23,8 @@ export const useApp = () => useContext(AppContext);
 const bridge = typeof window !== 'undefined' && window.aspen ? window.aspen : null;
 
 export default function App() {
+  const [appError, setAppError] = useState('');
+  useEffect(() => { const handler = e => setAppError(e.detail || 'Could not save your change.'); window.addEventListener('aspen:error', handler); return () => window.removeEventListener('aspen:error', handler); }, []);
   const [page, setPage] = useState('home');
   const [ollamaStatus, setOllamaStatus] = useState({ installed: false, running: false });
   const [systemInfo, setSystemInfo] = useState(null);
@@ -103,6 +105,8 @@ export default function App() {
     init();
   }, []);
 
+  useEffect(() => bridge?.models?.onActiveChanged?.(name => { setActiveModel(name); refreshModels(); }), []);
+
   // ─── Fetch the capability profile whenever the active model changes ───
   // The profile (tier + per-feature gating from model size, tools/vision, and
   // hardware) is the single source of truth for what the UI offers.
@@ -118,9 +122,7 @@ export default function App() {
         const onboarded = await bridge.store.get('computerUseOnboarded');
         if (!onboarded) setShowComputerUseOnboarding(true);
       }
-      if (bridge?.tools?.setEnabled) {
-        await bridge.tools.setEnabled('computer_use', !!profile.features?.computerUse);
-      }
+
     }).catch(() => {});
   }, [activeModel]);
 
@@ -137,7 +139,7 @@ export default function App() {
     if (!bridge?.ollama?.onStatus) return;
     const unsub = bridge.ollama.onStatus((status) => {
       setOllamaStatus(status);
-      if (status.running) refreshModels();
+      if (status.running) refreshModels().then(async list => { const saved = await bridge.store.get('activeModel'); setActiveModel(current => current || (list.some(m => m.name === saved) ? saved : list[0]?.name || null)); });
     });
     return unsub;
   }, [bridge, refreshModels]);
@@ -153,21 +155,20 @@ export default function App() {
       setWarmElapsed(Math.floor((Date.now() - startedAt) / 1000));
     }, 1000);
     try {
-      await bridge.models.warm(modelName);
-    } catch {}
-    clearInterval(ticker);
-    setModelWarming(false);
+      const result = await bridge.models.warm(modelName);
+      if (result?.success === false) throw new Error(result.error || 'This model could not load.');
+    } catch (error) { setAppError(error.message); throw error; }
+    finally { clearInterval(ticker); setModelWarming(false); }
   }, [bridge]);
 
   // ─── Select model (warms the new one before chat is usable) ───
   const selectModel = useCallback(async (modelName) => {
     if (!modelName) return;
+    await warmActiveModel(modelName);
+    if (bridge) await bridge.store.set('activeModel', modelName);
     setActiveModel(modelName);
-    if (bridge) {
-      await bridge.store.set('activeModel', modelName);
-    }
     // Warm the newly selected model so the first message is instant.
-    warmActiveModel(modelName);
+
   }, [bridge, warmActiveModel]);
 
   // ─── Warm the active model on startup so the first message is instant ───
@@ -176,7 +177,7 @@ export default function App() {
     if (warmedOnceRef.current) return;
     if (loading || !activeModel || !isOnboarded) return;
     warmedOnceRef.current = true;
-    warmActiveModel(activeModel);
+    warmActiveModel(activeModel).catch(() => {});
   }, [loading, activeModel, isOnboarded, warmActiveModel]);
 
   // Keep activeModel honest: if it ever points at a model that isn't actually
@@ -202,10 +203,12 @@ export default function App() {
     await refreshModels();
   }, [refreshModels]);
 
+  const historyLoaded = useRef(false);
   // ─── Conversations: load once on mount, persist on change (debounced) ───
   useEffect(() => {
     if (!bridge?.conversations) return;
     bridge.conversations.load().then((saved) => {
+      historyLoaded.current = true;
       if (saved && saved.length > 0) {
         setConversations(saved);
         setActiveConvo(saved[saved.length - 1].id);
@@ -214,10 +217,10 @@ export default function App() {
   }, [bridge]);
 
   useEffect(() => {
-    if (!bridge?.conversations || conversations.length === 0) return;
+    if (!bridge?.conversations || conversations.length === 0 || !historyLoaded.current) return;
     clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
-      bridge.conversations.save(conversations).catch(() => {});
+      bridge.conversations.save(conversations).catch(e => setAppError(e.message));
     }, 800);
     return () => clearTimeout(saveTimer.current);
   }, [bridge, conversations]);
@@ -441,7 +444,8 @@ export default function App() {
             </div>
           )}
           {page === 'home' && <Home />}
-          {page === 'chat' && <Chat />}
+          {appError && <div role="alert" style={{ padding: 12, color: 'var(--danger)' }}>{appError} <button onClick={() => setAppError('')}>Dismiss</button></div>}
+          <div style={{ display: page === 'chat' ? 'contents' : 'none' }}><Chat /></div>
           {page === 'templates' && <Templates />}
           {page === 'worldmodel' && <WorldModel />}
           {page === 'apikeys' && <APIKeys />}

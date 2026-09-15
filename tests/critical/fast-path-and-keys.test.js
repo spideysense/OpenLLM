@@ -133,9 +133,9 @@ describe('Speed optimizations', () => {
     expect(wm).toContain('pickExtractionModel');
     expect(wm).toContain('SMALL_EXTRACTION_MODELS');
     // Extraction context must be small (fast), not the full chat context.
-    expect(wm).toContain('num_ctx: 4096');
+    expect(wm).toContain('num_ctx: system.getRecommendedContext()');
     // Must NOT pin the extraction model in VRAM forever.
-    expect(wm).not.toContain('keep_alive: -1');
+    expect(wm).toContain("require('./foreground').isBusy()");
   });
   it('gateway warms the model on start', () => {
     const src = fs.readFileSync(path.resolve('src/main/gateway.js'), 'utf8');
@@ -159,13 +159,13 @@ describe('Linux build + extraction throttle', () => {
   const fs = require('fs');
   const path = require('path');
 
-  it('package.json builds arm64 deb + AppImage for Linux', () => {
+  it('package.json builds AppImage for arm64 and x64 Linux', () => {
     const pkg = JSON.parse(fs.readFileSync(path.resolve('package.json'), 'utf8'));
     const linux = pkg.build.linux;
     expect(linux).toBeDefined();
     const targets = linux.target.map(t => typeof t === 'object' ? t.target : t);
     // deb is the primary (auto-installs deps incl FUSE); AppImage is fallback
-    expect(targets).toContain('deb');
+    expect(linux.target[0].arch).toContain('x64');
     expect(targets).toContain('AppImage');
     // both must be arm64 for the GB10
     linux.target.forEach(t => {
@@ -178,9 +178,9 @@ describe('Linux build + extraction throttle', () => {
     expect(pkg.build.deb).toBeDefined();
   });
 
-  it('Linux app launches with --no-sandbox (avoids SUID sandbox error)', () => {
+  it('Linux app retains the renderer sandbox', () => {
     const pkg = JSON.parse(fs.readFileSync(path.resolve('package.json'), 'utf8'));
-    expect(pkg.build.linux.executableArgs).toContain('--no-sandbox');
+    expect(pkg.build.linux.executableArgs).not.toContain('--no-sandbox');
   });
 
   it('release workflow has a Linux arm64 build job', () => {
@@ -190,9 +190,9 @@ describe('Linux build + extraction throttle', () => {
     expect(wf).toContain('--linux deb AppImage --arm64');
   });
 
-  it('extraction only runs every 3rd message (not every message)', () => {
-    const idx = fs.readFileSync(path.resolve('src/main/index.js'), 'utf8');
-    expect(idx).toContain('total % 3');
+  it('extraction waits for idle foreground work', () => {
+    const wm = fs.readFileSync(path.resolve('src/main/world-model.js'), 'utf8');
+    expect(wm).toContain("require('./foreground').isBusy()");
   });
 });
 

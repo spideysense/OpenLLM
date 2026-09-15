@@ -5,7 +5,7 @@
   "main": "src/main/index.js",
   "scripts": {
     "dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
-    "build:renderer": "vite build",
+    "build:renderer": "node scripts/copy-runtime-assets.cjs && vite build",
     "build:mac": "npm run build:renderer && electron-builder --mac",
     "build:win": "npm run build:renderer && electron-builder --win",
     "build:all": "npm run build:renderer && electron-builder --mac --win",
@@ -30,7 +30,8 @@
       "build/**/*",
       "registry/**/*",
       "!vendor/**/*",
-      "!vendor"
+      "!vendor",
+      "skills/**/*"
     ],
     "mac": {
       "category": "public.app-category.developer-tools",
@@ -80,21 +81,14 @@
       "artifactName": "Aspen-linux-${arch}.${ext}",
       "target": [
         {
-          "target": "deb",
-          "arch": [
-            "arm64"
-          ]
-        },
-        {
           "target": "AppImage",
           "arch": [
-            "arm64"
+            "arm64",
+            "x64"
           ]
         }
       ],
-      "executableArgs": [
-        "--no-sandbox"
-      ],
+      "executableArgs": [],
       "desktop": {
         "entry": {
           "Name": "Aspen",
@@ -117,16 +111,18 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "@modelcontextprotocol/server-github": "2025.4.8",
     "electron-store": "^8.1.0",
     "electron-updater": "^6.8.9",
     "mammoth": "^1.12.0",
     "pdf-parse": "^2.4.5",
+    "qrcode.react": "^4.1.0",
     "sharp": "^0.34.5",
     "xlsx": "^0.18.5",
-    "yauzl": "^3.3.1",
-    "qrcode.react": "^4.1.0"
+    "yauzl": "^3.3.1"
   },
   "devDependencies": {
+    "@electron/rebuild": "^4.0.4",
     "@testing-library/jest-dom": "^6.1.5",
     "@testing-library/react": "^14.1.2",
     "@vitejs/plugin-react": "^4.2.1",
@@ -142,8 +138,7 @@
     "uuid": "^13.0.0",
     "vite": "^5.0.12",
     "vitest": "^1.2.0",
-    "wait-on": "^7.2.0",
-    "@electron/rebuild": "^4.0.4"
+    "wait-on": "^7.2.0"
   },
   "author": {
     "name": "Aspen",

@@ -118,7 +118,7 @@ function getHardwareTier() {
   const info = getSystemInfo();
   const ram = info.totalRAMGB;
   const hasGPU = info.gpu.type !== 'cpu';
-  const isAppleSilicon = info.gpu.type === 'metal';
+  const isAppleSilicon = info.gpu.type === 'metal' || (info.arch === 'arm64' && /GB10/i.test(info.gpu.name));
 
   // Apple Silicon with unified memory is special — very efficient
   if (isAppleSilicon) {
@@ -131,9 +131,9 @@ function getHardwareTier() {
   // Discrete GPU systems
   if (hasGPU) {
     const vram = info.gpu.vram;
-    if (vram >= 24 || ram >= 64) return 'ultra';
-    if (vram >= 12 || ram >= 32) return 'heavy';
-    if (vram >= 6 || ram >= 16) return 'medium';
+    if (vram >= 48) return 'ultra';
+    if (vram >= 24) return 'heavy';
+    if (vram >= 10) return 'medium';
     return 'light';
   }
 
@@ -159,7 +159,12 @@ function getRecommendedContext() {
   }
 }
 
-module.exports = {
+function getRuntimeBudget() {
+  const info = getSystemInfo();
+  const memory = ['cuda', 'rocm'].includes(info.gpu.type) && info.gpu.vram > 0 ? info.gpu.vram : info.totalRAMGB;
+  return { parallel: memory >= 48 ? 2 : 1, loaded: memory >= 48 ? 2 : 1, memoryGB: Math.max(2, memory * 0.7) };
+}
+module.exports = { getRuntimeBudget,
   getSystemInfo,
   getHardwareTier,
   getRecommendedContext,

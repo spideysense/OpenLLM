@@ -136,7 +136,7 @@ async function downloadOllama(notify, { force = false } = {}) {
         // Run the binary from where it extracted. Modern Ollama ships bin/ollama with a
         // sibling lib/ollama (CPU + CUDA runtimes) it loads via $ORIGIN/../lib rpath, so we
         // must NOT relocate the binary out of that tree.
-        const candidates = [path.join(BIN_DIR, 'ollama'), path.join(BIN_DIR, 'bin', 'ollama')];
+        const candidates = [path.join(BIN_DIR, `ollama${ext}`), path.join(BIN_DIR, 'bin', `ollama${ext}`)];
         for (const c of candidates) {
           if (fs.existsSync(c) && fs.statSync(c).size > 1_000_000) {
             if (process.platform !== 'win32') { try { fs.chmodSync(c, 0o755); } catch {} }
@@ -266,7 +266,12 @@ function isInstalled() {
 // Start — automatic, downloads if needed, NEVER opens browser
 // ═══════════════════════════════════════════════════
 
-async function ensureRunning(onProgress) {
+let starting = null;
+function ensureRunning(...args) {
+  if (!starting) starting = _ensureRunning(...args).finally(() => { starting = null; });
+  return starting;
+}
+async function _ensureRunning(onProgress) {
   const notify = onProgress || (() => {});
 
   if (await isRunning()) {
@@ -326,11 +331,11 @@ async function ensureRunning(onProgress) {
           // model frees its slot during tool/web-search waits, so this covers
           // more than 4 simultaneous users in practice. Each slot adds KV-cache
           // memory; this class of machine has ample headroom to go higher.
-          OLLAMA_NUM_PARALLEL: '4',
+          OLLAMA_NUM_PARALLEL: String(system.getRuntimeBudget().parallel),
           // Allow the chat model AND a small extraction model to stay resident
           // together — otherwise loading one evicts the other, and every message
           // pays a full cold-load. Plenty of headroom on this class of machine.
-          OLLAMA_MAX_LOADED_MODELS: '3',
+          OLLAMA_MAX_LOADED_MODELS: String(system.getRuntimeBudget().loaded),
         },
       });
       ollamaProcess.unref();
@@ -402,7 +407,7 @@ async function ensureCurrent(onProgress, { force = false } = {}) {
 
     ollamaProcess = spawn(newPath, ['serve'], {
       detached: true, stdio: 'ignore',
-      env: { ...process.env, OLLAMA_HOST: '127.0.0.1:11434', OLLAMA_MODELS: path.join(MONET_DIR, 'models'), OLLAMA_CONTEXT_LENGTH: String(system.getRecommendedContext()), OLLAMA_NUM_PARALLEL: '4', OLLAMA_MAX_LOADED_MODELS: '3' },
+      env: { ...process.env, OLLAMA_HOST: '127.0.0.1:11434', OLLAMA_MODELS: path.join(MONET_DIR, 'models'), OLLAMA_CONTEXT_LENGTH: String(system.getRecommendedContext()), OLLAMA_NUM_PARALLEL: String(system.getRuntimeBudget().parallel), OLLAMA_MAX_LOADED_MODELS: String(system.getRuntimeBudget().loaded) },
     });
     ollamaProcess.unref();
 
@@ -430,7 +435,7 @@ async function ensureCurrent(onProgress, { force = false } = {}) {
 // ═══════════════════════════════════════════════════
 // Known vision-capable model families on Ollama. Matched as a prefix on the
 // model name (before any ':tag'). Kept conservative to avoid false positives.
-const VISION_MODELS = ['llava', 'llava-llama3', 'llava-phi3', 'bakllava', 'moondream', 'llama3.2-vision', 'llama4', 'gemma3', 'qwen2-vl', 'qwen2.5-vl', 'minicpm-v', 'gemma4'];
+const VISION_MODELS = ['llava', 'llava-llama3', 'llava-phi3', 'bakllava', 'moondream', 'llama3.2-vision', 'llama4', 'gemma3', 'qwen2-vl', 'qwen2.5-vl', 'minicpm-v', 'gemma4', 'qwen3-vl', 'qwen3.5', 'qwen3.6'];
 
 // Known tool-capable model families (used as fallback if /api/show doesn't return capabilities)
 const TOOL_MODELS = ['llama3', 'llama3.1', 'llama3.2', 'llama3.3', 'qwen2.5', 'qwen2', 'mistral', 'mixtral', 'gemma3', 'gemma4', 'phi4', 'phi3', 'command-r', 'deepseek', 'hermes', 'functionary', 'firefunction', 'xwin-moe', 'nous-hermes', 'smollm2'];
@@ -490,39 +495,10 @@ async function hasVisionModel() {
 // Pull a model with streaming progress. onProgress({status, percent}).
 let pullController = null;
 async function pullModel(model, onProgress) {
-  const notify = onProgress || (() => {});
+  if (pullController) return { success: false, error: 'A download is already running.' };
   pullController = new AbortController();
-  try {
-    const res = await fetch(`${OLLAMA_HOST}/api/pull`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, stream: true }),
-      signal: pullController.signal,
-    });
-    if (!res.ok) return { success: false, error: `Pull failed: HTTP ${res.status}` };
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      const lines = decoder.decode(value, { stream: true }).split('\n').filter(Boolean);
-      for (const line of lines) {
-        try {
-          const j = JSON.parse(line);
-          let percent = null;
-          if (j.total && j.completed) percent = Math.round((j.completed / j.total) * 100);
-          notify({ status: j.status || 'downloading', percent });
-          if (j.error) return { success: false, error: j.error };
-        } catch {}
-      }
-    }
-    return { success: true };
-  } catch (err) {
-    if (err.name === 'AbortError') return { success: false, aborted: true };
-    return { success: false, error: err.message };
-  } finally {
-    pullController = null;
-  }
+  try { return await require('./models').pullModel(model, onProgress, { signal: pullController.signal }); }
+  finally { pullController = null; }
 }
 
 function abortPull() {
@@ -536,100 +512,27 @@ function abortPull() {
 const chatControllers = new Map();
 
 async function chat(model, messages, onChunk, { key = 'default' } = {}) {
-  const ctrl = new AbortController();
-  chatControllers.set(key, ctrl);
-  chatController = ctrl; // legacy single-ref, kept for any older caller
-
+  if (chatControllers.has(key)) return { success: false, error: 'This conversation is already generating.' };
+  const ctrl = new AbortController(); chatControllers.set(key, ctrl); let response = ''; let done = false;
   try {
-    // Aspen-level search: ask the local model if this needs real-time data
-    const lastUser = [...messages].reverse().find(m => m.role === 'user');
-    const userText = lastUser?.content || '';
-    let enrichedMessages = messages;
-    if (userText.length > 3) {
-      // If the user pasted a URL, fetch it directly and inject the content. This
-      // doesn't rely on the small model choosing to call a tool (which it often
-      // won't). For YouTube links this returns the video's metadata + description.
-      const urlMatch = userText.match(/https?:\/\/[^\s)]+/);
-      if (urlMatch) {
-        onChunk({ content: '🌐 Reading the link…', done: false });
-        try {
-          const pageText = await runFetchUrl({ url: urlMatch[0] });
-          if (pageText && !/^Could not fetch/.test(pageText)) {
-            const urlBlock = `\n\n--- Content fetched from ${urlMatch[0]} ---\n${pageText}\n--- End of fetched content ---\n\nUse the fetched content above to answer the user's question about this link. If it's a YouTube video, you have its title, channel, and description but cannot see the actual footage — be honest about that limit.`;
-            const hasSys = enrichedMessages[0]?.role === 'system';
-            if (hasSys) enrichedMessages = [{ ...enrichedMessages[0], content: enrichedMessages[0].content + urlBlock }, ...enrichedMessages.slice(1)];
-            else enrichedMessages = [{ role: 'system', content: `You are a helpful assistant.${urlBlock}` }, ...enrichedMessages];
-          }
-        } catch {}
-        onChunk({ content: '', done: false });
+    const res = await fetch(`${OLLAMA_HOST}/api/chat`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model, messages, stream: true, keep_alive: -1, options: { num_ctx: system.getRecommendedContext(), ...gpuFallback.gpuOptions() } }), signal: ctrl.signal });
+    if (!res.ok) throw new Error(await res.text());
+    for await (const json of require('./ndjson').records(res.body)) {
+      if (json.error) {
+        if (gpuFallback.isGpuRuntimeFailure(json.error)) gpuFallback.setForceCpu(true);
+        throw new Error(json.error);
       }
-      // Note: web_search / calculate / get_datetime are handled by the native
-      // tool-calling agent loop (agent.js) when tools are enabled. This plain
-      // streaming path runs only when tools are OFF, so we respect that and don't
-      // invoke tools here — we just keep the deterministic URL read above.
+      if (json.message?.content) { response += json.message.content; onChunk({ content: json.message.content, done: false }); }
+      if (json.done) done = true;
     }
-
-    const res = await fetch(`${OLLAMA_HOST}/api/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, messages: enrichedMessages, stream: true, keep_alive: -1, options: { num_predict: -1, num_ctx: system.getRecommendedContext(), ...gpuFallback.gpuOptions() } }),
-      signal: ctrl.signal,
-    });
-
-    if (!res.ok) {
-      const err = await res.text();
-      // GPU runtime crash (unsupported card): flip the box to CPU so the next
-      // message runs on CPU, and surface a human message instead of the raw
-      // CUDA/stack-overflow string.
-      if (gpuFallback.isGpuRuntimeFailure(err)) {
-        gpuFallback.setForceCpu(true);
-        throw new Error('__GPU_FALLBACK__');
-      }
-      throw new Error(`Ollama error: ${err}`);
-    }
-
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let fullResponse = '';
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      const text = decoder.decode(value, { stream: true });
-      const lines = text.split('\n').filter(Boolean);
-
-      for (const line of lines) {
-        try {
-          const json = JSON.parse(line);
-          if (json.error && gpuFallback.isGpuRuntimeFailure(json.error)) {
-            gpuFallback.setForceCpu(true);
-            throw new Error('__GPU_FALLBACK__');
-          }
-          if (json.message?.content) {
-            fullResponse += json.message.content;
-            onChunk({ content: json.message.content, done: json.done || false });
-          }
-          if (json.done) {
-            onChunk({ content: '', done: true, total_duration: json.total_duration, eval_count: json.eval_count });
-          }
-        } catch (e) {
-          if (e && e.message === '__GPU_FALLBACK__') throw e;
-        }
-      }
-    }
-
-    return { success: true, response: fullResponse };
-  } catch (err) {
-    if (err.name === 'AbortError') return { success: true, aborted: true };
-    if (err && err.message === '__GPU_FALLBACK__') {
-      return { success: false, gpu: true, error: gpuFallback.GPU_FALLBACK_MESSAGE };
-    }
-    return { success: false, error: err.message };
-  } finally {
-    chatControllers.delete(key);
-    if (chatController === ctrl) chatController = null;
-  }
+    if (!done) throw new Error('The engine disconnected before completing the answer.');
+    onChunk({ content: '', done: true });
+    return { success: true, response };
+  } catch (error) {
+    onChunk({ content: '', done: true, error: ctrl.signal.aborted ? null : error.message, aborted: ctrl.signal.aborted });
+    return { success: false, error: error.message, aborted: ctrl.signal.aborted };
+  } finally { chatControllers.delete(key); }
 }
 
 function abortChat(key) {

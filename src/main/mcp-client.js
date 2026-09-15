@@ -54,12 +54,18 @@ async function connectServer(id, command, args = [], env = {}) {
   const { Client, StdioClientTransport } = loadSdk();
   if (connections.has(id)) await disconnectServer(id);
 
+  // Ship the supported server with Aspen; packaged installs need no npx or Node.
+  if (id === 'github' && command === 'npx') {
+    command = process.execPath;
+    args = [require.resolve('@modelcontextprotocol/server-github/dist/index.js')];
+    env = { ...env, ELECTRON_RUN_AS_NODE: '1' };
+  }
   const transport = new StdioClientTransport({
     command,
     args,
     // Inherit Aspen's env so PATH/node resolution works, plus the connector's own
     // secrets (tokens). These live only in this child process's environment.
-    env: { ...process.env, ...env },
+    env: { ...Object.fromEntries(['PATH', 'HOME', 'USERPROFILE', 'SystemRoot', 'TEMP', 'TMP', 'LANG'].filter(k => process.env[k]).map(k => [k, process.env[k]])), ...env },
   });
 
   const client = new Client(
@@ -67,7 +73,7 @@ async function connectServer(id, command, args = [], env = {}) {
     { capabilities: {} }
   );
 
-  await client.connect(transport);
+  try { await client.connect(transport); } catch (error) { await transport.close().catch(() => {}); throw error; }
 
   // Discover the tools this server exposes.
   const listed = await client.listTools();
@@ -110,7 +116,7 @@ async function callTool(connectorId, toolName, args = {}) {
   const conn = connections.get(connectorId);
   if (!conn) return `Connector "${connectorId}" is not connected.`;
   try {
-    const res = await conn.client.callTool({ name: toolName, arguments: args || {} });
+    const res = await conn.client.callTool({ name: toolName, arguments: args || {} }, undefined, { signal: require('./execution-context').signal() });
     // MCP returns content as an array of blocks; flatten the text ones.
     const parts = (res?.content || [])
       .map((b) => (b.type === 'text' ? b.text : `[${b.type}]`))

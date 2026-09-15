@@ -6,12 +6,12 @@
  * for backward compatibility; named guest keys live at `worldModel:{keyId}`.
  * Anonymous keys get no memory (keyId is null → no read/write).
  *
- * Everything stays local — facts are stored in electron-store on the Aspen
- * machine. Nothing ever leaves the device.
+ * Facts are stored on the Aspen machine and served only to the associated
+ * paired identity. Network tools and Cloud Boost have separate disclosure rules.
  */
 
 const store = require('./store');
-const http = require('http');
+const http = require('./local-http');
 const system = require('./system');
 
 const OLLAMA_HOST = '127.0.0.1';
@@ -82,7 +82,7 @@ async function pickExtractionModel(chatModel) {
 
   // No small model resident → skip. Do NOT load one (it would evict the chat
   // model) and never run extraction on the heavy chat model itself.
-  return null;
+  return resident.some(m => m.name === chatModel) ? chatModel : null;
 }
 
 
@@ -121,7 +121,7 @@ function getFacts(keyId) {
 const SENSITIVE_RX = /\b(depress|anxiet|suicid|self.?harm|mental[\s-]?health|therap|counsel|bipolar|schizo|ptsd|trauma|diagnos|cancer|illness|disease|chronic|disorder|medicat|addict|alcohol|rehab|divorc|breakup|grief|griev|miscarri|pregnan|abuse|fired|laid off|bankrupt|debt)/i;
 
 function getSystemPrefix(keyId) {
-  const facts = getFacts(keyId).filter((f) => !SENSITIVE_RX.test(String(f)));
+  const facts = getFacts(keyId).filter((f) => !SENSITIVE_RX.test(String(f))).slice(-MAX_FACTS);
   if (facts.length === 0) return '';
   return `Background on the user from past chats — CONTEXT ONLY. Do NOT list these back, open a reply with them, or bring any of them up unless the user's current message is directly about that specific topic. Answer what the user actually asked, first and directly.\n${facts.map((f) => `- ${f}`).join('\n')}\n\n`;
 }
@@ -147,7 +147,7 @@ function mergeFacts(newFacts, keyId) {
 
     if (added.length === 0) return 0;
 
-    const allFacts = [...((wm && wm.facts) || []), ...added].slice(-MAX_FACTS);
+    const allFacts = [...((wm && wm.facts) || []), ...added];
     store.set(sk, { facts: allFacts, updatedAt: new Date().toISOString() });
     console.log(`[WorldModel:${keyId || 'owner'}] Added ${added.length} new facts`);
     return added.length;
@@ -160,7 +160,33 @@ function mergeFacts(newFacts, keyId) {
  * Extract facts from a conversation using the local model.
  * Runs in the background after each exchange — non-blocking.
  */
-async function extractFacts(model, messages, keyId) {
+const pending = new Map();
+let extracting = false;
+let extractionTimer;
+function extractFacts(model, messages, keyId) {
+  if (keyId === null) return Promise.resolve();
+  pending.set(keyId || 'owner', { model, messages, keyId, version: store.get(storeKeyFor(keyId))?.updatedAt });
+  schedule(); return Promise.resolve();
+}
+function schedule() {
+  if (extractionTimer || extracting || !pending.size) return;
+  extractionTimer = setTimeout(async () => {
+    extractionTimer = null;
+    if (require('./foreground').isBusy()) { schedule(); return; }
+    const [identity, task] = pending.entries().next().value;
+    pending.delete(identity); extracting = true;
+    const controller = new AbortController(); let release;
+    try {
+      release = await require('./admission').acquire(controller.signal, { background: true, onPreempt: () => controller.abort() });
+      await require('./execution-context').run({ signal: controller.signal }, () => _extractFacts(task.model, task.messages, task.keyId, task.version));
+      if (controller.signal.aborted && !pending.has(identity)) pending.set(identity, task);
+    }
+    catch (e) { console.error('[Memory]', e.message); }
+    finally { release?.(); extracting = false; schedule(); }
+  }, 2000);
+  extractionTimer.unref?.();
+}
+async function _extractFacts(model, messages, keyId, version) {
   // Anonymous keys store no memory — skip extraction entirely.
   if (storeKeyFor(keyId) === null) return;
   // Only extract if there's enough conversation (at least 2 exchanges)
@@ -176,7 +202,7 @@ async function extractFacts(model, messages, keyId) {
   // No small extraction model installed → skip. Never run extraction on the heavy
   // chat model: it uses a different context size, which evicts + reloads the
   // resident model and makes the user's next message pay a full cold-load.
-  if (!extractionModel || extractionModel === model) return;
+  if (!extractionModel) return;
 
   // Take the last few messages for extraction (not the whole history)
   const recent = messages.slice(-6);
@@ -214,8 +240,8 @@ Example output: ["User's name is Mayank", "User is building an AI app called Asp
       stream: false,
       // Small model + small context = fast extraction that doesn't block chat.
       // keep_alive shorter so the extraction model doesn't permanently hold VRAM.
-      keep_alive: '5m',
-      options: { num_predict: 300, temperature: 0.1, num_ctx: 4096 },
+      keep_alive: -1, think: false,
+      options: { num_predict: 300, temperature: 0.1, num_ctx: system.getRecommendedContext() },
     });
 
     const result = await new Promise((resolve, reject) => {
@@ -245,7 +271,7 @@ Example output: ["User's name is Mayank", "User is building an AI app called Asp
     const cleaned = result.replace(/```json\n?/g, '').replace(/```/g, '').trim();
     const facts = JSON.parse(cleaned);
     if (Array.isArray(facts) && facts.length > 0) {
-      mergeFacts(facts, keyId);
+      if (store.get(storeKeyFor(keyId))?.updatedAt === version) mergeFacts(facts.filter(f => typeof f === 'string'), keyId);
     }
   } catch (e) {
     // Silent failure — extraction is best-effort
@@ -256,7 +282,7 @@ Example output: ["User's name is Mayank", "User is building an AI app called Asp
 // Clear a user's memory. Uses this module's own store reference.
 function clearMemory(keyId) {
   const sk = storeKeyFor(keyId);
-  if (sk) store.remove(sk);
+  if (sk) store.set(sk, { facts: [], updatedAt: new Date().toISOString(), deleted: true });
 }
 
 module.exports = {

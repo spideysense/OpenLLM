@@ -7,17 +7,11 @@ const fs = require('fs');
 const path = require('path');
 const read = (p) => fs.readFileSync(path.join(__dirname, p), 'utf8');
 
-// ── concurrency: >= 4 parallel slots at every spawn site ──────────────────────
-// Why: NUM_PARALLEL=2 meant a 3rd concurrent client queued — the multi-client
-// slowness. Must not drift back down.
+// Every engine launch uses the shared hardware budget. Small boxes must queue.
 (function parallelism() {
   const ollama = read('ollama.js');
-  const sites = ollama.match(/OLLAMA_NUM_PARALLEL:\s*'(\d+)'/g) || [];
-  assert.ok(sites.length >= 2, 'NUM_PARALLEL set at both Ollama spawn sites');
-  for (const s of sites) {
-    const n = parseInt(s.match(/'(\d+)'/)[1], 10);
-    assert.ok(n >= 4, `NUM_PARALLEL must stay >= 4 for multi-client serving (found ${n})`);
-  }
+  const sites = ollama.match(/OLLAMA_NUM_PARALLEL:\s*String\(system.getRuntimeBudget\(\).parallel\)/g) || [];
+  assert.ok(sites.length >= 2, 'Every engine spawn applies the device budget');
 })();
 
 // ── no recurring keep-warm heartbeat ──────────────────────────────────────────
@@ -56,16 +50,12 @@ const read = (p) => fs.readFileSync(path.join(__dirname, p), 'utf8');
   }
 })();
 
-// ── iOS: stale-connection (-1005) retry ───────────────────────────────────────
-// Why: URLSession reused a dead pooled socket after a box/tunnel restart, so the
-// first send failed with "network connection was lost". chat() must retry once on
-// a fresh ephemeral session, guarded so it can't duplicate streamed tokens.
-(function iosRetry() {
+// Agent requests can perform actions before any answer token is visible.
+// Never automatically retry an ambiguously interrupted action request.
+(function iosNoActionRetry() {
   const box = read('../../ios-native/Aspen/Network/BoxClient.swift');
-  assert.ok(/networkConnectionLost/.test(box), 'retries on networkConnectionLost (-1005)');
-  assert.ok(/isStaleConnection/.test(box), 'stale-connection classifier present');
-  assert.ok(/\.ephemeral/.test(box), 'retry uses a fresh ephemeral URLSession');
-  assert.ok(/tokenSeen/.test(box), 'retry guarded so it cannot duplicate streamed tokens');
+  assert.ok(!/isStaleConnection/.test(box), 'No automatic retry of potentially completed actions');
+  assert.ok(/secureBytes/.test(box), 'iOS uses the authenticated device channel');
 })();
 
 // ── Cloud Boost: default OFF, explicit opt-in, minimizer on the path ─────────

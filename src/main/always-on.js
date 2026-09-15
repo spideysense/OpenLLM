@@ -19,6 +19,7 @@ let _deps = null;      // { runAgent, getActiveModel }
 let _timer = null;
 let _busy = false;     // one step at a time across all missions
 let _runningId = null; // which mission is executing a step RIGHT NOW
+const _controllers = new Map();
 const _stopRequested = new Set(); // mission ids asked to stop mid-step
 
 function load() { try { return store.get(KEY) || []; } catch { return []; } }
@@ -67,13 +68,13 @@ function start(goal, { maxSteps = DEFAULT_MAX_STEPS, intervalMs = 0 } = {}) {
 function stop(id) {
   const m = load();
   const x = m.find((z) => z.id === id);
-  if (x) { x.status = 'stopped'; persist(m); _stopRequested.add(id); }
+  if (x) { x.status = 'stopped'; persist(m); _stopRequested.add(id); _controllers.get(id)?.abort(); }
   return { stopped: !!x };
 }
 
 function stopAll() {
   const m = load();
-  m.forEach((x) => { if (x.status === 'active') { x.status = 'stopped'; _stopRequested.add(x.id); } });
+  m.forEach((x) => { if (x.status === 'active') { x.status = 'stopped'; _stopRequested.add(x.id); _controllers.get(x.id)?.abort(); } });
   persist(m);
   return { stopped: true };
 }
@@ -93,7 +94,7 @@ function guide(id, text) {
   // the app ignoring you.
   if (/^(stop|pause|halt|cancel|abort|quit|stop it|stop this|please stop)[.!]*$/i.test(t)) {
     x.status = 'stopped';
-    _stopRequested.add(id);
+    _stopRequested.add(id); _controllers.get(id)?.abort();
     x.journal = [...(x.journal || []), '[USER] Stopped this mission.'].slice(-MAX_JOURNAL);
     persist(m);
     return { ok: true, status: 'stopped', stopped: true };
@@ -138,8 +139,10 @@ async function runStep(mission) {
   const model = _deps.getActiveModel();
   const messages = [{ role: 'user', content: buildPrompt(mission) }];
   let out = '';
+  const controller = new AbortController(); _controllers.set(mission.id, controller);
+  try {
   for await (const ev of _deps.runAgent({
-    model, messages, isOwner: true, background: true,
+    model, messages, isOwner: true, background: true, signal: controller.signal,
     shouldAbort: () => _stopRequested.has(mission.id),
     shouldPause: () => foreground.isBusy(),
   })) {
@@ -147,6 +150,11 @@ async function runStep(mission) {
     if (_stopRequested.has(mission.id)) return '__ABORTED__';
     if (ev.type === 'content') out += ev.text;
   }
+  } catch (error) {
+    if (_stopRequested.has(mission.id)) return '__ABORTED__';
+    if (/Paused for a foreground/.test(error.message)) return (out.trim() ? out.trim() + '\n' : '') + 'Paused for foreground work. Check prior tool effects before continuing.';
+    throw error;
+  } finally { _controllers.delete(mission.id); }
   return out.trim() || '(no output this step)';
 }
 
@@ -158,7 +166,7 @@ async function tick() {
   const missions = load();
   // Due = active and not finished. No clock gate: if there's work and nobody
   // needs the machine, do it now.
-  const due = missions.find((m) => m.status === 'active' && m.steps < m.maxSteps);
+  const due = missions.filter(m => m.status === 'active' && m.steps < m.maxSteps && Date.now() - m.lastStep >= m.intervalMs).sort((a,b) => a.lastStep - b.lastStep)[0];
   if (!due) return;
 
   _busy = true;

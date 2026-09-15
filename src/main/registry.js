@@ -23,7 +23,7 @@ async function getRegistry() {
   // research job keeps it fresh. Prefer it over the remote seed when present.
   try {
     const local = store.get('researchedRegistry');
-    if (local && local.reg && Array.isArray(local.reg.models)) {
+    if (local && Date.now() - local.at < CACHE_TTL && local.reg && Array.isArray(local.reg.models)) {
       cachedRegistry = local.reg;
       cacheTime = Date.now();
       return cachedRegistry;
@@ -32,7 +32,7 @@ async function getRegistry() {
 
   // Try remote first
   try {
-    const res = await fetch(REMOTE_REGISTRY_URL);
+    const res = await fetch(REMOTE_REGISTRY_URL, { signal: AbortSignal.timeout(8000) });
     if (res.ok) {
       cachedRegistry = await res.json();
       cacheTime = Date.now();
@@ -94,9 +94,9 @@ function modelsForTier(registry, tier) {
 // Deprecated models are pushed to the bottom. Used by the router to pick the
 // best chat model by QUALITY, not by size (which used to resurrect 65GB scout).
 function qualityRank(registry, modelName) {
-  const base = String(modelName || '').split(':')[0];
+  const base = require('./model-id').normalize(modelName);
   const models = registry?.models || [];
-  const idx = models.findIndex((m) => String(m.model).split(':')[0] === base);
+  const idx = models.findIndex((m) => require('./model-id').normalize(m.model) === base);
   if (idx < 0) return 9999;                       // unknown → unranked
   if (models[idx].deprecated) return 9000 + idx;  // deprecated → bottom
   return idx;                                      // registry order = quality
@@ -106,12 +106,12 @@ function qualityRank(registry, modelName) {
 // installed — safe to retire to free space. Returns [{model, superseded_by}].
 function retirableModels(registry, installedModels) {
   if (!Array.isArray(registry?.models)) return [];
-  const installedBases = (installedModels || []).map((m) => String(m.name).split(':')[0]);
+  const installedBases = (installedModels || []).map((m) => require('./model-id').normalize(m.name));
   const out = [];
   for (const m of registry.models) {
     if (!m.deprecated || !m.superseded_by) continue;
-    const base = String(m.model).split(':')[0];
-    const replBase = String(m.superseded_by).split(':')[0];
+    const base = require('./model-id').normalize(m.model);
+    const replBase = require('./model-id').normalize(m.superseded_by);
     if (installedBases.includes(base) && installedBases.includes(replBase)) {
       out.push({ model: m.model, superseded_by: m.superseded_by });
     }
@@ -132,8 +132,8 @@ function checkUpgrades(installedModels, registry, tier) {
   if (!Array.isArray(registry?.models)) return [];
   const best = modelsForTier(registry, tier)[0];
   if (!best) return [];
-  const installedBases = installedModels.map((m) => m.name.split(':')[0]);
-  const bestBase = best.model.split(':')[0];
+  const installedBases = installedModels.map((m) => require('./model-id').normalize(m.name));
+  const bestBase = require('./model-id').normalize(best.model);
   const haveBest = installedBases.includes(bestBase);
   if (haveBest) return [];
   return [{

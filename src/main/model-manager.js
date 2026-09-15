@@ -15,7 +15,7 @@
 const OLLAMA = 'http://127.0.0.1:11434';
 const registry = require('./registry');
 
-function base(n) { return String(n || '').split(':')[0]; }
+function base(n) { return require('./model-id').normalize(n); }
 function isCoder(n) { return /coder|deepseek-coder|code-/i.test(String(n || '')); }
 // Models that code well enough alone that we don't keep a second coder resident.
 function isSelfSufficientCoder(n) { return /qwen3|glm-?5|deepseek-v3|gpt-oss/i.test(String(n || '')); }
@@ -100,7 +100,7 @@ async function installedModels() {
     const res = await fetch(`${OLLAMA}/api/tags`);
     if (!res.ok) return [];
     const data = await res.json();
-    return (data.models || []).map((m) => ({ name: m.name, size: m.size || 0 }));
+    return (data.models || []).map((m) => ({ name: m.name, digest: m.digest, size: m.size || 0 }));
   } catch { return []; }
 }
 
@@ -129,7 +129,7 @@ async function deleteModel(name) {
 // Called on startup and whenever the active model changes. Frees memory and,
 // if autoRetire is on, reclaims disk from superseded models. Returns a summary
 // so the app can surface what it did. Never throws.
-async function manage(activeModel, { autoRetire = true, lean = false } = {}) {
+async function manage(activeModel, { autoRetire = false, lean = false } = {}) {
   const summary = { active: activeModel, evicted: [], retired: [], freedGB: 0 };
   if (!activeModel) return summary;
   try {
@@ -153,23 +153,27 @@ async function manage(activeModel, { autoRetire = true, lean = false } = {}) {
       freshResident = await residentModels();
     }
     const activeInstalled = installed.some((m) => base(m.name) === base(activeModel));
+    const qualified = (require('./store').get('modelQualifications') || {})[base(activeModel)];
+    const activeHealthy = activeInstalled && qualified?.ok && qualified.digest === installed.find(m => base(m.name) === base(activeModel))?.digest && freshResident.some(m => base(m.name) === base(activeModel));
+    const managed = require('./store').get('managedModels') || [];
+    const canRetire = name => base(name) !== base(require('./store').get('previousActiveModel')) && managed.includes(name) && !((require('./store').get('pinnedModels') || []).includes(name));
 
     // 2) Reclaim disk. LEAN mode (default) keeps only active + coder and retires
     //    everything else. Otherwise retire only registry-deprecated models.
     //    Safety: lean only runs if the active model is actually installed — never
     //    strip the box down around a missing/broken active model.
-    if (lean && activeInstalled) {
+    if (lean && autoRetire && activeHealthy) {
       for (const name of toRetireLean(activeModel, installed, freshResident)) {
         const m = installed.find((x) => base(x.name) === base(name));
-        if (await deleteModel(name)) {
+        if (canRetire(name) && await deleteModel(name)) {
           summary.retired.push(name);
           summary.freedGB += m ? (m.size || 0) / 1e9 : 0;
         }
       }
-    } else if (autoRetire && reg) {
+    } else if (autoRetire && reg && activeHealthy) {
       for (const name of toRetire(reg, installed, freshResident, activeModel)) {
         const m = installed.find((x) => base(x.name) === base(name));
-        if (await deleteModel(name)) {
+        if (canRetire(name) && await deleteModel(name)) {
           summary.retired.push(name);
           summary.freedGB += m ? (m.size || 0) / 1e9 : 0;
         }

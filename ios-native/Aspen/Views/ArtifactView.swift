@@ -143,16 +143,8 @@ enum ArtifactPublisher {
         guard let url = URL(string: "\(base)/publish-artifact") else {
             throw URLError(.badURL)
         }
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.setValue("Bearer \(config.apiKey)", forHTTPHeaderField: "Authorization")
-        req.httpBody = try JSONSerialization.data(withJSONObject: ["html": html])
-
-        let (data, resp) = try await URLSession.shared.data(for: req)
-        guard let http = resp as? HTTPURLResponse, http.statusCode == 200 else {
-            throw URLError(.badServerResponse)
-        }
+        let body = try JSONSerialization.data(withJSONObject: ["html": html])
+        let data = try await BoxClient.secureData(config, path: "/publish-artifact", method: "POST", body: body)
         guard
             let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any],
             let path = obj["path"] as? String

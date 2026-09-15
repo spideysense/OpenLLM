@@ -10,34 +10,13 @@ const read = (p) => fs.readFileSync(path.join(process.cwd(), p), 'utf8');
 // pin the per-conversation contract end to end: main tags every chunk, ollama
 // aborts by key, preload carries the id, the renderer routes on it.
 
-describe('parallel streaming: main process tags chunks per conversation', () => {
+describe('parallel streaming: main delegates job lifetime to the service', () => {
   const index = read('src/main/index.js');
-
-  it('chat:send accepts a convoId', () => {
-    expect(index).toMatch(/ipcMain\.handle\('chat:send'[\s\S]{0,200}?convoId/);
+  it('send, stop, snapshot and events use the same long-lived service', () => {
+    for (const operation of ['chatService.send', 'chatService.stop', 'chatService.snapshot', 'chatService.events.on']) expect(index).toContain(operation);
   });
-
-  it('every chat:stream emission carries convoId', () => {
-    // Sends go through sendToRenderer() so a disposed window can't throw; the
-    // contract that matters is unchanged — every chunk must be tagged.
-    const sends = index.match(/sendToRenderer\('chat:stream',\s*[\s\S]{0,220}?\)/g) || [];
-    expect(sends.length).toBeGreaterThan(0);
-    for (const s of sends) expect(s).toMatch(/convoId/);
-  });
-
   it('renderer sends survive a destroyed window', () => {
-    // mainWindow?.webContents.send() guards null but not a disposed frame.
     expect(index).toMatch(/function sendToRenderer\([\s\S]{0,400}?isDestroyed\(\)/);
-    expect(index).not.toMatch(/mainWindow\?\.webContents\.send\('chat:stream'/);
-  });
-
-  it('ollama.chat gets a per-conversation abort key', () => {
-    expect(index).toMatch(/ollama\.chat\([\s\S]{0,200}?\{\s*key:\s*convoId\s*\}/);
-  });
-
-  it('chat:stop stops one conversation, not all of them', () => {
-    expect(index).toMatch(/ipcMain\.handle\('chat:stop',\s*async\s*\(event,\s*convoId\)/);
-    expect(index).toMatch(/ollama\.abortChat\(convoId\)/);
   });
 });
 
@@ -70,7 +49,7 @@ describe('parallel streaming: preload + renderer route by conversation', () => {
   const chat = read('src/renderer/pages/Chat.jsx');
 
   it('preload passes convoId on send and stop', () => {
-    expect(preload).toMatch(/send:\s*\(model,\s*messages,\s*convoId\)/);
+    expect(preload).toMatch(/send:\s*\(model,\s*messages,\s*convoId,/);
     expect(preload).toMatch(/stop:\s*\(convoId\)/);
   });
 

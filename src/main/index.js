@@ -26,6 +26,12 @@ const conversations = require('./conversations');
 const isDev = !app.isPackaged;
 let mainWindow = null;
 let tray = null;
+const ownsInstance = app.requestSingleInstanceLock?.() ?? true;
+if (!ownsInstance) app.quit();
+app.on('second-instance', () => {
+  if (mainWindow && !mainWindow.isDestroyed()) { mainWindow.show(); mainWindow.focus(); }
+  else if (app.isReady()) createWindow();
+});
 
 // ═══════════════════════════════════════════════════
 // Window Management
@@ -49,10 +55,17 @@ function createWindow() {
       preload: path.join(__dirname, '..', 'preload', 'index.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false,
+      sandbox: true,
     },
   });
 
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (/^https?:\/\//i.test(url)) shell.openExternal(url);
+    return { action: 'deny' };
+  });
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    if (url !== mainWindow.webContents.getURL()) { event.preventDefault(); if (/^https?:\/\//i.test(url)) shell.openExternal(url); }
+  });
   // Load the live Vite dev server only for actual development. ASPEN_PROD=1 runs
   // the BUILT renderer from disk even when unpackaged — used for the appliance,
   // so it never depends on a dev server being up.
@@ -83,10 +96,10 @@ function createWindow() {
   // Grant microphone/audio permissions for voice input (Web Speech API)
   mainWindow.webContents.session.setPermissionRequestHandler((webContents, permission, callback) => {
     const allowed = ['media', 'microphone', 'audioCapture'];
-    callback(allowed.includes(permission));
+    callback(webContents === mainWindow?.webContents && allowed.includes(permission));
   });
   mainWindow.webContents.session.setPermissionCheckHandler((webContents, permission) => {
-    return ['media', 'microphone', 'audioCapture'].includes(permission);
+    return webContents === mainWindow?.webContents && ['media', 'microphone', 'audioCapture'].includes(permission);
   });
 
   mainWindow.once('ready-to-show', () => {
@@ -104,7 +117,7 @@ function createTray() {
   const contextMenu = Menu.buildFromTemplate([
     { label: '🐻 Aspen', enabled: false },
     { type: 'separator' },
-    { label: 'Open Aspen', click: () => mainWindow?.show() || createWindow() },
+    { label: 'Open Aspen', click: () => mainWindow ? mainWindow.show() : createWindow() },
     { type: 'separator' },
     { label: 'Model: Loading...', id: 'model-status', enabled: false },
     { label: 'API: Loading...', id: 'api-status', enabled: false },
@@ -120,6 +133,9 @@ function createTray() {
 // ═══════════════════════════════════════════════════
 
 app.whenReady().then(async () => {
+  if (!ownsInstance) return;
+  require('./backup').recover();
+  require('./durable-json').migrateKnownRecords();
   // ── Local activation streak ────────────────────────────────────────────────
   // Counts the days Aspen was used, entirely in the local store — the private
   // counterpart to analytics. Never transmitted; surfaced in the sidebar as
@@ -136,14 +152,6 @@ app.whenReady().then(async () => {
     }
   } catch {}
 
-  // Request mic access upfront so macOS grants it once permanently
-  if (process.platform === 'darwin' && systemPreferences.getMediaAccessStatus('microphone') !== 'granted') {
-    await systemPreferences.askForMediaAccess('microphone').catch(() => {});
-  }
-
-  // Hot update check BEFORE window — correct renderer loads immediately, no flicker
-  await hotUpdater.checkForUpdate();
-
   createWindow();
   createTray();
 
@@ -154,13 +162,6 @@ app.whenReady().then(async () => {
     const defaultKey = apikeys.createKey('Default', { owner: true });
     console.log('[Security] Auto-generated a default API key (stored locally).');
     store.set('defaultKeyGenerated', true);
-  } else {
-    // Migration: mark existing Default keys as owner (added in v0.4.21)
-    let migrated = false;
-    for (const key of existingKeys) {
-      if (key.label === 'Default' && !key.owner) { key.owner = true; migrated = true; }
-    }
-    if (migrated) { store.set('apikeys', existingKeys); console.log('[Security] Migrated Default key to owner'); }
   }
 
   // Start Ollama — push status to renderer once ready, then poll every 5s
@@ -235,7 +236,7 @@ app.whenReady().then(async () => {
             const m = store.get('activeModel');
             if (!m) return '';
             let out = '';
-            try { await ollama.chat(m, [{ role: 'user', content: prompt }], (c) => { out += c; }); } catch {}
+            try { await ollama.chat(m, [{ role: 'user', content: prompt }], (c) => { out += c.content || ''; }); } catch {}
             return out;
           },
           getRegistry: () => registry.getRegistry(),
@@ -244,13 +245,8 @@ app.whenReady().then(async () => {
           pullModel: (name) => new Promise((res, rej) => {
             models.pullModel(name, () => {}).then((r) => (r && r.success !== false ? res(r) : rej(new Error(r?.error || 'pull failed')))).catch(rej);
           }),
-          smokeTest: async (name) => {
-            // Must answer AND make a tool call to count as working.
-            let reply = '';
-            try { await ollama.chat(name, [{ role: 'user', content: 'Reply with the single word: ready' }], (c) => { reply += c; }); } catch { return false; }
-            return /ready/i.test(reply);
-          },
-          setActive: async (name) => { store.set('activeModel', name); },
+          smokeTest: async name => { const result = await require('./model-qualification').qualify(name); return result.ok && result.tools; },
+          setActive: async (name) => { store.set('previousActiveModel', store.get('activeModel')); store.set('activeModel', name); sendToRenderer('models:activeChanged', name); },
           manager,
         });
 
@@ -302,16 +298,18 @@ app.whenReady().then(async () => {
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
+}).catch(error => {
+  require('electron').dialog.showErrorBox('Aspen could not start', `Your data files have been preserved. ${error.message}`);
+  app.quit();
 });
 
 app.on('window-all-closed', () => {
   // Keep running in tray on macOS
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
+  // The household service stays available until Quit is chosen explicitly.
 });
 
 app.on('before-quit', async () => {
+  chatService.stopAll();
   tunnel.stop();
   gateway.stop();
 });
@@ -431,7 +429,10 @@ ipcMain.handle('models:list', async () => {
 });
 
 ipcMain.handle('models:warm', async (event, modelName) => {
-  try { return await ollama.warmModelAndWait(modelName); }
+  try {
+    const checked = await require('./model-qualification').qualify(modelName);
+    return { success: checked.ok, error: checked.error };
+  }
   catch (e) { return { success: false, error: String((e && e.message) || e) }; }
 });
 
@@ -489,7 +490,7 @@ ipcMain.handle('models:getRunning', async () => {
 ipcMain.handle('models:recommend', async () => {
   const tier = system.getHardwareTier();
   const reg = await registry.getRegistry();
-  return models.getRecommendation(tier, reg);
+  return models.getRecommendation(tier, reg, system.getRuntimeBudget());
 });
 
 // ═══════════════════════════════════════════════════
@@ -526,92 +527,11 @@ function sendToRenderer(channel, payload) {
   } catch { /* window went away mid-send */ }
 }
 
-ipcMain.handle('chat:send', async (event, { model, messages, convoId = 'default' }) => {
-  // Every chunk carries its convoId so the renderer routes it to the chat that
-  // asked for it — that's what lets several chats stream at the same time.
-  // Prepend system prompt so the model knows it's running locally
-  const now = new Date();
-  const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-  const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
-
-  // World model — prepend known facts about the user
-  const wmPrefix = worldModel.getSystemPrefix();
-
-  // Custom instructions from Settings
-  const customInstructions = store.get('customInstructions') || '';
-  const ciPrefix = customInstructions ? `The user has set these custom instructions — follow them:\n${customInstructions}\n\n` : '';
-
-  const SYSTEM_PROMPT = {
-    role: 'system',
-    content: `${wmPrefix}${ciPrefix}You are a helpful AI assistant running locally inside Aspen on the user's own computer. All processing is 100% on this machine — nothing leaves the device. The current date is ${dateStr} and the time is ${timeStr}. When asked to build a web page or website, always produce ONE self-contained HTML file with all CSS inside a <style> tag and all JavaScript inside a <script> tag — never split into separate files and never use external <link rel="stylesheet"> or external script src references, so it previews correctly. Use a code fence labeled html. Be helpful, friendly, and concise.`,
-  };
-
-  // Only prepend if there's no existing system message
-  const hasSystem = messages.some((m) => m.role === 'system');
-  const fullMessages = hasSystem ? messages : [SYSTEM_PROMPT, ...messages];
-
-  // Route per-message: only use the (non-streaming) agent when the message
-  // actually needs a tool. Normal chat streams directly from Ollama token-by-
-  // token, so it feels instant instead of hanging until the full answer is ready.
-  const lastUser = [...fullMessages].reverse().find((m) => m.role === 'user');
-  const userText = lastUser?.content || '';
-
-  // After response, extract facts in the background (non-blocking).
-  // Only run every 3rd exchange to avoid hammering Ollama, and wait 3s so it
-  // never competes with the user's next message. Uses a small model (see
-  // world-model.js pickExtractionModel) so even when it runs it's fast.
-  const scheduleExtraction = () => {
-    const total = (store.get('totalExchanges') || 0) + 1;
-    store.set('totalExchanges', total);
-    if (total % 3 !== 0) return; // only every 3rd message
-    setTimeout(() => {
-      worldModel.extractFacts(model, fullMessages).catch(() => {});
-    }, 3000);
-  };
-
-  if (agent.isEnabled()) {
-    try {
-      // Forward live reasoning-trail events (status + each tool call) to the
-      // renderer so the desktop shows the same accumulating trail as web/mobile.
-      // These carry aspen_status/aspen_tool and NO content, so the renderer must
-      // not append them to the answer buffer.
-      const onEvent = (e) => {
-        const statusText = e.type === 'tool_call' ? (e.statusText || e.name) : (e.text || '');
-        if (!statusText) return;
-        sendToRenderer('chat:stream', {
-          convoId,
-          aspen_status: statusText,
-          aspen_tool: e.name || null,
-          content: '',
-          done: false,
-        });
-      };
-      const content = await agent.runAgentValidated({ model, messages: fullMessages, onEvent });
-      sendToRenderer('chat:stream', { convoId, content: content || '', done: false });
-      sendToRenderer('chat:stream', { convoId, content: '', done: true });
-      // Extract facts from the completed conversation
-      scheduleExtraction();
-      return { content: content || '' };
-    } catch (e) {
-      const msg = `⚠️ ${e.message}`;
-      sendToRenderer('chat:stream', { convoId, content: msg, done: false });
-      sendToRenderer('chat:stream', { convoId, content: '', done: true });
-      return { content: msg };
-    }
-  }
-
-  const result = await ollama.chat(model, fullMessages, (chunk) => {
-    sendToRenderer('chat:stream', { ...chunk, convoId });
-  }, { key: convoId });
-  // Extract facts after streaming completes
-  scheduleExtraction();
-  return result;
-});
-
-ipcMain.handle('chat:stop', async (event, convoId) => {
-  // Stop just this conversation; any other chat keeps streaming.
-  return ollama.abortChat(convoId);
-});
+const chatService = require('./chat-service');
+chatService.events.on('stream', chunk => sendToRenderer('chat:stream', chunk));
+ipcMain.handle('chat:send', async (_event, args) => chatService.send(args));
+ipcMain.handle('chat:stop', async (_event, id) => chatService.stop(id));
+ipcMain.handle('chat:snapshot', async () => chatService.snapshot());
 
 // ═══════════════════════════════════════════════════
 // IPC Handlers — API Gateway
@@ -634,7 +554,7 @@ ipcMain.handle('apikeys:list', async () => {
 });
 
 ipcMain.handle('apikeys:create', async (event, label, opts) => {
-  return apikeys.createKey(label, { owner: !!(opts && opts.owner) });
+  return apikeys.createKey(label, { owner: opts?.owner === true, memory: opts?.memory === true });
 });
 
 ipcMain.handle('apikeys:revoke', async (event, keyId) => {
@@ -686,9 +606,11 @@ ipcMain.handle('registry:dismissUpgrade', async (event, modelId) => {
 const STORE_ALLOWLIST = new Set([
   'onboarded', 'activeModel', 'totalExchanges', 'theme', 'windowBounds', 'worldModel',
   'computerUseOnboarded', 'customInstructions', 'dismissedUpgrades',
+  'cloudMode', 'cloudKeys', 'modelAutonomy', 'pendingPrompt', 'leanMode', 'autoRetireModels',
 ]);
 
 ipcMain.handle('store:get', async (event, key) => {
+  if (!STORE_ALLOWLIST.has(key) && !['tunnelUrl', 'privacyStreak', 'activationStreak', 'lastActiveDate'].includes(key)) throw new Error('Setting is not readable');
   return store.get(key);
 });
 
@@ -711,13 +633,13 @@ ipcMain.handle('missions:guide', async (event, { id, text } = {}) => {
 
 ipcMain.handle('store:set', async (event, key, value) => {
   if (!STORE_ALLOWLIST.has(key)) {
-    console.warn('[Security] Blocked store:set for non-allowlisted key:', key);
-    return false;
+    throw new Error('Setting is not writable');
   }
+  require('./settings-schema').validate(key, value);
   const result = store.set(key, value);
   // When the user switches models, warm the new one immediately so the first
   // message on it isn't a cold load (the startup warm-up only covered boot).
-  if (key === 'activeModel' && value) { try { ollama.warmModel(value); } catch {} }
+
   return result;
 });
 
@@ -750,14 +672,18 @@ ipcMain.handle('conversations:load', async () => {
 });
 
 ipcMain.handle('conversations:save', async (event, convos) => {
-  return conversations.save(convos);
+  const current = conversations.load();
+  const merged = convos.map(c => { const saved = current.find(s => s.id === c.id); const missing = (saved?.messages || []).filter(m => m.requestId && !c.messages.some(x => x.requestId === m.requestId)); return { ...c, messages: [...c.messages, ...missing] }; });
+  return conversations.save(merged);
 });
 
 ipcMain.handle('conversations:delete', async (event, id) => {
+  chatService.forget(id);
   return conversations.deleteConversation(id);
 });
 
 ipcMain.handle('conversations:clear', async () => {
+  chatService.forgetAll();
   return conversations.clear();
 });
 
@@ -837,3 +763,31 @@ const secretsStore = require('./secrets');
 ipcMain.handle('secrets:set', async (_e, { name, value }) => secretsStore.setSecret(name, value));
 ipcMain.handle('secrets:list', async () => secretsStore.listSecretNames());
 ipcMain.handle('secrets:delete', async (_e, { name }) => secretsStore.deleteSecret(name));
+
+ipcMain.handle('apikeys:rotate', async (_e, id) => apikeys.rotateKey(id));
+
+ipcMain.handle('artifacts:publish', async (_event, payload) => {
+  const key = apikeys.listKeys().find(k => k.owner);
+  if (!key) throw new Error('An owner key is required');
+  const port = gateway.getPort();
+  const response = await fetch(`http://127.0.0.1:${port}/publish-artifact`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key.secret}` }, body: JSON.stringify(payload) });
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.error || 'Publishing failed');
+  const base = (tunnel.getPublicUrl() || `http://127.0.0.1:${port}`).replace(/\/v1\/?$/, '').replace(/\/+$/, '');
+  return { ...result, url: base + result.path };
+});
+
+ipcMain.handle('backup:export', async (_event, password) => {
+  const encrypted = await require('./backup').exportBackup(password);
+  const result = await require('electron').dialog.showSaveDialog(mainWindow, { defaultPath: 'Aspen-backup.aspen', filters: [{ name: 'Aspen encrypted backup', extensions: ['aspen'] }] });
+  if (result.canceled) return { canceled: true };
+  require('./durable-json').atomicWrite(result.filePath, encrypted); return { success: true };
+});
+ipcMain.handle('backup:restore', async (_event, password) => {
+  if (require('./foreground').isBusy() || require('./always-on').load().some(m => m.status === 'active')) throw new Error('Finish active work and wait a moment before restoring.');
+  const result = await require('electron').dialog.showOpenDialog(mainWindow, { properties: ['openFile'], filters: [{ name: 'Aspen encrypted backup', extensions: ['aspen'] }] });
+  if (result.canceled) return { canceled: true };
+  const raw = require('fs').readFileSync(result.filePaths[0], 'utf8');
+  await require('./backup').importBackup(raw, password); app.relaunch(); app.exit(0); return { success: true };
+});
+ipcMain.handle('storage:status', async () => ({ encrypted: require('./durable-json').encrypted() }));

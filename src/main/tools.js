@@ -687,13 +687,14 @@ async function publishApp({ html, name } = {}) {
     }
   } catch { /* validation must never block a good publish */ }
   try {
-    const http = require('http');
+    const http = require('./local-http');
+    const port = require('./gateway').getPort();
     let key = '';
     try { key = (require('./apikeys').listKeys().find((k) => k.owner) || {}).secret || ''; } catch {}
     const body = JSON.stringify({ html, name: name || '' });
     const res = await new Promise((resolve) => {
       const rq = http.request(
-        { hostname: '127.0.0.1', port: 4000, path: '/publish-artifact', method: 'POST',
+        { hostname: '127.0.0.1', port, path: '/publish-artifact', method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body), ...(key ? { Authorization: `Bearer ${key}` } : {}) } },
         (r) => { let d = ''; r.on('data', (c) => (d += c)); r.on('end', () => resolve({ status: r.statusCode, body: d })); }
       );
@@ -705,7 +706,7 @@ async function publishApp({ html, name } = {}) {
       let base = '';
       try { base = require('./tunnel').getPublicUrl() || ''; } catch {}
       base = String(base).replace(/\/v1\/?$/, '').replace(/\/+$/, '');
-      const full = base ? base + p : `http://localhost:4000${p}`;
+      const full = base ? base + p : `http://localhost:${port}${p}`;
       return `Published and live now. Open it here: ${full}\nThat is the full, clickable link — it opens the app served from this machine through the user's own Aspen. Give the user exactly this URL.`;
     }
     if (res.status === 401) return 'Publishing needs an owner key configured on this Aspen.';
@@ -716,24 +717,27 @@ async function publishApp({ html, name } = {}) {
 }
 
 function runCommand({ command, cwd }) {
-  if (!command || typeof command !== 'string') return 'Error: command is required';
-  const workDir = cwd || os.homedir();
-  try {
-    const output = execSync(command, {
-      cwd: workDir,
-      timeout: 60000,         // 60s max (git push can be slow)
-      maxBuffer: 1024 * 512,  // 512KB
-      encoding: 'utf8',
-      shell: true,
-      env: { ...process.env, HOME: os.homedir(), PATH: process.env.PATH },
-    });
-    const trimmed = output.length > 50000 ? output.slice(0, 50000) + '\n... (truncated)' : output;
-    return trimmed || '(no output)';
-  } catch (e) {
-    // Include both stdout and stderr from failed commands
-    const out = (e.stdout || '') + (e.stderr || '');
-    return `Exit code ${e.status || 1}:\n${out || e.message}`.slice(0, 50000);
-  }
+  if (!command || typeof command !== 'string') return Promise.resolve('Error: command is required');
+  const signal = require('./execution-context').signal();
+  signal?.throwIfAborted();
+  return new Promise((resolve, reject) => {
+    const child = require('child_process').spawn(command, { cwd: cwd || os.homedir(), shell: true,
+      detached: process.platform !== 'win32', env: { ...process.env } });
+    let output = ''; let stopped = false;
+    const stop = () => {
+      if (stopped) return; stopped = true;
+      if (process.platform === 'win32') require('child_process').spawn('taskkill', ['/pid', String(child.pid), '/T', '/F']);
+      else { try { process.kill(-child.pid, 'SIGKILL'); } catch { child.kill('SIGKILL'); } }
+    };
+    const timer = setTimeout(stop, 60000);
+    signal?.addEventListener('abort', stop, { once: true });
+    if (signal?.aborted) stop();
+    const collect = data => { if (output.length < 50000) output += data.toString().slice(0, 50000 - output.length); };
+    child.stdout.on('data', collect); child.stderr.on('data', collect);
+    const cleanup = () => { clearTimeout(timer); signal?.removeEventListener('abort', stop); };
+    child.on('error', e => { cleanup(); reject(e); });
+    child.on('close', code => { cleanup(); if (signal?.aborted) reject(signal.reason); else resolve(stopped ? 'Command timed out. ' + output : code ? `Exit code ${code}:\n${output}` : output || '(no output)'); });
+  });
 }
 
 // ═══════════════════════════════════════════════════
@@ -741,7 +745,8 @@ function runCommand({ command, cwd }) {
 // ═══════════════════════════════════════════════════
 const fs = require('fs');
 
-function runDownloadFile({ url, filename, dir }) {
+function runDownloadFile({ url, filename, dir, redirects = 0 }) {
+  if (redirects > 5) return Promise.resolve('Error: too many redirects');
   if (!url || typeof url !== 'string') return Promise.resolve('Error: url is required');
   let u = url.trim();
   if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
@@ -762,11 +767,11 @@ function runDownloadFile({ url, filename, dir }) {
   return new Promise((resolve) => {
     const lib = parsed.protocol === 'http:' ? http : https;
     const MAX = 50 * 1024 * 1024; // 50MB cap
-    const req = lib.get(u, { timeout: 60000, headers: { 'User-Agent': 'Aspen/1.0' } }, (res) => {
+    const req = lib.get(u, { timeout: 60000, lookup: safeLookup, signal: require('./execution-context').signal(), headers: { 'User-Agent': 'Aspen/1.0' } }, (res) => {
       // Follow one redirect.
       if ([301, 302, 303, 307, 308].includes(res.statusCode) && res.headers.location) {
         res.resume();
-        return resolve(runDownloadFile({ url: new URL(res.headers.location, u).toString(), filename: name, dir: baseDir }));
+        return resolve(runDownloadFile({ url: new URL(res.headers.location, u).toString(), filename: name, dir: baseDir, redirects: redirects + 1 }));
       }
       if (res.statusCode !== 200) { res.resume(); return resolve(`Error: HTTP ${res.statusCode} downloading ${u}`); }
       let bytes = 0; let aborted = false;
@@ -1131,6 +1136,7 @@ function getToolDefinitions(enabledNames) {
 
 // Execute a tool call by name. Always returns a string (never throws).
 async function executeTool(name, args) {
+  require('./execution-context').check();
   // Connector tools are namespaced "<id>__<tool>".
   if (name.includes('__') && mcpClient) {
     try { return await runMcpTool(name, args); }

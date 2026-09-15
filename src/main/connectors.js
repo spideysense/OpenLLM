@@ -68,7 +68,7 @@ function hasToken(id) {
 }
 
 function saveToken(id, token) {
-  if (!safeStorage.isEncryptionAvailable()) {
+  if (!safeStorage.isEncryptionAvailable() || safeStorage.getSelectedStorageBackend?.() === 'basic_text') {
     throw new Error('Secure storage is unavailable on this system, so Aspen will not save your token in plaintext. You can still connect by entering the token each session.');
   }
   const all = store.get(TOKEN_STORE_KEY) || {};

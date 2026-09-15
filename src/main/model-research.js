@@ -18,7 +18,7 @@
 //   'full'     — rankings + auto-pull the new best + smoke-test + swap + retire old
 // ─────────────────────────────────────────────────────────────────────────────
 
-function baseName(n) { return String(n || '').split(':')[0]; }
+function baseName(n) { return require('./model-id').normalize(n); }
 function isCoder(n) { return /coder|deepseek-coder|code-/i.test(String(n || '')); }
 
 // ── pure: is a researched candidate safe to trust? ───────────────────────────
@@ -132,9 +132,9 @@ function parseCandidates(raw) {
 // ── best-effort: does the model tag actually resolve on the Ollama library? ───
 async function isResolvable(model) {
   try {
-    const res = await fetch(`https://ollama.com/library/${baseName(model)}`, { method: 'GET' });
+    const res = await fetch(`https://ollama.com/library/${model}`, { method: 'GET', signal: AbortSignal.timeout(10000) });
     return res.ok;
-  } catch { return true; } // network blocked? don't block on this signal alone
+  } catch { return false; } // network blocked? don't block on this signal alone
 }
 
 // ── orchestration ────────────────────────────────────────────────────────────
@@ -154,7 +154,9 @@ async function runRefresh(autonomy, deps) {
         summary.skipped.push({ model: c.model, reason: 'tag did not resolve on Ollama library' });
         continue;
       }
-      verified.push(c);
+      const trusted = (deps.trustedCatalog || require('../../registry/models.json'))?.models?.find(m => baseName(m.model) === baseName(c.model) && !m.deprecated);
+      if (!trusted) { summary.skipped.push({ model: c.model, reason: 'candidate needs independent catalog qualification' }); continue; }
+      verified.push({ ...c, approx_gb: trusted.download_gb, min_tier: trusted.min_tier });
     }
     if (!verified.length) { summary.errors.push('no candidate passed verification'); return summary; }
 
@@ -169,11 +171,10 @@ async function runRefresh(autonomy, deps) {
     // 2) Full autonomy: if the new best isn't installed, pull → smoke-test → swap.
     const best = verified[0].model;
     const installedBases = new Set((deps.installed || []).map((m) => baseName(m.name)));
-    if (installedBases.has(baseName(best))) { summary.swappedTo = best; await deps.setActive(best); return summary; }
+    const alreadyInstalled = installedBases.has(baseName(best));
 
     try {
-      await deps.pullModel(best);
-      summary.pulled = best;
+      if (!alreadyInstalled) { await deps.pullModel(best); summary.pulled = best; if (deps.store) deps.store.set('managedModels', [...new Set([...(deps.store.get('managedModels') || []), best])]); }
     } catch (e) { summary.errors.push(`pull failed: ${e.message}`); return summary; }
 
     // Prove it actually works (chat + a tool call) BEFORE making it the default.
@@ -187,7 +188,7 @@ async function runRefresh(autonomy, deps) {
     // Verified good → promote, and let the manager retire the now-superseded old one.
     await deps.setActive(best);
     summary.swappedTo = best;
-    try { if (deps.manager) await deps.manager.manage(best, { autoRetire: true }); } catch {}
+    try { if (deps.manager) await deps.manager.manage(best, { autoRetire: deps.store?.get('autoRetireModels') === true }); } catch {}
   } catch (e) {
     summary.errors.push(e.message);
   }

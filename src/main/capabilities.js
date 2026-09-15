@@ -26,7 +26,7 @@ const THRESHOLDS = {
 
 // Name-based heuristic, used ONLY when /api/show returns no capabilities array.
 const TOOL_FAMILIES = ['llama3', 'llama4', 'qwen2', 'qwen2.5', 'qwen3', 'mistral', 'mixtral', 'gemma3', 'gemma4', 'phi4', 'command-r', 'hermes', 'firefunction', 'functionary', 'smollm2'];
-const VISION_FAMILIES = ['llava', 'bakllava', 'moondream', 'llama3.2-vision', 'llama4', 'gemma3', 'gemma4', 'qwen2-vl', 'qwen2.5-vl', 'minicpm-v'];
+const VISION_FAMILIES = ['llava', 'bakllava', 'moondream', 'llama3.2-vision', 'llama4', 'gemma3', 'gemma4', 'qwen2-vl', 'qwen2.5-vl', 'minicpm-v', 'qwen3-vl', 'qwen3.5', 'qwen3.6'];
 
 // Parse a parameter count (in billions) from /api/show details or the model tag.
 function parseSizeB(paramSize, modelName) {

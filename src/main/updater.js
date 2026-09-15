@@ -4,24 +4,27 @@
  * Downloads updates silently in the background.
  * Shows a quiet sidebar notification when ready.
  * User clicks to restart when THEY want. No countdowns. No forced restarts.
- * Also installs silently on next quit.
+ * Installation is explicit; unsigned platforms use the manual release path.
  */
 const { autoUpdater } = require('electron-updater');
 const { app } = require('electron');
 
 let mainWindow = null;
 let updateReady = false;
+// Current Windows/Linux releases are unsigned. Use manual release installation
+// until those pipelines provide authenticated artifacts and publisher verification.
+const automaticUpdatesSupported = process.platform === 'darwin';
 
 function init(win) {
   mainWindow = win;
 
-  if (!app.isPackaged) {
-    console.log('[Updater] Skipping — dev mode');
+  if (!app.isPackaged || !automaticUpdatesSupported) {
+    console.log('[Updater] Automatic updates unavailable for this build.');
     return;
   }
 
   autoUpdater.autoDownload = true;
-  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.autoInstallOnAppQuit = false;
   autoUpdater.allowPrerelease = false;
 
   autoUpdater.on('checking-for-update', () => {
@@ -58,7 +61,7 @@ function init(win) {
 }
 
 function checkForUpdates() {
-  if (!app.isPackaged) return;
+  if (!app.isPackaged || !automaticUpdatesSupported) return;
   autoUpdater.checkForUpdates().catch((err) => {
     console.error('[Updater] Check failed:', err.message);
   });
@@ -72,6 +75,8 @@ function installUpdate() {
     checkForUpdates();
     return { ok: false, reason: 'not-downloaded' };
   }
+  if (!automaticUpdatesSupported) return { ok: false, reason: 'manual-install-required' };
+  if (require('./foreground').isBusy()) return { ok: false, reason: 'active-work', message: 'Finish active work before restarting.' };
   try {
     // isSilent=false (show the installer), isForceRunAfter=true (relaunch).
     autoUpdater.quitAndInstall(false, true);
@@ -95,7 +100,7 @@ function openReleasesPage() {
 }
 
 function getStatus() {
-  return { updateReady, currentVersion: app.getVersion() };
+  return { updateReady, automaticUpdatesSupported, currentVersion: app.getVersion() };
 }
 
 function notify(status, data = {}) {

@@ -2,7 +2,9 @@
 //
 // Aspen's promise is that personal data stays on the box. When a request is
 // (explicitly) boosted to a cloud model, this is the chokepoint every message
-// passes through first: it redacts PII/secrets and trims context to the minimum
+// passes through first: it redacts recognizable patterns and trims context.
+// This is best-effort hygiene, not a guarantee that personal details are removed.
+// The user must explicitly choose cloud disclosure. Context is limited to turns
 // needed to answer. Pure + synchronous so it's unit-testable and can't leak by
 // being async-skipped. Nothing reaches a cloud provider that didn't go through here.
 

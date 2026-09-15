@@ -35,7 +35,7 @@ final class SpeechRecognizer: ObservableObject {
     func start() {
         stop()
         transcript = ""
-        guard let recognizer, recognizer.isAvailable else { available = false; return }
+        guard let recognizer, recognizer.isAvailable, recognizer.supportsOnDeviceRecognition else { available = false; return }
         do {
             let session = AVAudioSession.sharedInstance()
             try session.setCategory(.playAndRecord, mode: .spokenAudio,
@@ -44,6 +44,7 @@ final class SpeechRecognizer: ObservableObject {
 
             let req = SFSpeechAudioBufferRecognitionRequest()
             req.shouldReportPartialResults = true
+            req.requiresOnDeviceRecognition = true
             request = req
 
             let input = audioEngine.inputNode

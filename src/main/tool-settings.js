@@ -1,6 +1,6 @@
 /**
- * Tool settings. Per Aspen's principle, ALL tools are ON by default.
- * The user can disable individual tools in Settings; nothing is forced off.
+ * Tool settings. Computer control requires explicit opt-in. Other built-ins
+ * follow user choices; the dispatch policy separately enforces identity and scope.
  */
 const store = require('./store');
 const { ALL_TOOL_NAMES } = require('./tools');
@@ -9,7 +9,7 @@ const KEY = 'disabledTools'; // we store the DISABLED set, so new tools are on b
 
 function getDisabled() {
   const d = store.get(KEY);
-  return Array.isArray(d) ? d : [];
+  return [...new Set([...(Array.isArray(d) ? d : []), ...(store.get('computerUseEnabled') === true ? [] : ['computer_use'])])];
 }
 
 // Enabled = all known tools minus any the user explicitly disabled.
@@ -19,6 +19,8 @@ function getEnabledToolNames() {
 }
 
 function setToolEnabled(name, enabled) {
+  if (!ALL_TOOL_NAMES.includes(name)) throw new Error('Unknown tool');
+  if (name === 'computer_use') store.set('computerUseEnabled', !!enabled);
   let disabled = getDisabled();
   if (enabled) {
     disabled = disabled.filter((n) => n !== name);

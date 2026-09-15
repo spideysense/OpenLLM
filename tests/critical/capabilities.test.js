@@ -97,8 +97,9 @@ describe('capability gating is wired into both agent paths', () => {
   const preload = fs.readFileSync(path.resolve('src/preload/index.js'), 'utf8');
 
   it('desktop agent filters enabled tools by allowedTools', () => {
-    expect(agent).toMatch(/getProfile\(model\)/);
-    expect(agent).toMatch(/allowedTools\.includes/);
+    expect(agent).toContain("require('./gateway-agent')");
+    expect(gw).toMatch(/getProfile\(model\)/);
+    expect(gw).toContain('policy.filter');
   });
   it('gateway agent forces the fast path for chat-tier and filters tool defs', () => {
     expect(gw).toMatch(/getProfile\(model\)/);

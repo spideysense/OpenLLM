@@ -1,46 +1,22 @@
-// Simple JSON file store for settings, API keys, aliases, conversations
-// Uses electron-store when available, falls back to in-memory for dev
 const path = require('path');
-const fs = require('fs');
 const os = require('os');
-
+const records = require('./durable-json');
 const STORE_PATH = path.join(os.homedir(), '.aspen', 'config.json');
-
-let data = {};
-
-// Load from disk on startup
-try {
-  fs.mkdirSync(path.dirname(STORE_PATH), { recursive: true });
-  if (fs.existsSync(STORE_PATH)) {
-    data = JSON.parse(fs.readFileSync(STORE_PATH, 'utf8'));
+let data;
+function load() {
+  if (data === undefined) {
+    const value = records.read(STORE_PATH, {});
+    if (!value || Array.isArray(value) || typeof value !== 'object') throw new Error('Invalid Aspen configuration; data preserved.');
+    data = value;
   }
-} catch {
-  data = {};
+  return data;
 }
-
-function save() {
-  try {
-    fs.mkdirSync(path.dirname(STORE_PATH), { recursive: true });
-    fs.writeFileSync(STORE_PATH, JSON.stringify(data, null, 2));
-  } catch (e) {
-    console.error('[Aspen] Failed to save store:', e.message);
-  }
-}
-
-function get(key) {
-  if (key === undefined) return { ...data };
-  return data[key];
-}
-
+function get(key) { const value = key === undefined ? load() : load()[key]; return value === undefined ? undefined : structuredClone(value); }
 function set(key, value) {
-  data[key] = value;
-  save();
-  return value;
+  if (typeof key !== 'string' || ['__proto__', 'constructor', 'prototype'].includes(key)) throw new Error('Invalid setting');
+  const next = { ...load(), [key]: structuredClone(value) };
+  records.write(STORE_PATH, next); data = next; return value;
 }
-
-function remove(key) {
-  delete data[key];
-  save();
-}
-
-module.exports = { get, set, remove };
+function remove(key) { const next = { ...load() }; delete next[key]; records.write(STORE_PATH, next); data = next; }
+function replace(value) { records.write(STORE_PATH, value); data = structuredClone(value); }
+module.exports = { get, set, remove, replace };

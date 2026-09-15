@@ -32,6 +32,16 @@ const SECTIONS = [
 ];
 
 export default function Settings() {
+  const [storageStatus, setStorageStatus] = useState(null);
+  useEffect(() => { window.aspen?.backup?.status?.().then(setStorageStatus).catch(() => {}); }, []);
+  const [backupPassword, setBackupPassword] = useState('');
+  const [backupStatus, setBackupStatus] = useState('');
+  async function backupAction(action) {
+    if (action === 'restore' && !confirm('Replace Aspen data with this backup and restart? Paired devices will need to reconnect, and missions and Cloud Boost will be stopped.')) return;
+    setBackupStatus('Working…');
+    try { const result = await window.aspen.backup[action](backupPassword); setBackupStatus(result.canceled ? 'Canceled' : 'Backup saved. Keep its password somewhere safe.'); setBackupPassword(''); }
+    catch (error) { setBackupStatus(error.message); }
+  }
   const { bridge, systemInfo, hardwareTier, models, activeModel, modelCaps, modelProfile } = useApp();
   const [appVersion, setAppVersion] = useState('...');
   const [showPairQR, setShowPairQR] = useState(false);
@@ -67,9 +77,9 @@ export default function Settings() {
   async function toggleTool(name, enabled) {
     if (!bridge?.tools?.setEnabled) return;
     setToolStates((prev) => prev.map((t) => (t.name === name ? { ...t, enabled } : t)));
-    await bridge.tools.setEnabled(name, enabled);
-    const updated = await bridge.tools.list();
-    setToolStates(updated);
+    try { await bridge.tools.setEnabled(name, enabled); }
+    catch (error) { setBackupStatus(error.message); }
+    finally { setToolStates(await bridge.tools.list()); }
   }
 
   function jump(id) {
@@ -78,6 +88,15 @@ export default function Settings() {
 
   return (
     <div className="settings-scroll">
+      <section className="card" style={{ padding: 16, marginBottom: 16 }}>
+        <h3>Backup and recovery</h3>
+        {storageStatus && <p>{storageStatus.encrypted ? "Local Aspen records are encrypted with your operating system keystore." : "Encrypted local storage is unavailable. Records currently rely on file permissions and your device’s disk protection."}</p>}
+        <p>Your backup is encrypted with this password. You need it to restore on another device.</p>
+        <input aria-label="Backup password" type="password" autoComplete="new-password" placeholder="At least 12 characters" value={backupPassword} onChange={e => setBackupPassword(e.target.value)} />
+        <button disabled={backupPassword.length < 12} onClick={() => backupAction('export')}>Save encrypted backup</button>
+        <button disabled={backupPassword.length < 12} onClick={() => backupAction('restore')}>Restore backup</button>
+        <p role="status">{backupStatus}</p>
+      </section>
       {/* Sticky jump-nav — one long page, anchored sections */}
       <div className="settings-nav">
         <div className="settings-nav-inner">
@@ -118,7 +137,7 @@ export default function Settings() {
           </div>
           <select
             value={modelAutonomy}
-            onChange={(e) => { setModelAutonomy(e.target.value); bridge?.store?.set('modelAutonomy', e.target.value); }}
+            onChange={(e) => { setModelAutonomy(e.target.value); bridge?.store?.set('modelAutonomy', e.target.value).catch(async () => setModelAutonomy(await bridge.store.get('modelAutonomy') || 'rankings')); }}
             style={{ padding: '8px 10px', border: '1.5px solid rgba(0,0,0,.12)', borderRadius: 8, fontSize: 14, background: 'var(--cloud)', color: 'var(--text-dark)' }}
           >
             <option value="off">Off — never change my model</option>
@@ -143,7 +162,7 @@ export default function Settings() {
           </div>
           <select
             value={cloudMode}
-            onChange={(e) => { setCloudMode(e.target.value); bridge?.store?.set('cloudMode', e.target.value); }}
+            onChange={(e) => { setCloudMode(e.target.value); bridge?.store?.set('cloudMode', e.target.value).catch(async () => setCloudMode(await bridge.store.get('cloudMode') || 'off')); }}
             style={{ padding: '8px 10px', border: '1.5px solid rgba(0,0,0,.12)', borderRadius: 8, fontSize: 14, background: 'var(--cloud)', color: 'var(--text-dark)' }}
           >
             <option value="off">Off — never use the cloud (default)</option>
@@ -160,7 +179,7 @@ export default function Settings() {
                   key={k}
                   type="password"
                   value={cloudKeys[k] || ''}
-                  onChange={(e) => { const next = { ...cloudKeys, [k]: e.target.value }; setCloudKeys(next); bridge?.store?.set('cloudKeys', next); }}
+                  onChange={(e) => { const next = { ...cloudKeys, [k]: e.target.value }; setCloudKeys(next); bridge?.store?.set('cloudKeys', next).catch(async () => setCloudKeys(await bridge.store.get('cloudKeys') || {})); }}
                   placeholder={label}
                   autoComplete="off"
                   style={{ width: '100%', padding: '8px 10px', border: '1.5px solid rgba(0,0,0,.12)', borderRadius: 8, fontSize: 13, fontFamily: 'var(--font-mono, monospace)', marginBottom: 6, background: 'var(--cloud)', color: 'var(--text-dark)', boxSizing: 'border-box' }}

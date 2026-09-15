@@ -1,6 +1,8 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('aspen', {
+  backup: { export: password => ipcRenderer.invoke('backup:export', password), restore: password => ipcRenderer.invoke('backup:restore', password), status: () => ipcRenderer.invoke('storage:status') },
+  artifacts: { publish: payload => ipcRenderer.invoke('artifacts:publish', payload) },
   files: {
     extractText: (payload) => ipcRenderer.invoke('files:extractText', payload),
   },
@@ -51,6 +53,7 @@ contextBridge.exposeInMainWorld('aspen', {
   // ── Models ──
   models: {
     list: () => ipcRenderer.invoke('models:list'),
+    onActiveChanged: cb => { const fn = (_e, name) => cb(name); ipcRenderer.on('models:activeChanged', fn); return () => ipcRenderer.removeListener('models:activeChanged', fn); },
     pull: (name) => ipcRenderer.invoke('models:pull', name),
     warm: (name) => ipcRenderer.invoke('models:warm', name),
     delete: (name) => ipcRenderer.invoke('models:delete', name),
@@ -65,8 +68,9 @@ contextBridge.exposeInMainWorld('aspen', {
 
   // ── Chat ──
   chat: {
-    send: (model, messages, convoId) => ipcRenderer.invoke('chat:send', { model, messages, convoId }),
+    send: (model, messages, convoId, options = {}) => ipcRenderer.invoke('chat:send', { model, messages, convoId, boost: options.boost === true }),
     stop: (convoId) => ipcRenderer.invoke('chat:stop', convoId),
+    snapshot: () => ipcRenderer.invoke('chat:snapshot'),
     onStream: (cb) => {
       const handler = (event, data) => cb(data);
       ipcRenderer.on('chat:stream', handler);
@@ -90,6 +94,7 @@ contextBridge.exposeInMainWorld('aspen', {
     list: () => ipcRenderer.invoke('apikeys:list'),
     create: (label, opts) => ipcRenderer.invoke('apikeys:create', label, opts),
     revoke: (id) => ipcRenderer.invoke('apikeys:revoke', id),
+    rotate: (id) => ipcRenderer.invoke('apikeys:rotate', id),
   },
 
   // ── Aliases ──
@@ -114,7 +119,7 @@ contextBridge.exposeInMainWorld('aspen', {
   // ── Store ──
   store: {
     get: (key) => ipcRenderer.invoke('store:get', key),
-    set: (key, value) => ipcRenderer.invoke('store:set', key, value),
+    set: (key, value) => ipcRenderer.invoke('store:set', key, value).catch(error => { window.dispatchEvent(new CustomEvent('aspen:error', { detail: error.message })); throw error; }),
   },
 
   missions: {

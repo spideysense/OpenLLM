@@ -185,8 +185,8 @@ describe('Reasoning trail — all three surfaces stay in sync', () => {
     expect(desktop).toMatch(/ReasoningTrail/);
   });
   it('desktop main forwards agent trail events over chat:stream', () => {
-    expect(indexJs).toMatch(/aspen_status:/);
-    expect(indexJs).toMatch(/onEvent/);
+    expect(indexJs).toContain('chatService.events.on');
+    expect(fs.readFileSync(path.resolve('src/main/chat-service.js'), 'utf8')).toContain('aspen_status:');
   });
 });
 
@@ -194,8 +194,8 @@ describe('Desktop agent emits live trail events', () => {
   it('runAgent accepts an onEvent callback and threads it through', () => {
     const src = fs.readFileSync(path.resolve('src/main/agent.js'), 'utf8');
     expect(src).toMatch(/onEvent/);
-    expect(src).toMatch(/type:\s*'tool_call'/);
-    expect(src).toMatch(/describeToolStatus\(/);
+    expect(src).toContain('onEvent?.(event)');
+    expect(src).toContain("require('./gateway-agent')");
   });
 });
 
@@ -213,7 +213,7 @@ describe('Reasoning trail narrates real tool activity', () => {
   it('both agent paths use the shared describer (3-surface parity)', () => {
     const agent = fs.readFileSync(path.resolve('src/main/agent.js'), 'utf8');
     const gw = fs.readFileSync(path.resolve('src/main/gateway-agent.js'), 'utf8');
-    expect(agent).toMatch(/describeToolStatus\(name, args\)/);
+    expect(agent).toContain("require('./gateway-agent')");
     expect(gw).toMatch(/describeToolStatus\(name, args\)/);
   });
 });

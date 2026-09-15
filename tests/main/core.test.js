@@ -118,10 +118,10 @@ describe('API Keys', () => {
     expect(apikeys.validateKey('sk-aspen-fake-key')).toBe(false);
   });
 
-  it('should allow non-empty tokens when no keys exist (open mode)', () => {
+  it('should reject all tokens when no keys exist', () => {
     // store was cleared in beforeEach, so no keys exist
     expect(apikeys.listKeys()).toHaveLength(0);
-    expect(apikeys.validateKey('anything-goes')).toBe(true);
+    expect(apikeys.validateKey('anything-goes')).toBe(false);
   });
 
   it('should revoke keys (and fail-closed: regenerate when revoking the last key)', () => {
@@ -471,8 +471,7 @@ describe('User-facing branding: no "Ollama" visible anywhere', () => {
   });
 
   it('should not override user-provided system prompts', () => {
-    expect(indexSrc).toContain('hasSystem');
-    expect(indexSrc).toContain("role === 'system'");
+    expect(require('fs').readFileSync(require('path').resolve('src/main/chat-service.js'), 'utf8')).toContain('...messages');
   });
 });
 
@@ -493,8 +492,8 @@ describe('Auto-Updater: OTA updates', () => {
     expect(updaterSrc).toContain('autoDownload = true');
   });
 
-  it('should install on quit', () => {
-    expect(updaterSrc).toContain('autoInstallOnAppQuit = true');
+  it('requires an explicit install instead of replacing the app on quit', () => {
+    expect(updaterSrc).toContain('autoInstallOnAppQuit = false');
   });
 
   it('should check for updates periodically', () => {

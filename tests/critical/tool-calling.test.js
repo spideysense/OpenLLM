@@ -64,14 +64,14 @@ describe('Tool Execution', () => {
 
 describe('Tool Security', () => {
   it('DANGEROUS_TOOLS includes run_command', () => {
-    const src = fs.readFileSync(path.resolve('src/main/agent.js'), 'utf8');
+    const src = fs.readFileSync(path.resolve('src/main/gateway-agent.js'), 'utf8');
     expect(src).toContain('DANGEROUS_TOOLS');
     const match = src.match(/DANGEROUS_TOOLS\s*=\s*\[([^\]]+)\]/);
     expect(match?.[1]).toContain('run_command');
   });
 
   it('dangerous tools filtered when not owner', () => {
-    const src = fs.readFileSync(path.resolve('src/main/agent.js'), 'utf8');
+    const src = fs.readFileSync(path.resolve('src/main/gateway-agent.js'), 'utf8');
     expect(src).toContain('isOwner');
     expect(src).toMatch(/filter[\s\S]{0,200}DANGEROUS_TOOLS|DANGEROUS_TOOLS[\s\S]{0,200}filter/);
   });

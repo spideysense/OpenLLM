@@ -33,17 +33,19 @@ function marker(p) {
 
 // Try providers in order, rotating past failures. Returns null if none succeed
 // (caller then stays on / falls back to local).
-async function routeToCloud(messages, { identifiers = [], keepTurns = 6 } = {}) {
+async function routeToCloud(messages, { identifiers = [], keepTurns = 6, signal } = {}) {
   const min = minimizeForCloud(messages, { identifiers, keepTurns });
   const candidates = order();
   for (const p of candidates) {
+    signal?.throwIfAborted();
     try {
-      const { text } = await call(p, min.messages, {});
+      const { text } = await call(p, min.messages, { signal });
       if (text && text.trim()) {
         return { text, provider: p.id, label: p.label, tier: p.tier, redactions: min.redactions, marker: marker(p) };
       }
       cooldownUntil.set(p.id, Date.now() + COOLDOWN_MS);
     } catch (e) {
+      signal?.throwIfAborted();
       // 429 / 5xx / network → cooldown and rotate to the next engine
       cooldownUntil.set(p.id, Date.now() + (e.status === 429 ? COOLDOWN_MS * 5 : COOLDOWN_MS));
     }
