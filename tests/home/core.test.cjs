@@ -142,3 +142,38 @@ test('model selection reserves memory and rejects oversized and embedding-only m
   assert.deepEqual(candidates.map(m=>m.name),['small']);
   assert.deepEqual(fitCandidates([{name:'small',size:2e9}],16e9,1e9),[]);
 });
+
+test('local plans require owner approval, stay private, validate atomically and cannot be replayed',async t=>{
+  const {draftPlan}=require('../../src/home/plans');
+  assert.deepEqual(await draftPlan('Pack lunch',{answer:async()=>({text:'{"tasks":[{"title":"Pack lunch","tool":"send_email"}]}'})}),[{title:'Pack lunch'}]);
+  await assert.rejects(draftPlan('bad',{answer:async()=>({text:'I sent an email.'})}),{status:422});
+  await assert.rejects(draftPlan('bad',{answer:async()=>({status:'unavailable',text:'Set up local intelligence.'})}),{status:409});
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'aspen-plan-test-'));
+  const home=await createHomeServer({port:0,dataDir:dir,intelligence:{answer:async()=>({text:'{"tasks":[{"title":"Pack lunch"},{"title":"School pickup at 12:30"}]}'})}});
+  t.after(async()=>{await home.close();fs.rmSync(dir,{recursive:true,force:true});});
+  let cookie='';
+  const req=async(route,body)=>{const res=await fetch(home.origin+'/v1/home/'+route,{method:body?'POST':'GET',headers:{Origin:home.origin,Cookie:cookie,'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});if(res.headers.get('set-cookie'))cookie=res.headers.get('set-cookie').split(';')[0];return {status:res.status,body:await res.json()};};
+  await req('setup',{bootstrap:home.bootstrap,name:'Alex',homeName:'Plan home',password:'a long private password'});
+  const ownerCookie=cookie;
+  const draft=(await req('plans/draft',{source:'School pickup tomorrow at 12:30. Pack lunch.'})).body;
+  assert.equal((await req('state')).body.tasks.length,0,'drafting must not execute');
+  const invite=(await req('invites',{role:'adult'})).body;
+  cookie='';await req('join',{invite:invite.invite,name:'Sam',password:'a second long password'});
+  const otherCookie=cookie;
+  assert.equal((await req('plans/approve',{id:draft.id,tasks:draft.tasks})).status,409,'another member cannot approve this draft');
+  cookie=ownerCookie;
+  assert.equal((await req('plans/approve',{id:draft.id,tasks:[{title:'Valid'},{title:''}]})).status,400);
+  assert.equal((await req('state')).body.tasks.length,0,'invalid batch cannot partially save');
+  const approved=await req('plans/approve',{id:draft.id,tasks:draft.tasks});
+  assert.equal(approved.status,200);assert.equal(approved.body.tasks.length,2);assert.ok(approved.body.tasks.every(t=>t.visibility==='private'));
+  assert.equal((await req('plans/approve',{id:draft.id,tasks:draft.tasks})).status,409,'approval is one-use');
+  cookie=otherCookie;assert.equal((await req('state')).body.tasks.length,0);
+  assert.ok(!fs.readFileSync(path.join(dir,'household.vault'),'utf8').includes('Pack lunch'));
+  cookie=ownerCookie;
+  const pair=(await req('clients',{name:'Shared screen',type:'screen',scopes:['chat:ask','tasks:write']})).body;
+  const paired=(await req('pair',{code:pair.code})).body;
+  const denied=await fetch(home.origin+'/v1/home/plans/draft',{method:'POST',headers:{Authorization:'Bearer '+paired.token,'Content-Type':'application/json'},body:JSON.stringify({source:'Pack lunch'})});
+  assert.equal(denied.status,403,'shared screens cannot create private member plans');
+  const expired=(await req('plans/draft',{source:'Pack lunch.'})).body;
+  const now=Date.now;try{const start=now();Date.now=()=>start+11*60000;assert.equal((await req('plans/approve',{id:expired.id,tasks:expired.tasks})).status,409);}finally{Date.now=now;}
+});

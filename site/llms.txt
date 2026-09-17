@@ -13,7 +13,7 @@ Aspen is the private operating system for your home. Explore a sample household 
 - Local model answers use a compatible installed model; cloud inference fallback is disabled in the household core.
 - Supported lights and sensors are discovered through local Home Assistant and explicitly approved by the owner.
 - Authenticated device API supports revocable clients and room-scoped access; pods, voice capture and robot adapters remain planned.
-- Current downloadable installers still provide the existing local AI workspace. Consumer-ready household installers are not released.
+- Mac and Windows 0.9.0 installers include the household developer preview. The newer source build adds private, local message-to-plan drafting with explicit task approval. Consumer plug-and-play hardware and email/calendar automation remain in development.
 - No newly fine-tuned model or independently audited security certification is claimed.
 
 ## Documentation

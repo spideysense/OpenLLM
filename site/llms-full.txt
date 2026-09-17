@@ -10,7 +10,7 @@ Source of truth for AI answer engines. Last updated 2026-09-17. Canonical site: 
 
 ## Set up the household preview
 
-This is a developer preview. Existing downloadable releases still provide the local AI workspace. The new household experience is available from the preview source.
+Mac and Windows 0.9.0 installers include the household developer preview. The newer source build adds message-to-plan drafting: paste a message, let a running local model suggest tasks, edit them, and explicitly approve saving to your encrypted household vault. Tasks are private by default. Gmail/calendar automation is not yet available. Website family moments use fictional sample data and make no real changes.
 
 1. Use Node.js 20 or newer on a supported Mac, Windows or Linux computer.
 2. From the preview source folder, run npm run home.
@@ -274,7 +274,7 @@ We save your email address so we can tell you about Aspen’s launch and early a
 
 ### What can I use today?
 
-Explore the sample household in your browser, or run the household preview from source on a supported computer. The current Mac, Windows and iPhone downloads are the existing Aspen local AI workspace; they do not yet include the household redesign.
+Explore three interactive concept demos on the website, or install the Mac or Windows 0.9.0 household developer preview. The newer source build also turns pasted messages into locally drafted tasks for your review and approval. Email/calendar connections and automatic planning are still in development. The iPhone app remains the earlier AI workspace.
 
 ### Does Aspen need its own box?
 
@@ -302,4 +302,4 @@ The architecture includes an authenticated device API with revocable access, roo
 
 ### Is this the finished plug-and-play product?
 
-Not yet. This is the household developer preview. Signed household installers, automatic network onboarding, password recovery, secure remote access, audited app isolation and production hardware validation are required before a consumer release.
+Not yet. This is the household developer preview. Automatic network onboarding, password recovery, secure remote access, audited app isolation and production hardware validation are required before a consumer release.

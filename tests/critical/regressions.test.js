@@ -233,3 +233,33 @@ describe('BUG: deployed waitlist handlers could not load their ESM-only helper',
     }
   });
 });
+
+describe('BUG: household chat remained visible after switching family accounts', () => {
+  it('clears the previous conversation and ignores its delayed reply after sign-in changes', async () => {
+    const {JSDOM} = await import('jsdom');
+    const dom = new JSDOM('<div id="app"></div><dialog id="dialog"></dialog><div id="toast"></div>', {url:'http://aspen.test/',runScripts:'outside-only'});
+    const w=dom.window;w.scrollTo=()=>{};w.setInterval=()=>0;
+    let member='Alex', oldReply;
+    const snapshot=()=>({privacy:{inference:'local-only'},household:{name:'Home'},me:{id:member,name:member,role:'owner'},members:[],rooms:[],tasks:[],memories:[],devices:[],apps:[{id:'butler',name:'Butler',installed:true}],clients:[],connections:{},events:[]});
+    w.fetch=async(url,options={})=>{
+      const route=url.split('/').pop();
+      if(route==='chat')return new Promise(resolve=>{oldReply=()=>resolve({ok:true,json:async()=>({text:'Alex private late reply'})});});
+      if(route==='login')member='Sam';
+      return {ok:true,json:async()=>route==='status'?{setup:true}:route==='state'?snapshot():{ok:true}};
+    };
+    const flush=()=>new Promise(resolve=>setTimeout(resolve,0));
+    const source=fs.readFileSync(path.resolve('site/home/home.js'),'utf8').replace("import { qrSvg } from './qr.js';","const qrSvg=()=>'';");
+    w.eval(source+"\nwindow.showAsk=()=>{view='ask';render();};");await flush();
+    w.document.querySelector('#ask-form input').value='Alex private question';
+    w.document.querySelector('#ask-form').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));await flush();
+    w.document.querySelector('[data-view="settings"]').click();await flush();
+    w.document.querySelector('[data-action="logout"]').click();await flush();
+    const login=w.document.querySelector('#account-form');login.querySelector('[name=name]').value='Sam';login.querySelector('[name=password]').value='a private password';login.dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));await flush();
+    oldReply();await flush();
+    w.showAsk();
+    expect(w.document.body.textContent).not.toContain('Alex private question');
+    expect(w.document.body.textContent).not.toContain('Alex private late reply');
+    expect(w.document.body.textContent).toContain('Ask Aspen');
+    dom.window.close();
+  });
+});

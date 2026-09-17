@@ -8,6 +8,7 @@ const crypto = require('node:crypto');
 const { promisify } = require('node:util');
 const { Vault } = require('./store');
 const intelligence = require('./intelligence');
+const { draftPlan } = require('./plans');
 const { haRequest, visibleDevices, validateLocalUrl } = require('./integrations');
 const scrypt = promisify(crypto.scrypt);
 const hash = value => crypto.createHash('sha256').update(value).digest('hex');
@@ -32,6 +33,7 @@ async function createHomeServer(options = {}) {
   const vault = new Vault(options.dataDir || path.join(os.homedir(), '.aspen', 'home'), options.vaultOptions);
   const state = vault.state;
   const sessions = new Map(), invitations = new Map(), pairings = new Map(), attempts = new Map(), pendingChat = new Set();
+  const plans = new Map();
   const bootstrap = token();
   let origin = '';
   const model = options.intelligence || intelligence;
@@ -258,6 +260,35 @@ async function createHomeServer(options = {}) {
       vault.audit(member.id, 'light.' + b.action, device.id); vault.save();
       return { state: device.state, confirmed: actual.state === (b.action === 'turn_on' ? 'on' : 'off') };
     }
+    if (route === 'plans/draft' && method === 'POST') {
+      human(auth); limit(req, 'plan', 10);
+      if (member.role === 'guest') fail('Join as a family member to make a plan.', 403);
+      if (!state.apps.includes('butler')) fail('Add Butler from Apps first.', 409);
+      const source = text(b.source, 'a message to plan from', 4000);
+      if (pendingChat.has(member.id)) fail('Aspen is still working on your previous request.', 429);
+      pendingChat.add(member.id);
+      try {
+        const tasks = await draftPlan(source, model);
+        authenticate(req); // Sign-out during inference must not expose a draft.
+        const plan = {id:id(), memberId:member.id, tasks, expires:Date.now()+10*60000};
+        plans.set(member.id, plan); // One bounded, short-lived draft per person.
+        return {id:plan.id, tasks, expires:plan.expires};
+      } finally { pendingChat.delete(member.id); }
+    }
+    if (route === 'plans/approve' && method === 'POST') {
+      human(auth);
+      const plan = plans.get(member.id);
+      if (!plan || plan.id !== b.id || plan.expires < Date.now()) fail('This draft expired or was already saved. Make a new plan.', 409);
+      if (!state.apps.includes('butler')) fail('Add Butler from Apps first.', 409);
+      if (!Array.isArray(b.tasks) || !b.tasks.length || b.tasks.length > plan.tasks.length) fail('Choose up to five tasks from your draft.');
+      if (state.tasks.length + b.tasks.length > 2000) fail('The task limit has been reached.');
+      const tasks = b.tasks.map(t => ({id:id(),title:text(t?.title,'a task',500),dueAt:due(t.dueAt),visibility:visibility(b.visibility),ownerId:member.id,done:false,createdAt:new Date().toISOString(),notifiedAt:null}));
+      const previous = state.tasks;
+      state.tasks = [...tasks, ...previous];
+      try { vault.save(); } catch(e) { state.tasks = previous; throw e; }
+      plans.delete(member.id);
+      return {tasks};
+    }
     if (route === 'chat' && method === 'POST') {
       scope(auth, 'chat:ask'); limit(req, 'chat', 20);
       const message = text(b.message, 'a question', 2000);
@@ -318,7 +349,7 @@ async function createHomeServer(options = {}) {
       }
     }
     if (changed) vault.save();
-    for (const map of [sessions, invitations, pairings]) for (const [key, entry] of map) if (entry.expires < Date.now()) map.delete(key);
+    for (const map of [sessions, invitations, pairings, plans]) for (const [key, entry] of map) if (entry.expires < Date.now()) map.delete(key);
     for (const [key, entry] of attempts) if (entry.until < Date.now()) attempts.delete(key);
   }, 15000);
   scheduler.unref();

@@ -56,7 +56,7 @@ describe('Aspen household site', () => {
   });
 
   it('distinguishes available software from future plug-and-play capabilities', () => {
-    expect(answer('What can I use today?')).toMatch(/current Mac, Windows and iPhone downloads.*existing Aspen local AI workspace/);
+    expect(answer('What can I use today?')).toMatch(/Mac or Windows 0.9.0 household developer preview/);
     expect(answer('Is this the finished plug-and-play product?')).toMatch(/Not yet/);
     expect(answer('Does Aspen use a fine-tuned household model?')).toMatch(/does not include a newly trained or fine-tuned model/);
     expect(answer('What about room speakers and robots?')).toMatch(/Microphone access is disabled/);
@@ -86,7 +86,7 @@ describe('Aspen household site', () => {
       expect(config.redirects.find(r => r.source === route).destination).toBe('https://github.com/spideysense/OpenLLM/releases/latest/download/' + filename);
       expect(pkg.build[platform].artifactName).toBe('Aspen-' + platform + '.${ext}');
     }
-    expect(text).toMatch(/current downloadable app.*existing local AI workspace/);
+    expect(text).toMatch(/Mac and Windows 0.9.0 installers now include the household developer preview/);
   });
 
   it('uses existing local styles/images and valid page anchors', () => {

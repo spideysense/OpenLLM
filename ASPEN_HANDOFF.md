@@ -43,3 +43,13 @@ The homepage leads with the family use case and a single launch/early-access wai
 The household UI now has direct Tasks and Notes navigation, plain screen/action labels, first-task guidance, and developer device pairing under an expandable Advanced section. The underlying privacy and device permissions are unchanged.
 
 Production packaging: keep the shared waitlist module explicitly CommonJS (`.cjs`). The Vercel API build compiles these JavaScript handlers to CommonJS; importing an ESM-only helper caused invocation failures on deployment. Verify the packaged function as well as Vitest when changing this boundary.
+
+## Family moments and local plan drafting
+
+Homepage `#moments` now offers three interactive, fictional scenarios: school pickup changes, leaving home, and family dinner. Sources can be inspected, sample approval changes the illustrated plan, and follow-ups clarify uncertainty. This is explicitly a concept; no accounts, emails, calendars or devices are accessed. `site/moments.js` is self-contained with no external dependencies or requests.
+
+The source-build app adds Make a plan: paste up to 4,000 characters, draft up to five tasks through local Ollama, then review/edit/select and explicitly save. `POST plans/draft` is human-member-only, bounded, expires after ten minutes and does not persist source text. `POST plans/approve` authenticates ownership, validates the whole batch before mutation, consumes the draft once and saves to the encrypted vault with private visibility by default. Dates are manually confirmed; models cannot send emails, write calendars, order goods or control devices through this flow. No cloud inference fallback. Native 0.9.0 installers do not contain this later source change.
+
+Chat/UI state is now cleared on sign-out, authentication screens and member changes. Epoch guards reject pending replies from previous personal sessions. The same household web UI is used by the new desktop surface and responsive browser; legacy workspace clients are separate.
+
+Release status: Mac and Windows 0.9.0 household installers published successfully at commit c9e0f207b1cf6d8d936c01eab3017319c548686f. Linux dispatch was requested from the signing machine but has not been verified here.

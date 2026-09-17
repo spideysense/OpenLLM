@@ -107,3 +107,9 @@ Implemented and tested: local household state and authentication; memory visibil
 Not yet delivered: native signed household release installers; direct Matter commissioning; Wi-Fi/Bluetooth provisioning; full offline mobile packaging; household-specialized fine-tuning; measured latency/accuracy-based model selection; local wake-word/STT/TTS pods; robot adapters; cloud synchronization; password recovery; backup/restore UI; independent security review; executable third-party app sandboxing; migration of the full online Butler engine.
 
 The model choice is a conservative installed-model memory fit, not a claim of the best model on each device. Real hardware, real Ollama models and Home Assistant devices require integration validation outside the test fixtures before consumer release.
+
+### Reviewable message plans (source build after 0.9.0)
+
+- `POST /v1/home/plans/draft` with `{source}` drafts up to five task titles using the running local model. Requires a signed-in non-guest human and installed Butler. Returns `{id, tasks, expires}`; saves nothing. One pending draft per member, valid for ten minutes. Source text is not persisted.
+- `POST /v1/home/plans/approve` with `{id, tasks: [{title, dueAt}], visibility}` saves the reviewed tasks together. `visibility` defaults to private; date/time entry is explicit. Draft IDs are member-bound and consumed once. A second approval returns 409. Room clients cannot use either route.
+- The workflow performs no email, calendar, booking, purchase or device actions. The public website scenarios are fictional interactive concepts, separate from this working local task flow.

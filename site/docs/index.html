@@ -95,7 +95,7 @@ footer{border-top:1px solid var(--brd);padding:2rem 1.5rem;text-align:center;col
 <p class="updated">Last updated 2026-09-17</p>
 <section id="home">
 <h2>Set up the household preview</h2>
-<p>This is a developer preview. Existing downloadable releases still provide the local AI workspace. The new household experience is available from the preview source.</p>
+<p>Mac and Windows 0.9.0 installers include the household developer preview. The newer source build adds message-to-plan drafting: paste a message, let a running local model suggest tasks, edit them, and explicitly approve saving to your encrypted household vault. Tasks are private by default. Gmail/calendar automation is not yet available. Website family moments use fictional sample data and make no real changes.</p>
 <ol><li>Use Node.js 20 or newer on a supported Mac, Windows or Linux computer.</li><li>From the preview source folder, run npm run home.</li><li>Open the private setup link printed on that computer. Create a home and an owner account.</li><li>Add rooms, invite family, and use Butler for local tasks and reminders.</li><li>For local model answers, run Ollama. In Settings, Prepare can download a recommended model. Aspen chooses a conservative memory fit from installed general-purpose models.</li></ol>
 <pre><code class="language-bash">npm run home</code></pre>
 <div class="note">The server listens only on 127.0.0.1 by default. Connecting another device requires an HTTPS configuration and a reachable, explicitly configured origin. Do not expose the service directly to the public internet.</div>
