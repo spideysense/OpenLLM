@@ -11,7 +11,7 @@
  * reports nothing back. We show that honestly rather than inventing a number.
  */
 
-import { list as listWaitlist } from '../src/cloud/waitlist.mjs';
+const { list: listWaitlist } = require('../src/cloud/waitlist.cjs');
 
 const GH_OWNER = 'spideysense';
 const GH_REPO = 'OpenLLM';

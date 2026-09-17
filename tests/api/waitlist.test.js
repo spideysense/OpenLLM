@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import handler from '../../api/waitlist.js';
 import admin from '../../api/admin-stats.js';
-import { list } from '../../src/cloud/waitlist.mjs';
+const { list } = require('../../src/cloud/waitlist.cjs');
 
 function response() {
   return { headers: {}, code: 200, data: null, setHeader(k,v){this.headers[k]=v;}, status(code){this.code=code;return this;}, json(data){this.data=data;return this;} };

@@ -1,4 +1,5 @@
-import { createHash, createHmac, randomBytes } from 'node:crypto';
+'use strict';
+const { createHash, createHmac, randomBytes } = require('node:crypto');
 
 const PREFIX = '{aspen:waitlist:v1}';
 const MEMBERS = PREFIX + ':members';
@@ -8,7 +9,7 @@ const config = () => ({
   url: process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL,
   token: process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN,
 });
-export async function command(...args) {
+async function command(...args) {
   const { url, token } = config();
   if (!url || !token) throw new Error('Waitlist storage unavailable');
   const res = await fetch(url.replace(/\/$/, ''), {
@@ -22,7 +23,7 @@ export async function command(...args) {
 }
 
 // Limit across serverless instances; never store the visitor's raw IP address.
-export async function allowed(ip, operation = 'join') {
+async function allowed(ip, operation = 'join') {
   const { token } = config();
   if (!token) throw new Error('Waitlist storage unavailable');
   const bucket = createHmac('sha256', token).update(String(ip || 'unknown')).digest('hex');
@@ -34,8 +35,8 @@ export async function allowed(ip, operation = 'join') {
   return n <= (operation === 'join' ? 3 : 10);
 }
 
-export const newReceipt = () => randomBytes(32).toString('base64url');
-export async function join(email, source, receipt) {
+const newReceipt = () => randomBytes(32).toString('base64url');
+async function join(email, source, receipt) {
   const id = sha(email);
   const createdAt = new Date().toISOString();
   const record = { email, source, createdAt, consentAt: createdAt, consentVersion: 'launch-early-access-v1', verified: false, receiptHash: sha(receipt) };
@@ -49,7 +50,7 @@ export async function join(email, source, receipt) {
   if (result !== 0 && result !== 1) throw new Error('Signup was not acknowledged');
 }
 
-export async function remove(email, receipt) {
+async function remove(email, receipt) {
   const result = await command('EVAL', `
     local value = redis.call('HGET', KEYS[1], ARGV[1])
     if not value then return 0 end
@@ -63,7 +64,7 @@ export async function remove(email, receipt) {
 }
 
 // Called only after the admin endpoint has checked its server-side password.
-export async function list(offset = 0) {
+async function list(offset = 0) {
   const total = await command('ZCARD', ORDER);
   const ids = await command('ZREVRANGE', ORDER, offset, offset + 199);
   if (!Number.isSafeInteger(total) || !Array.isArray(ids)) throw new Error('Invalid waitlist response');
@@ -75,3 +76,5 @@ export async function list(offset = 0) {
   });
   return { total, contacts, nextOffset: ids.length === 200 ? offset + 200 : null };
 }
+
+module.exports = { command, allowed, newReceipt, join, remove, list };

@@ -1,4 +1,4 @@
-import { allowed, join, newReceipt, remove } from '../src/cloud/waitlist.mjs';
+const { allowed, join, newReceipt, remove } = require('../src/cloud/waitlist.cjs');
 
 const ORIGINS = new Set(['https://runonaspen.com', 'https://www.runonaspen.com']);
 const emailPattern = /^[A-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Z0-9](?:[A-Z0-9-]*[A-Z0-9])?(?:\.[A-Z0-9](?:[A-Z0-9-]*[A-Z0-9])?)+$/i;

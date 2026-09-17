@@ -6,6 +6,7 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
+import { execFileSync } from 'node:child_process';
 
 const gateway  = fs.readFileSync(path.resolve('src/main/gateway.js'), 'utf8');
 const release  = fs.readFileSync(path.resolve('scripts/release-mac.js'), 'utf8');
@@ -219,5 +220,16 @@ describe('BUG: visitor attribution could inject HTML into the admin dashboard', 
       expect(doc.getElementById(id).querySelector('img')).toBeNull();
     }
     expect(script).not.toContain("localStorage.setItem('admin_pw'");
+  });
+});
+
+
+describe('BUG: deployed waitlist handlers could not load their ESM-only helper', () => {
+  it('loads the shared helper in Node without require-of-ESM support', () => {
+    const result = execFileSync(process.execPath, ['--no-experimental-require-module', '-e', "const w = require('./src/cloud/waitlist.cjs'); if (typeof w.join !== 'function' || typeof w.list !== 'function') process.exit(1);"], {cwd:process.cwd(),encoding:'utf8'});
+    expect(result).toBe('');
+    for (const file of ['api/waitlist.js', 'api/admin-stats.js']) {
+      expect(fs.readFileSync(file,'utf8')).toContain("require('../src/cloud/waitlist.cjs')");
+    }
   });
 });
