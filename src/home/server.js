@@ -14,9 +14,9 @@ const hash = value => crypto.createHash('sha256').update(value).digest('hex');
 const token = () => crypto.randomBytes(32).toString('base64url');
 const id = () => crypto.randomUUID();
 const APPS = [
-  { id: 'butler', name: 'Butler', description: 'A little less on your mind.', capabilities: ['Tasks and reminders', 'Authorized household memory'], available: true },
-  { id: 'secure', name: 'Secure', description: 'A clearer picture of home.', capabilities: ['Approved door and motion sensors'], available: true },
-  { id: 'energy', name: 'Energy', description: 'Understand what your home uses.', capabilities: ['Approved energy and climate readings'], available: true },
+  { id: 'butler', name: 'Butler', description: 'Tasks & reminders.', capabilities: ['Tasks and reminders', 'Authorized household memory'], available: true },
+  { id: 'secure', name: 'Secure', description: 'Door & motion sensors.', capabilities: ['Approved door and motion sensors'], available: true },
+  { id: 'energy', name: 'Energy', description: 'Energy & temperature.', capabilities: ['Approved energy and climate readings'], available: true },
 ];
 const CLIENT_SCOPES = ['home:read', 'chat:ask', 'tasks:write', 'devices:control'];
 const fail = (message, status = 400) => { const e = new Error(message); e.status = status; throw e; };

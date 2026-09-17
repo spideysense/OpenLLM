@@ -1,12 +1,13 @@
 // Aspen household product facts. Generated pages must distinguish the preview
 // from the currently released local AI workspace and future hardware.
 export const site = {
-  name: 'Aspen', url: 'https://www.runonaspen.com', tagline: 'Intelligence. Right at home.',
+  name: 'Aspen', url: 'https://www.runonaspen.com', tagline: 'A little less to think about.',
   description: 'Aspen is the private operating system for your home. Its household developer preview brings family accounts, private and shared memory, local tasks, supported device readings and an authenticated device API together on your own computer.',
   appStore: 'https://apps.apple.com/app/id6775307566', github: 'https://github.com/spideysense/OpenLLM', appPath: '/home/?demo=1', updated: '2026-09-17',
 };
 export const faqGroups = [{ id: 'aspen-home', title: 'Aspen at home', items: [
-  { q: 'What is Aspen?', a: 'Aspen is being built as the private operating system for your home: one household brain, with apps like Butler, Secure and Energy. The household developer preview includes local accounts, shared and private memory, tasks, reminders, supported Home Assistant devices and a device API.' },
+  { q: 'What is Aspen?', a: 'Aspen is a private home assistant we’re building for everyday family life. Keep tasks, family notes and connected devices together in one simple app, with intelligence running on your own computer. Butler, Secure and Energy are the first apps inside Aspen.' },
+  { q: 'What happens when I join the waitlist?', a: 'We save your email address so we can tell you about Aspen’s launch and early access. Joining is free and does not place an order. There is no launch date or hardware price announced yet. You can undo your signup on the confirmation screen or contact us to leave the list.' },
   { q: 'What can I use today?', a: 'Explore the sample household in your browser, or run the household preview from source on a supported computer. The current Mac, Windows and iPhone downloads are the existing Aspen local AI workspace; they do not yet include the household redesign.' },
   { q: 'Does Aspen need its own box?', a: 'No. The household core can run on a supported Mac, Windows or Linux computer. A dedicated Aspen device is planned as an easier, always-on option. Computers still need enough available memory and processing power for the selected model.' },
   { q: 'What works without internet?', a: 'Local sign-in, saved memory, task management and the reminder scheduler run on the home computer. Model answers work offline once a compatible model is installed and running. Connected device access needs the home network. Email, bookings, remote access, downloads and cloud-only services need internet.' },

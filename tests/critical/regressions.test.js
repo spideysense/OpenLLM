@@ -204,3 +204,20 @@ describe('Metrics accuracy (admin dashboard)', () => {
     expect(adminSrc).toContain('aspen:visits');
   });
 });
+
+
+describe('BUG: visitor attribution could inject HTML into the admin dashboard', () => {
+  it('renders attacker-controlled source, release and note values as text', () => {
+    const html = fs.readFileSync(path.resolve('site/admin/index.html'), 'utf8');
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const script = doc.querySelector('script:not([src])').textContent;
+    const render = new Function('document', 'localStorage', script + '\nreturn render;')(doc, { removeItem() {} });
+    const attack = '<img src=x onerror="alert(1)">';
+    render({ downloads: { total: 1, byRelease: [{tag: attack, downloads: 1}] }, sources: [{source: attack, count: 1}], dlSources: [{source: attack, platform: attack, count: 1}], notes: [attack] });
+    for (const id of ['sources', 'dlsources', 'releases', 'notes']) {
+      expect(doc.getElementById(id).textContent).toContain(attack);
+      expect(doc.getElementById(id).querySelector('img')).toBeNull();
+    }
+    expect(script).not.toContain("localStorage.setItem('admin_pw'");
+  });
+});

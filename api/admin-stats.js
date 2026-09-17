@@ -11,6 +11,8 @@
  * reports nothing back. We show that honestly rather than inventing a number.
  */
 
+import { list as listWaitlist } from '../src/cloud/waitlist.mjs';
+
 const GH_OWNER = 'spideysense';
 const GH_REPO = 'OpenLLM';
 
@@ -58,6 +60,13 @@ export default async function handler(req, res) {
   try { body = req.body && typeof req.body === 'object' ? req.body : JSON.parse(req.body || '{}'); } catch {}
   if (!body.password || body.password !== expected) {
     return res.status(401).json({ error: 'Incorrect password.' });
+  }
+
+  if (body.action === 'waitlist') {
+    const offset = body.offset ?? 0;
+    if (!Number.isSafeInteger(offset) || offset < 0 || offset > 1000000) return res.status(400).json({ error: 'Invalid page.' });
+    try { return res.status(200).json(await listWaitlist(offset)); }
+    catch { return res.status(503).json({ error: 'Waitlist storage unavailable. No signups were returned.' }); }
   }
 
   // ── Set download floor manually ──

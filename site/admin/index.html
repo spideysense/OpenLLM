@@ -86,6 +86,14 @@ h1{font-family:var(--ser);font-size:2rem;margin-bottom:.3rem}
       <div id="releases"></div>
     </div>
 
+    <section aria-labelledby="waitlist-title" class="mapbox">
+      <h2 id="waitlist-title" class="section-title">Aspen waitlist</h2>
+      <p class="sub" style="margin-bottom:1rem">Launch and early access signups. Addresses are unverified; joining does not confirm mailbox ownership.</p>
+      <button class="refresh" id="load-waitlist">View signups</button>
+      <button class="refresh" id="export-waitlist" disabled>Export CSV</button>
+      <p id="waitlist-note" role="status" style="font-size:.85rem;margin-bottom:1rem"></p>
+      <div id="waitlist-rows"></div>
+    </section>
     <ul class="notes" id="notes"></ul>
   </div>
 </div>
@@ -94,6 +102,7 @@ h1{font-family:var(--ser);font-size:2rem;margin-bottom:.3rem}
 const $=id=>document.getElementById(id);
 let pw='';
 let worldData=null;
+const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 async function load(){
   $('err').textContent='';
@@ -130,20 +139,20 @@ function render(d){
   if(dls.length||srcs.length){
     $('sources-wrap').classList.remove('hidden');
     $('dlsources').innerHTML = dls.length
-      ? dls.map(s=>`<div class="rel-row"><span class="rel-tag">${s.source}</span><span>${s.count.toLocaleString()} click${s.count===1?'':'s'} · ${s.platform}</span></div>`).join('')
+      ? dls.map(s=>`<div class="rel-row"><span class="rel-tag">${escapeHtml(s.source)}</span><span>${s.count.toLocaleString()} click${s.count===1?'':'s'} · ${escapeHtml(s.platform)}</span></div>`).join('')
       : `<div class="rel-row" style="color:var(--t2)"><span>No download clicks attributed yet</span></div>`;
     $('sources').innerHTML = srcs.length
-      ? srcs.map(s=>`<div class="rel-row"><span class="rel-tag">${s.source}</span><span>${s.count.toLocaleString()} visit${s.count===1?'':'s'}</span></div>`).join('')
+      ? srcs.map(s=>`<div class="rel-row"><span class="rel-tag">${escapeHtml(s.source)}</span><span>${s.count.toLocaleString()} visit${s.count===1?'':'s'}</span></div>`).join('')
       : `<div class="rel-row" style="color:var(--t2)"><span>No traffic sources yet — starts recording now</span></div>`;
   }
 
   if(d.downloads?.byRelease?.length){
     $('releases-wrap').classList.remove('hidden');
     $('releases').innerHTML=d.downloads.byRelease
-      .map(r=>`<div class="rel-row"><span class="rel-tag">${r.tag}</span><span>${r.downloads.toLocaleString()} downloads</span></div>`).join('');
+      .map(r=>`<div class="rel-row"><span class="rel-tag">${escapeHtml(r.tag)}</span><span>${r.downloads.toLocaleString()} downloads</span></div>`).join('');
   }
 
-  $('notes').innerHTML=(d.notes||[]).map(n=>`<li>${n}</li>`).join('');
+  $('notes').innerHTML=(d.notes||[]).map(n=>`<li>${escapeHtml(n)}</li>`).join('');
 }
 
 async function renderMap(geo){
@@ -183,7 +192,7 @@ async function renderMap(geo){
 
   const byCountry={};geo.forEach(d=>byCountry[d.country]=(byCountry[d.country]||0)+d.count);
   const top=Object.entries(byCountry).sort((a,b)=>b[1]-a[1]).slice(0,10);
-  $('map-legend').innerHTML=top.map(([c,n])=>`<span class="leg"><span class="dot" style="background:${color(c)}"></span>${c} ${n.toLocaleString()}</span>`).join('');
+  $('map-legend').innerHTML=top.map(([c,n])=>`<span class="leg"><span class="dot" style="background:${color(c)}"></span>${escapeHtml(c)} ${n.toLocaleString()}</span>`).join('');
 }
 
 $('enter').addEventListener('click',async()=>{
@@ -192,16 +201,55 @@ $('enter').addEventListener('click',async()=>{
   const ok=await load();
   $('enter').disabled=false;$('enter').textContent='Enter';
   if(ok){
-    localStorage.setItem('admin_pw',pw);
+    $('pw').value='';
     $('gate').classList.add('hidden');$('dash').classList.remove('hidden');
   }
 });
 $('pw').addEventListener('keydown',e=>{if(e.key==='Enter')$('enter').click();});
 $('refresh').addEventListener('click',load);
-(async()=>{
-  const saved=localStorage.getItem('admin_pw');
-  if(saved){pw=saved;const ok=await load();if(ok){$('gate').classList.add('hidden');$('dash').classList.remove('hidden');}}
-})();
+async function waitlistPage(offset=0){
+  const response=await fetch('/api/admin-stats',{method:'POST',headers:{'Content-Type':'application/json'},cache:'no-store',body:JSON.stringify({password:pw,action:'waitlist',offset})});
+  const data=await response.json();
+  if(!response.ok)throw new Error(data.error||'Could not load signups.');
+  return data;
+}
+$('load-waitlist').addEventListener('click',async()=>{
+  const button=$('load-waitlist');button.disabled=true;$('waitlist-note').textContent='Loading signups…';
+  try{
+    const data=await waitlistPage();
+    $('waitlist-note').textContent=data.total.toLocaleString()+' signups. Showing the most recent '+data.contacts.length+'.';
+    $('waitlist-rows').replaceChildren();
+    for(const contact of data.contacts){
+      const row=document.createElement('div');row.className='rel-row';row.style.flexWrap='wrap';row.style.gap='.5rem';
+      const email=document.createElement('span');email.textContent=contact.email;email.style.overflowWrap='anywhere';
+      const date=document.createElement('span');date.textContent=new Date(contact.createdAt).toLocaleDateString()+' · '+contact.source;
+      row.append(email,date);$('waitlist-rows').append(row);
+    }
+    $('export-waitlist').disabled=data.total===0;
+  }catch(error){$('waitlist-note').textContent=error.message;}
+  finally{button.disabled=false;}
+});
+$('export-waitlist').addEventListener('click',async()=>{
+  const button=$('export-waitlist');button.disabled=true;$('waitlist-note').textContent='Preparing export…';
+  try{
+    const contacts=[];let offset=0;
+    do{
+      const page=await waitlistPage(offset);contacts.push(...page.contacts);offset=page.nextOffset;
+      if(contacts.length>=10000&&offset!==null)throw new Error('This list exceeds 10,000 entries. Export from the database to get the complete list.');
+    }while(offset!==null);
+    // Defend spreadsheet users from formulas in user-provided addresses/source.
+    const cell=value=>'"'+String(value??'').replace(/^[=+@\-\t\r]/,"'$&").replace(/"/g,'""')+'"';
+    const fields=['email','source','createdAt','consentAt','consentVersion','verified'];
+    const csv=[fields.join(','),...contacts.map(c=>fields.map(f=>cell(c[f])).join(','))].join('\r\n');
+    const url=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}));
+    const link=document.createElement('a');link.href=url;link.download='aspen-waitlist-'+new Date().toISOString().slice(0,10)+'.csv';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    $('waitlist-note').textContent='Exported '+contacts.length+' signups. Addresses remain unverified.';
+  }catch(error){$('waitlist-note').textContent=error.message;}
+  finally{button.disabled=false;}
+});
+
+// Clear the old remembered password; admin credentials now live only in this tab.
+try{localStorage.removeItem('admin_pw');}catch{}
 </script>
 </body>
 </html>

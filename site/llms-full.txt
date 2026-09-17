@@ -266,7 +266,11 @@ Enable the Web Search tool in Settings so the model can answer real-time questio
 
 ### What is Aspen?
 
-Aspen is being built as the private operating system for your home: one household brain, with apps like Butler, Secure and Energy. The household developer preview includes local accounts, shared and private memory, tasks, reminders, supported Home Assistant devices and a device API.
+Aspen is a private home assistant we’re building for everyday family life. Keep tasks, family notes and connected devices together in one simple app, with intelligence running on your own computer. Butler, Secure and Energy are the first apps inside Aspen.
+
+### What happens when I join the waitlist?
+
+We save your email address so we can tell you about Aspen’s launch and early access. Joining is free and does not place an order. There is no launch date or hardware price announced yet. You can undo your signup on the confirmation screen or contact us to leave the list.
 
 ### What can I use today?
 

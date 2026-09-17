@@ -8,6 +8,7 @@ Aspen is the private operating system for your home. Explore a sample household 
 
 ## Key facts
 
+- Join the free launch and early-access waitlist at https://www.runonaspen.com/#waitlist. No launch date or hardware price is announced.
 - Household developer preview: individual local accounts, shared/private memory, tasks and reminders.
 - Local model answers use a compatible installed model; cloud inference fallback is disabled in the household core.
 - Supported lights and sensors are discovered through local Home Assistant and explicitly approved by the owner.

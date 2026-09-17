@@ -31,3 +31,13 @@ See `docs/HOME_API.md` for the device contract, access rules, deployment configu
 Production publication: the full Vitest suite passes (752 assertions, four pre-existing skips), plus all ten household API/privacy tests. Landing-page checks now validate the household product, truthful release status, visible/structured FAQ agreement, accessible landmarks, local assets and working download routes. CI also runs the household suite. The user authorized publishing tested increments directly to production. Main-branch publication does not create signed desktop release installers.
 
 The signing-Mac release command for the first household preview is `npm run release:mac -- 0.9.0` after pulling main and `npm ci`. `scripts/smoke-home.js` now checks the real household setup and task flow in an isolated Electron window before packaging; the legacy workspace smoke remains. The browser harness uses a temporary vault, ephemeral port and no saved credentials or connected devices. Native execution still needs the signing machine.
+
+## Consumer website and waitlist
+
+The homepage leads with the family use case and a single launch/early-access waitlist form. The sample home is secondary; source setup/current legacy downloads are in an expandable developer section. `site/waitlist.js` only confirms a signup after a durable server acknowledgment and supports undo with the receipt returned to that browser. No confirmation or promotional email is sent by this flow.
+
+`api/waitlist.js` uses the existing KV_REST_API_URL/TOKEN or UPSTASH_REDIS_REST_URL/TOKEN. `src/cloud/waitlist.mjs` implements atomic deduplication, consent records, one-hour hashed-IP rate limits and receipt-authorized deletion. Redis keys share `{aspen:waitlist:v1}`. Missing storage or provider failures return 503; there is no in-memory success fallback. Waitlist records are website contact data, separate from the local household vault.
+
+`/admin` uses its existing server-side ADMIN_PASSWORD gate to view/export signups; `api/admin-stats` action `waitlist` paginates 200 records at a time and strips deletion receipts. Contact addresses are marked unverified. CSV exports neutralize spreadsheet formulas. Verify mailbox ownership and provide unsubscribe handling before using this list for launch campaigns. The public form gives explicit launch/early-access consent, and privacy information describes hosted storage and removal.
+
+The household UI now has direct Tasks and Notes navigation, plain screen/action labels, first-task guidance, and developer device pairing under an expandable Advanced section. The underlying privacy and device permissions are unchanged.
