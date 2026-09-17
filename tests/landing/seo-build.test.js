@@ -18,15 +18,13 @@ describe('SEO deployment build', () => {
     expect(output).toContain('https://www.runonaspen.com/docs');
   });
 
-  it('turns the real homepage into a search-intent-focused, canonical page', () => {
+  it('publishes household positioning and remains idempotent', () => {
     const output = optimizeHomepage(sourceHomepage);
-
-    expect(output).toContain('<title>Aspen — Free Local AI for Mac, Windows & iPhone</title>');
-    expect(output).toContain('<link rel="canonical" href="https://www.runonaspen.com">');
-    expect(output).toContain('free local AI app for Mac, Windows and iPhone');
+    expect(output).toContain('<title>Aspen — The private operating system for your home</title>');
+    expect(output).toContain('<link rel="canonical" href="https://www.runonaspen.com/">');
     expect(output).toContain('"@type":"SoftwareApplication"');
-    expect(output).toContain('"applicationCategory":"ProductivityApplication"');
-    expect(output).toContain('"isAccessibleForFree":true');
+    expect(output).toContain('Household developer preview');
+    expect(optimizeHomepage(output)).toBe(output);
   });
 
   it('keeps canonical metadata, social metadata and structured data on one origin', () => {

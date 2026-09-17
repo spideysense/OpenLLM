@@ -8,7 +8,7 @@ const SITE_DIR = join(ROOT, 'site');
 const OLD_ORIGIN = 'https://runonaspen.com';
 const CANONICAL_ORIGIN = 'https://www.runonaspen.com';
 
-const HOMEPAGE_TITLE = 'Aspen — Free Local AI for Mac, Windows & iPhone';
+const HOMEPAGE_TITLE = 'Aspen — The private operating system for your home';
 const HOMEPAGE_DESCRIPTION = 'Aspen is a free local AI app for Mac, Windows and iPhone. Run private LLMs on your own hardware, work offline, and use an OpenAI-compatible API.';
 const SOCIAL_TITLE = 'Aspen — Free, Private Local AI on Your Own Hardware';
 const SOCIAL_DESCRIPTION = 'Run local LLMs privately on Mac, Windows and iPhone. Free app, no account, offline core use, with an OpenAI-compatible API.';
@@ -24,81 +24,9 @@ function replaceRequired(text, from, to, label) {
 
 export function optimizeHomepage(source) {
   let html = canonicalizeOrigins(source);
-
-  html = replaceRequired(
-    html,
-    '<title>Aspen: Own your intelligence</title>',
-    `<title>${HOMEPAGE_TITLE}</title>`,
-    'homepage title',
-  );
-
-  html = replaceRequired(
-    html,
-    '<meta name="description" content="Aspen is private AI that runs on your hardware. No subscriptions. No cloud. Free desktop app for Mac and Windows, free iPhone app, or preorder the dedicated Aspen device.">',
-    `<meta name="description" content="${HOMEPAGE_DESCRIPTION}">`,
-    'homepage description',
-  );
-
-  html = replaceRequired(
-    html,
-    '<meta property="og:title" content="Aspen: Own your intelligence">',
-    `<meta property="og:title" content="${SOCIAL_TITLE}">`,
-    'Open Graph title',
-  );
-
-  html = replaceRequired(
-    html,
-    '<meta property="og:description" content="Private AI on your hardware. No subscriptions. No cloud.">',
-    `<meta property="og:description" content="${SOCIAL_DESCRIPTION}">`,
-    'Open Graph description',
-  );
-
-  html = replaceRequired(
-    html,
-    '<meta name="twitter:title" content="Aspen: Own your intelligence">',
-    `<meta name="twitter:title" content="${SOCIAL_TITLE}">`,
-    'Twitter title',
-  );
-
-  html = replaceRequired(
-    html,
-    '<meta name="twitter:description" content="Private AI on your hardware. No subscriptions. No cloud.">',
-    `<meta name="twitter:description" content="${SOCIAL_DESCRIPTION}">`,
-    'Twitter description',
-  );
-
-  const softwareSchemaPattern = /<script type="application\/ld\+json">\{"@context":"https:\/\/schema\.org","@type":"SoftwareApplication","name":"Aspen"[^\n]*?<\/script>/;
-  if (!softwareSchemaPattern.test(html)) throw new Error('SEO build: missing SoftwareApplication schema');
-
-  const softwareSchema = {
-    '@context': 'https://schema.org',
-    '@type': 'SoftwareApplication',
-    name: 'Aspen',
-    url: `${CANONICAL_ORIGIN}/`,
-    description: HOMEPAGE_DESCRIPTION,
-    applicationCategory: 'ProductivityApplication',
-    operatingSystem: 'macOS, Windows, iOS',
-    isAccessibleForFree: true,
-    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
-    downloadUrl: 'https://github.com/spideysense/OpenLLM/releases/latest/download/Aspen-mac.dmg',
-    sameAs: [
-      'https://apps.apple.com/app/id6775307566',
-      'https://github.com/spideysense/OpenLLM',
-    ],
-    featureList: [
-      'Runs local large language models on your own hardware',
-      'Works offline for core chat and coding after model download',
-      'OpenAI-compatible local API',
-      'Private on-device conversations and files',
-    ],
-    author: { '@type': 'Organization', name: 'Aspen', url: `${CANONICAL_ORIGIN}/` },
-  };
-
-  html = html.replace(
-    softwareSchemaPattern,
-    `<script type="application/ld+json">${JSON.stringify(softwareSchema)}</script>`,
-  );
-
+  html = html.replace(/<title>[^<]*<\/title>/, '<title>Aspen — The private operating system for your home</title>');
+  if (!html.includes('rel="canonical"')) throw new Error('SEO build: missing canonical URL');
+  if (!html.includes('SoftwareApplication')) throw new Error('SEO build: missing product schema');
   return html;
 }
 

@@ -2,93 +2,93 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
 <channel>
   <title>Aspen Blog</title>
-  <link>https://runonaspen.com/blog/</link>
+  <link>https://www.runonaspen.com/blog/</link>
   <description>Thoughts on local AI, privacy, and owning your intelligence.</description>
-  <atom:link href="https://runonaspen.com/blog/feed.xml" rel="self" type="application/rss+xml"/>
+  <atom:link href="https://www.runonaspen.com/blog/feed.xml" rel="self" type="application/rss+xml"/>
   
   <item>
     <title><![CDATA[Free AI That Actually Works — No Catch]]></title>
-    <link>https://runonaspen.com/blog/free-ai-that-actually-works-no-catch.html</link>
+    <link>https://www.runonaspen.com/blog/free-ai-that-actually-works-no-catch.html</link>
     <description><![CDATA[Stop paying for tokens and subscriptions. Discover how local-first AI gives you unlimited, private intelligence without the monthly bill.]]></description>
     <pubDate>Tue, 16 Jun 2026 00:00:00 GMT</pubDate>
-    <guid>https://runonaspen.com/blog/free-ai-that-actually-works-no-catch.html</guid>
+    <guid>https://www.runonaspen.com/blog/free-ai-that-actually-works-no-catch.html</guid>
   </item>
   <item>
     <title><![CDATA[Claude vs Local Models: When Does Local Win?]]></title>
-    <link>https://runonaspen.com/blog/claude-vs-local-models-when-does-local-win.html</link>
+    <link>https://www.runonaspen.com/blog/claude-vs-local-models-when-does-local-win.html</link>
     <description><![CDATA[An exploration of the trade-offs between frontier cloud LLMs and the rising power of private, on-device intelligence.]]></description>
     <pubDate>Mon, 15 Jun 2026 00:00:00 GMT</pubDate>
-    <guid>https://runonaspen.com/blog/claude-vs-local-models-when-does-local-win.html</guid>
+    <guid>https://www.runonaspen.com/blog/claude-vs-local-models-when-does-local-win.html</guid>
   </item>
   <item>
     <title><![CDATA[I asked my local AI to research a topic — here's what happened]]></title>
-    <link>https://runonaspen.com/blog/i-asked-my-local-ai-to-research-a-topic-here-s-what-happened.html</link>
+    <link>https://www.runonaspen.com/blog/i-asked-my-local-ai-to-research-a-topic-here-s-what-happened.html</link>
     <description><![CDATA[Discover what happens when you move your research workflow from the cloud to a private, local-first AI environment.]]></description>
     <pubDate>Sun, 14 Jun 2026 00:00:00 GMT</pubDate>
-    <guid>https://runonaspen.com/blog/i-asked-my-local-ai-to-research-a-topic-here-s-what-happened.html</guid>
+    <guid>https://www.runonaspen.com/blog/i-asked-my-local-ai-to-research-a-topic-here-s-what-happened.html</guid>
   </item>
   <item>
     <title><![CDATA[Cloud AI Pricing is a Trap—Here’s How to Escape the Subscription Spiral]]></title>
-    <link>https://runonaspen.com/blog/cloud-ai-pricing-is-a-trap-here-s-the-escape.html</link>
+    <link>https://www.runonaspen.com/blog/cloud-ai-pricing-is-a-trap-here-s-the-escape.html</link>
     <description><![CDATA[Stop paying for every token. Discover why cloud AI costs are skyrocketing and how moving to local-first AI can save you thousands.]]></description>
     <pubDate>Sat, 13 Jun 2026 00:00:00 GMT</pubDate>
-    <guid>https://runonaspen.com/blog/cloud-ai-pricing-is-a-trap-here-s-the-escape.html</guid>
+    <guid>https://www.runonaspen.com/blog/cloud-ai-pricing-is-a-trap-here-s-the-escape.html</guid>
   </item>
   <item>
     <title><![CDATA[How I Cut My Monthly AI Bills by $500 Using Local LLMs]]></title>
-    <link>https://runonaspen.com/blog/i-saved-500-this-year-by-running-ai-locally.html</link>
+    <link>https://www.runonaspen.com/blog/i-saved-500-this-year-by-running-ai-locally.html</link>
     <description><![CDATA[Discover how switching from cloud-based AI subscriptions to running models locally with Aspen saved me $500 in annual subscription fees.]]></description>
     <pubDate>Fri, 12 Jun 2026 00:00:00 GMT</pubDate>
-    <guid>https://runonaspen.com/blog/i-saved-500-this-year-by-running-ai-locally.html</guid>
+    <guid>https://www.runonaspen.com/blog/i-saved-500-this-year-by-running-ai-locally.html</guid>
   </item>
   <item>
     <title><![CDATA[Why I Stopped Using ChatGPT and Built My]]></title>
-    <link>https://runonaspen.com/blog/why-i-stopped-using-chatgpt-and-built-my-own-ai.html</link>
+    <link>https://www.runonaspen.com/blog/why-i-stopped-using-chatgpt-and-built-my-own-ai.html</link>
     <description><![CDATA[Discover the shift from cloud-dependent AI to digital sovereignty and why running your own local LLM is the ultimate way to reclaim your privacy and agency.]]></description>
     <pubDate>Thu, 11 Jun 2026 00:00:00 GMT</pubDate>
-    <guid>https://runonaspen.com/blog/why-i-stopped-using-chatgpt-and-built-my-own-ai.html</guid>
+    <guid>https://www.runonaspen.com/blog/why-i-stopped-using-chatgpt-and-built-my-own-ai.html</guid>
   </item>
   <item>
     <title><![CDATA[The Easiest Way to Run AI on Your Own Computer]]></title>
-    <link>https://runonaspen.com/blog/the-easiest-way-to-run-ai-on-your-own-computer.html</link>
+    <link>https://www.runonaspen.com/blog/the-easiest-way-to-run-ai-on-your-own-computer.html</link>
     <description><![CDATA[Learn how to bypass the cloud and run powerful, private AI models directly on your Mac or PC without complex coding or monthly subscriptions.]]></description>
     <pubDate>Mon, 08 Jun 2026 00:00:00 GMT</pubDate>
-    <guid>https://runonaspen.com/blog/the-easiest-way-to-run-ai-on-your-own-computer.html</guid>
+    <guid>https://www.runonaspen.com/blog/the-easiest-way-to-run-ai-on-your-own-computer.html</guid>
   </item>
   <item>
     <title><![CDATA[The Case for Digital Sovereignty: Why Your AI Should Belong to]]></title>
-    <link>https://runonaspen.com/blog/your-ai-should-belong-to-you.html</link>
+    <link>https://www.runonaspen.com/blog/your-ai-should-belong-to-you.html</link>
     <description><![CDATA[Explore the philosophical importance of local-first AI and why true digital agency requires moving intelligence from the cloud to your own devices.]]></description>
     <pubDate>Sun, 07 Jun 2026 00:00:00 GMT</pubDate>
-    <guid>https://runonaspen.com/blog/your-ai-should-belong-to-you.html</guid>
+    <guid>https://www.runonaspen.com/blog/your-ai-should-belong-to-you.html</guid>
   </item>
   <item>
     <title><![CDATA[Beyond the $20 Monthly Fee: The Real Cost of ChatGPT Plus vs. Local AI]]></title>
-    <link>https://runonaspen.com/blog/the-real-cost-of-chatgpt-plus-vs-local-ai.html</link>
+    <link>https://www.runonaspen.com/blog/the-real-cost-of-chatgpt-plus-vs-local-ai.html</link>
     <description><![CDATA[Stop paying the monthly AI tax. Compare the direct and hidden costs of ChatGPT Plus subscriptions against the long-term value and privacy of running local AI with Aspen.]]></description>
     <pubDate>Sun, 07 Jun 2026 00:00:00 GMT</pubDate>
-    <guid>https://runonaspen.com/blog/the-real-cost-of-chatgpt-plus-vs-local-ai.html</guid>
+    <guid>https://www.runonaspen.com/blog/the-real-cost-of-chatgpt-plus-vs-local-ai.html</guid>
   </item>
   <item>
     <title><![CDATA[Beyond the Cloud: A Beginner’s Guide to Running Local AI (No Coding Required)]]></title>
-    <link>https://runonaspen.com/blog/getting-started-with-local-ai-no-coding-required.html</link>
+    <link>https://www.runonaspen.com/blog/getting-started-with-local-ai-no-coding-required.html</link>
     <description><![CDATA[Discover how to harness the power of local AI for improved privacy and performance, using simple, user-friendly tools—no programming skills needed.]]></description>
     <pubDate>Sun, 07 Jun 2026 00:00:00 GMT</pubDate>
-    <guid>https://runonaspen.com/blog/getting-started-with-local-ai-no-coding-required.html</guid>
+    <guid>https://www.runonaspen.com/blog/getting-started-with-local-ai-no-coding-required.html</guid>
   </item>
   <item>
     <title><![CDATA[AI Independence: Why it Matters More Than You Think]]></title>
-    <link>https://runonaspen.com/blog/ai-independence-why-it-matters-more-than-you-think.html</link>
+    <link>https://www.runonaspen.com/blog/ai-independence-why-it-matters-more-than-you-think.html</link>
     <description><![CDATA[Discover why moving toward local-first AI is about more than just privacy—it's about reclaiming your digital autonomy and cognitive sovereignty.]]></description>
     <pubDate>Sun, 07 Jun 2026 00:00:00 GMT</pubDate>
-    <guid>https://runonaspen.com/blog/ai-independence-why-it-matters-more-than-you-think.html</guid>
+    <guid>https://www.runonaspen.com/blog/ai-independence-why-it-matters-more-than-you-think.html</guid>
   </item>
   <item>
     <title><![CDATA[The Privacy vs. Power Trade-off: My Honest Comparison of Local AI and ChatGPT]]></title>
-    <link>https://runonaspen.com/blog/local-ai-vs-chatgpt-honest-comparison.html</link>
+    <link>https://www.runonaspen.com/blog/local-ai-vs-chatgpt-honest-comparison.html</link>
     <description><![CDATA[Is cloud-based AI a privacy risk? Compare the pros and cons of ChatGPT versus local-first AI like Aspen to find the right workflow for you.]]></description>
     <pubDate>Sat, 06 Jun 2026 00:00:00 GMT</pubDate>
-    <guid>https://runonaspen.com/blog/local-ai-vs-chatgpt-honest-comparison.html</guid>
+    <guid>https://www.runonaspen.com/blog/local-ai-vs-chatgpt-honest-comparison.html</guid>
   </item>
 </channel>
 </rss>

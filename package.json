@@ -1,7 +1,7 @@
 {
   "name": "aspen",
   "version": "0.8.3",
-  "description": "Run the best open source AI locally. No API keys. No subscriptions. No terminal.",
+  "description": "Aspen is the private operating system for your home.",
   "main": "src/main/index.js",
   "scripts": {
     "dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
@@ -15,7 +15,10 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "release:mac": "node scripts/release-mac.js",
-    "smoke": "node scripts/smoke-behavioral.js"
+    "smoke": "node scripts/smoke-behavioral.js",
+    "home": "node src/home/server.js",
+    "test:home": "node --test tests/home/*.test.cjs",
+    "build:home-assets": "node scripts/home-assets.mjs"
   },
   "build": {
     "appId": "com.runonaspen.app",
@@ -30,7 +33,9 @@
       "build/**/*",
       "registry/**/*",
       "!vendor/**/*",
-      "!vendor"
+      "!vendor",
+      "src/home/**/*",
+      "site/home/**/*"
     ],
     "mac": {
       "category": "public.app-category.developer-tools",

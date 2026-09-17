@@ -20,4 +20,4 @@ Allow: /
 User-agent: Applebot-Extended
 Allow: /
 
-Sitemap: https://runonaspen.com/sitemap.xml
+Sitemap: https://www.runonaspen.com/sitemap.xml

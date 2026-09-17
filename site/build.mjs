@@ -108,7 +108,7 @@ ${d.blocks.map(blockHtml).join('\n')}
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Aspen Documentation — Run private, local AI on your own machine</title>
+<title>Aspen Documentation — Your private household intelligence</title>
 <meta name="description" content="Complete Aspen documentation: install on Mac, Windows, or iPhone; choose a local LLM for your hardware; use tools, voice, and vision; and connect the OpenAI-compatible API. Private, free, runs on your own machine.">
 <meta name="keywords" content="Aspen documentation, local LLM, run AI locally, private AI, free local LLM, OpenAI compatible API, local AI setup, offline AI">
 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
@@ -186,7 +186,7 @@ ${sections}
 <p style="margin:0"><a href="${site.appPath}" style="font-weight:600">Try Aspen free in your browser &rarr;</a></p></div>
 </main>
 </div>
-<footer>&copy; 2025 ${esc(site.name)} &middot; <a href="/">Home</a> &middot; <a href="/#faq">FAQ</a> &middot; <a href="${site.github}">GitHub</a> &middot; Open source, MIT License</footer>
+<footer>&copy; 2026 ${esc(site.name)} &middot; <a href="/">Home</a> &middot; <a href="/#faq">FAQ</a> &middot; <a href="${site.github}">GitHub</a> &middot; Source available on GitHub</footer>
 </body>
 </html>
 `;
@@ -195,12 +195,12 @@ ${sections}
 // ── llms.txt (concise) + llms-full.txt (everything) ──────────────────────────
 function llmsTxt() {
   const facts = [
-    'The desktop app (Mac, Windows) and the iPhone app ("Aspen Local AI") are free, with no account.',
-    'Everything runs on your own hardware — prompts, files, and data never leave your device and are never used for training.',
-    'Runs the latest open models including Llama, Qwen, DeepSeek, Mistral, and Gemma; auto-detects your hardware and recommends a fit.',
-    'Works offline for core chat and coding once a model is downloaded.',
-    'Exposes an OpenAI-compatible API at http://localhost:4000/v1 (plus an optional private tunnel URL); works with the OpenAI and Claude SDKs, LangChain, Cursor, and Continue.dev.',
-    'The Aspen device is an optional, always-on machine for the largest models — about 1 petaflop, 128GB unified memory, up to ~200B parameters. You never need it.',
+    'Household developer preview: individual local accounts, shared/private memory, tasks and reminders.',
+    'Local model answers use a compatible installed model; cloud inference fallback is disabled in the household core.',
+    'Supported lights and sensors are discovered through local Home Assistant and explicitly approved by the owner.',
+    'Authenticated device API supports revocable clients and room-scoped access; pods, voice capture and robot adapters remain planned.',
+    'Current downloadable installers still provide the existing local AI workspace. Consumer-ready household installers are not released.',
+    'No newly fine-tuned model or independently audited security certification is claimed.',
   ];
   return `# ${site.name}
 
@@ -208,7 +208,7 @@ function llmsTxt() {
 
 ## What is Aspen?
 
-Aspen lets anyone run powerful AI models locally and privately, with no data sent to any company's servers. Download, open, and ask. Core chat and coding work fully offline.
+Aspen is the private operating system for your home. Explore a sample household in the browser or run the developer preview locally. Features and availability are described below.
 
 ## Key facts
 

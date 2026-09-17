@@ -1,146 +1,22 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// Aspen website knowledge — SINGLE SOURCE OF TRUTH
-// The homepage FAQ, the /docs page, the JSON-LD structured data, llms.txt and
-// llms-full.txt are all GENERATED from this file by `node site/build.mjs`.
-// Edit here, run the build, commit. Do not hand-edit the generated blocks.
-// ─────────────────────────────────────────────────────────────────────────────
-
+// Aspen household product facts. Generated pages must distinguish the preview
+// from the currently released local AI workspace and future hardware.
 export const site = {
-  name: 'Aspen',
-  url: 'https://runonaspen.com',
-  tagline: 'Own your intelligence.',
-  description: 'Aspen is private AI that runs on your own hardware. Free desktop app for Mac and Windows, free iPhone app, or the optional dedicated Aspen device. No subscriptions, no cloud, no one reading your conversations.',
-  appStore: 'https://apps.apple.com/app/id6775307566',
-  github: 'https://github.com/spideysense/OpenLLM',
-  appPath: '/app',
-  updated: '2026-06-26',
+  name: 'Aspen', url: 'https://www.runonaspen.com', tagline: 'Intelligence. Right at home.',
+  description: 'Aspen is the private operating system for your home. Its household developer preview brings family accounts, private and shared memory, local tasks, supported device readings and an authenticated device API together on your own computer.',
+  appStore: 'https://apps.apple.com/app/id6775307566', github: 'https://github.com/spideysense/OpenLLM', appPath: '/home/?demo=1', updated: '2026-09-17',
 };
-
-// FAQ groups. Answers are plain prose (best for AEO + FAQPage JSON-LD).
-export const faqGroups = [
-  {
-    id: 'about-aspen',
-    title: 'About Aspen',
-    items: [
-      { q: 'What is Aspen?',
-        a: 'Aspen is private AI that runs 100% locally on your own device. You download a free app for Mac, Windows, or iPhone, open it, and start chatting, coding, or analyzing images. There is no cloud, no server in the middle, no subscription, and no account. The model runs on your hardware, so your conversations never leave your machine.' },
-      { q: 'Is Aspen free?',
-        a: 'Yes. The app is free forever on the devices you already own: Mac, Windows, and iPhone. No subscription, no account. The Aspen device is a separate, optional product you can preorder, but you never need it to use Aspen.' },
-      { q: 'How do I install Aspen?',
-        a: 'Download the free app for Mac or Windows from runonaspen.com, or run one command in your terminal — curl -fsSL https://runonaspen.com/install.sh | sh — which installs everything and adds Aspen to your apps menu. After that you never need the terminal. On iPhone, install "Aspen Local AI" from the App Store.' },
-      { q: 'Do I need to know how to code to use Aspen?',
-        a: 'No. Aspen is a normal chat app: download, open, and ask. There is no terminal or configuration required for everyday use. Developers can optionally use the built-in OpenAI-compatible API, but most people never touch it.' },
-      { q: 'Does Aspen work offline?',
-        a: 'Yes. Because the model runs on your machine, core chat and coding work with no internet at all. You only need a connection for optional tools like live web search, or to download a new model the first time.' },
-      { q: 'What models does Aspen run?',
-        a: 'The latest open models, including Llama, Qwen, DeepSeek, Mistral, and Gemma. Aspen detects your hardware and recommends a model that fits it, and can update to a newer, better model automatically when one is released.' },
-      { q: 'Is there an iPhone app?',
-        a: 'Yes. "Aspen Local AI" is free on the App Store. It connects to the AI running on your own computer, so you can chat with your private models from your phone, anywhere.' },
-      { q: 'Then what is the $4,000 Aspen device?',
-        a: 'It is a dedicated, always-on machine for people who want to run the largest models around the clock without using their own computer. Think of the free app as the product for almost everyone, and the device as the optional high end for power users. It delivers about 1 petaflop of AI performance, 128GB of unified memory, runs models up to roughly 200B parameters, and is silent. You never need it to use Aspen.' },
-      { q: 'Can I use Aspen as an API for my own apps?',
-        a: 'Yes. Aspen exposes an OpenAI-compatible API. Change the base_url and api_key — two lines of code — and your existing tools run against your own private AI. It works with the ChatGPT and Claude SDKs, plus tools like LangChain, Cursor, and Continue.dev.' },
-      { q: 'Why does Windows show a "Windows protected your PC" warning?',
-        a: 'It is normal and safe. Windows shows this for any new app it has not seen many times yet, because Aspen is from an independent developer. Click More info, then Run anyway. If Windows Defender blocked the download, open your Downloads folder, right-click the Aspen file, choose Properties, check Unblock at the bottom, then run it. Windows code signing is rolling out to remove the warning entirely.' },
-    ],
-  },
-  {
-    id: 'local-llms',
-    title: 'Local LLMs',
-    items: [
-      { q: 'What is a local LLM?',
-        a: 'A local LLM is a large language model — the kind of AI that powers chat assistants — that runs directly on your own computer instead of on a company\'s servers. Your prompts are processed on your hardware and never sent to the cloud, which makes local LLMs private by default and usable offline.' },
-      { q: 'How do local LLMs work?',
-        a: 'You download the model\'s weights (a large file) once, and an inference engine on your machine uses your CPU or GPU to generate responses token by token. Tools like Aspen package the model, the engine, and a friendly interface together so you do not have to set any of it up yourself.' },
-      { q: 'Are local LLMs as good as ChatGPT or Claude?',
-        a: 'For most everyday tasks — writing, summarizing, answering questions, coding help, analyzing a document or image — modern open models running locally are genuinely good and often indistinguishable from cloud AI. The largest cloud models still lead on the hardest reasoning tasks, but the gap narrows every few months, and local models win decisively on privacy, cost, and offline use.' },
-      { q: 'What can you do with a local LLM?',
-        a: 'Chat and brainstorm, write and edit text, generate and debug code, summarize documents, analyze images with a vision model, search the web and cite sources, and power your own apps through an API — all without sending anything to a third party.' },
-      { q: 'Do local LLMs need an internet connection?',
-        a: 'No, not for core use. Once the model is downloaded, chat and coding run fully offline. You only need a connection to download a new model or to use optional online tools such as live web search.' },
-      { q: 'What hardware do I need to run an LLM locally?',
-        a: 'A modern laptop or desktop is enough for capable models. Apple Silicon Macs (M1 and newer) are excellent because memory is shared with the GPU. On Windows or Linux, more RAM and a recent GPU let you run larger, faster models. Aspen checks your hardware and picks a model that fits, so it works on a wide range of machines.' },
-      { q: 'How much RAM do I need to run a local LLM?',
-        a: 'As a rough guide: 8GB runs small models (around 3B parameters), 16GB comfortably runs 7–8B models, 32GB runs 13–14B models, and 64GB or more runs 30B+ models. Quantized models need less. Aspen estimates the requirement for each model and flags ones that may be too large for your machine.' },
-      { q: 'Can I run an LLM without a GPU?',
-        a: 'Yes. Many models run on CPU alone, just more slowly. Apple Silicon is a sweet spot because its unified memory acts like fast GPU memory. A dedicated GPU mainly helps with speed and lets you run larger models.' },
-      { q: 'What is the difference between a local LLM and a cloud LLM?',
-        a: 'A cloud LLM runs on a company\'s servers: it can be very powerful but it sees your data, usually costs a subscription or per-token fee, and needs internet. A local LLM runs on your machine: it is private, free to run, and works offline, with capability bounded by your hardware.' },
-      { q: 'Is it legal to run LLMs locally?',
-        a: 'Yes. The open models Aspen uses are released under licenses that permit local use, and in most cases commercial use as well. Running them on your own hardware is entirely legal; you simply follow each model\'s license, which Aspen surfaces for you.' },
-    ],
-  },
-  {
-    id: 'free-llms',
-    title: 'Free LLMs',
-    items: [
-      { q: 'Are there free LLMs?',
-        a: 'Yes. There is a large ecosystem of high-quality open-weight models — Llama, Qwen, DeepSeek, Mistral, Gemma and others — that are free to download and run. Aspen bundles these so you can use them with no cost and no account.' },
-      { q: 'What is the best free local LLM?',
-        a: 'It depends on your hardware and task. For most machines, a mid-sized Qwen or Llama model is the best all-round choice for chat, tools, and coding. Smaller Gemma or Qwen models are great on lighter laptops, while 30B+ models shine on high-memory machines. Aspen recommends a good default for your specific computer.' },
-      { q: 'Are free LLMs any good?',
-        a: 'Yes — modern open models are strong. For writing, summarizing, coding assistance, and everyday questions they perform at a level that surprises most first-time users. The very largest paid cloud models still lead on the hardest tasks, but free local models are more than capable for the vast majority of real work.' },
-      { q: 'Is it really free, or is there a catch?',
-        a: 'It is genuinely free. The Aspen app is free forever, and the models are open weights. The "cost" is that the AI runs on your own electricity and hardware instead of someone else\'s servers — which is exactly what keeps it private. The only paid product is the optional Aspen hardware device, which you never need.' },
-      { q: 'Free vs paid LLMs — what is the difference?',
-        a: 'Paid cloud LLMs charge a subscription or per-token fee and run on remote servers that process your data. Free local LLMs run on your machine at no cost, keep your data private, and work offline. Many people use free local models for daily work and reserve a paid cloud model only for occasional heavy reasoning.' },
-      { q: 'Can I use free LLMs commercially?',
-        a: 'Usually yes. Most popular open models permit commercial use under their licenses, though terms vary by model and some have conditions at very large scale. Aspen shows each model\'s license so you can confirm before using it in a business.' },
-      { q: 'Do free LLMs collect my data?',
-        a: 'When you run them locally with Aspen, no. The model has no network connection of its own; your prompts are processed on your device and are never uploaded or used for training. "Free" cloud chatbots, by contrast, often do log and train on your conversations.' },
-    ],
-  },
-  {
-    id: 'privacy',
-    title: 'Privacy & security',
-    items: [
-      { q: 'Is local AI actually private?',
-        a: 'Yes. With Aspen, the model runs on your own hardware and there is no server in the middle. Your prompts, files, and conversations are never transmitted anywhere and are never used to train any model.' },
-      { q: 'Does my data leave my computer?',
-        a: 'No. Everything runs on your own hardware. The only time anything touches the network is if you explicitly use an online tool like web search, and even then the request goes out from your own machine and IP, not through Aspen\'s servers.' },
-      { q: 'Is my data used to train models?',
-        a: 'Never. Because nothing is uploaded, there is nothing for anyone to train on. Aspen\'s memory of you — its "World Model" — is a plain file on your own computer that you can view, edit, or delete at any time.' },
-      { q: 'Is it safe to paste API keys or secrets into a local AI?',
-        a: 'With a local LLM the conversation stays on your machine, so it is far safer than pasting secrets into a cloud chatbot. As always, treat any credential carefully, but there is no third-party server receiving it.' },
-    ],
-  },
-  {
-    id: 'performance',
-    title: 'Hardware & performance',
-    items: [
-      { q: 'How fast are local LLMs?',
-        a: 'On a modern Apple Silicon Mac or a recent GPU, a well-sized model streams text about as fast as you can read it. Speed depends on the model size relative to your hardware: smaller models are faster, larger models are slower but more capable. Aspen picks a size that runs smoothly on your machine.' },
-      { q: 'Why is my local model slow?',
-        a: 'Usually the model is large relative to your memory, forcing the system to swap. Choosing a smaller or more heavily quantized model, closing memory-hungry apps, or using a machine with more RAM all help. Aspen flags models that may be too big for your hardware.' },
-      { q: 'What do "parameters" and "7B" or "70B" mean?',
-        a: 'Parameters are the internal values a model learned during training; "7B" means seven billion of them. More parameters generally means more capable but also larger and slower. The right number depends on your hardware — many people run 7–14B models happily on a laptop.' },
-      { q: 'What is quantization?',
-        a: 'Quantization compresses a model\'s numbers to use less memory and run faster, with a small and usually unnoticeable quality cost. It is what lets large models fit on consumer hardware. Aspen uses sensible quantized versions by default.' },
-      { q: 'Do I need the Aspen device?',
-        a: 'No. The free app runs well on a modern Mac or PC, and the better your machine, the better it runs. The Aspen device is simply the top of that range — a silent, always-on machine for running the largest models continuously. It is completely optional.' },
-    ],
-  },
-  {
-    id: 'developers',
-    title: 'For developers',
-    items: [
-      { q: 'Does Aspen have an OpenAI-compatible API?',
-        a: 'Yes. Aspen runs a local gateway that speaks the OpenAI API format. Point any OpenAI-style client at http://localhost:4000/v1 with an Aspen API key and it works unchanged.' },
-      { q: 'How do I point my app at Aspen?',
-        a: 'Set the base URL to your Aspen endpoint and use an Aspen API key. For example, with the OpenAI Python SDK: OpenAI(base_url="http://localhost:4000/v1", api_key="YOUR-ASPEN-KEY"). That is the whole change — two lines.' },
-      { q: 'What tools and SDKs work with Aspen?',
-        a: 'Anything that speaks the OpenAI API: the official OpenAI and Anthropic (Claude) SDKs, LangChain, Cursor, Continue.dev, n8n, Zapier, and similar tools. You just swap the base_url and api_key.' },
-      { q: 'Can I reach my local AI from another machine or my phone?',
-        a: 'Yes. Aspen can expose a private, secure HTTPS URL so your own apps and your phone can reach the AI on your computer from anywhere, while the model and data stay on your machine.' },
-      { q: 'What API key types does Aspen have?',
-        a: 'Three. An Owner key has full access including computer use and shared memory — only for devices that are you. A Family/member key gets its own private memory plus safe tools, with no computer use. An Anonymous guest key allows chat and safe tools only, is ephemeral, and is safe to share widely.' },
-    ],
-  },
-];
-
-// Documentation sections. Blocks: ['p',text] ['h',text] ['ul',[...]] ['ol',[...]]
-// ['code',lang,text] ['note',text].
-export const docs = [
+export const faqGroups = [{ id: 'aspen-home', title: 'Aspen at home', items: [
+  { q: 'What is Aspen?', a: 'Aspen is being built as the private operating system for your home: one household brain, with apps like Butler, Secure and Energy. The household developer preview includes local accounts, shared and private memory, tasks, reminders, supported Home Assistant devices and a device API.' },
+  { q: 'What can I use today?', a: 'Explore the sample household in your browser, or run the household preview from source on a supported computer. The current Mac, Windows and iPhone downloads are the existing Aspen local AI workspace; they do not yet include the household redesign.' },
+  { q: 'Does Aspen need its own box?', a: 'No. The household core can run on a supported Mac, Windows or Linux computer. A dedicated Aspen device is planned as an easier, always-on option. Computers still need enough available memory and processing power for the selected model.' },
+  { q: 'What works without internet?', a: 'Local sign-in, saved memory, task management and the reminder scheduler run on the home computer. Model answers work offline once a compatible model is installed and running. Connected device access needs the home network. Email, bookings, remote access, downloads and cloud-only services need internet.' },
+  { q: 'Will Aspen automatically find all my devices?', a: 'The preview discovers supported lights, climate and sensor devices through an existing local Home Assistant installation. You approve which devices Aspen can access. Automatic Wi-Fi provisioning, direct Matter commissioning and universal device discovery are not included yet.' },
+  { q: 'Can my family keep things private?', a: 'Yes. Family members have separate accounts. Notes are private by default and can be explicitly shared with the household. Room devices receive shared context only and cannot choose another person’s identity to read their private memory.' },
+  { q: 'Does Aspen use a fine-tuned household model?', a: 'The preview uses installed local models and authorized household context. It does not include a newly trained or fine-tuned model. Hardware-aware model selection is conservative; household-task evaluation and model specialization remain development work.' },
+  { q: 'What about room speakers and robots?', a: 'The architecture includes an authenticated device API with revocable access, room context and limited permissions. Listening pods, local speech recognition, wake-word detection, robot clients and robot motion control are planned. Microphone access is disabled in this preview.' },
+  { q: 'Is this the finished plug-and-play product?', a: 'Not yet. This is the household developer preview. Signed household installers, automatic network onboarding, password recovery, secure remote access, audited app isolation and production hardware validation are required before a consumer release.' },
+]}];
+const workspaceDocs = [
   {
     id: 'overview',
     title: 'Overview',
@@ -318,4 +194,32 @@ export const docs = [
       ['p', 'Enable the Web Search tool in Settings so the model can answer real-time questions from the live web with cited sources.'],
     ],
   },
+];
+
+export const docs = [
+  { id: 'home', title: 'Set up the household preview', summary: 'Run the new Aspen household core locally.', blocks: [
+    ['p', 'This is a developer preview. Existing downloadable releases still provide the local AI workspace. The new household experience is available from the preview source.'],
+    ['ol', ['Use Node.js 20 or newer on a supported Mac, Windows or Linux computer.', 'From the preview source folder, run npm run home.', 'Open the private setup link printed on that computer. Create a home and an owner account.', 'Add rooms, invite family, and use Butler for local tasks and reminders.', 'For local model answers, run Ollama. In Settings, Prepare can download a recommended model. Aspen chooses a conservative memory fit from installed general-purpose models.']],
+    ['code', 'bash', 'npm run home'],
+    ['note', 'The server listens only on 127.0.0.1 by default. Connecting another device requires an HTTPS configuration and a reachable, explicitly configured origin. Do not expose the service directly to the public internet.'],
+    ['p', 'For the packaged desktop preview, build the branch using the existing platform build scripts. Native signing and hardware validation are still required. ASPEN_WORKSPACE=1 opens the existing local AI workspace.'],
+  ]},
+  { id: 'household-apps', title: 'Household apps', summary: 'Butler, Secure and Energy in the preview.', blocks: [
+    ['ul', ['Butler: local tasks, due dates, completion tracking and reminders. The existing online Butler remains a separate service for bookings, email, phone calls and browser work.', 'Secure: last synchronized readings from approved Home Assistant door and motion sensors. It is not a monitored alarm service.', 'Energy: approved Home Assistant energy and climate readings. Automatic optimization and financial savings estimates are not implemented.']],
+    ['p', 'Only the household owner can add or remove built-in apps and approve integrations. Third-party executable plugins and their sandboxing are not part of this release.'],
+  ]},
+  { id: 'privacy', title: 'Household privacy and security', summary: 'Local state, individual accounts and explicit device permissions.', blocks: [
+    ['ul', ['The household vault is encrypted using AES-256-GCM. Desktop uses the operating-system key store when available. Headless mode uses a restricted local key file or an externally supplied key; protect the computer with disk encryption.', 'Passwords use salted scrypt. Sessions use HttpOnly, SameSite=Strict cookies, with Secure on HTTPS. Session tokens expire and sign-out revokes them.', 'Private memory is filtered by authenticated member before a model sees context. Devices receive only household-shared memory.', 'Pairing codes expire after five minutes and can be redeemed once. Client tokens are stored as hashes and can be revoked.', 'The device API validates room access and action permissions independently of the model. Light control is allowlisted. Lock, alarm, robot motion and arbitrary shell actions are excluded.', 'The household server has no cloud inference fallback, analytics, microphone capture or automatic internet tunnel. Explicit integrations and local model downloads have separate network needs.']],
+    ['note', 'This is an implemented security foundation, not a completed independent security audit. Recovery, encrypted backups, signed updates, hardware commissioning and a full production threat review remain release gates.'],
+  ]},
+  { id: 'devices', title: 'Connect household devices', summary: 'Approve devices discovered through local Home Assistant.', blocks: [
+    ['ol', ['Open Settings, then Connected home.', 'Enter the local Home Assistant address and a long-lived access token.', 'Select the supported devices Aspen may access and assign their rooms.', 'Refresh readings from Settings or the Secure and Energy apps.']],
+    ['p', 'The integration currently supports private IPv4 addresses and local hostnames resolving only to private IPv4 addresses. Credentials are never sent to the language model. Automatic mDNS provisioning and direct Matter pairing remain future work.'],
+  ]},
+  { id: 'device-api', title: 'Device API for phones, pods and robots', summary: 'One household brain with authenticated, scoped clients.', blocks: [
+    ['p', 'The household API is rooted at /v1/home. An owner creates a short-lived pairing code in Settings. A client exchanges it at POST /pair, stores the returned Bearer token securely and uses only the granted scopes. See docs/HOME_API.md in the source for request schemas.'],
+    ['ul', ['home:read — household-shared state; excludes private memory.', 'chat:ask — ask the local model with authorized context.', 'tasks:write — create and complete shared tasks.', 'devices:control — operate approved lights within the client’s assigned room.']],
+    ['p', 'Room pods and robots must have a room. A shared device cannot supply a member ID to impersonate someone. Revoking the client disables its token immediately. Voice capture and robotics execution adapters are not included.'],
+  ]},
+  ...workspaceDocs.filter(d => !['privacy'].includes(d.id)).map(d => ({...d, title: 'AI workspace: ' + d.title, blocks: [['note', 'This section describes the existing Aspen AI workspace. It is separate from the new household preview.'], ...d.blocks]})),
 ];

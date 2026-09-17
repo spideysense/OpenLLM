@@ -26,6 +26,22 @@ const conversations = require('./conversations');
 const isDev = !app.isPackaged;
 let mainWindow = null;
 let tray = null;
+let householdServer = null;
+
+function createHouseholdWindow() {
+  mainWindow = new BrowserWindow({ width: 1320, height: 880, minWidth: 390, minHeight: 640, title: 'Aspen', backgroundColor: '#f6f7f6',
+    webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true } });
+  mainWindow.loadURL(householdServer.url);
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (/^https?:\/\//.test(url)) shell.openExternal(url);
+    return { action: 'deny' };
+  });
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    if (new URL(url).origin !== householdServer.origin) { event.preventDefault(); if (/^https?:\/\//.test(url)) shell.openExternal(url); }
+  });
+  mainWindow.on('closed', () => { mainWindow = null; });
+}
+
 
 // ═══════════════════════════════════════════════════
 // Window Management
@@ -120,6 +136,23 @@ function createTray() {
 // ═══════════════════════════════════════════════════
 
 app.whenReady().then(async () => {
+  if (process.env.ASPEN_WORKSPACE !== '1') {
+    const { safeStorage, Notification } = require('electron');
+    const { createHomeServer } = require('../home/server');
+    const protectedKey = safeStorage.isEncryptionAvailable() && safeStorage.getSelectedStorageBackend?.() !== 'basic_text';
+    householdServer = await createHomeServer({
+      port: 4141, dataDir: path.join(app.getPath('userData'), 'home'),
+      vaultOptions: protectedKey ? { wrapKey: value => safeStorage.encryptString(value), unwrapKey: value => safeStorage.decryptString(value) } : undefined,
+      onReminder: ({ title }) => { if (Notification.isSupported()) new Notification({ title: 'Aspen reminder', body: title }).show(); },
+    });
+    createHouseholdWindow();
+    app.on('activate', () => { if (!mainWindow) createHouseholdWindow(); });
+    // Reuse the installed local runtime without starting legacy cloud tunnels,
+    // web research, microphone capture or the general-purpose agent gateway.
+    ollama.ensureRunning(() => {}).catch(err => console.warn('[Aspen home] Local runtime unavailable:', err.message));
+    return;
+  }
+
   // ── Local activation streak ────────────────────────────────────────────────
   // Counts the days Aspen was used, entirely in the local store — the private
   // counterpart to analytics. Never transmitted; surfaced in the sidebar as
@@ -312,6 +345,7 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', async () => {
+  if (householdServer) await householdServer.close();
   tunnel.stop();
   gateway.stop();
 });

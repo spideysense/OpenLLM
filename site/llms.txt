@@ -1,43 +1,54 @@
 # Aspen
 
-> Aspen is private AI that runs on your own hardware. Free desktop app for Mac and Windows, free iPhone app, or the optional dedicated Aspen device. No subscriptions, no cloud, no one reading your conversations.
+> Aspen is the private operating system for your home. Its household developer preview brings family accounts, private and shared memory, local tasks, supported device readings and an authenticated device API together on your own computer.
 
 ## What is Aspen?
 
-Aspen lets anyone run powerful AI models locally and privately, with no data sent to any company's servers. Download, open, and ask. Core chat and coding work fully offline.
+Aspen is the private operating system for your home. Explore a sample household in the browser or run the developer preview locally. Features and availability are described below.
 
 ## Key facts
 
-- The desktop app (Mac, Windows) and the iPhone app ("Aspen Local AI") are free, with no account.
-- Everything runs on your own hardware — prompts, files, and data never leave your device and are never used for training.
-- Runs the latest open models including Llama, Qwen, DeepSeek, Mistral, and Gemma; auto-detects your hardware and recommends a fit.
-- Works offline for core chat and coding once a model is downloaded.
-- Exposes an OpenAI-compatible API at http://localhost:4000/v1 (plus an optional private tunnel URL); works with the OpenAI and Claude SDKs, LangChain, Cursor, and Continue.dev.
-- The Aspen device is an optional, always-on machine for the largest models — about 1 petaflop, 128GB unified memory, up to ~200B parameters. You never need it.
+- Household developer preview: individual local accounts, shared/private memory, tasks and reminders.
+- Local model answers use a compatible installed model; cloud inference fallback is disabled in the household core.
+- Supported lights and sensors are discovered through local Home Assistant and explicitly approved by the owner.
+- Authenticated device API supports revocable clients and room-scoped access; pods, voice capture and robot adapters remain planned.
+- Current downloadable installers still provide the existing local AI workspace. Consumer-ready household installers are not released.
+- No newly fine-tuned model or independently audited security certification is claimed.
 
 ## Documentation
 
-Full documentation: https://runonaspen.com/docs
-Machine-readable full text: https://runonaspen.com/llms-full.txt
+Full documentation: https://www.runonaspen.com/docs
+Machine-readable full text: https://www.runonaspen.com/llms-full.txt
 
-- Overview: What Aspen is and how it runs AI privately on your own machine. (https://runonaspen.com/docs#overview)
-- Install: Get Aspen running on Mac, Windows, or iPhone in a couple of minutes. (https://runonaspen.com/docs#install)
-- Quickstart: Open Aspen, pick a model, and ask your first question. (https://runonaspen.com/docs#quickstart)
-- Choosing a model: How to pick the right local model for your machine. (https://runonaspen.com/docs#models)
-- Chat & artifacts: Conversational AI with live code and HTML previews. (https://runonaspen.com/docs#chat)
-- Voice: Hands-free voice conversations, processed on-device. (https://runonaspen.com/docs#voice)
-- Vision: Analyze images and screenshots with a local vision model. (https://runonaspen.com/docs#vision)
-- Tools: Web search, URL fetch, shell commands, and more — all run on your machine. (https://runonaspen.com/docs#tools)
-- Memory (World Model): A private, local memory that personalizes answers. (https://runonaspen.com/docs#memory)
-- Privacy: Why Aspen is private by design. (https://runonaspen.com/docs#privacy)
-- Developer API: Drop-in, OpenAI-compatible API for your own apps. (https://runonaspen.com/docs#api)
-- Connectors (MCP): Connect tools like GitHub through open MCP connectors. (https://runonaspen.com/docs#connectors)
-- The Aspen device: Optional always-on hardware for the largest models. (https://runonaspen.com/docs#device)
-- Troubleshooting: Common issues and quick fixes. (https://runonaspen.com/docs#troubleshooting)
+- Set up the household preview: Run the new Aspen household core locally. (https://www.runonaspen.com/docs#home)
+- Household apps: Butler, Secure and Energy in the preview. (https://www.runonaspen.com/docs#household-apps)
+- Household privacy and security: Local state, individual accounts and explicit device permissions. (https://www.runonaspen.com/docs#privacy)
+- Connect household devices: Approve devices discovered through local Home Assistant. (https://www.runonaspen.com/docs#devices)
+- Device API for phones, pods and robots: One household brain with authenticated, scoped clients. (https://www.runonaspen.com/docs#device-api)
+- AI workspace: Overview: What Aspen is and how it runs AI privately on your own machine. (https://www.runonaspen.com/docs#overview)
+- AI workspace: Install: Get Aspen running on Mac, Windows, or iPhone in a couple of minutes. (https://www.runonaspen.com/docs#install)
+- AI workspace: Quickstart: Open Aspen, pick a model, and ask your first question. (https://www.runonaspen.com/docs#quickstart)
+- AI workspace: Choosing a model: How to pick the right local model for your machine. (https://www.runonaspen.com/docs#models)
+- AI workspace: Chat & artifacts: Conversational AI with live code and HTML previews. (https://www.runonaspen.com/docs#chat)
+- AI workspace: Voice: Hands-free voice conversations, processed on-device. (https://www.runonaspen.com/docs#voice)
+- AI workspace: Vision: Analyze images and screenshots with a local vision model. (https://www.runonaspen.com/docs#vision)
+- AI workspace: Tools: Web search, URL fetch, shell commands, and more — all run on your machine. (https://www.runonaspen.com/docs#tools)
+- AI workspace: Memory (World Model): A private, local memory that personalizes answers. (https://www.runonaspen.com/docs#memory)
+- AI workspace: Developer API: Drop-in, OpenAI-compatible API for your own apps. (https://www.runonaspen.com/docs#api)
+- AI workspace: Connectors (MCP): Connect tools like GitHub through open MCP connectors. (https://www.runonaspen.com/docs#connectors)
+- AI workspace: The Aspen device: Optional always-on hardware for the largest models. (https://www.runonaspen.com/docs#device)
+- AI workspace: Troubleshooting: Common issues and quick fixes. (https://www.runonaspen.com/docs#troubleshooting)
 
 ## Links
 
-- Home: https://runonaspen.com
-- Try in browser: https://runonaspen.com/app
+- Home: https://www.runonaspen.com
+- Try in browser: https://www.runonaspen.com/home/?demo=1
 - iPhone app: https://apps.apple.com/app/id6775307566
 - Source: https://github.com/spideysense/OpenLLM
+
+## Evergreen guides
+
+- Local AI: run AI on your own computer: https://www.runonaspen.com/local-ai/
+- Local LLM: run a large language model on your own machine: https://www.runonaspen.com/local-llm/
+- Private AI: keep the model and your work on your device: https://www.runonaspen.com/private-ai/
+- OpenAI-compatible local API: https://www.runonaspen.com/openai-compatible-local-api/

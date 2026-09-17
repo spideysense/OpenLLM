@@ -24,6 +24,9 @@ jobs:
       - name: Run tests
         run: npx vitest run
 
+      - name: Run household privacy and API tests
+        run: npm run test:home
+
       - name: Run module tests (src/main)
         run: |
           for f in src/main/*.test.js; do

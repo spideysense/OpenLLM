@@ -3,16 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Aspen Documentation — Run private, local AI on your own machine</title>
+<title>Aspen Documentation — Your private household intelligence</title>
 <meta name="description" content="Complete Aspen documentation: install on Mac, Windows, or iPhone; choose a local LLM for your hardware; use tools, voice, and vision; and connect the OpenAI-compatible API. Private, free, runs on your own machine.">
 <meta name="keywords" content="Aspen documentation, local LLM, run AI locally, private AI, free local LLM, OpenAI compatible API, local AI setup, offline AI">
 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
-<link rel="canonical" href="https://runonaspen.com/docs">
+<link rel="canonical" href="https://www.runonaspen.com/docs">
 <meta property="og:title" content="Aspen Documentation">
 <meta property="og:description" content="Install, choose a model, and connect the API. Private AI that runs on your own machine.">
 <meta property="og:type" content="article">
-<meta property="og:url" content="https://runonaspen.com/docs">
-<meta property="og:image" content="https://runonaspen.com/og-image.png">
+<meta property="og:url" content="https://www.runonaspen.com/docs">
+<meta property="og:image" content="https://www.runonaspen.com/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Aspen Documentation">
 <meta name="twitter:description" content="Install, choose a model, and connect the API. Private AI on your own machine.">
@@ -20,8 +20,8 @@
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="stylesheet" href="/leaf.css">
 <link rel="sitemap" type="application/xml" href="/sitemap.xml">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://runonaspen.com/"},{"@type":"ListItem","position":2,"name":"Documentation","item":"https://runonaspen.com/docs"}]}</script>
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Aspen Documentation","description":"Complete guide to Aspen: install, choose a local model, tools, voice, vision, privacy, and the OpenAI-compatible developer API.","url":"https://runonaspen.com/docs","dateModified":"2026-06-26","author":{"@type":"Organization","name":"Aspen","url":"https://runonaspen.com"},"publisher":{"@type":"Organization","name":"Aspen","url":"https://runonaspen.com"},"articleSection":["Overview","Install","Quickstart","Choosing a model","Chat & artifacts","Voice","Vision","Tools","Memory (World Model)","Privacy","Developer API","Connectors (MCP)","The Aspen device","Troubleshooting"]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://www.runonaspen.com/"},{"@type":"ListItem","position":2,"name":"Documentation","item":"https://www.runonaspen.com/docs"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Aspen Documentation","description":"Complete guide to Aspen: install, choose a local model, tools, voice, vision, privacy, and the OpenAI-compatible developer API.","url":"https://www.runonaspen.com/docs","dateModified":"2026-09-17","author":{"@type":"Organization","name":"Aspen","url":"https://www.runonaspen.com"},"publisher":{"@type":"Organization","name":"Aspen","url":"https://www.runonaspen.com"},"articleSection":["Set up the household preview","Household apps","Household privacy and security","Connect household devices","Device API for phones, pods and robots","AI workspace: Overview","AI workspace: Install","AI workspace: Quickstart","AI workspace: Choosing a model","AI workspace: Chat & artifacts","AI workspace: Voice","AI workspace: Vision","AI workspace: Tools","AI workspace: Memory (World Model)","AI workspace: Developer API","AI workspace: Connectors (MCP)","AI workspace: The Aspen device","AI workspace: Troubleshooting"]}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -65,56 +65,98 @@ footer{border-top:1px solid var(--brd);padding:2rem 1.5rem;text-align:center;col
 <body>
 <header><div class="hw">
 <a class="brand" href="/"><img src="/leaf.svg" class="leaf" alt=""> Aspen<span class="b">DOCS</span></a>
-<nav class="hn"><a href="/">Home</a><a href="/#faq">FAQ</a><a href="/app">Try Free</a><a href="https://github.com/spideysense/OpenLLM">GitHub</a></nav>
+<nav class="hn"><a href="/">Home</a><a href="/#faq">FAQ</a><a href="/home/?demo=1">Try Free</a><a href="https://github.com/spideysense/OpenLLM">GitHub</a></nav>
 </div></header>
 <div class="wrap">
 <aside class="toc"><div class="lbl">Documentation</div><ul>
-<li><a href="#overview">Overview</a></li>
-<li><a href="#install">Install</a></li>
-<li><a href="#quickstart">Quickstart</a></li>
-<li><a href="#models">Choosing a model</a></li>
-<li><a href="#chat">Chat &amp; artifacts</a></li>
-<li><a href="#voice">Voice</a></li>
-<li><a href="#vision">Vision</a></li>
-<li><a href="#tools">Tools</a></li>
-<li><a href="#memory">Memory (World Model)</a></li>
-<li><a href="#privacy">Privacy</a></li>
-<li><a href="#api">Developer API</a></li>
-<li><a href="#connectors">Connectors (MCP)</a></li>
-<li><a href="#device">The Aspen device</a></li>
-<li><a href="#troubleshooting">Troubleshooting</a></li>
+<li><a href="#home">Set up the household preview</a></li>
+<li><a href="#household-apps">Household apps</a></li>
+<li><a href="#privacy">Household privacy and security</a></li>
+<li><a href="#devices">Connect household devices</a></li>
+<li><a href="#device-api">Device API for phones, pods and robots</a></li>
+<li><a href="#overview">AI workspace: Overview</a></li>
+<li><a href="#install">AI workspace: Install</a></li>
+<li><a href="#quickstart">AI workspace: Quickstart</a></li>
+<li><a href="#models">AI workspace: Choosing a model</a></li>
+<li><a href="#chat">AI workspace: Chat &amp; artifacts</a></li>
+<li><a href="#voice">AI workspace: Voice</a></li>
+<li><a href="#vision">AI workspace: Vision</a></li>
+<li><a href="#tools">AI workspace: Tools</a></li>
+<li><a href="#memory">AI workspace: Memory (World Model)</a></li>
+<li><a href="#api">AI workspace: Developer API</a></li>
+<li><a href="#connectors">AI workspace: Connectors (MCP)</a></li>
+<li><a href="#device">AI workspace: The Aspen device</a></li>
+<li><a href="#troubleshooting">AI workspace: Troubleshooting</a></li>
 <li><a href="/#faq">FAQ</a></li>
 </ul></aside>
 <main>
 <h1>Aspen Documentation</h1>
 <p class="lead">Everything you need to run private, local AI on your own machine — install, choose a model, use tools, and connect the developer API.</p>
-<p class="updated">Last updated 2026-06-26</p>
+<p class="updated">Last updated 2026-09-17</p>
+<section id="home">
+<h2>Set up the household preview</h2>
+<p>This is a developer preview. Existing downloadable releases still provide the local AI workspace. The new household experience is available from the preview source.</p>
+<ol><li>Use Node.js 20 or newer on a supported Mac, Windows or Linux computer.</li><li>From the preview source folder, run npm run home.</li><li>Open the private setup link printed on that computer. Create a home and an owner account.</li><li>Add rooms, invite family, and use Butler for local tasks and reminders.</li><li>For local model answers, run Ollama. In Settings, Prepare can download a recommended model. Aspen chooses a conservative memory fit from installed general-purpose models.</li></ol>
+<pre><code class="language-bash">npm run home</code></pre>
+<div class="note">The server listens only on 127.0.0.1 by default. Connecting another device requires an HTTPS configuration and a reachable, explicitly configured origin. Do not expose the service directly to the public internet.</div>
+<p>For the packaged desktop preview, build the branch using the existing platform build scripts. Native signing and hardware validation are still required. ASPEN_WORKSPACE=1 opens the existing local AI workspace.</p>
+</section>
+
+<section id="household-apps">
+<h2>Household apps</h2>
+<ul><li>Butler: local tasks, due dates, completion tracking and reminders. The existing online Butler remains a separate service for bookings, email, phone calls and browser work.</li><li>Secure: last synchronized readings from approved Home Assistant door and motion sensors. It is not a monitored alarm service.</li><li>Energy: approved Home Assistant energy and climate readings. Automatic optimization and financial savings estimates are not implemented.</li></ul>
+<p>Only the household owner can add or remove built-in apps and approve integrations. Third-party executable plugins and their sandboxing are not part of this release.</p>
+</section>
+
+<section id="privacy">
+<h2>Household privacy and security</h2>
+<ul><li>The household vault is encrypted using AES-256-GCM. Desktop uses the operating-system key store when available. Headless mode uses a restricted local key file or an externally supplied key; protect the computer with disk encryption.</li><li>Passwords use salted scrypt. Sessions use HttpOnly, SameSite=Strict cookies, with Secure on HTTPS. Session tokens expire and sign-out revokes them.</li><li>Private memory is filtered by authenticated member before a model sees context. Devices receive only household-shared memory.</li><li>Pairing codes expire after five minutes and can be redeemed once. Client tokens are stored as hashes and can be revoked.</li><li>The device API validates room access and action permissions independently of the model. Light control is allowlisted. Lock, alarm, robot motion and arbitrary shell actions are excluded.</li><li>The household server has no cloud inference fallback, analytics, microphone capture or automatic internet tunnel. Explicit integrations and local model downloads have separate network needs.</li></ul>
+<div class="note">This is an implemented security foundation, not a completed independent security audit. Recovery, encrypted backups, signed updates, hardware commissioning and a full production threat review remain release gates.</div>
+</section>
+
+<section id="devices">
+<h2>Connect household devices</h2>
+<ol><li>Open Settings, then Connected home.</li><li>Enter the local Home Assistant address and a long-lived access token.</li><li>Select the supported devices Aspen may access and assign their rooms.</li><li>Refresh readings from Settings or the Secure and Energy apps.</li></ol>
+<p>The integration currently supports private IPv4 addresses and local hostnames resolving only to private IPv4 addresses. Credentials are never sent to the language model. Automatic mDNS provisioning and direct Matter pairing remain future work.</p>
+</section>
+
+<section id="device-api">
+<h2>Device API for phones, pods and robots</h2>
+<p>The household API is rooted at /v1/home. An owner creates a short-lived pairing code in Settings. A client exchanges it at POST /pair, stores the returned Bearer token securely and uses only the granted scopes. See docs/HOME_API.md in the source for request schemas.</p>
+<ul><li>home:read — household-shared state; excludes private memory.</li><li>chat:ask — ask the local model with authorized context.</li><li>tasks:write — create and complete shared tasks.</li><li>devices:control — operate approved lights within the client’s assigned room.</li></ul>
+<p>Room pods and robots must have a room. A shared device cannot supply a member ID to impersonate someone. Revoking the client disables its token immediately. Voice capture and robotics execution adapters are not included.</p>
+</section>
+
 <section id="overview">
-<h2>Overview</h2>
+<h2>AI workspace: Overview</h2>
+<div class="note">This section describes the existing Aspen AI workspace. It is separate from the new household preview.</div>
 <p>Aspen is private AI that runs entirely on your own hardware. Instead of sending your prompts to a company's servers, Aspen runs an open large language model locally and gives you a clean app to chat with it. Nothing leaves your device.</p>
 <p>Aspen has three parts that work together: the model (an open LLM such as Llama, Qwen, DeepSeek, or Mistral that runs on your machine), a local gateway (an OpenAI-compatible server on your computer that handles requests, tools, and memory), and the apps (desktop for Mac and Windows, plus a free iPhone app that connects back to your own machine).</p>
 <div class="note">There is no cloud and no account. Core chat and coding work fully offline once a model is downloaded.</div>
 </section>
 
 <section id="install">
-<h2>Install</h2>
+<h2>AI workspace: Install</h2>
+<div class="note">This section describes the existing Aspen AI workspace. It is separate from the new household preview.</div>
 <h3>Mac and Windows</h3>
 <p>Download the free app from runonaspen.com and open it. There is no terminal or configuration required. On first launch, Aspen detects your hardware and recommends a model to download.</p>
 <p>Prefer the command line? One command installs everything and adds Aspen to your apps menu:</p>
-<pre><code class="language-bash">curl -fsSL https://runonaspen.com/install.sh | sh</code></pre>
+<pre><code class="language-bash">curl -fsSL https://www.runonaspen.com/install.sh | sh</code></pre>
 <div class="note">Windows may show a "Windows protected your PC" warning on first run because Aspen is from an independent developer. Click More info, then Run anyway. It is safe.</div>
 <h3>iPhone</h3>
 <p>Install "Aspen Local AI" free from the App Store. The phone app connects to the AI running on your own computer, so you can use your private models from anywhere.</p>
 </section>
 
 <section id="quickstart">
-<h2>Quickstart</h2>
+<h2>AI workspace: Quickstart</h2>
+<div class="note">This section describes the existing Aspen AI workspace. It is separate from the new household preview.</div>
 <ol><li>Open Aspen. It detects your hardware and suggests a model that fits.</li><li>Let the recommended model download (one time). Smaller models download and load faster.</li><li>Type a question in the chat box and press enter. The reply streams back, generated on your machine.</li><li>Try voice, attach an image, or ask it to write and run code — all locally.</li></ol>
 <p>That is the whole setup. Everything after this is optional configuration for power users and developers.</p>
 </section>
 
 <section id="models">
-<h2>Choosing a model</h2>
+<h2>AI workspace: Choosing a model</h2>
+<div class="note">This section describes the existing Aspen AI workspace. It is separate from the new household preview.</div>
 <p>Aspen runs the latest open models and shows a library you can browse in Settings. Each model lists its size and the memory it needs, and Aspen flags any that may be too large for your machine.</p>
 <h3>Rough hardware guide</h3>
 <ul><li>8GB RAM: small models around 3B parameters.</li><li>16GB RAM: 7–8B models, a great all-round sweet spot.</li><li>32GB RAM: 13–14B models.</li><li>64GB+ RAM: 30B+ models for the strongest local quality.</li></ul>
@@ -123,43 +165,43 @@ footer{border-top:1px solid var(--brd);padding:2rem 1.5rem;text-align:center;col
 </section>
 
 <section id="chat">
-<h2>Chat &amp; artifacts</h2>
+<h2>AI workspace: Chat &amp; artifacts</h2>
+<div class="note">This section describes the existing Aspen AI workspace. It is separate from the new household preview.</div>
 <p>The chat works like any modern AI assistant: ask questions, brainstorm, write and edit text, or get coding help. Responses stream in real time, generated locally.</p>
 <p>When you ask Aspen to build something on the web — a page, a small app, a visualization — it renders a live artifact with a preview panel right in the chat, so you can see and run the result immediately.</p>
 </section>
 
 <section id="voice">
-<h2>Voice</h2>
+<h2>AI workspace: Voice</h2>
+<div class="note">This section describes the existing Aspen AI workspace. It is separate from the new household preview.</div>
 <p>Aspen includes a hands-free voice mode with a natural neural voice. Speak your question and hear the answer back, with speech handled on your machine.</p>
 </section>
 
 <section id="vision">
-<h2>Vision</h2>
+<h2>AI workspace: Vision</h2>
+<div class="note">This section describes the existing Aspen AI workspace. It is separate from the new household preview.</div>
 <p>Attach a photo or screenshot and Aspen reads it with a local vision model. Ask it to describe an image, critique a design, extract text, or explain a chart. The image never leaves your machine.</p>
 </section>
 
 <section id="tools">
-<h2>Tools</h2>
+<h2>AI workspace: Tools</h2>
+<div class="note">This section describes the existing Aspen AI workspace. It is separate from the new household preview.</div>
 <p>Tools let your local model do things beyond chat. Every tool runs on your own computer and uses your own network; nothing is routed through Aspen's servers. Toggle each one in Settings.</p>
 <ul><li>Web search — current information from the live web, with the source cited. Runs from your machine and your IP.</li><li>Read web page — fetch and read the text of a specific URL.</li><li>Run commands — execute shell commands to clone repos, read and write files, and run scripts (works best with larger models).</li><li>Download files — fetch a file to work with locally.</li><li>Calculator and date/time — quick deterministic helpers.</li><li>Git — clone, status, and commit/push helpers.</li></ul>
 <div class="note">For real-time questions (weather, news, prices), enable Web Search so the model answers from live results instead of memory.</div>
 </section>
 
 <section id="memory">
-<h2>Memory (World Model)</h2>
+<h2>AI workspace: Memory (World Model)</h2>
+<div class="note">This section describes the existing Aspen AI workspace. It is separate from the new household preview.</div>
 <p>Aspen can build a "World Model" — a set of facts about you, learned from your conversations, that makes its answers more personal and context-aware. It is stored as a plain file on your own computer.</p>
 <p>After each conversation, your local model quietly extracts useful facts (name, job, preferences, projects) and prepends them to new chats so the AI remembers who you are. You can view, edit, or delete any fact at any time.</p>
 <div class="note">100% local — these facts never leave your machine and are never sent to any server.</div>
 </section>
 
-<section id="privacy">
-<h2>Privacy</h2>
-<p>Privacy is the whole point. The model runs on your hardware, there is no server in the middle, and your conversations are never transmitted or used for training.</p>
-<p>The only time anything touches the network is when you explicitly use an online tool such as web search — and that request goes out from your own machine and IP, not through Aspen. You stay in control.</p>
-</section>
-
 <section id="api">
-<h2>Developer API</h2>
+<h2>AI workspace: Developer API</h2>
+<div class="note">This section describes the existing Aspen AI workspace. It is separate from the new household preview.</div>
 <p>Aspen runs a local gateway that speaks the OpenAI API format. Point any OpenAI-style client at your Aspen endpoint and it works unchanged — your tools now run against your own private AI.</p>
 <h3>Endpoints</h3>
 <ul><li>Same machine: http://localhost:4000/v1</li><li>From anywhere: a private, secure HTTPS URL Aspen can generate for you, so your phone and other apps reach your machine securely.</li></ul>
@@ -196,19 +238,22 @@ console.log(data.choices[0].message.content);</code></pre>
 </section>
 
 <section id="connectors">
-<h2>Connectors (MCP)</h2>
+<h2>AI workspace: Connectors (MCP)</h2>
+<div class="note">This section describes the existing Aspen AI workspace. It is separate from the new household preview.</div>
 <p>Aspen supports connectors built on the open Model Context Protocol (MCP), letting your local AI work with services like GitHub. Access tokens are encrypted and stay on your device.</p>
 </section>
 
 <section id="device">
-<h2>The Aspen device</h2>
+<h2>AI workspace: The Aspen device</h2>
+<div class="note">This section describes the existing Aspen AI workspace. It is separate from the new household preview.</div>
 <p>The Aspen device is an optional, dedicated machine for running the largest models around the clock without using your own computer. You never need it to use Aspen — the free app runs well on a modern Mac or PC.</p>
 <ul><li>About 1 petaflop of AI performance</li><li>128GB unified memory</li><li>Runs models up to roughly 200B parameters</li><li>Silent and always on</li><li>About 5.9" x 5.9" x 2"</li></ul>
 <p>It is available by preorder with a $1 deposit.</p>
 </section>
 
 <section id="troubleshooting">
-<h2>Troubleshooting</h2>
+<h2>AI workspace: Troubleshooting</h2>
+<div class="note">This section describes the existing Aspen AI workspace. It is separate from the new household preview.</div>
 <h3>Windows "protected your PC" warning</h3>
 <p>Normal and safe for a new app from an independent developer. Click More info, then Run anyway. If the download was blocked, right-click the file, choose Properties, check Unblock, then run it.</p>
 <h3>A model is slow or crashes</h3>
@@ -217,9 +262,9 @@ console.log(data.choices[0].message.content);</code></pre>
 <p>Enable the Web Search tool in Settings so the model can answer real-time questions from the live web with cited sources.</p>
 </section>
 <div class="cta"><p style="margin:0 0 .8rem;color:var(--bk);font-size:1.05rem;font-weight:500">Ready to own your intelligence?</p>
-<p style="margin:0"><a href="/app" style="font-weight:600">Try Aspen free in your browser &rarr;</a></p></div>
+<p style="margin:0"><a href="/home/?demo=1" style="font-weight:600">Try Aspen free in your browser &rarr;</a></p></div>
 </main>
 </div>
-<footer>&copy; 2025 Aspen &middot; <a href="/">Home</a> &middot; <a href="/#faq">FAQ</a> &middot; <a href="https://github.com/spideysense/OpenLLM">GitHub</a> &middot; Open source, MIT License</footer>
+<footer>&copy; 2026 Aspen &middot; <a href="/">Home</a> &middot; <a href="/#faq">FAQ</a> &middot; <a href="https://github.com/spideysense/OpenLLM">GitHub</a> &middot; Source available on GitHub</footer>
 </body>
 </html>

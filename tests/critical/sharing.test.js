@@ -13,10 +13,8 @@ describe('Community Sharing — app side', () => {
     expect(src).toContain('exchanges');
   });
 
-  it('website reads from same community-savings endpoint', () => {
-    const src = fs.readFileSync(path.resolve('site/index.html'), 'utf8');
-    expect(src).toContain('community-savings');
-  });
+  // The household homepage no longer advertises subscription savings.
+  // Existing AI-workspace callers and the GET/POST roundtrip remain covered below.
 
   it('API has no IP tracking or rate limiting', () => {
     const src = fs.readFileSync(path.resolve('api/community-savings.js'), 'utf8');

@@ -1337,7 +1337,7 @@ async function sendMessage(autoRespond){
       const e=await res.json().catch(()=>({}));
       if(e.capped){
         stopThinking(bubble);
-        bubble.innerHTML=`<div style="font-size:.85rem;line-height:1.6">${escHtml(e.error||"You've used your free messages.")}<br><br><a href="https://runonaspen.com" style="color:var(--gd);font-weight:600;text-decoration:none">Download Aspen — free →</a></div>`;
+        bubble.innerHTML=`<div style="font-size:.85rem;line-height:1.6">${escHtml(e.error||"You've used your free messages.")}<br><br><a href="https://www.runonaspen.com" style="color:var(--gd);font-weight:600;text-decoration:none">Download Aspen — free →</a></div>`;
         isStreaming=false;sendBtn.classList.remove('hidden');stopBtn.classList.add('hidden');sendBtn.disabled=false;streamController=null;return;
       }
       throw new Error(e.error||`HTTP ${res.status}`);

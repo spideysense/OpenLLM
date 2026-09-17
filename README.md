@@ -1,5 +1,31 @@
 # Aspen
 
+**Intelligence. Right at home.**
+
+Aspen is becoming the private operating system for your home: one household brain with apps like Butler, Secure and Energy, and a device API for phones, screens, future room pods and robots.
+
+## Household developer preview
+
+```bash
+npm run home
+```
+
+Requires Node.js 20+. Open the private setup link printed on your computer. Household accounts, memory, tasks and reminders work locally. Local model answers require a running Ollama instance and a compatible model. Settings → Local intelligence → Prepare can download a model selected to fit available memory.
+
+- [Setup, device API and release boundaries](docs/HOME_API.md)
+- [Implementation handoff](ASPEN_HANDOFF.md)
+- `npm run test:home` — household privacy, API and persistence checks
+- `site/home/?demo=1` — static sample household; no real device access
+
+The household redesign is a developer preview. Existing downloadable installers still contain the prior AI workspace. Fine-tuning, direct device commissioning, listening pods, robot adapters, native household release signing and independent security review are not complete.
+
+## Existing AI workspace
+
+The original AI workspace remains available with `ASPEN_WORKSPACE=1` for desktop runs. Its existing source and release pipeline are retained. The documentation below describes that workspace.
+
+---
+
+
 **Own your intelligence.** Private AI that runs on your own machine. No subscriptions, no cloud, no account, no terminal. Download, open, and ask.
 
 Aspen is a desktop app (macOS, Windows, Linux) and a native iPhone app for running open-source language models locally. It bundles the runtime and picks a model for your hardware, so anyone can run a capable model without touching a command line. Your conversations never leave your machine.

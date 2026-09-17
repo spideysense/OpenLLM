@@ -1,454 +1,122 @@
-/**
- * Landing Page Tests
- *
- * STORY: Visitor lands on runonaspen.com and can understand what it does
- * STORY: Search engines can properly index the page
- * STORY: AI engines (AEO) can extract structured answers
- * STORY: No TunnelBear branding leaks anywhere
- * STORY: All pricing tiers are clearly presented
- * STORY: API code examples are accurate
- */
-
+/** Public-site contract for the household product, replacing the retired
+ * bear pricing / OpenAI-SDK landing-page contract. */
 import { describe, it, expect } from 'vitest';
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 
-const html = fs.readFileSync(path.resolve('site/index.html'), 'utf8');
+const html = fs.readFileSync('site/index.html', 'utf8');
+const page = new DOMParser().parseFromString(html, 'text/html');
+const schemas = [...page.querySelectorAll('script[type="application/ld+json"]')].map(s => JSON.parse(s.textContent));
+const product = schemas.find(s => s['@type'] === 'SoftwareApplication');
+const faq = schemas.find(s => s['@type'] === 'FAQPage');
+const config = JSON.parse(fs.readFileSync('vercel.json', 'utf8'));
+const text = page.body.textContent.replace(/\s+/g, ' ');
+const answer = question => faq.mainEntity.find(q => q.name === question)?.acceptedAnswer.text || '';
 
-// ═══════════════════════════════════════════════════
-// BRAND INTEGRITY: No TunnelBear references
-// ═══════════════════════════════════════════════════
-
-describe('Brand: No TunnelBear references', () => {
-  it('should not mention TunnelBear anywhere', () => {
-    expect(html.toLowerCase()).not.toContain('tunnelbear');
+describe('Aspen household site', () => {
+  it('has descriptive and consistent search/social metadata', () => {
+    expect(page.title).toMatch(/Aspen.*home/i);
+    expect(page.title.length).toBeLessThan(70);
+    const description = page.querySelector('meta[name="description"]').content;
+    expect(description.length).toBeGreaterThan(100);
+    expect(description.length).toBeLessThan(200);
+    expect(page.querySelector('link[rel="canonical"]').href).toBe('https://www.runonaspen.com/');
+    expect(page.querySelector('meta[property="og:url"]').content).toBe('https://www.runonaspen.com/');
+    for (const property of ['og:title', 'og:description', 'og:image', 'og:type']) expect(page.querySelector(`meta[property="${property}"]`).content).toBeTruthy();
+    expect(page.querySelector('meta[name="twitter:card"]').content).toBe('summary_large_image');
   });
 
-  it('should not mention "tunnel" anywhere', () => {
-    expect(html.toLowerCase()).not.toContain('tunnel');
+  it('has one primary heading and accessible document landmarks', () => {
+    expect(page.documentElement.lang).toBe('en');
+    expect(page.querySelectorAll('h1')).toHaveLength(1);
+    expect(page.querySelectorAll('h2').length).toBeGreaterThanOrEqual(3);
+    for (const tag of ['header', 'nav', 'main', 'footer']) expect(page.querySelector(tag)).not.toBeNull();
+    for (const img of page.images) expect(img.hasAttribute('alt')).toBe(true);
+    for (const svg of page.querySelectorAll('svg')) expect(svg.hasAttribute('aria-label') || svg.getAttribute('aria-hidden') === 'true').toBe(true);
+    expect(page.querySelector('meta[name="viewport"]').content).toContain('width=device-width');
   });
 
-  it('should not link to tunnelbear.com', () => {
-    expect(html.toLowerCase()).not.toContain('tunnelbear.com');
+  it('identifies the actual preview in structured data without selling unfinished hardware', () => {
+    expect(product.name).toBe('Aspen');
+    expect(product.applicationCategory).toBe('LifestyleApplication');
+    expect(product.softwareVersion).toMatch(/preview/i);
+    expect(product.offers).toBeUndefined();
+    expect(product.downloadUrl).toBeUndefined();
+    expect(text).toContain('Hardware in development');
   });
 
-  it('should prominently feature "Aspen" branding', () => {
-    const matches = html.match(/Aspen/g) || [];
-    expect(matches.length).toBeGreaterThanOrEqual(5);
-  });
-});
-
-// ═══════════════════════════════════════════════════
-// SEO: Meta tags and structure
-// ═══════════════════════════════════════════════════
-
-describe('SEO: Meta tags', () => {
-  it('should have a descriptive title tag', () => {
-    const title = html.match(/<title>(.*?)<\/title>/)?.[1] || '';
-    expect(title).toContain('Aspen');
-    expect(title.length).toBeGreaterThan(15);
-    expect(title.length).toBeLessThan(70);
-  });
-
-  it('should have a meta description', () => {
-    const desc = html.match(/meta name="description" content="(.*?)"/)?.[1] || '';
-    expect(desc.length).toBeGreaterThan(100);
-    expect(desc.length).toBeLessThan(200);
-    expect(desc.toLowerCase()).toContain('ai');
-  });
-
-  it('should have meta keywords', () => {
-    expect(html).toContain('meta name="keywords"');
-  });
-
-  it('should have a canonical URL', () => {
-    expect(html).toContain('rel="canonical"');
-  });
-
-  it('should have Open Graph tags', () => {
-    expect(html).toContain('og:title');
-    expect(html).toContain('og:description');
-    expect(html).toContain('og:type');
-    expect(html).toContain('og:url');
-    expect(html).toContain('og:image');
-  });
-
-  it('should have Twitter Card tags', () => {
-    expect(html).toContain('twitter:card');
-    expect(html).toContain('twitter:title');
-    expect(html).toContain('twitter:description');
-  });
-
-  it.skip('should have proper heading hierarchy — character page uses minimal headings', () => {
-    const h1Count = (html.match(/<h1/g) || []).length;
-    const h2Count = (html.match(/<h2/g) || []).length;
-    expect(h1Count).toBe(1); // Only one H1
-    expect(h2Count).toBeGreaterThanOrEqual(3); // Multiple H2 sections
-  });
-
-  it.skip('should have semantic sections — character page layout uses stage/scene divs', () => {
-    expect(html).toContain('<section');
-    expect(html).toContain('<nav');
-    expect(html).toContain('<footer');
-  });
-
-  it('should have alt-equivalent text for SVG graphics', () => {
-    // SVGs should be decorative or have labels
-    expect(html).toContain('<svg');
-  });
-});
-
-// ═══════════════════════════════════════════════════
-// AEO: Structured data for AI engines
-// ═══════════════════════════════════════════════════
-
-describe('AEO: Structured data (JSON-LD)', () => {
-  it('should have JSON-LD script tags', () => {
-    expect(html).toContain('application/ld+json');
-  });
-
-  it('should have SoftwareApplication schema', () => {
-    expect(html).toContain('"@type":"SoftwareApplication"');
-    expect(html).toContain('"name":"Aspen"');
-  });
-
-  it('should have FAQPage schema with Q&A pairs', () => {
-    expect(html).toContain('"@type":"FAQPage"');
-    expect(html).toContain('"@type":"Question"');
-    expect(html).toContain('"acceptedAnswer"');
-  });
-
-  it('should include pricing in structured data', () => {
-    expect(html).toContain('"@type":"Offer"');
-    expect(html).toContain('"price"');
-    expect(html).toContain('"priceCurrency":"USD"');
-  });
-
-  it('should include download URL in structured data', () => {
-    expect(html).toContain('"downloadUrl"');
-    expect(html).toContain('github.com');
-  });
-
-  it('should have FAQ covering at least 5 questions', () => {
-    const questionCount = (html.match(/"@type":"Question"/g) || []).length;
-    expect(questionCount).toBeGreaterThanOrEqual(5);
-  });
-
-  it('should have HowTo schema with 3 steps', () => {
-    expect(html).toContain('"@type":"HowTo"');
-    expect(html).toContain('"@type":"HowToStep"');
-    const stepCount = (html.match(/"@type":"HowToStep"/g) || []).length;
-    expect(stepCount).toBe(3);
-  });
-
-  it.skip('should have totalTime in HowTo schema — simplified schema', () => {
-    expect(html).toContain('"totalTime"');
-  });
-});
-
-// ═══════════════════════════════════════════════════
-// CONTENT: Pricing tiers
-// ═══════════════════════════════════════════════════
-
-describe('Content: Pricing tiers', () => {
-  it.skip('should show Cave Bear (free) — plan names changed to Free/Cloud/Pro', () => {
-    expect(html).toContain('Cave Bear');
-    expect(html).toContain('Free');
-    expect(html).toContain('forever');
-  });
-
-  it.skip('should show Cloud Bear ($0.99/mo) — plan names changed', () => {
-    expect(html).toContain('Cloud Bear');
-    expect(html).toContain('0.99');
-  });
-
-  it.skip('should show Grizzly Bear ($1.99/mo) — plan names changed', () => {
-    expect(html).toContain('Grizzly Bear');
-    expect(html).toContain('1.99');
-  });
-
-  it.skip('should highlight Cloud Bear as Most Popular — plan names changed', () => {
-    expect(html).toContain('Most Popular');
-  });
-
-  it.skip('should mention cost savings — removed competitor comparisons', () => {
-    expect(html).toContain('$20');
-  });
-
-  it.skip('should mention AI alternatives — removed competitor comparisons', () => {
-    expect(html).toContain('ChatGPT');
-    expect(html).toContain('Claude');
-    expect(html).toContain('$20');
-  });
-});
-
-// ═══════════════════════════════════════════════════
-// CONTENT: API code example
-// ═══════════════════════════════════════════════════
-
-describe('Content: API examples', () => {
-  it('should show API code example', () => {
-    expect(html).toContain('base_url');
-    expect(html).toContain('api_key');
-    expect(html).toContain('sk-aspen');
-  });
-
-  it('should use Python OpenAI SDK syntax', () => {
-    // HTML wraps keywords in <span> tags, so check for key fragments
-    expect(html).toContain('openai');
-    expect(html).toContain('OpenAI');
-  });
-
-  it('should mention compatible tools', () => {
-    expect(html).toContain('LangChain');
-    expect(html).toContain('Cursor');
-  });
-});
-
-// ═══════════════════════════════════════════════════
-// CONTENT: CTAs and links
-// ═══════════════════════════════════════════════════
-
-describe('Content: Calls to action', () => {
-  it('should link to GitHub repo', () => {
-    expect(html).toContain('github.com/spideysense/OpenLLM');
-  });
-
-  it('should have download CTA with OS detection', () => {
-    expect(html).toContain('download-mac');
-    expect(html).toContain('Download');
-  });
-
-  it('should have direct download URLs for Mac and Windows', () => {
-    expect(html).toContain('.dmg');
-    expect(html).toContain('.exe');
-    expect(html).toContain('releases/latest/download');
-  });
-
-  it('should use version-less filenames so /latest/ always resolves', () => {
-    // BUG: If filename includes version (Aspen-0.1.3-mac.dmg) but "latest"
-    // points to an older release, download 404s. Filenames must be stable.
-    expect(html).toContain('Aspen-mac.dmg');
-    expect(html).toContain('Aspen-win.exe');
-    // Must NOT have version in filename
-    expect(html).not.toMatch(/Aspen-\d+\.\d+\.\d+-mac\.dmg/);
-    expect(html).not.toMatch(/Aspen-\d+\.\d+\.\d+-win\.exe/);
-  });
-
-  it('should have matching artifact names in electron-builder config', () => {
-    const pkg = JSON.parse(fs.readFileSync(path.resolve('package.json'), 'utf8'));
-    expect(pkg.build.mac.artifactName).toContain('Aspen-mac');
-    expect(pkg.build.win.artifactName).toContain('Aspen-win');
-  });
-
-  it('should detect user OS (mac/win/linux/ios)', () => {
-    expect(html).toContain('download-primary');
-    expect(html).toContain('download-secondary');
-    expect(html).toContain('Aspen-mac.dmg');
-    expect(html).toContain('Aspen-win.exe');
-    // Linux detection serves the .deb (auto-installs deps incl FUSE)
-    // Linux: .deb available as secondary, install script as primary path
-    expect(html).toContain('Aspen-linux-arm64.deb');
-    expect(html).toContain('install.sh');
-    expect(html).toContain('Copy Linux install command');
-  });
-
-  it('should have GitHub Fork CTA', () => {
-    expect(html).toContain('GitHub');
-  });
-
-  it('should mention MIT license', () => {
-    expect(html).toContain('MIT');
-  });
-
-  it('should mention open source models from major providers', () => {
-    expect(html).toContain('Llama');
-    expect(html).toContain('Qwen');
-    expect(html).toContain('DeepSeek');
-  });
-});
-
-// ═══════════════════════════════════════════════════
-// CONTENT: Value propositions
-// ═══════════════════════════════════════════════════
-
-describe('Content: Value propositions', () => {
-  it('should communicate zero setup', () => {
-    expect(html).toContain('No terminal');
-  });
-
-  it('should communicate privacy', () => {
-    expect(html).toContain('private');
-    expect(html).toContain('never leave');
-  });
-
-  it.skip('should communicate auto-updates — character page focuses on core value props', () => {
-    expect(html).toContain('Always Up To Date');
-  });
-
-  it('should communicate API replacement', () => {
-    expect(html).toContain('OpenAI-compatible');
-    expect(html).toContain('two lines');
-  });
-
-  it.skip('should have 3-step how-it-works flow — embedded in character dialogue', () => {
-    expect(html).toContain('Download');
-    expect(html).toContain('Bear Picks Your Model');
-    expect(html).toContain('Start Chatting');
-  });
-
-  it('should reinforce privacy across multiple sections', () => {
-    // Privacy should appear in hero, features, how-it-works, pricing, API, and CTA
-    const privacyTerms = ['private', 'never leave', 'on your machine', 'No data', 'localhost'];
-    let sectionHits = 0;
-    for (const term of privacyTerms) {
-      const matches = html.toLowerCase().match(new RegExp(term.toLowerCase(), 'g')) || [];
-      if (matches.length > 0) sectionHits++;
+  it('keeps machine-readable FAQs consistent with visible answers', () => {
+    expect(faq.mainEntity.length).toBeGreaterThanOrEqual(5);
+    const visible = [...page.querySelectorAll('#faq details')];
+    expect(visible).toHaveLength(faq.mainEntity.length);
+    for (const q of faq.mainEntity) {
+      const detail = visible.find(d => d.querySelector('summary').textContent === q.name);
+      expect(detail?.querySelector('p').textContent).toBe(q.acceptedAnswer.text);
     }
-    expect(sectionHits).toBeGreaterThanOrEqual(4);
-  });
-});
-
-// ═══════════════════════════════════════════════════
-// PERFORMANCE: Page structure
-// ═══════════════════════════════════════════════════
-
-describe('Performance: Page structure', () => {
-  it('should preconnect to Google Fonts', () => {
-    expect(html).toContain('rel="preconnect"');
-    expect(html).toContain('fonts.googleapis.com');
   });
 
-  it('should use modern CSS (no external stylesheet dependencies)', () => {
-    // All styles should be inline for single-file deployment
-    expect(html).toContain('<style>');
-    // Should not link to external CSS files
-    const cssLinks = html.match(/<link[^>]*rel="stylesheet"[^>]*href="(?!https:\/\/fonts)/g) || [];
-    expect(cssLinks).toHaveLength(0);
+  it('distinguishes available software from future plug-and-play capabilities', () => {
+    expect(answer('What can I use today?')).toMatch(/current Mac, Windows and iPhone downloads.*existing Aspen local AI workspace/);
+    expect(answer('Is this the finished plug-and-play product?')).toMatch(/Not yet/);
+    expect(answer('Does Aspen use a fine-tuned household model?')).toMatch(/does not include a newly trained or fine-tuned model/);
+    expect(answer('What about room speakers and robots?')).toMatch(/Microphone access is disabled/);
   });
 
-  it('should have minimal JavaScript at the end', () => {
-    const scriptTags = html.match(/<script(?! type="application\/ld)/g) || [];
-    expect(scriptTags.length).toBeLessThanOrEqual(8); // setup, hero showcase, contact form, attribution+visit, savings widget, trial chat, preorder
+  it('describes privacy and discovery limits without claiming universal support', () => {
+    expect(answer('Can my family keep things private?')).toMatch(/private by default/);
+    expect(answer('Can my family keep things private?')).toMatch(/shared context only/);
+    expect(answer('Will Aspen automatically find all my devices?')).toMatch(/Home Assistant/);
+    expect(answer('Will Aspen automatically find all my devices?')).toMatch(/not included yet/);
+    expect(answer('What works without internet?')).toMatch(/once a compatible model is installed and running/);
   });
 
-  it('should be a reasonable file size (under 50KB)', () => {
-    const sizeKB = Buffer.byteLength(html) / 1024;
-    expect(sizeKB).toBeLessThan(200); // character page with SVG figure is larger than a traditional landing page
-  });
-});
-
-// ═══════════════════════════════════════════════════
-// NO-REGRESSION: Full-project TunnelBear check
-// ═══════════════════════════════════════════════════
-
-describe('No-Regression: Project-wide brand check', () => {
-  const filesToCheck = [
-    'src/renderer/styles.css',
-    'src/renderer/App.jsx',
-    'README.md',
-    'PLAN.md',
-  ];
-
-  for (const file of filesToCheck) {
-    it(`should have no TunnelBear references in ${file}`, () => {
-      if (fs.existsSync(path.resolve(file))) {
-        const content = fs.readFileSync(path.resolve(file), 'utf8');
-        expect(content.toLowerCase()).not.toContain('tunnelbear');
-      }
-    });
-  }
-});
-
-// ═══════════════════════════════════════════════════
-// SEO: Supporting files
-// ═══════════════════════════════════════════════════
-
-describe('SEO: Supporting files', () => {
-  it('should have a robots.txt', () => {
-    expect(fs.existsSync(path.resolve('site/robots.txt'))).toBe(true);
-    const robots = fs.readFileSync(path.resolve('site/robots.txt'), 'utf8');
-    expect(robots).toContain('User-agent');
-    expect(robots).toContain('Sitemap');
+  it('provides a working sample CTA and source setup instructions', () => {
+    expect(page.querySelector('a[href="/home/?demo=1"]')).not.toBeNull();
+    expect(page.querySelector('a[href="/docs#home"]')).not.toBeNull();
+    expect(fs.existsSync('site/home/index.html')).toBe(true);
+    const docs = new DOMParser().parseFromString(fs.readFileSync('site/docs/index.html', 'utf8'), 'text/html');
+    expect(docs.getElementById('home')).not.toBeNull();
+    expect(docs.body.textContent).toContain('npm run home');
   });
 
-  it('should have a sitemap.xml', () => {
-    expect(fs.existsSync(path.resolve('site/sitemap.xml'))).toBe(true);
-    const sitemap = fs.readFileSync(path.resolve('site/sitemap.xml'), 'utf8');
-    expect(sitemap).toContain('<urlset');
-    expect(sitemap).toContain('<loc>');
-  });
-});
-
-// ═══════════════════════════════════════════════════
-// ACCESSIBILITY: Helps AEO engines parse content
-// ═══════════════════════════════════════════════════
-
-describe('Accessibility: ARIA and semantic markup', () => {
-  it.skip('should have aria-label on navigation — character page has no traditional nav', () => {
-    expect(html).toContain('aria-label');
+  it('keeps current Mac and Windows download routes aligned with release artifacts', () => {
+    const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+    for (const [route, platform, filename] of [['/download', 'mac', 'Aspen-mac.dmg'], ['/download/win', 'win', 'Aspen-win.exe']]) {
+      expect(page.querySelector(`a[href="${route}"]`)).not.toBeNull();
+      expect(config.redirects.find(r => r.source === route).destination).toBe('https://github.com/spideysense/OpenLLM/releases/latest/download/' + filename);
+      expect(pkg.build[platform].artifactName).toBe('Aspen-' + platform + '.${ext}');
+    }
+    expect(text).toMatch(/current downloadable app.*existing local AI workspace/);
   });
 
-  it.skip('should have role attributes on key sections — character page uses different layout', () => {
-    expect(html).toContain('role="banner"');
-    expect(html).toContain('role="contentinfo"');
+  it('uses existing local styles/images and valid page anchors', () => {
+    for (const element of page.querySelectorAll('img[src], link[rel="stylesheet"], link[rel="icon"]')) {
+      const url = element.getAttribute('src') || element.getAttribute('href');
+      expect(url.startsWith('/')).toBe(true);
+      expect(fs.existsSync(path.join('site', url))).toBe(true);
+    }
+    for (const link of page.querySelectorAll('a[href^="#"]')) expect(page.getElementById(link.getAttribute('href').slice(1))).not.toBeNull();
+    expect(html).not.toContain('fonts.googleapis.com');
+    expect(Buffer.byteLength(html)).toBeLessThan(50000);
   });
 
-  it.skip('should have theme-color meta tag — can add later', () => {
-    expect(html).toContain('theme-color');
+  it('keeps documentation, privacy and source links available', () => {
+    for (const href of ['/docs', '/privacy/', 'https://github.com/spideysense/OpenLLM']) expect(page.querySelector(`a[href="${href}"]`)).not.toBeNull();
+    expect(fs.existsSync('site/privacy/index.html')).toBe(true);
   });
 
-  it.skip('should have robots meta tag allowing indexing — covered by vercel headers', () => {
-    expect(html).toContain('meta name="robots"');
-    expect(html).toContain('index, follow');
+  it('keeps a sitemap and allows public search indexing', () => {
+    const robots = fs.readFileSync('site/robots.txt', 'utf8');
+    expect(robots).toContain('Sitemap: https://www.runonaspen.com/sitemap.xml');
+    expect(robots).not.toMatch(/^Disallow:\s*\/$/m);
+    const sitemap = fs.readFileSync('site/sitemap.xml', 'utf8');
+    expect(sitemap).toContain('<loc>https://www.runonaspen.com/</loc>');
+    expect(page.querySelector('meta[name="robots"][content*="noindex"]')).toBeNull();
   });
 
-  it.skip('should have sitemap link in head — sitemap exists at /sitemap.xml', () => {
-    expect(html).toContain('rel="sitemap"');
-  });
-});
-
-describe('Windows install help', () => {
-  it('FAQ explains the Windows SmartScreen warning', () => {
-    expect(html).toMatch(/Windows protected your PC|protected your PC/);
-    expect(html).toContain('Run anyway');
-  });
-  it('shows a Windows-only note that is hidden by default', () => {
-    expect(html).toContain('id="win-note"');
-    expect(html).toMatch(/win-note[\s\S]{0,120}display:none/);
-  });
-  it('OS detection reveals the note on Windows', () => {
-    expect(html).toContain("winNote.style.display='block'");
-  });
-});
-
-describe('Linux install script', () => {
-  const fs = require('fs');
-  const path = require('path');
-
-  it('install.sh exists and is a valid shell script', () => {
-    const p = path.resolve('site/install.sh');
-    expect(fs.existsSync(p)).toBe(true);
-    const src = fs.readFileSync(p, 'utf8');
-    expect(src.startsWith('#!/usr/bin/env bash')).toBe(true);
-  });
-
-  it('detects architecture (arm64 + amd64)', () => {
-    const src = fs.readFileSync(path.resolve('site/install.sh'), 'utf8');
-    expect(src).toContain('aarch64|arm64');
-    expect(src).toContain('x86_64|amd64');
-  });
-
-  it('downloads from the latest release and installs with dep resolution', () => {
-    const src = fs.readFileSync(path.resolve('site/install.sh'), 'utf8');
-    expect(src).toContain('releases/latest/download/Aspen-linux-');
-    expect(src).toContain('apt install -y');
-  });
-
-  it('is served as plain text by vercel', () => {
-    const cfg = JSON.parse(fs.readFileSync(path.resolve('vercel.json'), 'utf8'));
-    const h = cfg.headers.find(x => x.source === '/install.sh');
-    expect(h).toBeDefined();
-    expect(h.headers.some(k => k.value.includes('text/plain'))).toBe(true);
+  it('keeps retired branding out of the product and public source documentation', () => {
+    for (const file of ['site/index.html', 'src/renderer/styles.css', 'src/renderer/App.jsx', 'README.md', 'PLAN.md']) {
+      if (fs.existsSync(file)) expect(fs.readFileSync(file, 'utf8').toLowerCase()).not.toContain('tunnelbear');
+    }
   });
 });
