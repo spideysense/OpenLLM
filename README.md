@@ -106,6 +106,17 @@ npm run build:win
 # Linux AppImage/deb are produced by the release workflow
 ```
 
+To publish the first household release from the signing Mac, open Terminal in this project and run:
+
+```bash
+git switch main
+git pull --ff-only
+npm ci
+npm run release:mac -- 0.9.0
+```
+
+Stop if any command fails. The release script reads the credentials already saved in `~/.aspen-release-env`, checks the household setup and task flow, builds and notarizes the Mac app, validates its stapled signature, uploads the release, and starts the Windows/Linux workflows. If the credentials file is missing, the script creates a template and stops; fill it in on your Mac, never in chat. Use a new version for each later release. This publishes a developer preview, not finished plug-and-play hardware.
+
 The native iOS app lives in [`ios-native/`](ios-native) and builds with XcodeGen + Xcode.
 
 ## Privacy

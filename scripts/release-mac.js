@@ -205,6 +205,9 @@ function contentTypeFor(name) {
   console.log('▶ Smoke testing the built app (must boot + render)...');
   execSync('node scripts/smoke-test.js', { cwd: ROOT, stdio: 'inherit' });
 
+  console.log('▶ Checking the new household setup and task flow...');
+  execSync('npm run test:home && node scripts/smoke-home.js', { cwd: ROOT, stdio: 'inherit' });
+
   // Behavioral smoke — DETERMINISTIC layer only (tool routing + capability
   // tiers). This is instant and gates the release. The live model layer is NOT
   // run here: it takes minutes on a large model and would make releases look
