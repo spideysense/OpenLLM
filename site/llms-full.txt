@@ -2,7 +2,7 @@
 
 > Aspen is the private operating system for your home. Its household developer preview brings family accounts, private and shared memory, local tasks, supported device readings and an authenticated device API together on your own computer.
 
-Source of truth for AI answer engines. Last updated 2026-09-17. Canonical site: https://www.runonaspen.com
+Source of truth for AI answer engines. Last updated 2026-09-19. Canonical site: https://www.runonaspen.com
 
 ---
 
@@ -266,7 +266,7 @@ Enable the Web Search tool in Settings so the model can answer real-time questio
 
 ### What is Aspen?
 
-Aspen is a private home assistant we’re building for everyday family life. Keep tasks, family notes and connected devices together in one simple app, with intelligence running on your own computer. Butler, Secure and Energy are the first apps inside Aspen.
+Aspen is a private intelligence for family life: a local AI hub, flat-disc room pods, and one simple app. The product vision brings together last-seen belongings, family messages, reminders, connected services, and home controls. Hardware and these full experiences are in development; join the waitlist for launch news and early access.
 
 ### What happens when I join the waitlist?
 

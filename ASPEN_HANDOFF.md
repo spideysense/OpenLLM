@@ -53,3 +53,7 @@ The source-build app adds Make a plan: paste up to 4,000 characters, draft up to
 Chat/UI state is now cleared on sign-out, authentication screens and member changes. Epoch guards reject pending replies from previous personal sessions. The same household web UI is used by the new desktop surface and responsive browser; legacy workspace clients are separate.
 
 Release status: Mac and Windows 0.9.0 household installers published successfully at commit c9e0f207b1cf6d8d936c01eab3017319c548686f. Linux dispatch was requested from the signing machine but has not been verified here.
+
+## September 19 waitlist launch design
+
+The public homepage now sells the forthcoming full Aspen experience, with a primary waitlist CTA, two photorealistic flat-disc pod/hub concept renderings, and licensed real family photography. `site/aspen-waitlist.css` extends existing shared marketing styles; sample moments and the durable waitlist API remain unchanged. Hardware visuals are concepts, not shipping products. Everyday use cases cover last-seen objects, identity-confirmed family handoffs, daily briefings, Butler tasks, Secure and Energy. The page explicitly distinguishes planned experiences from the 0.9.0 developer software; pricing and launch dates are not invented. Asset provenance and generation prompts are in `site/images/ASSETS.md`.
