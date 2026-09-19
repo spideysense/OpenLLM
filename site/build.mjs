@@ -197,6 +197,7 @@ function llmsTxt() {
   const facts = [
     'Join the free launch and early-access waitlist at https://www.runonaspen.com/#waitlist. No launch date or hardware price is announced.',
     'The waitlist previews Aspen Hub, flat-disc camera/microphone/speaker room pods, private family chat, last-seen belongings, family handoffs and connected-service briefings. These are planned experiences, not capabilities of the released installers.',
+    'Waitlist referrals: each new referred signup gives its inviter a seven-day head start in signup-time ranking; duplicate signups do not count and deletion reverses the boost. Private receipt-based status shows position and invite count without exposing contact addresses.',
     'Household developer preview: individual local accounts, shared/private memory, tasks and reminders.',
     'Local model answers use a compatible installed model; cloud inference fallback is disabled in the household core.',
     'Supported lights and sensors are discovered through local Home Assistant and explicitly approved by the owner.',

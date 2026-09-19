@@ -21,7 +21,7 @@ describe('durable waitlist boundary',()=>{
     expect(res.code).toBe(200);expect(res.data.ok).toBe(true);expect(res.data.receipt).toMatch(/^[A-Za-z0-9_-]{43}$/);
     const commands=fetchMock.mock.calls.map(([,options])=>JSON.parse(options.body));
     expect(commands).toHaveLength(2);
-    const record=JSON.parse(commands[1][6]);
+    const record=JSON.parse(commands[1][9]);
     expect(record).toMatchObject({email:'person@example.com',source:'launch-campaign',verified:false,consentVersion:'launch-early-access-v1'});
     expect(Date.parse(record.consentAt)).not.toBeNaN();expect(record.receiptHash).toMatch(/^[a-f0-9]{64}$/);
     expect(JSON.stringify(commands)).not.toContain('192.0.2.15');expect(JSON.stringify(commands)).not.toContain(res.data.receipt);
@@ -69,7 +69,20 @@ describe('durable waitlist boundary',()=>{
     const wrong=response();await handler(request({receipt:'A'.repeat(43)},{method:'DELETE'}),wrong);expect(wrong.data.removed).toBe(false);
     fetchMock.mockResolvedValueOnce(result(2)).mockResolvedValueOnce(result(1));
     const correct=response();await handler(request({receipt:'B'.repeat(43)},{method:'DELETE'}),correct);expect(correct.data.removed).toBe(true);
-    const command=JSON.parse(fetchMock.mock.calls[3][1].body);expect(command[1]).toContain('record.receiptHash ~= ARGV[2]');expect(command[6]).not.toBe('B'.repeat(43));
+    const command=JSON.parse(fetchMock.mock.calls[3][1].body);expect(command[1]).toContain('record.receiptHash ~= ARGV[2]');expect(command[9]).not.toBe('B'.repeat(43));
+  });
+  it('requires a private capability for position and returns no personal data', async()=>{
+    let res=response(); await handler(request({receipt:'invalid'},{method:'PATCH'}),res); expect(res.code).toBe(400); expect(fetchMock).not.toHaveBeenCalled();
+    fetchMock.mockResolvedValueOnce(result(1)).mockResolvedValueOnce(result(JSON.stringify({position:3,referrals:2,code:'abcdefghijklmnop'})));
+    res=response();await handler(request({receipt:'A'.repeat(43)},{method:'PATCH'}),res);expect(res.data.waitlist).toEqual({position:3,referrals:2,code:'abcdefghijklmnop'});expect(JSON.stringify(res.data)).not.toContain('person@example.com');
+    fetchMock.mockResolvedValueOnce(result(1)).mockResolvedValueOnce(result(''));
+    res=response();await handler(request({receipt:'B'.repeat(43)},{method:'PATCH'}),res);expect(res.data).toEqual({ok:true,waitlist:null});
+  });
+  it('passes only validated public referral codes into the atomic signup',async()=>{
+    for(const ref of ['abcdefghijklmnop', '<script>bad</script>']){
+      fetchMock.mockClear(); const res=response();await handler(request({ref}),res);expect(res.code).toBe(200);
+      const cmd=JSON.parse(fetchMock.mock.calls[1][1].body);expect(cmd[11]).toBe(ref.length===16?ref:'');expect(cmd[12]).toBe(7*86400000);
+    }
   });
   it('does not permit public GET listing',async()=>{
     const res=response();await handler(request({}, {method:'GET'}),res);expect(res.code).toBe(405);expect(fetchMock).not.toHaveBeenCalled();

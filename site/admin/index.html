@@ -217,12 +217,12 @@ $('load-waitlist').addEventListener('click',async()=>{
   const button=$('load-waitlist');button.disabled=true;$('waitlist-note').textContent='Loading signups…';
   try{
     const data=await waitlistPage();
-    $('waitlist-note').textContent=data.total.toLocaleString()+' signups. Showing the most recent '+data.contacts.length+'.';
+    $('waitlist-note').textContent=data.total.toLocaleString()+' signups. Showing the first '+data.contacts.length+' in priority order.';
     $('waitlist-rows').replaceChildren();
     for(const contact of data.contacts){
       const row=document.createElement('div');row.className='rel-row';row.style.flexWrap='wrap';row.style.gap='.5rem';
       const email=document.createElement('span');email.textContent=contact.email;email.style.overflowWrap='anywhere';
-      const date=document.createElement('span');date.textContent=new Date(contact.createdAt).toLocaleDateString()+' · '+contact.source;
+      const date=document.createElement('span');date.textContent='#'+contact.position+' · '+contact.referrals+' invites · '+new Date(contact.createdAt).toLocaleDateString()+' · '+contact.source;
       row.append(email,date);$('waitlist-rows').append(row);
     }
     $('export-waitlist').disabled=data.total===0;
@@ -239,7 +239,7 @@ $('export-waitlist').addEventListener('click',async()=>{
     }while(offset!==null);
     // Defend spreadsheet users from formulas in user-provided addresses/source.
     const cell=value=>'"'+String(value??'').replace(/^[=+@\-\t\r]/,"'$&").replace(/"/g,'""')+'"';
-    const fields=['email','source','createdAt','consentAt','consentVersion','verified'];
+    const fields=['position','referrals','email','source','createdAt','consentAt','consentVersion','verified'];
     const csv=[fields.join(','),...contacts.map(c=>fields.map(f=>cell(c[f])).join(','))].join('\r\n');
     const url=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}));
     const link=document.createElement('a');link.href=url;link.download='aspen-waitlist-'+new Date().toISOString().slice(0,10)+'.csv';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
